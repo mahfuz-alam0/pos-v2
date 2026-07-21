@@ -1,13 +1,14 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { api } from "@/services/api";
+import { handleApiError } from "@/services/handleApiError";
 
 export async function checkOrganization(orgUsername) {
-  const res = await fetch(
-    `${API_URL}/organization-accounts/check-if-organization-functional?orgUsername=${encodeURIComponent(orgUsername)}`
-  );
-
-  if (!res.ok) {
-    throw new Error("Organization not found");
+  try {
+    const { data } = await api.get(
+      "/organization-accounts/check-if-organization-functional",
+      { params: { orgUsername } }
+    );
+    return data; // expected: { orgId, ... }
+  } catch (err) {
+    handleApiError(err);
   }
-
-  return res.json(); // expected: { orgId, ... }
 }

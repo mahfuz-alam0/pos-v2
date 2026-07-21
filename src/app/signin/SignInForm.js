@@ -70,9 +70,10 @@ export default function SignInForm() {
 
     const timer = setTimeout(async () => {
       try {
-        const data = await checkOrganization(trimmed);
-        setOrgId(data?.orgId ?? null);
-        if (!data?.orgId) setOrgError("Organization not found");
+        const res = await checkOrganization(trimmed);
+        const orgId = res?.data?.orgId ?? null;
+        setOrgId(orgId);
+        if (!orgId) setOrgError("Organization not found");
       } catch {
         setOrgError("Organization not found");
       } finally {

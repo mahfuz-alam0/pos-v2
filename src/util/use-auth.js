@@ -1,41 +1,28 @@
 "use client";
 
 import { loginWithBackend, LOGIN_METHODS } from "@/services/auth/login";
-
-const AUTH_COOKIE = "auth-token";
-const COOKIE_MAX_AGE_DAYS = 7;
-
-function setAuthCookie(token) {
-  const maxAge = COOKIE_MAX_AGE_DAYS * 24 * 60 * 60;
-  document.cookie = `${AUTH_COOKIE}=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
-}
-
-function clearAuthCookie() {
-  document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0`;
-}
+import { getEcomAccessToken } from "@/services/auth/getEcomAccessToken";
 
 export async function loginWithBackendAndPersist({ orgId, email, password, method, qrSession }) {
-  const data = await loginWithBackend({ orgId, email, password, method, qrSession });
+  const res = await loginWithBackend({ orgId, email, password, method, qrSession });
 
-  if (data?.token) {
-    setAuthCookie(data.token);
-    localStorage.setItem("authToken", data.token);
-  }
-  if (data?.user) {
-    localStorage.setItem("user", JSON.stringify(data.user));
-  }
-  if (data?.shops) {
-    localStorage.setItem("shops", JSON.stringify(data.shops));
+  const userInfo = res?.data?.userInfo;
+  if (userInfo) {
+    localStorage.setItem("userInfo", JSON.stringify(userInfo));
   }
 
-  return data;
+  const ecomRes = await getEcomAccessToken();
+  const ecomToken = ecomRes?.data?.accessToken;
+  if (ecomToken) {
+    localStorage.setItem("ecomm_token", ecomToken);
+  }
+
+  return userInfo;
 }
 
 export function logout() {
-  clearAuthCookie();
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("user");
-  localStorage.removeItem("shops");
+  localStorage.removeItem("userInfo");
+  localStorage.removeItem("ecomm_token");
 }
 
 export { LOGIN_METHODS };

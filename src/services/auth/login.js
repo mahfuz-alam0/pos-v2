@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { api } from "@/services/api";
+import { handleApiError } from "@/services/handleApiError";
 
 export const LOGIN_METHODS = {
   EMAIL_PASSWORD: "EMAIL_PASSWORD",
@@ -8,22 +9,12 @@ export const LOGIN_METHODS = {
 export async function loginWithBackend({ orgId, email, password, method, qrSession }) {
   const isQr = method === LOGIN_METHODS.QR_CODE;
 
-  const url = isQr
-    ? `${API_URL}/v1/organization-accounts/multi-method-login`
-    : `${API_URL}/organization-accounts/multi-method-login`;
-
   const body = isQr ? { method, qrSession } : { orgId, email, password, method };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Login failed");
+  try {
+    const { data } = await api.post("/organization-accounts/multi-method-login", body);
+    return data; // { success, data: { userInfo } } — session cookie set by server via Set-Cookie
+  } catch (err) {
+    handleApiError(err);
   }
-
-  return res.json(); // expected: { token, user, shops, ... }
 }

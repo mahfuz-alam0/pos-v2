@@ -10,7 +10,7 @@ export function proxy(request) {
 
   if (!token && !isPublic) {
     const signInUrl = new URL("/signin", request.url);
-    signInUrl.searchParams.set("next", pathname);
+    if (pathname !== "/") signInUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(signInUrl);
   }
 
