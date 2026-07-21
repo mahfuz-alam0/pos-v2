@@ -1,23 +1,9 @@
 import { NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/signin"];
-
+// Auth is guarded client-side (see src/components/auth/AuthGuard.jsx).
+// The session lives on the API server's origin, not this app's, so no
+// auth cookie is ever visible here to check.
 export function proxy(request) {
-  const { pathname } = request.nextUrl;
-
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-  const token = request.cookies.get("pos-core-admin-auth")?.value;
-
-  if (!token && !isPublic) {
-    const signInUrl = new URL("/signin", request.url);
-    if (pathname !== "/") signInUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  if (token && pathname.startsWith("/signin")) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
   return NextResponse.next();
 }
 

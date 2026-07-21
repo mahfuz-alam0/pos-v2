@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, noFlashThemeScript } from "@/context/theme-context";
 import SettingsPanel from "@/components/settings/SettingsPanel";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          {children}
+          <AuthGuard>{children}</AuthGuard>
           <SettingsPanel />
         </ThemeProvider>
       </body>
