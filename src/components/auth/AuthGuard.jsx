@@ -1,41 +1,24 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const PUBLIC_PATHS = ["/signin"];
 
-function subscribe() {
-  return () => {};
-}
-
-function getSnapshot() {
+function isAuthed() {
+  if (typeof window === "undefined") return false;
   return Boolean(localStorage.getItem("userInfo"));
-}
-
-function getServerSnapshot() {
-  return false;
-}
-
-function useAuthed() {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export default function AuthGuard({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const mounted = useSyncExternalStore(
-    subscribe,
-    () => true,
-    () => false
-  );
-  const authed = useAuthed();
+  const [ready, setReady] = useState(false);
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-  const shouldRedirect = mounted && ((!authed && !isPublic) || (authed && isPublic));
 
   useEffect(() => {
-    if (!mounted) return;
+    const authed = isAuthed();
 
     if (!authed && !isPublic) {
       const next = pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
@@ -45,10 +28,13 @@ export default function AuthGuard({ children }) {
 
     if (authed && isPublic) {
       router.replace("/");
+      return;
     }
-  }, [mounted, authed, isPublic, pathname, router]);
 
-  if (!mounted || shouldRedirect) return null;
+    setReady(true);
+  }, [pathname, isPublic, router]);
+
+  if (!ready) return null;
 
   return children;
 }
