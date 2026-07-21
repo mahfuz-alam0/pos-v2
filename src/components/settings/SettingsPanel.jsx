@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 import Drawer from "@/components/ui/Drawer";
 
 const DRAWER_WIDTH = 320;
+const HIDDEN_PATHS = ["/signin"];
 
 export default function SettingsPanel() {
   const [open, setOpen] = useState(false);
   const { theme, setTheme, themes, mode, setMode, modes } = useTheme();
+  const pathname = usePathname();
+
+  if (HIDDEN_PATHS.includes(pathname)) return null;
 
   return (
     <>

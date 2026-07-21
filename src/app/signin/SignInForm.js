@@ -140,14 +140,16 @@ export default function SignInForm() {
           }}
         />
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
-          <Image
-            src="/logos/bleaum_logo.png"
-            alt="Logo"
-            width={140}
-            height={42}
-            className="h-10 w-auto"
-            priority
-          />
+          <div className="self-start">
+            <Image
+              src="/logos/bleaum_logo.png"
+              alt="Logo"
+              width={898}
+              height={437}
+              className="h-16 w-auto"
+              priority
+            />
+          </div>
           <div className="max-w-md">
             <h1 className="text-3xl font-semibold leading-tight text-white">
               Run your business,
@@ -172,9 +174,9 @@ export default function SignInForm() {
             <Image
               src="/logos/bleaum_logo.png"
               alt="Logo"
-              width={140}
-              height={42}
-              className="h-10 w-auto"
+              width={898}
+              height={437}
+              className="h-16 w-auto"
               priority
             />
           </div>

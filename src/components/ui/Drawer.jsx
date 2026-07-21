@@ -2,22 +2,22 @@
 
 const SIDE_CONFIG = {
   right: {
-    wrapper: "top-0 right-0 h-full border-l",
+    wrapper: "top-0 right-0 h-full max-w-[85vw] border-l",
     size: (px) => ({ width: px }),
     closedTransform: "translateX(100%)",
   },
   left: {
-    wrapper: "top-0 left-0 h-full border-r",
+    wrapper: "top-0 left-0 h-full max-w-[85vw] border-r",
     size: (px) => ({ width: px }),
     closedTransform: "translateX(-100%)",
   },
   top: {
-    wrapper: "top-0 left-0 w-full border-b",
+    wrapper: "top-0 left-0 w-full max-h-[85vh] border-b",
     size: (px) => ({ height: px }),
     closedTransform: "translateY(-100%)",
   },
   bottom: {
-    wrapper: "bottom-0 left-0 w-full border-t",
+    wrapper: "bottom-0 left-0 w-full max-h-[85vh] border-t",
     size: (px) => ({ height: px }),
     closedTransform: "translateY(100%)",
   },
@@ -61,7 +61,7 @@ export default function Drawer({
       <div
         role="dialog"
         aria-modal="true"
-        className={`fixed max-w-[85vw] max-h-[85vh] bg-component-bg text-text border-border shadow-xl transition-transform duration-300 ease-in-out ${cfg.wrapper} ${className}`}
+        className={`fixed bg-component-bg text-text border-border shadow-xl transition-transform duration-300 ease-in-out ${cfg.wrapper} ${className}`}
         style={{
           zIndex: zIndex + 1,
           ...cfg.size(size),
