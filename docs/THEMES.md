@@ -9,7 +9,7 @@ reskins live via CSS custom properties.
 
 | File | Role |
 |---|---|
-| `src/styles/_themes.scss` | All CSS variables: shared dark-mode base + 10 per-theme `[data-theme="x"]` blocks |
+| `src/styles/_themes.css` | All CSS variables: shared dark-mode base + 10 per-theme `[data-theme="x"]` blocks |
 | `src/context/theme-context.js` | `ThemeProvider`, `useTheme()` hook, `THEMES` list (source of truth), no-flash boot script |
 | `src/app/layout.js` | Mounts `ThemeProvider`, injects no-flash script in `<head>`, renders `SettingsPanel` |
 | `src/components/settings/SettingsPanel.jsx` | Gear FAB + drawer UI (swatch grid) |
@@ -17,7 +17,7 @@ reskins live via CSS custom properties.
 
 ## How it works
 
-1. `_themes.scss` defines CSS vars on `:root` (defaults = `style` theme) and
+1. `_themes.css` defines CSS vars on `:root` (defaults = `style` theme) and
    again per theme under `[data-theme="<id>"]` selectors.
 2. `ThemeProvider` (client component, wraps whole app in `layout.js`) holds
    `theme` state, writes it to `<html data-theme="...">` and to
@@ -42,7 +42,7 @@ Two edits, both required:
    This alone makes it show up in the drawer swatch grid (swatches are
    generated from this array).
 
-2. **`src/styles/_themes.scss`** — add a matching block:
+2. **`src/styles/_themes.css`** — add a matching block:
    ```scss
    [data-theme="my_theme"] {
      --color-primary: #RRGGBB;

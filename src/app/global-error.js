@@ -1,6 +1,6 @@
 "use client";
 
-import "./globals.scss";
+import "./globals.css";
 
 export default function GlobalError({ error, unstable_retry }) {
   return (

@@ -1,25 +1,25 @@
-// Global theme system.
-// Dark-mode chrome (bg/text/sidebar/border) is constant across all themes —
-// only --color-primary / --color-secondary (and their derived states) swap
-// per theme. Add a new theme by adding one block below + one entry in
-// src/context/theme-context.js THEMES.
+/* Global theme system. */
+/* Dark-mode chrome (bg/text/sidebar/border) is constant across all themes — */
+/* only --color-primary / --color-secondary (and their derived states) swap */
+/* per theme. Add a new theme by adding one block below + one entry in */
+/* src/context/theme-context.js THEMES. */
 
 :root {
   color-scheme: dark;
 
-  // ---- dark-mode base (shared by every theme) ----
-  --surface: #38424b;      // main dark bg
-  --surface-alt: #525f6b;  // lighten(surface, 10%) — accents
-  --text: #e0e0e0;         // body text
-  --heading: #ececec;      // lighten(text, 5%)
-  --sidebar-bg: #333c44;   // darken(surface, 2%)
-  --component-bg: #434f5a; // cards/panels
+  /* ---- dark-mode base (shared by every theme) ---- */
+  --surface: #38424b;      /* main dark bg */
+  --surface-alt: #525f6b;  /* lighten(surface, 10%) — accents */
+  --text: #e0e0e0;         /* body text */
+  --heading: #ececec;      /* lighten(text, 5%) */
+  --sidebar-bg: #333c44;   /* darken(surface, 2%) */
+  --component-bg: #434f5a; /* cards/panels */
   --sidebar-text: #a1a1a1;
-  --sidebar-bg-hover: #404b54; // lighten(sidebar-bg, 6%)
+  --sidebar-bg-hover: #404b54; /* lighten(sidebar-bg, 6%) */
   --border: #495762;
-  --framed-bg: #242a2f;    // darken(surface, 10%) — outer bg in framed layout
+  --framed-bg: #242a2f;    /* darken(surface, 10%) — outer bg in framed layout */
 
-  // ---- default theme: "style" (navy/blue) ----
+  /* ---- default theme: "style" (navy/blue) ---- */
   --color-primary: #038FDE;
   --color-primary-hover: #219ce2;
   --color-primary-active: #037ec3;
