@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is([data-mode="dark"] *));
 
 /* Admin-panel neutrals: off-white/gray base, shared by both color themes. */
 :root {
@@ -8,6 +11,13 @@
   --heading: #0d0d0d;
   --component-bg: #ffffff;
   --border: #e5e7eb;
+  --radius: 0.625rem;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --ring: var(--color-primary);
+  --input: var(--border);
+  --muted: var(--surface-alt);
+  --muted-foreground: #6b7280;
 }
 
 [data-mode="dark"] {
@@ -17,6 +27,9 @@
   --heading: #f5f5f5;
   --component-bg: #14171b;
   --border: #23262b;
+  --destructive: #f87171;
+  --destructive-foreground: #1a1a1a;
+  --muted-foreground: #9ca3af;
 }
 
 /* Fixed structural accent: sidebar, header, login page. Not swapped by
@@ -69,16 +82,38 @@
   --color-primary-active: var(--color-primary-active);
   --color-primary-soft: var(--color-primary-soft);
   --color-on-primary: var(--on-primary);
+  --color-primary-foreground: var(--on-primary);
   --color-secondary: var(--color-secondary);
   --color-secondary-hover: var(--color-secondary-hover);
   --color-on-secondary: var(--on-secondary);
+  --color-secondary-foreground: var(--on-secondary);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* shadcn/ui component tokens, mapped onto the admin theme above so
+     shadcn components (Button, Input, Card, ...) reskin automatically
+     instead of carrying their own default palette. */
+  --color-background: var(--surface);
+  --color-foreground: var(--text);
+  --color-card: var(--component-bg);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--component-bg);
+  --color-popover-foreground: var(--text);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 body {
   background: var(--surface);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
 }
