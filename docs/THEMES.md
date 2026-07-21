@@ -1,35 +1,42 @@
 # Theme system
 
-Global theme system with a color theme (10 presets) and a light/dark mode,
-picked independently from a settings drawer (gear icon, fixed right edge).
-Both picks persist across reloads via `localStorage`. No page reload needed
-to switch — everything reskins live via CSS custom properties.
+Simple admin-panel theming: off-white/gray base + a fixed structural accent
+(`#0a1830` — sidebar, header, login page, same in both modes) + a switchable
+brand-color theme (2 presets for now, used for text/buttons only) +
+independent light/dark mode. Picked from a settings drawer (gear FAB, fixed
+right edge, vertically centered). Both picks persist across reloads via
+`localStorage`. No page reload needed — everything reskins live via CSS
+custom properties, exposed to Tailwind as utility classes (`bg-primary`,
+`text-on-primary`, `bg-accent`, etc).
+
+Tailwind v4 only. No SCSS modules, no CSS-in-JS.
 
 ## Files
 
 | File | Role |
 |---|---|
-| `src/styles/_themes.css` | All CSS variables: shared dark-mode base + 10 per-theme `[data-theme="x"]` blocks |
+| `src/app/globals.css` | CSS vars: neutral admin base (light/dark) + per-theme brand colors, mapped into `@theme inline` so Tailwind generates utility classes from them |
 | `src/context/theme-context.js` | `ThemeProvider`, `useTheme()` hook, `THEMES` list (source of truth), no-flash boot script |
 | `src/app/layout.js` | Mounts `ThemeProvider`, injects no-flash script in `<head>`, renders `SettingsPanel` |
-| `src/components/settings/SettingsPanel.jsx` | Gear FAB + drawer UI (swatch grid) |
-| `src/components/settings/SettingsPanel.module.scss` | Styles for the FAB/drawer |
+| `src/components/settings/SettingsPanel.jsx` | Gear FAB + slide-in drawer (theme swatches + mode toggle), styled with Tailwind classes only |
 
 ## How it works
 
-1. `_themes.css` defines CSS vars on `:root` (defaults = `style` theme) and
-   again per theme under `[data-theme="<id>"]` selectors.
-2. `ThemeProvider` (client component, wraps whole app in `layout.js`) holds
-   `theme` state, writes it to `<html data-theme="...">` and to
-   `localStorage["pos-theme"]` on change.
-3. Because the CSS selector is `[data-theme="x"] { --color-primary: ... }`,
-   flipping the attribute on `<html>` is the entire "switch theme" operation
-   — no re-render of styled components needed, just cascading CSS.
-4. A small inline `<script>` (string built in `theme-context.js` as
-   `noFlashThemeScript`, injected in `layout.js`'s `<head>`) sets
-   `data-theme` from `localStorage` **before first paint**. Without this,
-   the page would flash the default theme for a frame before React
-   hydrates and corrects it.
+1. `globals.css` defines neutral tokens on `:root` (light) and overrides
+   under `[data-mode="dark"]`, plus brand tokens (`--color-primary`, etc.)
+   under `[data-theme="navy"]` / `[data-theme="purple"]`.
+2. `@theme inline { --color-primary: var(--color-primary); ... }` re-declares
+   each CSS var as a Tailwind theme color, so `bg-primary`, `text-on-primary`,
+   `border-border`, `bg-surface-alt`, etc. become real utility classes that
+   resolve to whatever the current `data-theme`/`data-mode` attributes say.
+3. `ThemeProvider` (client component, wraps the app in `layout.js`) holds
+   `theme`/`mode` state, writes both to `<html data-theme="..." data-mode="...">`
+   and to `localStorage` on change. Flipping the attribute is the entire
+   "switch theme" operation — pure CSS cascade, no re-render needed.
+4. A small inline `<script>` (`noFlashThemeScript` from `theme-context.js`,
+   injected in `layout.js`'s `<head>`) sets both attributes from
+   `localStorage` **before first paint**, so there's no flash of default
+   theme before React hydrates.
 
 ## Adding a new theme
 
@@ -39,58 +46,52 @@ Two edits, both required:
    ```js
    { id: "my_theme", label: "My Theme", primary: "#RRGGBB", secondary: "#RRGGBB" }
    ```
-   This alone makes it show up in the drawer swatch grid (swatches are
-   generated from this array).
+   This alone makes it show up in the drawer swatch grid.
 
-2. **`src/styles/_themes.css`** — add a matching block:
-   ```scss
+2. **`src/app/globals.css`** — add a matching block:
+   ```css
    [data-theme="my_theme"] {
      --color-primary: #RRGGBB;
-     --color-primary-hover: #RRGGBB;   // primary lightened ~12%
-     --color-primary-active: #RRGGBB; // primary darkened ~12%
-     --color-primary-soft: rgba(r, g, b, 0.16); // primary at 16% alpha
-     --on-primary: #1a1a1a or #ffffff; // whichever gives better contrast on primary
+     --color-primary-hover: #RRGGBB;   /* primary lightened ~12% */
+     --color-primary-active: #RRGGBB;  /* primary darkened ~12% */
+     --color-primary-soft: rgba(r, g, b, 0.16); /* primary at 16% alpha */
+     --on-primary: #1a1a1a or #ffffff; /* whichever contrasts better on primary */
      --color-secondary: #RRGGBB;
-     --color-secondary-hover: #RRGGBB; // secondary lightened ~12%
+     --color-secondary-hover: #RRGGBB; /* secondary lightened ~12% */
      --on-secondary: #1a1a1a or #ffffff;
    }
    ```
-   Don't eyeball the derived shades — regenerate them so hover/active/on-color
-   stay contrast-correct. The generator script used for the original 10
-   themes (lighten/darken by RGB mix toward white/black + WCAG contrast
-   check for on-color) is reproducible from this snippet:
-   ```js
-   function hexToRgb(hex) { hex = hex.replace('#',''); return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)]; }
-   function rgbToHex([r,g,b]) { return '#' + [r,g,b].map(v => Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join(''); }
-   function lighten(hex, pct) { const [r,g,b] = hexToRgb(hex); return rgbToHex([r+(255-r)*pct, g+(255-g)*pct, b+(255-b)*pct]); }
-   function darken(hex, pct) { const [r,g,b] = hexToRgb(hex); return rgbToHex([r*(1-pct), g*(1-pct), b*(1-pct)]); }
-   // on-color: pick #fff or #1a1a1a, whichever has higher WCAG contrast against hex
-   ```
-   Pick 12% for hover/active and 16% alpha for the soft variant to match
-   the existing 10 themes (consistency across swatches).
 
-No other file needs to change. `useTheme()`, the drawer, and the FAB all
-read from `THEMES` / CSS vars — nothing is hardcoded per-theme outside
-these two files.
+No other file needs to change — `useTheme()`, the drawer, and Tailwind
+utilities all read from `THEMES` / CSS vars.
 
 ## CSS variable reference
 
-### Dark-mode base (shared by every theme — do not vary per-theme)
+### Neutral base (admin panel — shared by every theme, only flips with mode)
+
+| Variable | Light | Dark | Use |
+|---|---|---|---|
+| `--surface` | `#f7f7f5` | `#16181c` | page background (off-white in light mode) |
+| `--surface-alt` | `#eeeeec` | `#1f2227` | subtle accents/hover backgrounds |
+| `--text` | `#1a1a1a` | `#e5e7eb` | body text |
+| `--heading` | `#0d0d0d` | `#f5f5f5` | headings |
+| `--component-bg` | `#ffffff` | `#1f2227` | cards/panels/drawers |
+| `--border` | `#e5e7eb` | `#2b2e33` | dividers/borders |
+
+### Fixed structural accent (not swapped by theme or mode)
 
 | Variable | Value | Use |
 |---|---|---|
-| `--surface` | `#38424b` | main dark bg |
-| `--surface-alt` | `#525f6b` | accents (lighten(surface, 10%)) |
-| `--text` | `#e0e0e0` | body text |
-| `--heading` | `#ececec` | headings (lighten(text, 5%)) |
-| `--sidebar-bg` | `#333c44` | sidebar (darken(surface, 2%)) |
-| `--component-bg` | `#434f5a` | cards/panels |
-| `--sidebar-text` | `#a1a1a1` | sidebar labels |
-| `--sidebar-bg-hover` | `#404b54` | sidebar hover (lighten(sidebar-bg, 6%)) |
-| `--border` | `#495762` | dividers/borders |
-| `--framed-bg` | `#242a2f` | outer bg in framed/boxed layout (darken(surface, 10%)) |
+| `--color-accent` | `#0a1830` | general-purpose accent, same everywhere |
+| `--sidebar-bg` | `#0a1830` | sidebar / header / login page background |
+| `--sidebar-text` | `#9aa7b8` | sidebar labels |
+| `--sidebar-bg-hover` | `#142544` | sidebar item hover |
 
-### Per-theme (swapped by `[data-theme="x"]`)
+These stay `#0a1830`-based regardless of `data-theme` or `data-mode` — the
+navy/purple picker only affects `--color-primary`/`--color-secondary`
+(text/buttons), not these structural surfaces.
+
+### Per-theme brand colors (swapped by `[data-theme="x"]`)
 
 | Variable | Meaning |
 |---|---|
@@ -98,70 +99,57 @@ these two files.
 | `--color-primary-hover` | primary, ~12% lighter |
 | `--color-primary-active` | primary, ~12% darker (pressed state) |
 | `--color-primary-soft` | primary at 16% alpha (subtle backgrounds/highlights) |
-| `--on-primary` | text/icon color to place on top of `--color-primary` (`#1a1a1a` or `#ffffff`, whichever contrasts) |
+| `--on-primary` | text/icon color on top of `--color-primary` |
 | `--color-secondary` | secondary accent |
 | `--color-secondary-hover` | secondary, ~12% lighter |
-| `--on-secondary` | text/icon color to place on top of `--color-secondary` |
+| `--on-secondary` | text/icon color on top of `--color-secondary` |
 
-## The 10 presets
+## The 2 presets
 
 | id | label | primary | secondary |
 |---|---|---|---|
-| `style` | Navy Blue (default) | `#038FDE` | `#001529` |
-| `light_purple` | Purple | `#8A2BE2` | `#00B378` |
-| `red` | Red | `#FF2B7A` | `#00D9C9` |
-| `blue` | Blue | `#3DA4E6` | `#FCB53B` |
-| `dark_blue` | Dark Blue | `#0469B9` | `#17BDE5` |
-| `orange` | Orange | `#F18805` | `#F1D065` |
-| `light_blue` | Light Blue | `#6A95FF` | `#59DCFF` |
-| `deep_orange` | Deep Orange | `#F87060` | `#70A288` |
-| `light_purple_1` | Violet Pink | `#A172E7` | `#E14594` |
-| `light_purple_2` | Lavender Teal | `#956FE7` | `#64D7D6` |
+| `navy` | Navy Blue (default) | `#3DA4E6` | `#001529` |
+| `purple` | Purple | `#9283D4` | `#00B378` |
 
-## Using theme vars in new components
-
-Prefer CSS vars directly (via SCSS module or inline `style`) over hardcoding
-hex values, so any new UI stays theme-reactive automatically:
-
-```scss
-.card {
-  background: var(--component-bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.primaryButton {
-  background: var(--color-primary);
-  color: var(--on-primary);
-
-  &:hover { background: var(--color-primary-hover); }
-  &:active { background: var(--color-primary-active); }
-}
-```
-
-Tailwind utility classes won't pick these up automatically (they're plain
-CSS vars, not registered in `@theme`) — use arbitrary-value syntax if you
-need Tailwind: `bg-[var(--color-primary)]`.
+More will be added later, following the same pattern.
 
 ## Light / dark mode
 
 Independent of color theme, toggled via `data-mode="dark"|"light"` on
-`<html>`, persisted to `localStorage["pos-mode"]`, defaults to `dark`.
-Only the shared base tokens (surface/text/border/etc.) get a
-`[data-mode="light"]` override block in `_themes.css` — the per-theme
-`--color-primary`/`--color-secondary`/`--on-primary`/`--on-secondary`
-values are unchanged across modes, since on-color contrast is measured
-against the primary/secondary color itself, not the page backdrop.
+`<html>`, persisted to `localStorage["pos-mode"]`, defaults to `light`
+(admin panel — plain/white by default). Only the neutral base tokens
+(surface/text/border/etc.) change with mode — the per-theme
+`--color-primary`/`--color-secondary`/`--on-primary`/`--on-secondary` values
+are unchanged across modes, since on-color contrast is measured against the
+primary/secondary color itself, not the page backdrop.
 
-`ThemeProvider` exposes `mode`/`setMode`/`modes` from `useTheme()`
-alongside `theme`/`setTheme`/`themes`; the no-flash script sets both
-`data-theme` and `data-mode` before first paint.
+`ThemeProvider` exposes `mode`/`setMode`/`modes` from `useTheme()` alongside
+`theme`/`setTheme`/`themes`; the no-flash script sets both `data-theme` and
+`data-mode` before first paint.
+
+## Using theme vars in new components
+
+Use the Tailwind utility classes generated from these vars — never hardcode
+hex values in new UI, so it stays theme-reactive automatically:
+
+```jsx
+<div className="bg-component-bg border border-border text-text">
+  <button className="bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-active">
+    Save
+  </button>
+</div>
+```
+
+Available utility classes: `bg-surface`, `bg-surface-alt`, `text-text`,
+`text-heading`, `bg-accent`, `bg-sidebar-bg`, `text-sidebar-text`,
+`hover:bg-sidebar-bg-hover`, `bg-component-bg`, `border-border`, `bg-primary`,
+`hover:bg-primary-hover`, `active:bg-primary-active`, `bg-primary-soft`,
+`text-on-primary`, `bg-secondary`, `hover:bg-secondary-hover`,
+`text-on-secondary`.
 
 ## Known limitations
 
-- **No SSR-known theme/mode.** The server always renders the `style`
-  theme's vars via `:root` in dark mode; the real values are applied
-  client-side by the no-flash script before paint. This is normal and fine
-  for a `localStorage`-backed preference, but means the very first HTML
-  byte from the server is always default theme + dark — there's no
-  per-user cookie/header read on the server.
+- **No SSR-known theme/mode.** The server always renders the `navy` theme's
+  vars in light mode; the real values are applied client-side by the
+  no-flash script before paint. Normal and fine for a `localStorage`-backed
+  preference — there's just no per-user cookie/header read on the server.
