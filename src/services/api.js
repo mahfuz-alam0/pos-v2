@@ -8,8 +8,9 @@ function createApiClient(baseURL) {
   });
 }
 
-export const api = createApiClient(`${process.env.NEXT_PUBLIC_BASE_URL}/v1`);
-export const ecomApi = createApiClient(`${process.env.NEXT_PUBLIC_ECCOMMERCE_URL}/v1`);
+export const api = createApiClient("/api/pos/v1");
+export const apiNoVersion = createApiClient("/api/pos");
+export const ecomApi = createApiClient("/api/ecom/v1");
 
 ecomApi.interceptors.request.use(
   (config) => {

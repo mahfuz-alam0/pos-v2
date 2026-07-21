@@ -6,7 +6,7 @@ export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-  const token = request.cookies.get("auth-token")?.value;
+  const token = request.cookies.get("pos-core-admin-auth")?.value;
 
   if (!token && !isPublic) {
     const signInUrl = new URL("/signin", request.url);
@@ -22,5 +22,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logos).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|logos).*)"],
 };

@@ -68,20 +68,28 @@ export default function SignInForm() {
     const trimmed = orgUsername.trim();
     if (!trimmed) return;
 
+    let cancelled = false;
+
     const timer = setTimeout(async () => {
       try {
         const res = await checkOrganization(trimmed);
+        if (cancelled) return;
         const orgId = res?.data?.orgId ?? null;
         setOrgId(orgId);
-        if (!orgId) setOrgError("Organization not found");
+        setOrgError(orgId ? "" : "Organization not found");
       } catch {
+        if (cancelled) return;
+        setOrgId(null);
         setOrgError("Organization not found");
       } finally {
-        setOrgChecking(false);
+        if (!cancelled) setOrgChecking(false);
       }
     }, DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [orgUsername]);
 
   async function handleSubmit(e) {

@@ -1,11 +1,12 @@
-import { api } from "@/services/api";
-import { handleApiError } from "@/services/handleApiError";
+import { apiNoVersion } from "@/services/api";
 
 export async function getEcomAccessToken() {
   try {
-    const { data } = await api.get("/ecomm-auth/get-access-token");
+    const { data } = await apiNoVersion.get("/ecomm-auth/get-access-token");
     return data; // { success, data: { accessToken } }
   } catch (err) {
-    handleApiError(err);
+    // Non-fatal: e-commerce token is a secondary concern and must not block sign-in redirect.
+    console.warn("Failed to fetch e-commerce access token", err);
+    return null;
   }
 }
