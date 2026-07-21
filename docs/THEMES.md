@@ -1,9 +1,9 @@
 # Theme system
 
-Global, dark-mode-only theme system. User picks a color theme from a
-settings drawer (gear icon, fixed right edge); pick persists across
-reloads via `localStorage`. No page reload needed to switch — everything
-reskins live via CSS custom properties.
+Global theme system with a color theme (10 presets) and a light/dark mode,
+picked independently from a settings drawer (gear icon, fixed right edge).
+Both picks persist across reloads via `localStorage`. No page reload needed
+to switch — everything reskins live via CSS custom properties.
 
 ## Files
 
@@ -143,17 +143,25 @@ Tailwind utility classes won't pick these up automatically (they're plain
 CSS vars, not registered in `@theme`) — use arbitrary-value syntax if you
 need Tailwind: `bg-[var(--color-primary)]`.
 
+## Light / dark mode
+
+Independent of color theme, toggled via `data-mode="dark"|"light"` on
+`<html>`, persisted to `localStorage["pos-mode"]`, defaults to `dark`.
+Only the shared base tokens (surface/text/border/etc.) get a
+`[data-mode="light"]` override block in `_themes.css` — the per-theme
+`--color-primary`/`--color-secondary`/`--on-primary`/`--on-secondary`
+values are unchanged across modes, since on-color contrast is measured
+against the primary/secondary color itself, not the page backdrop.
+
+`ThemeProvider` exposes `mode`/`setMode`/`modes` from `useTheme()`
+alongside `theme`/`setTheme`/`themes`; the no-flash script sets both
+`data-theme` and `data-mode` before first paint.
+
 ## Known limitations
 
-- **Dark mode only.** No light-mode variant exists. If light mode is ever
-  needed, the base tokens table above (surface/text/border/etc.) would need
-  a `[data-mode="light"]` (or `prefers-color-scheme`) counterpart — the
-  per-theme primary/secondary blocks would need light-safe on-color/hover
-  recomputation too, since the current derived shades assume a dark
-  backdrop.
-- **No SSR-known theme.** The server always renders the `style` (default)
-  theme's vars via `:root`; the real theme is applied client-side by the
-  no-flash script before paint. This is normal and fine for a
-  `localStorage`-backed preference, but means the very first HTML byte
-  from the server is always the default theme — there's no per-user theme
-  cookie/header read on the server.
+- **No SSR-known theme/mode.** The server always renders the `style`
+  theme's vars via `:root` in dark mode; the real values are applied
+  client-side by the no-flash script before paint. This is normal and fine
+  for a `localStorage`-backed preference, but means the very first HTML
+  byte from the server is always default theme + dark — there's no
+  per-user cookie/header read on the server.
