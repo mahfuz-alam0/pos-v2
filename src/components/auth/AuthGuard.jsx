@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const PUBLIC_PATHS = ["/signin"];
@@ -13,13 +13,12 @@ function isAuthed() {
 export default function AuthGuard({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
-
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  useEffect(() => {
-    const authed = isAuthed();
+  const authed = isAuthed();
+  const needsRedirect = (!authed && !isPublic) || (authed && isPublic);
 
+  useEffect(() => {
     if (!authed && !isPublic) {
       const next = pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
       router.replace(`/signin${next}`);
@@ -28,13 +27,10 @@ export default function AuthGuard({ children }) {
 
     if (authed && isPublic) {
       router.replace("/");
-      return;
     }
+  }, [authed, pathname, isPublic, router]);
 
-    setReady(true);
-  }, [pathname, isPublic, router]);
-
-  if (!ready) return null;
+  if (needsRedirect) return null;
 
   return children;
 }
