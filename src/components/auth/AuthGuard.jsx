@@ -1,24 +1,40 @@
 "use client";
 
-import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useSyncExternalStore } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AUTH_CHANGE_EVENT } from "@/util/use-auth";
 
-const PUBLIC_PATHS = ["/signin"];
+export const PUBLIC_PATHS = ["/signin"];
 
-function isAuthed() {
-  if (typeof window === "undefined") return false;
+function subscribe(callback) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(AUTH_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(AUTH_CHANGE_EVENT, callback);
+  };
+}
+
+function getSnapshot() {
   return Boolean(localStorage.getItem("userInfo"));
+}
+
+function getServerSnapshot() {
+  return false;
 }
 
 export default function AuthGuard({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  const authed = isAuthed();
-  const needsRedirect = (!authed && !isPublic) || (authed && isPublic);
+  const authed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const checked = typeof window !== "undefined";
 
   useEffect(() => {
+    if (!checked) return;
+
     if (!authed && !isPublic) {
       const next = pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
       router.replace(`/signin${next}`);
@@ -26,9 +42,13 @@ export default function AuthGuard({ children }) {
     }
 
     if (authed && isPublic) {
-      router.replace("/");
+      const nextRaw = searchParams.get("next") || "/";
+      const safeNext = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/";
+      router.replace(safeNext);
     }
-  }, [authed, pathname, isPublic, router]);
+  }, [checked, authed, pathname, isPublic, router, searchParams]);
+
+  const needsRedirect = checked && ((!authed && !isPublic) || (authed && isPublic));
 
   if (needsRedirect) return null;
 

@@ -1,8 +1,13 @@
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, noFlashThemeScript } from "@/context/theme-context";
+import InlineScript from "@/components/InlineScript";
 import SettingsPanel from "@/components/settings/SettingsPanel";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { ShopProvider } from "@/context/shop-context";
+import ShopGate from "@/components/shop/ShopGate";
+import InitializingScreen from "@/components/InitializingScreen";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,11 +37,17 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: noFlashThemeScript }} />
+        <InlineScript id="no-flash-theme" html={noFlashThemeScript} />
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <AuthGuard>{children}</AuthGuard>
+          <Suspense fallback={<InitializingScreen />}>
+            <AuthGuard>
+              <ShopProvider>
+                <ShopGate>{children}</ShopGate>
+              </ShopProvider>
+            </AuthGuard>
+          </Suspense>
           <SettingsPanel />
         </ThemeProvider>
       </body>

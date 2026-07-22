@@ -118,7 +118,7 @@ export default function SignInForm() {
 
       const nextRaw = searchParams.get("next") || "/";
       const safeNext = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/";
-      router.push(safeNext);
+      router.replace(safeNext);
     } catch (err) {
       setFormError(err.message || "Sign in failed");
     } finally {

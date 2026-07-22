@@ -3,6 +3,8 @@
 import { loginWithBackend, LOGIN_METHODS } from "@/services/auth/login";
 import { getEcomAccessToken } from "@/services/auth/getEcomAccessToken";
 
+export const AUTH_CHANGE_EVENT = "pos-auth-change";
+
 export async function loginWithBackendAndPersist({ orgId, email, password, method, qrSession }) {
   const res = await loginWithBackend({ orgId, email, password, method, qrSession });
 
@@ -17,12 +19,15 @@ export async function loginWithBackendAndPersist({ orgId, email, password, metho
     localStorage.setItem("ecomm_token", ecomToken);
   }
 
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+
   return userInfo;
 }
 
 export function logout() {
   localStorage.removeItem("userInfo");
   localStorage.removeItem("ecomm_token");
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export { LOGIN_METHODS };
