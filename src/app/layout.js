@@ -8,6 +8,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import { ShopProvider } from "@/context/shop-context";
 import ShopGate from "@/components/shop/ShopGate";
 import InitializingScreen from "@/components/InitializingScreen";
+import AppShell from "@/components/layout/AppShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,7 +45,9 @@ export default function RootLayout({ children }) {
           <Suspense fallback={<InitializingScreen />}>
             <AuthGuard>
               <ShopProvider>
-                <ShopGate>{children}</ShopGate>
+                <ShopGate>
+                  <AppShell>{children}</AppShell>
+                </ShopGate>
               </ShopProvider>
             </AuthGuard>
           </Suspense>
