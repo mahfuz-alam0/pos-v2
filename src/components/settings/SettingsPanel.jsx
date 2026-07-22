@@ -21,7 +21,7 @@ export default function SettingsPanel() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close settings" : "Open settings"}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex h-11 w-11 items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg hover:bg-primary-hover transition-transform duration-300 ease-in-out"
+        className="fixed right-0 top-1/4 -translate-y-1/2 z-50 flex h-11 w-11 items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg hover:bg-primary-hover transition-transform duration-300 ease-in-out"
         style={{
           transform: `translateY(-50%) translateX(${open ? -DRAWER_WIDTH : 0}px)`,
         }}
