@@ -33,13 +33,15 @@
 }
 
 /* Fixed structural accent: sidebar, header, login page. Not swapped by
-   theme or mode — always this navy, per design. */
+   theme or mode — always this navy, per design. Values mirror the old
+   app's dark sider (@nav-dark-bg #001529, @nav-dark-text-color #038fdd). */
 :root,
 [data-mode="dark"] {
-  --color-accent: #0a1830;
-  --sidebar-bg: #0a1830;
-  --sidebar-text: #9aa7b8;
-  --sidebar-bg-hover: #142544;
+  --color-accent: #001529;
+  --sidebar-bg: #001529;
+  --sidebar-text: #038fdd;
+  --sidebar-bg-hover: #002140;
+  --sidebar-active: #fa8c15;
 }
 
 /* Per-theme brand accents. Both presets are always switchable, independent of light/dark. */
@@ -73,6 +75,7 @@
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-text: var(--sidebar-text);
   --color-sidebar-bg-hover: var(--sidebar-bg-hover);
+  --color-sidebar-active: var(--sidebar-active);
   --color-component-bg: var(--component-bg);
   --color-border: var(--border);
   --color-accent: var(--color-accent);

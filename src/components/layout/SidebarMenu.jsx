@@ -31,12 +31,10 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }) {
         "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
         collapsed ? "mx-auto my-0.5 h-10 w-10 justify-center" : "px-3 py-2",
         depth > 0 && !collapsed && "pl-9",
-        active
-          ? "bg-sidebar-bg-hover text-white"
-          : "text-sidebar-text hover:bg-sidebar-bg-hover hover:text-white"
+        active ? "text-sidebar-active" : "text-sidebar-text hover:text-white"
       )}
     >
-      {Icon ? <Icon className="size-[18px] shrink-0" /> : null}
+      {Icon ? <Icon className={cn("size-4.5 shrink-0", active && "text-white")} /> : null}
       {!collapsed && (
         <span className="max-w-[160px] truncate opacity-100">{item.label}</span>
       )}
@@ -73,12 +71,10 @@ function CollapsedSection({ item, sectionActive, onNavigate }) {
         title={item.label}
         className={cn(
           "mx-auto my-0.5 flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-          sectionActive
-            ? "bg-sidebar-bg-hover text-white"
-            : "text-sidebar-text hover:bg-sidebar-bg-hover hover:text-white"
+          sectionActive ? "text-white" : "text-sidebar-text hover:text-white"
         )}
       >
-        {Icon ? <Icon className="size-[18px]" /> : null}
+        {Icon ? <Icon className="size-4.5" /> : null}
       </button>
       {open && pos && typeof document !== "undefined"
         ? createPortal(
@@ -141,12 +137,10 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
           depth > 0 && "pl-9",
-          sectionActive
-            ? "text-white"
-            : "text-sidebar-text hover:bg-sidebar-bg-hover hover:text-white"
+          sectionActive ? "text-white" : "text-sidebar-text hover:text-white"
         )}
       >
-        {Icon ? <Icon className="size-[18px] shrink-0" /> : null}
+        {Icon ? <Icon className="size-4.5 shrink-0" /> : null}
         <span className="flex-1 truncate text-left">{item.label}</span>
         <ChevronDown className={cn("size-4 shrink-0 transition-transform duration-200", isOpen && "rotate-180")} />
       </button>

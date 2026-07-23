@@ -70,7 +70,7 @@ export default function WelcomeBanner() {
     (async () => {
       try {
         const res = await fetchAnnouncementsList({ limit: 30, page: 1, includeScheduled: false });
-        setAnnouncements(res?.data?.data?.announcements || []);
+        setAnnouncements(res?.data || []);
       } catch (err) {
         console.error("Error fetching announcements:", err);
       }

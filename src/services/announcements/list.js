@@ -4,7 +4,10 @@ import { handleApiError } from "@/services/handleApiError";
 export async function fetchAnnouncementsList({ limit = 30, page = 1, includeScheduled = false } = {}) {
   try {
     const { data } = await api.get("/announcements/list", { params: { limit, page, includeScheduled } });
-    return { data };
+    return {
+      data: data?.data?.announcements ?? [],
+      paginationData: data?.data?.paginationData,
+    };
   } catch (err) {
     handleApiError(err);
   }
