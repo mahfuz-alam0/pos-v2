@@ -32,12 +32,12 @@ function SidebarInner({ collapsed, onNavigate, onCloseMobile }) {
         </Link>
       </div>
 
-      <div className="border-b border-white/10 px-3 py-3">
-        <UserProfile collapsed={collapsed} />
-      </div>
-
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <SidebarMenu items={retailMenu} collapsed={collapsed} onNavigate={onNavigate} />
+      </div>
+
+      <div className="shrink-0 border-t border-white/10 p-2">
+        <UserProfile collapsed={collapsed} />
       </div>
     </div>
   );
