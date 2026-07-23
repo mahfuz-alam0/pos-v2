@@ -4,7 +4,7 @@ import { handleApiError } from "@/services/handleApiError";
 export async function fetchBrandsList(params = { limit: 30, page: 1 }) {
   try {
     const { data } = await api.get("/brands/list-brands", { params });
-    return { data: data.data?.brands ?? [] };
+    return { data: data.data?.brands ?? [], paginationData: data.data?.paginationData };
   } catch (err) {
     handleApiError(err);
   }
