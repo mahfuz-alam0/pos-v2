@@ -2,11 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Check,
+  Sun,
+  Moon,
+  Monitor,
+  Palette,
+  Timer,
+  LayoutGrid,
+  Printer,
+} from "lucide-react";
 import { useTheme } from "@/context/theme-context";
 import { useSettings } from "@/context/settings-context";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -21,6 +30,31 @@ const POS_VIEW_OPTIONS = [
   { value: "regular", label: "Computer View" },
   { value: "tablet", label: "Tablet View" },
 ];
+
+const MODE_META = {
+  light: { label: "Light", icon: Sun },
+  dark: { label: "Dark", icon: Moon },
+  system: { label: "System", icon: Monitor },
+};
+
+function SectionCard({ icon: Icon, title, description, children }) {
+  return (
+    <section className="rounded-xl border border-border bg-component-bg p-4">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+          <Icon className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-text">{title}</h3>
+          {description && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+          )}
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function PersonalizeTab({ onClose }) {
   const router = useRouter();
@@ -48,92 +82,129 @@ export default function PersonalizeTab({ onClose }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <section>
-        <h3 className="mb-3 text-xs font-semibold tracking-wide text-sidebar-text uppercase">
-          Theme Color
-        </h3>
-        <div className="flex flex-wrap gap-3 overflow-visible p-1">
-          {themes.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTheme(t.id)}
-              title={t.label}
-              className={`h-10 w-10 shrink-0 rounded-full ring-offset-2 ring-offset-component-bg ${
-                theme === t.id ? "ring-2 ring-primary" : ""
-              }`}
-              style={{
-                background: `linear-gradient(135deg, ${t.primary} 50%, ${t.secondary} 50%)`,
-              }}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h3 className="mb-3 text-xs font-semibold tracking-wide text-sidebar-text uppercase">
-          Mode
-        </h3>
-        <div className="flex gap-2">
-          {modes.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`flex-1 rounded-md border px-3 py-2 text-sm capitalize ${
-                mode === m
-                  ? "border-primary bg-primary-soft text-primary"
-                  : "border-border text-text hover:bg-surface-alt"
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h3 className="mb-3 text-xs font-semibold tracking-wide text-sidebar-text uppercase">
-          Queue Settings
-        </h3>
+    <div className="flex flex-col gap-4">
+      <SectionCard
+        icon={Palette}
+        title="Appearance"
+        description="Pick an accent color and choose how the interface adapts to lighting."
+      >
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Switch checked={queueBorder15} onCheckedChange={setQueueBorder15} />
+          <div className="flex flex-wrap gap-3">
+            {themes.map((t) => {
+              const active = theme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTheme(t.id)}
+                  title={t.label}
+                  className="group flex flex-col items-center gap-1.5"
+                >
+                  <span
+                    className={`relative flex size-9 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${
+                      active
+                        ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg"
+                        : ""
+                    }`}
+                    style={{
+                      background: `linear-gradient(135deg, ${t.primary} 50%, ${t.secondary} 50%)`,
+                    }}
+                  >
+                    {active && (
+                      <Check className="size-4 text-white drop-shadow" strokeWidth={3} />
+                    )}
+                  </span>
+                  <span
+                    className={`text-[11px] ${
+                      active ? "font-medium text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex rounded-lg bg-surface-alt p-1">
+            {modes.map((m) => {
+              const { label, icon: Icon } = MODE_META[m] ?? { label: m, icon: Monitor };
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
+                    active
+                      ? "bg-component-bg font-medium text-text shadow-sm"
+                      : "text-muted-foreground hover:text-text"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        icon={Timer}
+        title="Queue Alerts"
+        description="Highlight waiting customers once they pass a time threshold."
+      >
+        <div className="flex flex-col divide-y divide-border">
+          <div
+            className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 ${
+              queueBorder15 ? "" : "opacity-60"
+            }`}
+          >
             <span className="flex items-center gap-2 text-sm text-text">
-              Show yellow border after
+              <span className="size-2.5 shrink-0 rounded-full bg-yellow-400" />
+              Yellow border after
               <Input
                 type="number"
                 value={queueYellowTime}
+                disabled={!queueBorder15}
                 onChange={(e) => setQueueYellowTime(parseInt(e.target.value, 10) || 0)}
-                className="w-17.5"
+                className="h-8 w-17.5"
               />
               mins
             </span>
+            <Switch checked={queueBorder15} onCheckedChange={setQueueBorder15} />
           </div>
 
-          <div className="flex items-center gap-3">
-            <Switch checked={queueBorder20} onCheckedChange={setQueueBorder20} />
+          <div
+            className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 ${
+              queueBorder20 ? "" : "opacity-60"
+            }`}
+          >
             <span className="flex items-center gap-2 text-sm text-text">
-              Show red border after
+              <span className="size-2.5 shrink-0 rounded-full bg-red-500" />
+              Red border after
               <Input
                 type="number"
                 value={queueRedTime}
+                disabled={!queueBorder20}
                 onChange={(e) => setQueueRedTime(parseInt(e.target.value, 10) || 0)}
-                className="w-17.5"
+                className="h-8 w-17.5"
               />
               mins
             </span>
+            <Switch checked={queueBorder20} onCheckedChange={setQueueBorder20} />
           </div>
         </div>
-      </section>
+      </SectionCard>
 
-      <section>
-        <h3 className="mb-3 text-xs font-semibold tracking-wide text-sidebar-text uppercase">
-          Default Point-of-Sale Screen
-        </h3>
+      <SectionCard
+        icon={LayoutGrid}
+        title="Point-of-Sale Screen"
+        description="Default layout opened when starting a sale."
+      >
         <Select value={posMode} onValueChange={handlePosViewChange}>
-          <SelectTrigger className="w-1/2">
+          <SelectTrigger className="w-full sm:w-1/2">
             <SelectValue placeholder="Select View" />
           </SelectTrigger>
           <SelectContent>
@@ -144,32 +215,41 @@ export default function PersonalizeTab({ onClose }) {
             ))}
           </SelectContent>
         </Select>
-      </section>
+      </SectionCard>
 
-      <section>
-        <h3 className="mb-3 text-xs font-semibold tracking-wide text-sidebar-text uppercase">
-          Default Print Type
-        </h3>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={printType === "hardware" ? "default" : "outline"}
-            onClick={() => {
-              setPrinterModalOpen(true);
-              onClose?.();
-            }}
-          >
-            {printType === "hardware" ? "Automated Printing On" : "Configure automated printing"}
-          </Button>
-          {printType === "hardware" && (
-            <Button variant="outline" onClick={() => setPrintType("browser")}>
-              Turn Off
+      <SectionCard
+        icon={Printer}
+        title="Automated Printing"
+        description="Select a printer device per print job type. Saving a preference enables automated hardware printing."
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-sm text-text">
+            <span
+              className={`size-2.5 rounded-full ${
+                printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
+              }`}
+            />
+            {printType === "hardware" ? "On — printing to hardware devices" : "Off — using browser print"}
+          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              size="sm"
+              variant={printType === "hardware" ? "outline" : "default"}
+              onClick={() => {
+                setPrinterModalOpen(true);
+                onClose?.();
+              }}
+            >
+              {printType === "hardware" ? "Configure" : "Set up"}
             </Button>
-          )}
+            {printType === "hardware" && (
+              <Button size="sm" variant="outline" onClick={() => setPrintType("browser")}>
+                Turn Off
+              </Button>
+            )}
+          </div>
         </div>
-        <p className="mt-2 text-xs text-sidebar-text">
-          Select a printer device per print job type. Saving a preference enables automated hardware printing.
-        </p>
-      </section>
+      </SectionCard>
 
       <PrinterSelectionModal
         open={printerModalOpen}

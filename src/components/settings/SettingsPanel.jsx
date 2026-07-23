@@ -6,6 +6,7 @@ import { useSettings } from "@/context/settings-context";
 import Drawer from "@/components/ui/Drawer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PersonalizeTab from "./PersonalizeTab";
+import VerifyTab from "./VerifyTab";
 import CustomerQueue from "@/components/dashboard/CustomerQueue";
 
 const DRAWER_WIDTH = 660;
@@ -73,7 +74,7 @@ export default function SettingsPanel() {
           </TabsContent>
 
           <TabsContent value="verify" className="min-h-0 flex-1 overflow-y-auto py-4">
-            <VerifyTabPlaceholder />
+            <VerifyTab />
           </TabsContent>
         </Tabs>
       </Drawer>
@@ -83,10 +84,6 @@ export default function SettingsPanel() {
 
 function ActivityTabPlaceholder() {
   return <div className="text-sm text-sidebar-text">Activity tab — coming next.</div>;
-}
-
-function VerifyTabPlaceholder() {
-  return <div className="text-sm text-sidebar-text">Verify tab — coming next.</div>;
 }
 
 function GearIcon() {
