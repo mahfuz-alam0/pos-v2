@@ -9,6 +9,8 @@ import { ShopProvider } from "@/context/shop-context";
 import ShopGate from "@/components/shop/ShopGate";
 import InitializingScreen from "@/components/InitializingScreen";
 import AppShell from "@/components/layout/AppShell";
+import { StoreProvider } from "@/store/StoreProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,16 +44,19 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <Suspense fallback={<InitializingScreen />}>
-            <AuthGuard>
-              <ShopProvider>
-                <ShopGate>
-                  <AppShell>{children}</AppShell>
-                </ShopGate>
-              </ShopProvider>
-            </AuthGuard>
-          </Suspense>
-          <SettingsPanel />
+          <StoreProvider>
+            <Suspense fallback={<InitializingScreen />}>
+              <AuthGuard>
+                <ShopProvider>
+                  <ShopGate>
+                    <AppShell>{children}</AppShell>
+                  </ShopGate>
+                </ShopProvider>
+              </AuthGuard>
+            </Suspense>
+            <SettingsPanel />
+            <Toaster />
+          </StoreProvider>
         </ThemeProvider>
       </body>
     </html>
