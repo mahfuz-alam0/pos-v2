@@ -1,9 +1,10 @@
+import { logout } from "@/util/use-auth";
+
 export function handleApiError(err) {
   const status = err.response?.status;
 
   if (status === 401) {
-    localStorage.removeItem("user");
-    window.location.href = "/signin";
+    logout();
   }
 
   if (status === 422) {

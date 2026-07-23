@@ -26,7 +26,6 @@ const DEBOUNCE_MS = 500;
 const REMEMBER_KEY = "pos-remember";
 
 function loadRemembered() {
-  if (typeof window === "undefined") return null;
   const saved = localStorage.getItem(REMEMBER_KEY);
   if (!saved) return null;
   try {
@@ -40,19 +39,27 @@ export default function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [remembered] = useState(loadRemembered);
-
-  const [orgUsername, setOrgUsername] = useState(() => remembered?.orgUsername ?? "");
+  const [orgUsername, setOrgUsername] = useState("");
   const [orgId, setOrgId] = useState(null);
   const [orgChecking, setOrgChecking] = useState(false);
   const [orgError, setOrgError] = useState("");
 
-  const [email, setEmail] = useState(() => remembered?.email ?? "");
-  const [password, setPassword] = useState(() =>
-    remembered?.password ? decryptText(remembered.password) : ""
-  );
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(() => Boolean(remembered));
+  const [remember, setRemember] = useState(false);
+
+  // Hydrate remembered credentials after mount only — reading localStorage
+  // during initial render would make SSR/client markup diverge (checkbox
+  // checked state, input values) and trigger a hydration mismatch.
+  useEffect(() => {
+    const remembered = loadRemembered();
+    if (!remembered) return;
+    setOrgUsername(remembered.orgUsername ?? "");
+    setEmail(remembered.email ?? "");
+    setPassword(remembered.password ? decryptText(remembered.password) : "");
+    setRemember(true);
+  }, []);
 
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");

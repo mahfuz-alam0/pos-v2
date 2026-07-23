@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { fetchMetrcLogs, deleteMetrcLog, clearAllMetrcLogs } from "@/services/metrc/logs";
 import { Button } from "@/components/ui/button";
 import { formatToShopTimezone } from "@/util/dateUtil";
+import { useShop } from "@/context/shop-context";
 
 function jobTypeHeading(jobType, details) {
   switch (jobType) {
@@ -22,6 +23,7 @@ function jobTypeHeading(jobType, details) {
 }
 
 export default function MetrcAlerts() {
+  const { shopId } = useShop();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
@@ -30,7 +32,7 @@ export default function MetrcAlerts() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetchMetrcLogs({ limit: 100, page: 1, isError: "true" });
+      const res = await fetchMetrcLogs(shopId, { limit: 100, page: 1, isError: "true" });
       setLogs(res?.data?.logs || []);
     } catch (err) {
       console.error("Error fetching metrc logs:", err);
@@ -40,13 +42,14 @@ export default function MetrcAlerts() {
   };
 
   useEffect(() => {
+    if (!shopId) return;
     fetchLogs();
-  }, []);
+  }, [shopId]);
 
   const handleDelete = async (logId) => {
     setDeletingId(logId);
     try {
-      await deleteMetrcLog(logId);
+      await deleteMetrcLog(logId, shopId);
       setLogs((prev) => prev.filter((job) => job.id !== logId));
     } catch (err) {
       console.error("Failed to delete log:", err);
@@ -59,7 +62,7 @@ export default function MetrcAlerts() {
     if (!confirm("This will permanently delete all metrc error logs. Continue?")) return;
     setClearingAll(true);
     try {
-      await clearAllMetrcLogs();
+      await clearAllMetrcLogs(shopId);
       setLogs([]);
     } catch (err) {
       console.error("Failed to clear logs:", err);
