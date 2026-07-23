@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
 
@@ -26,7 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+import StorageLocations from "./StorageLocations";
+import PricingDetails from "./PricingDetails";
 
 function MultiSelectGroups({ groups, selected, onChange }) {
   const toggle = (id) => {
@@ -50,11 +51,12 @@ function MultiSelectGroups({ groups, selected, onChange }) {
 }
 
 export default function EditInventoryForm({ inventoryId }) {
-  const router = useRouter();
   const { shopId } = useShop();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(true);
+  const [activeTab, setActiveTab] = useState("inventory_details");
   const [inventory, setInventory] = useState(null);
   const [uomOptions, setUomOptions] = useState([]);
   const [customerGroups, setCustomerGroups] = useState([]);
@@ -68,44 +70,55 @@ export default function EditInventoryForm({ inventoryId }) {
   const [projectedQtyConversionRate, setProjectedQtyConversionRate] = useState("");
   const [isActive, setIsActive] = useState(false);
 
-  useEffect(() => {
+  const [storagePayload, setStoragePayload] = useState(null);
+  const [validateStorageUoms, setValidateStorageUoms] = useState(null);
+
+  const loadInventory = async () => {
     if (!shopId || !inventoryId) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const [invRes, uomRes, groupRes] = await Promise.all([
-          fetchSingleInventory(inventoryId, shopId),
-          fetchUomList(),
-          fetchCustomerGroups(),
-        ]);
+    setLoading(true);
+    try {
+      const [invRes, uomRes, groupRes] = await Promise.all([
+        fetchSingleInventory(inventoryId, shopId),
+        fetchUomList({ page: 1, limit: 200 }),
+        fetchCustomerGroups(),
+      ]);
 
-        const data = invRes?.data?.data?.inventory;
-        if (!data) {
-          toast.error("Inventory item not found");
-          return;
-        }
-
-        setInventory(data);
-        setUomOptions(uomRes?.data?.data?.uoms ?? []);
-        setCustomerGroups(groupRes?.data?.data?.customerGroups ?? []);
-
-        setSellableUoMId(data.sellableUoMId ?? "");
-        setThreshold(data.thresholdStock ?? "");
-        setRestrictGroups((data.restrictedCustomerGroupIds ?? []).length > 0);
-        setSelectedGroupIds(data.restrictedCustomerGroupIds ?? []);
-        setEnableProjectedQty(!!(data.projectQtyUomId && data.projectQtyConversionRate));
-        setProjectedQtyUomId(data.projectQtyUomId ?? "");
-        setProjectedQtyConversionRate(data.projectQtyConversionRate ?? "");
-        setIsActive(!!data.isActive);
-      } catch (err) {
-        toast.error(err?.message || "Failed to load inventory");
-      } finally {
-        setLoading(false);
+      const data = invRes?.data?.data?.inventory;
+      if (!data) {
+        toast.error("Inventory item not found");
+        return;
       }
-    })();
+
+      setInventory(data);
+      setUomOptions(uomRes?.data?.data?.uoms ?? []);
+      setCustomerGroups(groupRes?.data?.data?.customerGroups ?? []);
+
+      setSellableUoMId(data.sellableUoMId ?? "");
+      setThreshold(data.thresholdStock ?? "");
+      setRestrictGroups((data.restrictedCustomerGroupIds ?? []).length > 0);
+      setSelectedGroupIds(data.restrictedCustomerGroupIds ?? []);
+      setEnableProjectedQty(!!(data.projectQtyUomId && data.projectQtyConversionRate));
+      setProjectedQtyUomId(data.projectQtyUomId ?? "");
+      setProjectedQtyConversionRate(data.projectQtyConversionRate ?? "");
+      setIsActive(!!data.isActive);
+    } catch (err) {
+      toast.error(err?.message || "Failed to load inventory");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, inventoryId]);
 
   const handleSave = async () => {
+    if (validateStorageUoms && !validateStorageUoms()) {
+      toast.error("Please select Unit of Measurement for all storage locations");
+      return;
+    }
+
     setSaving(true);
     try {
       const body = {
@@ -119,9 +132,12 @@ export default function EditInventoryForm({ inventoryId }) {
         projectedQtyConversionRate: enableProjectedQty
           ? Number(projectedQtyConversionRate)
           : null,
+        storageLocationDisplayUoMs: storagePayload,
       };
       await updateInventory(body);
       toast.success("Inventory information updated successfully");
+      setEditMode(false);
+      loadInventory();
     } catch (err) {
       toast.error(err?.message || "Failed to update inventory");
     } finally {
@@ -146,30 +162,55 @@ export default function EditInventoryForm({ inventoryId }) {
   }
 
   const sellableUomOptions = uomOptions.filter((u) => u.applicationType === "SELLABLE_STOCK");
+  const currentUom = uomOptions.find((u) => u.id === sellableUoMId);
+  if (currentUom && !sellableUomOptions.some((u) => u.id === currentUom.id)) {
+    sellableUomOptions.unshift(currentUom);
+  }
+
+  const TAB_ITEMS = [
+    { value: "inventory_details", label: "Inventory Details" },
+    { value: "pricing_details", label: "Pricing Details" },
+  ];
 
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Edit Inventory</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push("/admin/inventory/manage-inventories")}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
+          {editMode ? (
+            <>
+              <Button variant="outline" onClick={() => { setEditMode(false); loadInventory(); }}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setEditMode(true)}>Edit</Button>
+          )}
         </div>
       </div>
 
-      <Tabs defaultValue="inventory_details">
-        <TabsList>
-          <TabsTrigger value="inventory_details">Inventory Details</TabsTrigger>
-          <TabsTrigger value="pricing_details" disabled>
-            Pricing Details
-          </TabsTrigger>
-        </TabsList>
+      <div className="inline-flex w-fit items-center gap-1 rounded-lg bg-muted p-1">
+        {TAB_ITEMS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setActiveTab(tab.value)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === tab.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="inventory_details" className="flex flex-col gap-4 pt-4">
+      {activeTab === "inventory_details" && (
+        <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
               <CardTitle>Product</CardTitle>
@@ -196,7 +237,12 @@ export default function EditInventoryForm({ inventoryId }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Sellable Unit of Measurement</Label>
-                  <Select value={sellableUoMId} onValueChange={setSellableUoMId}>
+                  <Select
+                    items={sellableUomOptions.map((u) => ({ value: u.id, label: u.name }))}
+                    value={sellableUoMId}
+                    onValueChange={setSellableUoMId}
+                    disabled={!editMode}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select unit" />
                     </SelectTrigger>
@@ -215,6 +261,7 @@ export default function EditInventoryForm({ inventoryId }) {
                     placeholder="Enter threshold quantity"
                     value={threshold}
                     onChange={(e) => setThreshold(e.target.value)}
+                    disabled={!editMode}
                   />
                 </div>
               </div>
@@ -228,6 +275,7 @@ export default function EditInventoryForm({ inventoryId }) {
                         type="radio"
                         checked={restrictGroups}
                         onChange={() => setRestrictGroups(true)}
+                        disabled={!editMode}
                       />
                       Enable Restriction
                     </label>
@@ -236,16 +284,34 @@ export default function EditInventoryForm({ inventoryId }) {
                         type="radio"
                         checked={!restrictGroups}
                         onChange={() => setRestrictGroups(false)}
+                        disabled={!editMode}
                       />
                       No Restriction
                     </label>
                   </div>
                   {restrictGroups && (
-                    <MultiSelectGroups
-                      groups={customerGroups}
-                      selected={selectedGroupIds}
-                      onChange={setSelectedGroupIds}
-                    />
+                    editMode ? (
+                      <MultiSelectGroups
+                        groups={customerGroups}
+                        selected={selectedGroupIds}
+                        onChange={setSelectedGroupIds}
+                      />
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedGroupIds.length ? (
+                          selectedGroupIds.map((id) => (
+                            <span
+                              key={id}
+                              className="inline-block rounded bg-muted px-2.5 py-1 text-xs font-medium"
+                            >
+                              {customerGroups.find((g) => g.id === id)?.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Available to all customer groups</span>
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
 
@@ -253,6 +319,7 @@ export default function EditInventoryForm({ inventoryId }) {
                   <label className="mb-3 flex items-center gap-2 text-sm font-medium">
                     <Checkbox
                       checked={enableProjectedQty}
+                      disabled={!editMode}
                       onCheckedChange={(checked) => {
                         setEnableProjectedQty(!!checked);
                         if (!checked) {
@@ -267,7 +334,12 @@ export default function EditInventoryForm({ inventoryId }) {
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-col gap-1.5">
                         <Label>Target Unit of Measure</Label>
-                        <Select value={projectedQtyUomId} onValueChange={setProjectedQtyUomId}>
+                        <Select
+                          items={uomOptions.map((u) => ({ value: u.id, label: u.name }))}
+                          value={projectedQtyUomId}
+                          onValueChange={setProjectedQtyUomId}
+                          disabled={!editMode}
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select target UOM" />
                           </SelectTrigger>
@@ -285,12 +357,30 @@ export default function EditInventoryForm({ inventoryId }) {
                           placeholder="e.g., 12 (if 12 pieces = 1 dozen)"
                           value={projectedQtyConversionRate}
                           onChange={(e) => setProjectedQtyConversionRate(e.target.value)}
+                          disabled={!editMode}
                         />
                       </div>
                     </div>
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Package Details</CardTitle>
+              <CardDescription>Manage inventory across different storage locations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StorageLocations
+                editMode={editMode}
+                storageLocationData={inventory.storageLocationData}
+                sellableUoMId={sellableUoMId}
+                allUomOptions={uomOptions}
+                onChange={setStoragePayload}
+                registerValidator={(fn) => setValidateStorageUoms(() => fn)}
+              />
             </CardContent>
           </Card>
 
@@ -302,11 +392,22 @@ export default function EditInventoryForm({ inventoryId }) {
                   {isActive ? "Active and available for sales" : "Disabled and not available for sales"}
                 </p>
               </div>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
+              <Switch checked={isActive} onCheckedChange={setIsActive} disabled={!editMode} />
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+
+      {activeTab === "pricing_details" && (
+        <PricingDetails
+          inventoryId={inventoryId}
+          shopId={shopId}
+          editMode={editMode}
+          inventoryData={inventory}
+          sellableUoMId={sellableUoMId}
+          onSaveSuccess={loadInventory}
+        />
+      )}
     </div>
   );
 }
