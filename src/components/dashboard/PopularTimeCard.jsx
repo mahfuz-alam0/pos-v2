@@ -64,12 +64,10 @@ export default function PopularTimeCard() {
   const filteredStats = selectedDay !== null ? stats.filter((item) => item.dayOfWeek === selectedDay) : stats;
 
   return (
-    <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-0 pb-2">
-      <div className="px-4 pt-4">
-        <h2 className="m-0 text-[18px] font-semibold text-text">Popular Times</h2>
-      </div>
+    <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-4">
+      <h2 className="m-0 text-[18px] font-semibold text-text">Popular Times</h2>
 
-      <div className="mt-2.5 flex justify-center">
+      <div className="mt-3 flex justify-center">
         {DAYS_OF_WEEK.map((day, index) => {
           const dayNum = index + 1;
           const active = selectedDay === dayNum;
@@ -98,7 +96,7 @@ export default function PopularTimeCard() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-[110px] w-full items-start justify-start p-6 text-muted-foreground">No Data Found</div>
+          <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">No Data Found</div>
         )}
       </div>
     </div>

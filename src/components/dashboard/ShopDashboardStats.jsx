@@ -84,7 +84,7 @@ export default function ShopDashboardStats() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-component-bg">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-6 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
         <span className="text-base font-semibold text-text">
           Dashboard &mdash; <span className="text-[color:#2A9D8F]">{dateLabel}</span>
         </span>

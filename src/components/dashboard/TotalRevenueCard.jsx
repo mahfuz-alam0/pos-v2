@@ -102,8 +102,8 @@ export default function TotalRevenueCard() {
   const averageGrowth = useMemo(() => Math.round(calculateAverageGrowth(stats)), [stats]);
 
   return (
-    <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-0">
-      <div className="flex flex-row items-center gap-3 px-4 pt-4">
+    <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-4">
+      <div className="flex flex-row items-center gap-3">
         <h2 className="m-0 text-[18px] font-semibold text-text">Total Revenue</h2>
         <div className="ml-auto truncate">
           <select
@@ -120,7 +120,7 @@ export default function TotalRevenueCard() {
         </div>
       </div>
 
-      <div className="px-4 pt-2">
+      <div className="mt-2">
         <h2 className="text-xs font-medium xl:text-sm">
           ${totalRevenue.toLocaleString()}
           <span className={`ml-2 text-sm font-semibold ${averageGrowth < 0 ? "text-red-500" : "text-green-600"}`}>
@@ -129,7 +129,7 @@ export default function TotalRevenueCard() {
         </h2>
       </div>
 
-      <div className="h-[140px] px-1 pb-2">
+      <div className="mt-2 h-[140px]">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : (

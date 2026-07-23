@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import PinPadModal from "./PinPadModal";
 import TurnOffShareModeModal from "./TurnOffShareModeModal";
 
+const PANEL_WIDTH = 340;
+
 function readUser() {
   if (typeof window === "undefined") return null;
   try {
@@ -56,13 +58,20 @@ function NotificationsPopover({ open, anchorRef, onClose }) {
   return createPortal(
     <div
       ref={panelRef}
-      style={{ position: "fixed", top: pos.top, left: pos.left, width: 320, zIndex: 1050 }}
-      className="overflow-hidden rounded-2xl border border-primary/20 bg-accent shadow-2xl"
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        width: 320,
+        zIndex: 1060,
+        boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.45)",
+      }}
+      className="overflow-hidden rounded-2xl border border-blue-400/30 bg-linear-to-br from-blue-900/95 to-cyan-900/90 backdrop-blur-md"
     >
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <span className="text-sm font-semibold text-white">Notifications</span>
+      <div className="flex items-center justify-between border-b border-blue-400/20 px-4 py-3">
+        <span className="text-sm font-semibold text-blue-100">Notifications</span>
       </div>
-      <div className="flex h-[160px] items-center justify-center text-sm text-sidebar-text">
+      <div className="flex h-[160px] items-center justify-center text-sm text-blue-300">
         No Notifications Found
       </div>
     </div>,
@@ -79,6 +88,8 @@ export default function UserProfile({ collapsed }) {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
+  const [panelEntered, setPanelEntered] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
   const [user, setUser] = useState(null);
 
   const [clockModalOpen, setClockModalOpen] = useState(false);
@@ -104,15 +115,25 @@ export default function UserProfile({ collapsed }) {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
+  // Drive the left-to-right entrance animation for the dropdown panel
+  useEffect(() => {
+    if (open) {
+      setPanelEntered(false);
+      const raf = requestAnimationFrame(() => setPanelEntered(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setPanelEntered(false);
+  }, [open]);
+
   function handleToggle() {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const width = 260;
-      const estimatedPanelHeight = 260;
-      const left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
-      const openUpward = window.innerHeight - rect.bottom < estimatedPanelHeight + 16 && rect.top > estimatedPanelHeight + 16;
-      const top = openUpward ? rect.top - estimatedPanelHeight - 8 : rect.bottom + 8;
-      setPanelPos({ top, left });
+      const left = Math.min(
+        Math.max(8, rect.right - PANEL_WIDTH),
+        window.innerWidth - PANEL_WIDTH - 8
+      );
+      setPanelPos({ top: rect.bottom + 8, left });
+      setHasOpenedOnce(true);
     }
     setOpen((v) => !v);
   }
@@ -197,55 +218,68 @@ export default function UserProfile({ collapsed }) {
   ];
 
   return (
-    <div>
+    <div className="flex justify-center">
       <button
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
         title={collapsed ? user?.name || "Account" : undefined}
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-sm transition-colors hover:from-primary/25 hover:to-primary/15",
-          collapsed ? "h-10 w-10 justify-center px-0" : "px-2.5 py-2"
+          "inline-flex cursor-pointer items-center justify-center rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 backdrop-blur-sm",
+          collapsed ? "h-9 w-9" : "h-9 max-w-55 gap-2 px-3"
         )}
       >
         <img
           src={user?.avatarUrl || "/images/avatar.png"}
-          alt=""
-          className="size-8 shrink-0 rounded-full object-cover"
+          alt="avatar"
+          className="pointer-events-none size-5.5 shrink-0 rounded-full object-cover"
         />
         {!collapsed && (
           <>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate text-sm font-medium text-white">
-                {user?.name || "Account"}
-              </span>
-              <span className="block truncate text-xs text-sidebar-text">
-                {user?.email || (user?.type ? user.type.replaceAll("_", " ") : "")}
-              </span>
+            <span className="pointer-events-none min-w-0 flex-1 truncate text-sm font-medium text-blue-200">
+              {user?.name || "Account"}
             </span>
-            <ChevronDown className="size-3.5 shrink-0 text-sidebar-text" />
+            <ChevronDown className="pointer-events-none size-3 shrink-0 text-blue-400" />
           </>
         )}
       </button>
 
       {mounted &&
-        open &&
+        hasOpenedOnce &&
         createPortal(
           <div
             ref={panelRef}
-            style={{ position: "fixed", top: panelPos.top, left: panelPos.left, width: 260, zIndex: 1050 }}
-            className="overflow-hidden rounded-2xl border border-primary/20 bg-accent shadow-2xl"
+            className="overflow-hidden rounded-2xl border border-blue-400/30 bg-linear-to-br from-blue-900/95 to-cyan-900/90 shadow-2xl backdrop-blur-md"
+            style={{
+              position: "fixed",
+              top: panelPos.top,
+              left: panelPos.left,
+              width: PANEL_WIDTH,
+              maxWidth: "calc(100vw - 16px)",
+              zIndex: 1050,
+              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.45)",
+              transformOrigin: "top center",
+              transform: panelEntered ? "scaleX(1)" : "scaleX(0)",
+              opacity: panelEntered ? 1 : 0,
+              pointerEvents: panelEntered ? "auto" : "none",
+              transition: "transform 220ms ease, opacity 180ms ease",
+            }}
           >
-            <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-blue-400/20 px-5 py-4">
               <img
                 src={user?.avatarUrl || "/images/avatar.png"}
                 alt=""
-                className="size-9 shrink-0 rounded-full object-cover"
+                className="size-10 shrink-0 rounded-full object-cover"
               />
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-white">{user?.name || "Account"}</div>
+                <div className="truncate text-base font-bold text-blue-100">
+                  {user?.name || "Account"}
+                </div>
                 {user?.type && (
-                  <div className="truncate text-xs text-sidebar-text">{user.type.replaceAll("_", " ")}</div>
+                  <div className="truncate text-xs text-blue-300">
+                    {user.type.replaceAll("_", " ")}
+                  </div>
                 )}
               </div>
             </div>
@@ -255,12 +289,12 @@ export default function UserProfile({ collapsed }) {
                 (/in-built-apps/chat) doesn't exist in this app yet, and the
                 full activity-log drawer is a large standalone feature kept
                 as a lightweight entry point for now. */}
-            <div className="flex items-center justify-center gap-2 border-b border-white/10 px-3 py-3">
+            <div className="flex items-center justify-center gap-2 border-b border-blue-400/20 px-3 py-3">
               <button
                 ref={notifyButtonRef}
                 type="button"
                 onClick={() => setNotifyOpen((v) => !v)}
-                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text transition-colors hover:bg-sidebar-bg-hover hover:text-white"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
                 title="Notifications"
               >
                 <Bell className="size-[18px]" />
@@ -270,7 +304,7 @@ export default function UserProfile({ collapsed }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text transition-colors hover:bg-sidebar-bg-hover hover:text-white"
+                className="flex size-9 items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
                 title="Support"
               >
                 <View className="size-[18px]" />
@@ -282,24 +316,31 @@ export default function UserProfile({ collapsed }) {
                   setOpen(false);
                   router.push("/admin/activity-log");
                 }}
-                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text transition-colors hover:bg-sidebar-bg-hover hover:text-white"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
               >
                 <History className="size-[18px]" />
               </button>
             </div>
 
-            <ul className="py-1.5">
+            {/* Account actions */}
+            <ul className="py-2">
               {menuOptions.map((option) => (
                 <li
                   key={option.label}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-sidebar-bg-hover",
-                    option.danger ? "text-red-400 hover:text-red-300" : "text-sidebar-text hover:text-white"
-                  )}
+                  className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-blue-800/60"
                   onClick={option.onClick}
                 >
-                  <option.icon className="size-4" />
-                  {option.label}
+                  <span className="flex items-center text-base text-blue-300">
+                    <option.icon className="size-4" />
+                  </span>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      option.danger ? "text-red-500" : "text-blue-100"
+                    )}
+                  >
+                    {option.label}
+                  </span>
                 </li>
               ))}
             </ul>

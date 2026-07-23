@@ -64,8 +64,8 @@ export default function ConversionStats() {
   }, [shopId, timeframe]);
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg px-1 pb-2">
-      <div className="flex flex-row items-center gap-3 px-3 pt-3">
+    <div className="h-full rounded-xl border border-border bg-component-bg p-4">
+      <div className="flex flex-row items-center gap-3">
         <h2 className="m-0 text-[18px] font-semibold text-text">Conversions</h2>
         <div className="ml-auto truncate">
           <select
@@ -83,11 +83,11 @@ export default function ConversionStats() {
       </div>
 
       {loading ? (
-        <div className="px-3 pt-4 pb-4 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">Loading…</div>
       ) : data.length === 0 ? (
-        <div className="pt-4 pb-4 text-center text-muted-foreground">No Data Found</div>
+        <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">No Data Found</div>
       ) : (
-        <div className="h-[130px] w-full">
+        <div className="mt-2 h-[130px] w-full">
           <ResponsiveContainer width="100%" height="100%" debounce={50}>
             <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Tooltip content={<CustomTooltip />} />

@@ -101,8 +101,8 @@ export default function EmployeeSalesTodayChart({ employeeId }) {
   const dateShort = new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg px-1">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-3 py-3">
+    <div className="h-full rounded-xl border border-border bg-component-bg">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
         <span className="text-base font-semibold text-text">
           Today&apos;s Sales by Employee &mdash; <span className="text-[color:#2A9D8F]">{dateLabel}</span>
         </span>
@@ -129,12 +129,12 @@ export default function EmployeeSalesTodayChart({ employeeId }) {
       </div>
 
       {loading ? (
-        <div className="px-3 py-6 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="px-4 py-6 text-center text-sm text-muted-foreground">Loading…</div>
       ) : chartData.length === 0 ? (
-        <div className="py-6 text-center text-muted-foreground">No sales on {dateLabel}</div>
+        <div className="px-4 py-6 text-center text-muted-foreground">No sales on {dateLabel}</div>
       ) : (
         <>
-          <div className="flex items-center gap-5 px-3 pt-3 select-none">
+          <div className="flex items-center gap-5 px-4 pt-3 select-none">
             <div className="flex items-center gap-1.5">
               <span
                 className="size-3 rounded"
@@ -148,7 +148,7 @@ export default function EmployeeSalesTodayChart({ employeeId }) {
             </div>
           </div>
 
-          <div className="px-3 pb-3" style={{ width: "100%", height: 300 }}>
+          <div className="px-4 pb-4" style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 40, right: 20, left: 0, bottom: 10 }}>
                 <defs>

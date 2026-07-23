@@ -176,8 +176,23 @@ export default function RevenueBreakdownCard() {
   const getPredefinedColor = (index) => ["#E9C46A", "#2A9D8F", "#F4A261"][index] || "#FE9E15";
 
   return (
-    <div className="relative mb-5 rounded-xl border border-border bg-component-bg p-0">
-      <div className="p-4">
+    <div className="h-full rounded-xl border border-border bg-component-bg p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="m-0 text-[18px] font-semibold text-text">Revenue Breakdown</h2>
+        <select
+          className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
+          value={statsDefaultValue}
+          onChange={handleTimeChange}
+        >
+          {TIME_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mt-4">
         <div className="flex flex-col gap-4 md:flex-row">
           {rankingData.length !== 0 && (
             <div className="w-full shrink-0 md:w-1/4">
@@ -197,20 +212,6 @@ export default function RevenueBreakdownCard() {
           )}
 
           <div className="relative min-w-0 flex-1">
-            <div className="absolute top-2 right-0 z-10">
-              <select
-                className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
-                value={statsDefaultValue}
-                onChange={handleTimeChange}
-              >
-                {TIME_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {hasChartData ? (
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>

@@ -92,11 +92,13 @@ export default function GeneralPricingType({
   }, [inventoryData, editMode, unitPreviewPrice, tiers.length]);
 
   useEffect(() => {
+    if (!shopId || !targetUoMId) return;
+    setTemplatesLoading(true);
     fetchPricingTemplates(shopId, targetUoMId)
       .then((res) => setPricingTemplates(res?.data?.data?.templates ?? []))
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUoMId]);
+      .catch((err) => toast.error(err?.message || "Failed to load pricing templates"))
+      .finally(() => setTemplatesLoading(false));
+  }, [shopId, targetUoMId]);
 
   const calculateUnitPriceTax = async (previewPrice) => {
     if (!previewPrice || previewPrice <= 0) {

@@ -67,7 +67,7 @@ export default function AllStatsTiles() {
   }, [shopId]);
 
   return (
-    <div className="mt-4 flex w-full flex-wrap justify-center gap-4 md:mt-0 md:flex-nowrap">
+    <div className="flex w-full flex-wrap justify-center gap-4 md:flex-nowrap">
       {TILES.map((tile) => {
         const Icon = tile.icon;
         const value = loading ? "-" : stats[tile.key];
