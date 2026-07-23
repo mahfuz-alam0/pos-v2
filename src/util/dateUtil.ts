@@ -26,7 +26,7 @@ function partsInTimezone(date, timeZone) {
   const parts = fmt.formatToParts(date).reduce((acc, p) => {
     acc[p.type] = p.value;
     return acc;
-  }, {});
+  }, {} as Record<string, string>);
   return {
     year: Number(parts.year),
     month: Number(parts.month),
@@ -78,8 +78,10 @@ export function formatToShopTimezone(timestamp, pattern = "MM/DD/YY hh:mm A") {
   return `${pad(p.month)}/${pad(p.day)}/${String(p.year).slice(-2)} ${pad(hour12)}:${pad(p.minute)} ${ampm}`;
 }
 
+export type TimeSeriesPoint = { day?: number; month: number; year: number };
+
 /** Builds a { day, month, year }[] series covering `daysCount` days ending today (inclusive), oldest first. */
-export function getTimeSeriesWithinTheDaysContext({ daysCount = 7 } = {}) {
+export function getTimeSeriesWithinTheDaysContext({ daysCount = 7 } = {}): TimeSeriesPoint[] {
   const tz = getShopTimezone();
   const nowParts = partsInTimezone(new Date(), tz);
   let cursor = new Date(nowParts.year, nowParts.month - 1, nowParts.day);
@@ -94,7 +96,7 @@ export function getTimeSeriesWithinTheDaysContext({ daysCount = 7 } = {}) {
 }
 
 /** Builds a { month, year }[] series covering `monthsCount` months ending this month (inclusive), oldest first. */
-export function getTimeSeriesWithinTheMonthsContext({ monthsCount = 6 } = {}) {
+export function getTimeSeriesWithinTheMonthsContext({ monthsCount = 6 } = {}): TimeSeriesPoint[] {
   const tz = getShopTimezone();
   const nowParts = partsInTimezone(new Date(), tz);
   let cursor = new Date(nowParts.year, nowParts.month - 1, 1);

@@ -181,7 +181,23 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
   );
 }
 
-function SidebarMenuItem({ item, collapsed, depth, onNavigate, flyout, openKey, setOpenKey }) {
+function SidebarMenuItem({
+  item,
+  collapsed,
+  depth,
+  onNavigate,
+  flyout,
+  openKey,
+  setOpenKey,
+}: {
+  item: any
+  collapsed?: boolean
+  depth?: number
+  onNavigate?: () => void
+  flyout?: boolean
+  openKey?: any
+  setOpenKey?: any
+}) {
   // Nested sections (depth > 0, e.g. Analytics/Reporting inside Reports & Analytics)
   // keep their own independent open state — only siblings at the same level
   // sharing `openKey`/`setOpenKey` collapse each other.

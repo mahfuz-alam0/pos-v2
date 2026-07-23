@@ -31,7 +31,7 @@ export function formatDLDate(raw) {
 
 export function parseDLBarcode(raw) {
   if (!raw) return null;
-  const fields = {};
+  const fields: Record<string, string> = {};
   for (const line of raw.split(/\r\n|\n|\r/)) {
     const t = line.trim();
     if (t.length >= 4 && /^[A-Z]{3}/.test(t)) {

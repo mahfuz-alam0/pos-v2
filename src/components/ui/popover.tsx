@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils"
 
 function Popover({
   ...props
-}) {
+}: React.ComponentProps<typeof PopoverPrimitive.Root>) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
 function PopoverTrigger({
   ...props
-}) {
+}: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
 }
 
@@ -24,7 +24,7 @@ function PopoverContent({
   side = "bottom",
   sideOffset = 4,
   ...props
-}) {
+}: React.ComponentProps<typeof PopoverPrimitive.Popup> & Pick<React.ComponentProps<typeof PopoverPrimitive.Positioner>, "align" | "alignOffset" | "side" | "sideOffset">) {
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Positioner
@@ -48,7 +48,7 @@ function PopoverContent({
 function PopoverHeader({
   className,
   ...props
-}) {
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="popover-header"
@@ -60,7 +60,7 @@ function PopoverHeader({
 function PopoverTitle({
   className,
   ...props
-}) {
+}: React.ComponentProps<typeof PopoverPrimitive.Title>) {
   return (
     <PopoverPrimitive.Title
       data-slot="popover-title"
@@ -72,7 +72,7 @@ function PopoverTitle({
 function PopoverDescription({
   className,
   ...props
-}) {
+}: React.ComponentProps<typeof PopoverPrimitive.Description>) {
   return (
     <PopoverPrimitive.Description
       data-slot="popover-description"

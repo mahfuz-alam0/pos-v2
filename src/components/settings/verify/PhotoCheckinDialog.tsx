@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import {
   Camera,
@@ -139,7 +139,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
   const [scanError, setScanError] = useState(null);
   const [facingMode, setFacingMode] = useState("environment");
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [editingField, setEditingField] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [customerExists, setCustomerExists] = useState(false);
@@ -645,7 +645,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
               src={customer.avatarUrl}
               alt=""
               className="size-25 shrink-0 rounded-full object-cover ring-2"
-              style={{ "--tw-ring-color": customerExists ? "#52c41a" : "#1890ff" }}
+              style={{ "--tw-ring-color": customerExists ? "#52c41a" : "#1890ff" } as CSSProperties}
             />
           ) : (
             <div

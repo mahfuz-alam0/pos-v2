@@ -13,7 +13,7 @@ const TIME_OPTIONS = [
   { value: "6", label: "Past 6 months" },
 ];
 
-function CustomTooltip({ active, payload }) {
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
   return (
@@ -49,7 +49,7 @@ export default function ConversionStats() {
               "Total Added": item.totalAdded,
               "Total Served": item.totalServed,
             }))
-            .sort((a, b) => new Date(a.name) - new Date(b.name));
+            .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
           setData(formattedData);
         } else {
           setData([]);

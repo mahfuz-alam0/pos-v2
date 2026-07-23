@@ -5,7 +5,19 @@ import { getEcomAccessToken } from "@/services/auth/getEcomAccessToken";
 
 export const AUTH_CHANGE_EVENT = "pos-auth-change";
 
-export async function loginWithBackendAndPersist({ orgId, email, password, method, qrSession }) {
+export async function loginWithBackendAndPersist({
+  orgId,
+  email,
+  password,
+  method,
+  qrSession,
+}: {
+  orgId?: string
+  email?: string
+  password?: string
+  method: string
+  qrSession?: string
+}) {
   const res = await loginWithBackend({ orgId, email, password, method, qrSession });
 
   const userInfo = res?.data?.userInfo;

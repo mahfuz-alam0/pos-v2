@@ -42,7 +42,7 @@ export async function POST(request) {
     const responseData = await pixlabRes.json();
 
     if (responseData && responseData.status === 200) {
-      const processedData = { status: responseData.status, doc: {} };
+      const processedData = { status: responseData.status, doc: {} as Record<string, string> };
 
       if (responseData.fields) {
         const fields = responseData.fields;

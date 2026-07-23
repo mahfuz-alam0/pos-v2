@@ -6,7 +6,19 @@ export const LOGIN_METHODS = {
   QR_CODE: "QR_CODE",
 };
 
-export async function loginWithBackend({ orgId, email, password, method, qrSession }) {
+export async function loginWithBackend({
+  orgId,
+  email,
+  password,
+  method,
+  qrSession,
+}: {
+  orgId?: string
+  email?: string
+  password?: string
+  method: string
+  qrSession?: string
+}) {
   const isQr = method === LOGIN_METHODS.QR_CODE;
 
   const body = isQr ? { method, qrSession } : { orgId, email, password, method };

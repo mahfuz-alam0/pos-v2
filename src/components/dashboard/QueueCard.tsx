@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { X, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/context/settings-context";
@@ -9,7 +9,7 @@ import { updateQueueStatus } from "@/services/customerQueue/updateStatus";
 
 function calculateWaitTime(updatedAt) {
   if (!updatedAt) return "N/A";
-  const diffInMs = new Date() - new Date(updatedAt);
+  const diffInMs = Date.now() - new Date(updatedAt).getTime();
   return Math.floor(diffInMs / (1000 * 60));
 }
 
@@ -137,13 +137,13 @@ export default function QueueCard({ data, onRemove, onServe, sidepanel = false }
               alt=""
               onClick={handleToggleServing}
               className="size-11 cursor-pointer rounded-full object-cover ring-2 ring-offset-1"
-              style={{ "--tw-ring-color": statusBg }}
+              style={{ "--tw-ring-color": statusBg } as CSSProperties}
             />
           ) : (
             <div
               onClick={handleToggleServing}
               className="flex size-11 cursor-pointer items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-400 ring-2 ring-offset-1"
-              style={{ "--tw-ring-color": statusBg }}
+              style={{ "--tw-ring-color": statusBg } as CSSProperties}
             >
               <svg viewBox="0 0 24 24" fill="currentColor" className="size-6">
                 <path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12Zm0 2.4c-3.3 0-9.8 1.6-9.8 4.9v2.4h19.6v-2.4c0-3.3-6.5-4.9-9.8-4.9Z" />

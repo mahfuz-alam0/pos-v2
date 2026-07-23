@@ -90,7 +90,7 @@ export default function ManageInventoriesTable() {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
         if (search) params.name = search;
         if (categoryId) params.categoryId = categoryId;
         if (brandId) params.brandId = brandId;

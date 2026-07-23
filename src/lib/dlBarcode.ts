@@ -78,10 +78,10 @@ export async function decodeBarcodeFromImage(img) {
   // Native BarcodeDetector — pdf417 supported on Linux/Android Chrome only.
   if (typeof window !== "undefined" && "BarcodeDetector" in window) {
     try {
-      const supported = await window.BarcodeDetector.getSupportedFormats();
+      const supported = await (window as any).BarcodeDetector.getSupportedFormats();
       if (supported.includes("pdf417")) {
         if (!_barcodeDetector) {
-          _barcodeDetector = new window.BarcodeDetector({ formats: ["pdf417"] });
+          _barcodeDetector = new (window as any).BarcodeDetector({ formats: ["pdf417"] });
         }
         const found = await _barcodeDetector.detect(img);
         const hit = found.find((b) => b.format === "pdf417" && b.rawValue?.length > 50);
@@ -108,10 +108,10 @@ export async function decodeVideoFrame(video, frameIndex = 0) {
 
   if (typeof window !== "undefined" && "BarcodeDetector" in window) {
     try {
-      const supported = await window.BarcodeDetector.getSupportedFormats();
+      const supported = await (window as any).BarcodeDetector.getSupportedFormats();
       if (supported.includes("pdf417")) {
         if (!_barcodeDetector) {
-          _barcodeDetector = new window.BarcodeDetector({ formats: ["pdf417"] });
+          _barcodeDetector = new (window as any).BarcodeDetector({ formats: ["pdf417"] });
         }
         const found = await _barcodeDetector.detect(video);
         const hit = found.find((b) => b.format === "pdf417" && b.rawValue?.length > 50);

@@ -9,7 +9,17 @@ import UserProfile from "./UserProfile";
 import { retailMenu } from "./sidebar-menu-data";
 import { cn } from "@/lib/utils";
 
-function SidebarInner({ collapsed, onNavigate, onCloseMobile, onToggleCollapsed }) {
+function SidebarInner({
+  collapsed,
+  onNavigate,
+  onCloseMobile,
+  onToggleCollapsed,
+}: {
+  collapsed?: boolean
+  onNavigate?: () => void
+  onCloseMobile?: () => void
+  onToggleCollapsed?: () => void
+}) {
   return (
     <div className="flex h-full flex-col bg-accent">
       {/* Old app's gx-layout-sider-header: 72px tall, flat sider color, fold

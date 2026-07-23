@@ -1,6 +1,6 @@
 import io from "socket.io-client";
 
-export function connectToSocket({ url, shopId } = {}) {
+export function connectToSocket({ url, shopId }: { url?: string; shopId?: string } = {}) {
   if (!url) {
     console.error("URL is required for socket connection");
     return null;
@@ -27,7 +27,7 @@ export function connectToSocket({ url, shopId } = {}) {
   });
 
   socket.on("error", (error) => {
-    console.error("Socket error on", socket.io.uri, error);
+    console.error("Socket error on", (socket.io as any).uri, error);
   });
 
   return socket;

@@ -1,9 +1,17 @@
 import { api } from "@/services/api";
 import { handleApiError } from "@/services/handleApiError";
 
-export async function searchCustomers({ shopId, search, limit = 20 } = {}) {
+export async function searchCustomers({
+  shopId,
+  search,
+  limit = 20,
+}: {
+  shopId?: string
+  search?: string
+  limit?: number
+} = {}) {
   try {
-    const params = { shopPreference: shopId, limit, sortByAlpha: 1 };
+    const params: Record<string, any> = { shopPreference: shopId, limit, sortByAlpha: 1 };
     if (search) {
       params.searchFieldName = "nameEither";
       params.searchFiledValue = search;

@@ -13,7 +13,7 @@ function hourLabel(hour) {
   return `${h} ${ampm}`;
 }
 
-function CustomTooltip({ active, payload }) {
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
   return (

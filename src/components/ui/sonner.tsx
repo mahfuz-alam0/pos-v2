@@ -1,12 +1,13 @@
 "use client"
 
+import * as React from "react"
 import { Toaster as Sonner } from "sonner";
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 import { useTheme } from "@/context/theme-context"
 
 const Toaster = ({
   ...props
-}) => {
+}: React.ComponentProps<typeof Sonner>) => {
   const { mode = "light" } = useTheme()
 
   return (
@@ -36,7 +37,7 @@ const Toaster = ({
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)"
-        }
+        } as React.CSSProperties
       }
       toastOptions={{
         classNames: {

@@ -10,7 +10,7 @@ import { nowInShopTimezone, formatCurrency } from "@/util/dateUtil";
 const REVENUE_COLOR = "#14b8a6";
 const ORDERS_COLOR = "#f97316";
 
-function CustomTooltip({ active, payload }) {
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (!active || !payload || !payload.length) return null;
   const row = payload[0].payload;
   const avgTicket = row.Orders > 0 ? row.Revenue / row.Orders : 0;
@@ -31,7 +31,12 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
-export default function EmployeeSalesTodayChart({ employeeId }) {
+export default function EmployeeSalesTodayChart({
+  employeeId,
+}: {
+  employeeId?: string | null
+  onEmployeeChange?: (id: string | null) => void
+}) {
   const { shopId } = useShop();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);

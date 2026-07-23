@@ -38,7 +38,7 @@ export async function endLiveShift(pin) {
 
   const currentDate = new Date();
   const startDateTime = parseShiftStart(shift);
-  const timeDiffMs = currentDate - startDateTime;
+  const timeDiffMs = currentDate.getTime() - startDateTime.getTime();
   const totalMinutes = Math.floor(timeDiffMs / (1000 * 60));
   const totalHoursLogged = Math.floor(totalMinutes / 60);
   const totalMinutesLogged = totalMinutes % 60;

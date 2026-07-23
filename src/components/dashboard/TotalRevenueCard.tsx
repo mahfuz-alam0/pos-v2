@@ -51,7 +51,7 @@ function calculateAverageGrowth(data) {
   return count > 0 ? totalGrowth / count : 0;
 }
 
-function ChartTooltip({ active, payload }) {
+function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (!active || !payload || !payload.length) return null;
   const { value } = payload[0];
   const { name } = payload[0].payload;

@@ -32,7 +32,7 @@ const TYPE_HREF = {
 const PALETTE = ["#E9C46A", "#2A9D8F", "#F4A261", "#f56c6c", "#7265e6", "#ffbf00", "#5b8c00", "#ff7f0e"];
 const ITEMS_PER_PAGE = 3;
 
-function preprocessData(entryKeyMap, breakdownData, statsType, currentTypeValue, factor = 1) {
+function preprocessData(entryKeyMap: Record<string, string>, breakdownData: any[], statsType: string, currentTypeValue: string, factor = 1) {
   const formatDate = (date) => {
     const [year, month, day] = date.split("-").map(Number);
     if (statsType === "days") {
@@ -41,7 +41,7 @@ function preprocessData(entryKeyMap, breakdownData, statsType, currentTypeValue,
     return `${String(month).padStart(2, "0")}.${year}`;
   };
 
-  const idField = { Products: "productId", Categories: "categoryId", Brands: "brandId" }[currentTypeValue] || "productId";
+  const idField: string = { Products: "productId", Categories: "categoryId", Brands: "brandId" }[currentTypeValue] || "productId";
 
   const allDates = (
     statsType === "days"
@@ -53,13 +53,13 @@ function preprocessData(entryKeyMap, breakdownData, statsType, currentTypeValue,
       (statsType === "days"
         ? breakdownData.find((o) => o._id.year === item.year && o._id.month === item.month && o._id.dayOfMonth === item.day)
         : breakdownData.find((o) => o._id.year === item.year && o._id.month === item.month)
-      )?.contributionOfCategories ?? Object.keys(entryKeyMap).map((key) => ({ totalBought: 0, [idField]: key })),
+      )?.contributionOfCategories ?? Object.keys(entryKeyMap).map((key): any => ({ totalBought: 0, [idField]: key })),
   }));
 
   const uniqueDates = Array.from(new Set(allDates.map((i) => i.date))).sort((a, b) => {
     const [ya, ma, da = 1] = a.split("-").map(Number);
     const [yb, mb, db = 1] = b.split("-").map(Number);
-    return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+    return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
   });
 
   const finalData = uniqueDates.map((date) => ({
@@ -71,8 +71,8 @@ function preprocessData(entryKeyMap, breakdownData, statsType, currentTypeValue,
     const formattedDate = formatDate(date);
     const entry = finalData.find((e) => e.name === formattedDate);
     if (entry) {
-      data.forEach(({ [idField]: id, totalBought }) => {
-        const itemName = entryKeyMap[id];
+      data.forEach(({ [idField]: id, totalBought }: any) => {
+        const itemName = entryKeyMap[String(id)];
         if (itemName) entry[itemName] = totalBought;
       });
     }
@@ -81,7 +81,7 @@ function preprocessData(entryKeyMap, breakdownData, statsType, currentTypeValue,
   return finalData;
 }
 
-function ChartTooltip({ active, payload }) {
+function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
   return (
@@ -92,7 +92,7 @@ function ChartTooltip({ active, payload }) {
           key !== "name" && (
             <div key={key} className="my-0.5 flex items-center justify-between gap-2">
               <p className="m-0 mr-2 max-w-[150px] truncate text-[color:#038FDE]">{key}</p>
-              <p className="m-0 whitespace-nowrap text-[color:#038FDE]">QTY: {value}</p>
+              <p className="m-0 whitespace-nowrap text-[color:#038FDE]">QTY: {value as React.ReactNode}</p>
             </div>
           )
       )}
@@ -150,7 +150,7 @@ export default function RevenueBreakdownCard() {
     fetchByType(currentTypeValue, sType, opt.value);
   };
 
-  const entryKeyMap = stats?.entryKeyMap || {};
+  const entryKeyMap: Record<string, string> = stats?.entryKeyMap || {};
   const breakdownData = stats?.breakdownData || [];
   const rankingData = stats?.rankingData || [];
   const hasChartData = Object.keys(entryKeyMap).length > 0 && breakdownData.length > 0;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Delete, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +61,7 @@ export default function PinPadModal({ open, title, submitLabel, error, submittin
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           maxLength={MAX_PIN_LENGTH}
           className="mb-4 w-full rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-center text-2xl tracking-[10px] text-white placeholder:text-sm placeholder:tracking-normal placeholder:text-sidebar-text focus:border-primary/50 focus:outline-none"
-          style={{ WebkitTextSecurity: "disc" }}
+          style={{ WebkitTextSecurity: "disc" } as CSSProperties}
         />
 
         <div className="mb-4 grid grid-cols-3 gap-2.5">

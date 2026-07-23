@@ -18,6 +18,16 @@ export default function CustomerSpecificPricing({
   targetUoMId,
   inventoryData,
   onSaveSuccess,
+}: {
+  data: any
+  shopId: any
+  inventoryId: any
+  uomData: any
+  editMode?: boolean
+  targetUoMId: any
+  inventoryData: any
+  onSaveSuccess: any
+  isCustomerGroupPricing?: boolean
 }) {
   const [customerGroups, setCustomerGroups] = useState([]);
   const [expandedId, setExpandedId] = useState(null);

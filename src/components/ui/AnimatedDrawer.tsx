@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -18,7 +19,7 @@ export default function AnimatedDrawer({
   height,
   placement = "top", // "top" | "right"
   zIndex = 70,
-}) {
+}: { open: boolean; onClose: () => void; title?: React.ReactNode; children?: React.ReactNode; width?: string | number; height?: string | number; placement?: "top" | "right"; zIndex?: number }) {
   const [isClosing, setIsClosing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 

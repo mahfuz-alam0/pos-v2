@@ -2,9 +2,17 @@ import { api } from "@/services/api";
 import { handleApiError } from "@/services/handleApiError";
 
 // Exact-match lookup by driving license or medical license.
-export async function findCustomersByLicense({ shopId, drivingLicense, medicalLicense }) {
+export async function findCustomersByLicense({
+  shopId,
+  drivingLicense,
+  medicalLicense,
+}: {
+  shopId: string
+  drivingLicense?: string
+  medicalLicense?: string
+}) {
   try {
-    const params = { shopPreference: shopId };
+    const params: Record<string, any> = { shopPreference: shopId };
     if (drivingLicense) params.drivingLicense = drivingLicense;
     if (medicalLicense) params.medicalLicense = medicalLicense;
     const { data } = await api.get("/customers/list-customers-based-on-either-or", { params });

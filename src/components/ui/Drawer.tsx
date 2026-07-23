@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+
 const SIDE_CONFIG = {
   right: {
     wrapper: "top-0 right-0 h-full max-w-[85vw] border-l",
@@ -41,7 +43,7 @@ export default function Drawer({
   overlay = true,
   className = "",
   children,
-}) {
+}: { open: boolean; onClose?: () => void; side?: "right" | "left" | "top" | "bottom"; size?: number; zIndex?: number; overlay?: boolean; className?: string; children?: React.ReactNode }) {
   const cfg = SIDE_CONFIG[side];
 
   return (
