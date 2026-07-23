@@ -9,6 +9,7 @@ import {
   History,
   LogIn,
   LogOut,
+  MessageCircle,
   Repeat,
   UserRound,
   View,
@@ -258,11 +259,11 @@ export default function UserProfile({ collapsed }) {
               maxWidth: "calc(100vw - 16px)",
               zIndex: 1050,
               boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.45)",
-              transformOrigin: "top center",
-              transform: panelEntered ? "scaleX(1)" : "scaleX(0)",
+              transformOrigin: "top right",
+              transform: panelEntered ? "scale(1)" : "scale(0.95) translateY(-6px)",
               opacity: panelEntered ? 1 : 0,
               pointerEvents: panelEntered ? "auto" : "none",
-              transition: "transform 220ms ease, opacity 180ms ease",
+              transition: "transform 180ms ease, opacity 150ms ease",
             }}
           >
             {/* Header */}
@@ -284,12 +285,21 @@ export default function UserProfile({ collapsed }) {
               </div>
             </div>
 
-            {/* Quick actions row — chat/activity-log ported from old app's
-                AppsNavigation; chat is dropped since its target route
-                (/in-built-apps/chat) doesn't exist in this app yet, and the
-                full activity-log drawer is a large standalone feature kept
-                as a lightweight entry point for now. */}
+            {/* Quick actions row ported from old app's AppsNavigation.
+                Chat page (/in-built-apps/chat) is not built yet — icon is
+                wired up ahead of the page landing. */}
             <div className="flex items-center justify-center gap-2 border-b border-blue-400/20 px-3 py-3">
+              <button
+                type="button"
+                title="Chat"
+                onClick={() => {
+                  setOpen(false);
+                  router.push("/in-built-apps/chat");
+                }}
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
+              >
+                <MessageCircle className="size-[18px]" />
+              </button>
               <button
                 ref={notifyButtonRef}
                 type="button"

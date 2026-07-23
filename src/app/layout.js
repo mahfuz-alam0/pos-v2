@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, noFlashThemeScript } from "@/context/theme-context";
+import { SettingsProvider } from "@/context/settings-context";
 import InlineScript from "@/components/InlineScript";
 import SettingsPanel from "@/components/settings/SettingsPanel";
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -41,19 +42,21 @@ export default function RootLayout({ children }) {
       <head>
         <InlineScript id="no-flash-theme" html={noFlashThemeScript} />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
-          <Suspense fallback={<InitializingScreen />}>
-            <AuthGuard>
-              <ShopProvider>
-                <ShopGate>
-                  <AppShell>{children}</AppShell>
-                </ShopGate>
-              </ShopProvider>
-            </AuthGuard>
-          </Suspense>
-          <SettingsPanel />
-          <Toaster />
+          <SettingsProvider>
+            <Suspense fallback={<InitializingScreen />}>
+              <AuthGuard>
+                <ShopProvider>
+                  <ShopGate>
+                    <AppShell>{children}</AppShell>
+                  </ShopGate>
+                  <SettingsPanel />
+                </ShopProvider>
+              </AuthGuard>
+            </Suspense>
+            <Toaster />
+          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>

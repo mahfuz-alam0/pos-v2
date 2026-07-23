@@ -50,14 +50,24 @@ function CollapsedSection({ item, sectionActive, onNavigate }) {
   // Accordion within the flyout popup too — only one child section open at a time.
   const [childOpenKey, setChildOpenKey] = useState(null);
 
+  const hideTimer = useRef(null);
+
   const show = () => {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPos({ top: rect.top, left: rect.right + 8 });
+      setPos({ top: rect.top, left: rect.right });
     }
     setOpen(true);
   };
-  const hide = () => setOpen(false);
+  const hide = () => {
+    hideTimer.current = setTimeout(() => setOpen(false), 150);
+  };
+
+  useEffect(() => () => clearTimeout(hideTimer.current), []);
 
   return (
     <div
@@ -79,24 +89,25 @@ function CollapsedSection({ item, sectionActive, onNavigate }) {
       {open && pos && typeof document !== "undefined"
         ? createPortal(
             <div
-              style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 50 }}
-              className="min-w-[200px] origin-left rounded-xl border border-primary/20 bg-accent p-1.5 shadow-2xl"
+              style={{ position: "fixed", top: pos.top, left: pos.left, paddingLeft: 8, zIndex: 50 }}
               onMouseEnter={show}
               onMouseLeave={hide}
             >
-              <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-text">{item.label}</div>
-              {item.children.map((child) => (
-                <SidebarMenuItem
-                  key={child.key}
-                  item={child}
-                  collapsed={false}
-                  depth={0}
-                  onNavigate={onNavigate}
-                  flyout
-                  openKey={childOpenKey}
-                  setOpenKey={setChildOpenKey}
-                />
-              ))}
+              <div className="min-w-50 origin-left rounded-xl border border-primary/20 bg-accent p-1.5 shadow-2xl">
+                <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-text">{item.label}</div>
+                {item.children.map((child) => (
+                  <SidebarMenuItem
+                    key={child.key}
+                    item={child}
+                    collapsed={false}
+                    depth={0}
+                    onNavigate={onNavigate}
+                    flyout
+                    openKey={childOpenKey}
+                    setOpenKey={setChildOpenKey}
+                  />
+                ))}
+              </div>
             </div>,
             document.body
           )
