@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,15 +37,75 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }) {
       )}
     >
       {Icon ? <Icon className="size-[18px] shrink-0" /> : null}
-      <span
+      {!collapsed && (
+        <span className="max-w-[160px] truncate opacity-100">{item.label}</span>
+      )}
+    </Link>
+  );
+}
+
+function CollapsedSection({ item, sectionActive, onNavigate }) {
+  const Icon = item.icon;
+  const triggerRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  // Accordion within the flyout popup too — only one child section open at a time.
+  const [childOpenKey, setChildOpenKey] = useState(null);
+
+  const show = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPos({ top: rect.top, left: rect.right + 8 });
+    }
+    setOpen(true);
+  };
+  const hide = () => setOpen(false);
+
+  return (
+    <div
+      ref={triggerRef}
+      className="relative"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+    >
+      <button
+        type="button"
+        title={item.label}
         className={cn(
-          "truncate transition-[opacity,max-width] duration-200",
-          collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+          "mx-auto my-0.5 flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+          sectionActive
+            ? "bg-sidebar-bg-hover text-white"
+            : "text-sidebar-text hover:bg-sidebar-bg-hover hover:text-white"
         )}
       >
-        {item.label}
-      </span>
-    </Link>
+        {Icon ? <Icon className="size-[18px]" /> : null}
+      </button>
+      {open && pos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 50 }}
+              className="min-w-[200px] origin-left rounded-xl border border-primary/20 bg-accent p-1.5 shadow-2xl"
+              onMouseEnter={show}
+              onMouseLeave={hide}
+            >
+              <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-text">{item.label}</div>
+              {item.children.map((child) => (
+                <SidebarMenuItem
+                  key={child.key}
+                  item={child}
+                  collapsed={false}
+                  depth={0}
+                  onNavigate={onNavigate}
+                  flyout
+                  openKey={childOpenKey}
+                  setOpenKey={setChildOpenKey}
+                />
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
+    </div>
   );
 }
 
@@ -53,6 +114,8 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
   const Icon = item.icon;
   const sectionActive = hasActiveDescendant(pathname, item);
   const isOpen = openKey === item.key;
+  // Accordion among this section's own children (e.g. Analytics vs Reporting).
+  const [childOpenKey, setChildOpenKey] = useState(null);
 
   // Auto-open the section that contains the active route on first render / route change.
   useEffect(() => {
@@ -62,28 +125,12 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
 
   if (collapsed && depth === 0) {
     // Collapsed rail: icon-only trigger, children render as a hover flyout.
-    return (
-      <div className="group relative">
-        <button
-          type="button"
-          title={item.label}
-          className={cn(
-            "mx-auto my-0.5 flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-            sectionActive
-              ? "bg-sidebar-bg-hover text-white"
-              : "text-sidebar-text hover:bg-sidebar-bg-hover hover:text-white"
-          )}
-        >
-          {Icon ? <Icon className="size-[18px]" /> : null}
-        </button>
-        <div className="pointer-events-none absolute top-0 left-full z-50 ml-2 min-w-[200px] origin-left -translate-x-1 scale-95 rounded-xl border border-primary/20 bg-accent p-1.5 opacity-0 shadow-2xl transition-[opacity,transform] duration-150 ease-out group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:scale-100 group-hover:opacity-100">
-          <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-text">{item.label}</div>
-          {item.children.map((child) => (
-            <SidebarMenuItem key={child.key} item={child} collapsed={false} depth={0} onNavigate={onNavigate} flyout />
-          ))}
-        </div>
-      </div>
-    );
+    // The flyout is portaled to <body> and positioned via getBoundingClientRect
+    // because the sidebar's scroll container is overflow-x-hidden (needed to
+    // stop the rail itself from growing a horizontal scrollbar) — anything
+    // absolutely positioned inside it with left-full gets clipped and never
+    // becomes visible, no matter what z-index/opacity it has.
+    return <CollapsedSection item={item} sectionActive={sectionActive} onNavigate={onNavigate} />;
   }
 
   return (
@@ -112,7 +159,15 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
         <div className="overflow-hidden">
           <div className="mt-0.5 ml-3 space-y-0.5 border-l border-white/10 pl-1">
             {item.children.map((child) => (
-              <SidebarMenuItem key={child.key} item={child} collapsed={false} depth={depth + 1} onNavigate={onNavigate} />
+              <SidebarMenuItem
+                key={child.key}
+                item={child}
+                collapsed={false}
+                depth={depth + 1}
+                onNavigate={onNavigate}
+                openKey={childOpenKey}
+                setOpenKey={setChildOpenKey}
+              />
             ))}
           </div>
         </div>
@@ -121,8 +176,13 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
   );
 }
 
-function SidebarMenuItem({ item, collapsed, depth, onNavigate, flyout }) {
-  const [openKey, setOpenKey] = useState(null);
+function SidebarMenuItem({ item, collapsed, depth, onNavigate, flyout, openKey, setOpenKey }) {
+  // Nested sections (depth > 0, e.g. Analytics/Reporting inside Reports & Analytics)
+  // keep their own independent open state — only siblings at the same level
+  // sharing `openKey`/`setOpenKey` collapse each other.
+  const [localOpenKey, setLocalOpenKey] = useState(null);
+  const effectiveOpenKey = openKey !== undefined ? openKey : localOpenKey;
+  const effectiveSetOpenKey = setOpenKey ?? setLocalOpenKey;
 
   if (item.children?.length) {
     return (
@@ -130,8 +190,8 @@ function SidebarMenuItem({ item, collapsed, depth, onNavigate, flyout }) {
         item={item}
         collapsed={collapsed && !flyout}
         depth={depth}
-        openKey={openKey}
-        setOpenKey={setOpenKey}
+        openKey={effectiveOpenKey}
+        setOpenKey={effectiveSetOpenKey}
         onNavigate={onNavigate}
       />
     );
@@ -140,10 +200,21 @@ function SidebarMenuItem({ item, collapsed, depth, onNavigate, flyout }) {
 }
 
 export default function SidebarMenu({ items, collapsed, onNavigate }) {
+  // Accordion: only one top-level section open at a time.
+  const [openKey, setOpenKey] = useState(null);
+
   return (
     <nav className="flex flex-col gap-0.5 px-2">
       {items.map((item) => (
-        <SidebarMenuItem key={item.key} item={item} collapsed={collapsed} depth={0} onNavigate={onNavigate} />
+        <SidebarMenuItem
+          key={item.key}
+          item={item}
+          collapsed={collapsed}
+          depth={0}
+          onNavigate={onNavigate}
+          openKey={openKey}
+          setOpenKey={setOpenKey}
+        />
       ))}
     </nav>
   );

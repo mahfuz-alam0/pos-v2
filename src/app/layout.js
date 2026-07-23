@@ -9,6 +9,7 @@ import { ShopProvider } from "@/context/shop-context";
 import ShopGate from "@/components/shop/ShopGate";
 import InitializingScreen from "@/components/InitializingScreen";
 import AppShell from "@/components/layout/AppShell";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({ children }) {
             </AuthGuard>
           </Suspense>
           <SettingsPanel />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

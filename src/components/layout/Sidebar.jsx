@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Menu, PanelLeftClose, X } from "lucide-react";
 import { useSidebar } from "@/context/sidebar-context";
 import SidebarMenu from "./SidebarMenu";
 import UserProfile from "./UserProfile";
 import { retailMenu } from "./sidebar-menu-data";
 import { cn } from "@/lib/utils";
 
-function SidebarInner({ collapsed, onNavigate, onCloseMobile }) {
+function SidebarInner({ collapsed, onNavigate, onCloseMobile, onToggleCollapsed }) {
   return (
     <div className="flex h-full flex-col bg-accent">
       <div className={cn("flex h-14 shrink-0 items-center gap-2 border-b border-white/10 px-3", collapsed && "justify-center px-2")}>
@@ -30,9 +30,19 @@ function SidebarInner({ collapsed, onNavigate, onCloseMobile }) {
             <Image src="/logos/bleaum_logo.png" alt="Bleaum" width={110} height={28} className="max-w-[75%] object-contain" />
           )}
         </Link>
+        {onToggleCollapsed ? (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-text hover:bg-sidebar-bg-hover hover:text-white"
+          >
+            {collapsed ? <Menu className="size-4" /> : <PanelLeftClose className="size-4" />}
+          </button>
+        ) : null}
       </div>
 
-      <div className="border-b border-white/10 px-3 py-3">
+      <div className="shrink-0 p-2">
         <UserProfile collapsed={collapsed} />
       </div>
 
@@ -76,15 +86,7 @@ export default function Sidebar() {
         collapsed ? "w-[72px]" : "w-[250px]"
       )}
     >
-      <SidebarInner collapsed={collapsed} />
-      <button
-        type="button"
-        onClick={toggleCollapsed}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute top-3 -right-3 flex size-6 items-center justify-center rounded-full border border-primary/30 bg-component-bg text-primary shadow transition-colors hover:text-primary-hover"
-      >
-        {collapsed ? <PanelLeftOpen className="size-3.5" /> : <PanelLeftClose className="size-3.5" />}
-      </button>
+      <SidebarInner collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
     </aside>
   );
 }
