@@ -30,7 +30,7 @@ export default function AllStatsTiles() {
   useEffect(() => {
     (async () => {
       try {
-        const [inventoryStats, customersStats, tasksStats, employeeStats, salesStats, dealStats] = await Promise.all([
+        const [inventoryStats, customersStats, tasksStats, employeeStats, salesStats, dealStats] = await Promise.allSettled([
           getInventoryStats(shopId),
           getCustomersStats(shopId),
           getCompletedTasksStats(shopId),
@@ -39,13 +39,24 @@ export default function AllStatsTiles() {
           getDealsStats(shopId),
         ]);
 
+        const value = (result) => (result.status === "fulfilled" ? (result.value?.data?.data ?? 0) : 0);
+
+        console.log("[AllStatsTiles] settled results:", {
+          inventoryStats,
+          customersStats,
+          tasksStats,
+          employeeStats,
+          salesStats,
+          dealStats,
+        });
+
         setStats({
-          products: inventoryStats?.data?.data ?? 0,
-          customers: customersStats?.data?.data ?? 0,
-          tasks: tasksStats?.data?.data ?? 0,
-          employees: employeeStats?.data?.data ?? 0,
-          orders: salesStats?.data?.data ?? 0,
-          deals: dealStats?.data?.data ?? 0,
+          products: value(inventoryStats),
+          customers: value(customersStats),
+          tasks: value(tasksStats),
+          employees: value(employeeStats),
+          orders: value(salesStats),
+          deals: value(dealStats),
         });
       } catch (err) {
         console.error("Something went wrong while fetching stats", err);
