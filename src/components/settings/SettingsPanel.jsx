@@ -6,8 +6,9 @@ import { useSettings } from "@/context/settings-context";
 import Drawer from "@/components/ui/Drawer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PersonalizeTab from "./PersonalizeTab";
+import CustomerQueue from "@/components/dashboard/CustomerQueue";
 
-const DRAWER_WIDTH = 420;
+const DRAWER_WIDTH = 660;
 const HIDDEN_PATHS = ["/signin"];
 
 export default function SettingsPanel() {
@@ -57,8 +58,8 @@ export default function SettingsPanel() {
             <TabsTrigger value="verify">Verify</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="queue" className="min-h-0 flex-1 overflow-y-auto py-4">
-            <QueueTabPlaceholder />
+          <TabsContent value="queue" className="min-h-0 flex-1 overflow-hidden py-4">
+            <CustomerQueue sidepanel />
           </TabsContent>
 
           {labMode && (
@@ -78,10 +79,6 @@ export default function SettingsPanel() {
       </Drawer>
     </>
   );
-}
-
-function QueueTabPlaceholder() {
-  return <div className="text-sm text-sidebar-text">Queue tab — coming next.</div>;
 }
 
 function ActivityTabPlaceholder() {

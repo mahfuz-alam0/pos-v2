@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 import { useSettings } from "@/context/settings-context";
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import PrinterSelectionModal from "./PrinterSelectionModal";
 
 const POS_VIEW_OPTIONS = [
   { value: "regular", label: "Computer View" },
@@ -37,6 +39,7 @@ export default function PersonalizeTab({ onClose }) {
     setPosMode,
     setPrintType,
   } = useSettings();
+  const [printerModalOpen, setPrinterModalOpen] = useState(false);
 
   function handlePosViewChange(value) {
     setPosMode(value);
@@ -50,14 +53,14 @@ export default function PersonalizeTab({ onClose }) {
         <h3 className="mb-3 text-xs font-semibold tracking-wide text-sidebar-text uppercase">
           Theme Color
         </h3>
-        <div className="grid grid-cols-6 gap-3">
+        <div className="flex flex-wrap gap-3 overflow-visible p-1">
           {themes.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTheme(t.id)}
               title={t.label}
-              className={`h-10 w-10 rounded-full ring-offset-2 ring-offset-component-bg ${
+              className={`h-10 w-10 shrink-0 rounded-full ring-offset-2 ring-offset-component-bg ${
                 theme === t.id ? "ring-2 ring-primary" : ""
               }`}
               style={{
@@ -103,7 +106,7 @@ export default function PersonalizeTab({ onClose }) {
                 type="number"
                 value={queueYellowTime}
                 onChange={(e) => setQueueYellowTime(parseInt(e.target.value, 10) || 0)}
-                className="w-[70px]"
+                className="w-17.5"
               />
               mins
             </span>
@@ -117,7 +120,7 @@ export default function PersonalizeTab({ onClose }) {
                 type="number"
                 value={queueRedTime}
                 onChange={(e) => setQueueRedTime(parseInt(e.target.value, 10) || 0)}
-                className="w-[70px]"
+                className="w-17.5"
               />
               mins
             </span>
@@ -150,15 +153,29 @@ export default function PersonalizeTab({ onClose }) {
         <div className="flex items-center gap-2">
           <Button
             variant={printType === "hardware" ? "default" : "outline"}
-            onClick={() => setPrintType(printType === "hardware" ? "browser" : "hardware")}
+            onClick={() => {
+              setPrinterModalOpen(true);
+              onClose?.();
+            }}
           >
             {printType === "hardware" ? "Automated Printing On" : "Configure automated printing"}
           </Button>
+          {printType === "hardware" && (
+            <Button variant="outline" onClick={() => setPrintType("browser")}>
+              Turn Off
+            </Button>
+          )}
         </div>
         <p className="mt-2 text-xs text-sidebar-text">
-          Hardware print-client device configuration is coming in a later update.
+          Select a printer device per print job type. Saving a preference enables automated hardware printing.
         </p>
       </section>
+
+      <PrinterSelectionModal
+        open={printerModalOpen}
+        onOpenChange={setPrinterModalOpen}
+        onSelect={() => setPrintType("hardware")}
+      />
     </div>
   );
 }

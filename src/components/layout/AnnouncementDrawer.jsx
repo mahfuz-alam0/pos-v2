@@ -280,8 +280,8 @@ export default function AnnouncementDrawer({ open, onClose }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(800);
-  const { mode } = useTheme();
-  const isDark = mode === "dark";
+  const { resolvedMode } = useTheme();
+  const isDark = resolvedMode === "dark";
 
   useEffect(() => {
     const update = () => setDrawerWidth(Math.round(window.innerWidth * 0.6));
