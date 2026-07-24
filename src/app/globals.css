@@ -128,3 +128,19 @@ body {
     cursor: pointer;
   }
 }
+
+/* Inventory audit: flash a row green briefly after a barcode scan match. */
+@keyframes scanRowFlash {
+  0% {
+    background-color: #f0fdf4;
+  }
+  25% {
+    background-color: #86efac;
+  }
+  70% {
+    background-color: #dcfce7;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
