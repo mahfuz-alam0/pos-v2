@@ -16,6 +16,7 @@ import { fetchPackageIdsBeingCounted } from "@/services/auditSessions/packageIds
 import { removeLiveAuditSession as removeLiveAuditSessionApi } from "@/services/auditSessions/removeLiveAuditSession";
 
 import { Button } from "@/components/ui/button";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -140,7 +141,7 @@ export default function AuditPage() {
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AuditPackageRow[]>([]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0, totalPages: 1 });
 
   const [locationMap, setLocationMap] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<StorageLocation[]>([]);
@@ -239,6 +240,7 @@ export default function AuditPage() {
         current: paginationData.currentPage || page,
         total: paginationData.totalEntries || 0,
         pageSize: paginationData.limit || limit,
+        totalPages: paginationData.totalPages || 1,
       });
     } catch (err) {
       console.error("Error fetching audit packages:", err);
@@ -550,216 +552,196 @@ export default function AuditPage() {
   };
 
   return (
-    <div className={fullscreen ? "fixed inset-0 z-2000 overflow-y-auto bg-background p-3" : ""}>
-      <div className="rounded-lg border bg-card">
-        <div className="px-4 pt-3">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Audit</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+    <div className={fullscreen ? "fixed inset-0 z-2000 overflow-y-auto bg-background p-6" : "flex flex-col gap-4 p-6"}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Audit</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex overflow-hidden rounded-lg border">
-                {(["regular", "live"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setViewMode(mode)}
-                    className={`px-3 py-1 text-sm capitalize ${viewMode === mode ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex overflow-hidden rounded-lg bg-muted p-0.5">
+            {(["regular", "live"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                className={`rounded-[7px] px-3 py-1 text-sm capitalize transition-colors ${viewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"}`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
 
-              <CountingModeToggle value={countingMode} onChange={handleCountingModeChange} />
+          <CountingModeToggle value={countingMode} onChange={handleCountingModeChange} />
 
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button disabled={!data || data.length === 0 || exporting}>
-                    <Download className="size-4" />
-                    Export
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button disabled={!data || data.length === 0 || exporting}>
+                <Download className="size-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport("csv")}>Export to CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("xls")}>Export to Excel</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("pdf")}>Export to PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+            <AlertDialogTrigger>
+              <Button variant="destructive">Reset</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset Filters</AlertDialogTitle>
+                <AlertDialogDescription>Are you sure you want to reset all filters?</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={executeReset}>Reset</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {validAdjustments.length > 0 && (
+            <Button className="bg-green-600 font-semibold hover:bg-green-700" onClick={() => setIsAdjustDrawerOpen(true)}>
+              Adjust ({validAdjustments.length})
+            </Button>
+          )}
+
+          {viewMode === "live" && !sessionLoading && sessionCount !== null && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenSessionsList}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                  sessionCount > 0
+                    ? "border-yellow-300 bg-yellow-100 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400"
+                    : "border-border bg-muted text-muted-foreground"
+                }`}
+              >
+                <span className={`size-2 rounded-full ${sessionCount > 0 ? "bg-yellow-500" : "bg-muted-foreground"}`} />
+                {sessionCount} session{sessionCount !== 1 ? "s" : ""} in progress
+              </button>
+
+              {mySession ? (
+                <Button
+                  className="bg-green-500 hover:bg-green-600"
+                  onClick={() => router.push(`/admin/inventory/audit/${mySession.id}`)}
+                >
+                  Go to Live Count Session
+                  {getSessionTimeRemaining() !== null && ` (${getSessionTimeRemaining()} min left)`}
+                </Button>
+              ) : (
+                selectedRowKeys.length > 0 && (
+                  <Button disabled={!filters.location} onClick={() => setIsLiveSessionDrawerOpen(true)}>
+                    Start Live Count Session ({selectedRowKeys.length})
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleExport("csv")}>Export to CSV</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("xls")}>Export to Excel</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("pdf")}>Export to PDF</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
-                <AlertDialogTrigger>
-                  <Button variant="destructive">Reset</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset Filters</AlertDialogTitle>
-                    <AlertDialogDescription>Are you sure you want to reset all filters?</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={executeReset}>Reset</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {validAdjustments.length > 0 && (
-                <Button className="bg-green-600 font-semibold hover:bg-green-700" onClick={() => setIsAdjustDrawerOpen(true)}>
-                  Adjust ({validAdjustments.length})
-                </Button>
+                )
               )}
-
-              {viewMode === "live" && !sessionLoading && sessionCount !== null && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleOpenSessionsList}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                      sessionCount > 0
-                        ? "border-yellow-300 bg-yellow-100 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400"
-                        : "border-border bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <span className={`size-2 rounded-full ${sessionCount > 0 ? "bg-yellow-500" : "bg-muted-foreground"}`} />
-                    {sessionCount} session{sessionCount !== 1 ? "s" : ""} in progress
-                  </button>
-
-                  {mySession ? (
-                    <Button
-                      className="bg-green-500 hover:bg-green-600"
-                      onClick={() => router.push(`/admin/inventory/audit/${mySession.id}`)}
-                    >
-                      Go to Live Count Session
-                      {getSessionTimeRemaining() !== null && ` (${getSessionTimeRemaining()} min left)`}
-                    </Button>
-                  ) : (
-                    selectedRowKeys.length > 0 && (
-                      <Button disabled={!filters.location} onClick={() => setIsLiveSessionDrawerOpen(true)}>
-                        Start Live Count Session ({selectedRowKeys.length})
-                      </Button>
-                    )
-                  )}
-                </div>
-              )}
-
-              <Button variant="outline" size="icon" onClick={() => setFullscreen((f) => !f)}>
-                {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
-              </Button>
-            </div>
-          </div>
-
-          <AuditFilterBar
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            locations={locations}
-            suppliers={suppliers}
-            filterCountedPackages={filterCountedPackages}
-            countedPackagesLoading={countedPackagesLoading}
-            countedPackageCount={countedPackageKeys.size}
-            onFilterCountedToggle={handleFilterCountedToggle}
-            viewMode={viewMode}
-            onReset={() => setIsResetConfirmOpen(true)}
-          />
-
-          {countingMode === "scan" && (
-            <ScanModeBar
-              value={scanInput}
-              onChange={setScanInput}
-              onScan={handleScan}
-              scanCounts={scanCounts}
-              onClear={handleClearScanCounts}
-            />
-          )}
-
-          <div className="flex items-center gap-2 border-b px-1 py-2">
-            {viewMode === "live" && (
-              <Button size="sm" variant="outline" onClick={handleSelect200} disabled={data.length === 0 || isSelecting200}>
-                {isSelecting200 ? "Selecting..." : "Select 200 Packages"}
-              </Button>
-            )}
-            {selectedRowKeys.length > 0 && (
-              <>
-                <span className="text-xs font-semibold text-blue-600">
-                  {selectedRowKeys.length} package{selectedRowKeys.length !== 1 ? "s" : ""} selected
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedRowKeys([]);
-                    setSelectedRows([]);
-                  }}
-                >
-                  Clear
-                </Button>
-              </>
-            )}
-          </div>
-
-          <AuditTable
-            data={data}
-            loading={loading || countedPackagesLoading}
-            locationMap={locationMap}
-            locationFilter={filters.location}
-            countingMode={countingMode}
-            scanCounts={scanCounts}
-            flashingRows={flashingRows}
-            pendingAdjustments={pendingAdjustments}
-            onQtyChange={handleQtyChange}
-            selectable={viewMode === "live"}
-            selectedRowKeys={selectedRowKeys}
-            onSelectionChange={(keys, rows) => {
-              setSelectedRowKeys(keys);
-              setSelectedRows((prev) => {
-                const rowMap = new Map<string, AuditPackageRow>(
-                  prev.map((r) => [r.rowLocationId ? `${r.id}-${r.rowLocationId}` : String(r.id), r])
-                );
-                rows.forEach((r) => rowMap.set(r.rowLocationId ? `${r.id}-${r.rowLocationId}` : String(r.id), r));
-                return keys.map((k) => rowMap.get(String(k))).filter(Boolean) as AuditPackageRow[];
-              });
-            }}
-          />
-
-          {countingMode !== "scan" && (
-            <div className="flex items-center justify-between px-3 py-3 text-sm text-muted-foreground">
-              <span>
-                {pagination.total > 0
-                  ? `${(pagination.current - 1) * pagination.pageSize + 1}-${Math.min(
-                      pagination.current * pagination.pageSize,
-                      pagination.total
-                    )} of ${pagination.total}`
-                  : "0 results"}
-              </span>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.current <= 1}
-                  onClick={() => fetchData(pagination.current - 1, pagination.pageSize)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.current * pagination.pageSize >= pagination.total}
-                  onClick={() => fetchData(pagination.current + 1, pagination.pageSize)}
-                >
-                  Next
-                </Button>
-              </div>
             </div>
           )}
+
+          <Button variant="outline" size="icon" onClick={() => setFullscreen((f) => !f)}>
+            {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+          </Button>
         </div>
       </div>
+
+      <AuditFilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        locations={locations}
+        suppliers={suppliers}
+        filterCountedPackages={filterCountedPackages}
+        countedPackagesLoading={countedPackagesLoading}
+        countedPackageCount={countedPackageKeys.size}
+        onFilterCountedToggle={handleFilterCountedToggle}
+        viewMode={viewMode}
+        onReset={() => setIsResetConfirmOpen(true)}
+      />
+
+      {countingMode === "scan" && (
+        <ScanModeBar
+          value={scanInput}
+          onChange={setScanInput}
+          onScan={handleScan}
+          scanCounts={scanCounts}
+          onClear={handleClearScanCounts}
+        />
+      )}
+
+      {(viewMode === "live" || selectedRowKeys.length > 0) && (
+        <div className="flex items-center gap-2">
+          {viewMode === "live" && (
+            <Button size="sm" variant="outline" onClick={handleSelect200} disabled={data.length === 0 || isSelecting200}>
+              {isSelecting200 ? "Selecting..." : "Select 200 Packages"}
+            </Button>
+          )}
+          {selectedRowKeys.length > 0 && (
+            <>
+              <span className="text-xs font-semibold text-blue-600">
+                {selectedRowKeys.length} package{selectedRowKeys.length !== 1 ? "s" : ""} selected
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSelectedRowKeys([]);
+                  setSelectedRows([]);
+                }}
+              >
+                Clear
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <AuditTable
+          data={data}
+          loading={loading || countedPackagesLoading}
+          locationMap={locationMap}
+          locationFilter={filters.location}
+          countingMode={countingMode}
+          scanCounts={scanCounts}
+          flashingRows={flashingRows}
+          pendingAdjustments={pendingAdjustments}
+          onQtyChange={handleQtyChange}
+          selectable={viewMode === "live"}
+          selectedRowKeys={selectedRowKeys}
+          onSelectionChange={(keys, rows) => {
+            setSelectedRowKeys(keys);
+            setSelectedRows((prev) => {
+              const rowMap = new Map<string, AuditPackageRow>(
+                prev.map((r) => [r.rowLocationId ? `${r.id}-${r.rowLocationId}` : String(r.id), r])
+              );
+              rows.forEach((r) => rowMap.set(r.rowLocationId ? `${r.id}-${r.rowLocationId}` : String(r.id), r));
+              return keys.map((k) => rowMap.get(String(k))).filter(Boolean) as AuditPackageRow[];
+            });
+          }}
+        />
+      </div>
+
+      {countingMode !== "scan" && (
+        <TablePagination
+          page={pagination.current}
+          totalPages={pagination.totalPages}
+          totalEntries={pagination.total}
+          pageSize={pagination.pageSize}
+          loading={loading}
+          onPageChange={(p: number) => fetchData(p, pagination.pageSize)}
+        />
+      )}
 
       <AdjustPackagesDrawer
         open={isAdjustDrawerOpen}

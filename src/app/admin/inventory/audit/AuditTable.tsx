@@ -66,9 +66,9 @@ export default function AuditTable({
   };
 
   return (
-    <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 420px)" }}>
+    <div className="overflow-auto *:data-[slot=table-container]:overflow-visible" style={{ maxHeight: "calc(100vh - 420px)" }}>
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-background [&_tr]:border-b">
+        <TableHeader className="sticky top-0 z-10 bg-background [&_tr]:border-b-0">
           <TableRow className="bg-muted/60">
             {selectable && (
               <TableHead className="w-8">
@@ -81,11 +81,11 @@ export default function AuditTable({
             <TableHead className="min-w-[130px]">Brand</TableHead>
             <TableHead className="min-w-[130px]">Category</TableHead>
             <TableHead className="min-w-[130px]">Supplier</TableHead>
-            <TableHead className="sticky right-[520px] min-w-[110px] bg-background text-center">Total Pkg Qty</TableHead>
-            <TableHead className="sticky right-[420px] min-w-[100px] bg-background text-center">Metrc Qty</TableHead>
-            <TableHead className="sticky right-[300px] min-w-[100px] bg-background">Location</TableHead>
-            <TableHead className="sticky right-[180px] min-w-[110px] bg-background text-center">Location Qty</TableHead>
-            <TableHead className="sticky right-0 min-w-[180px] bg-background text-center">
+            <TableHead className="min-w-[110px] text-center">Total Pkg Qty</TableHead>
+            <TableHead className="min-w-[100px] text-center">Metrc Qty</TableHead>
+            <TableHead className="min-w-[100px]">Location</TableHead>
+            <TableHead className="min-w-[110px] text-center">Location Qty</TableHead>
+            <TableHead className="sticky right-0 z-10 w-45 min-w-45 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
               {countingMode === "scan" ? "Scan Count" : "Qty On Hand"}
             </TableHead>
           </TableRow>
@@ -93,7 +93,7 @@ export default function AuditTable({
         <TableBody>
           {loading &&
             Array.from({ length: 8 }).map((_, i) => (
-              <TableRow key={`skeleton-${i}`}>
+              <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                 {Array.from({ length: selectable ? 12 : 11 }).map((__, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
@@ -103,7 +103,7 @@ export default function AuditTable({
             ))}
 
           {!loading && data.length === 0 && (
-            <TableRow>
+            <TableRow className="border-b-0">
               <TableCell colSpan={selectable ? 12 : 11} className="py-10 text-center text-muted-foreground">
                 No packages found.
               </TableCell>
@@ -111,7 +111,7 @@ export default function AuditTable({
           )}
 
           {!loading &&
-            data.map((record) => {
+            data.map((record, i) => {
               const key = rowKeyOf(record);
               const flashing = flashingRows[key];
               const metrcQty = record.metrQuantity;
@@ -124,11 +124,12 @@ export default function AuditTable({
               const adjKey = locId ? `${record.id}-${locId}` : String(record.id);
               const scanCount = scanCounts[record.advertisedId || ""] || 0;
               const manualVal = pendingAdjustments[adjKey]?.inputValue ?? "";
+              const zebra = i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background";
 
               return (
                 <TableRow
                   key={key}
-                  className={flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : ""}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : zebra}`}
                 >
                   {selectable && (
                     <TableCell>
@@ -164,7 +165,7 @@ export default function AuditTable({
                     {typeof record.productCategory === "object" ? record.productCategory?.name : record.productCategory || "-"}
                   </TableCell>
                   <TableCell className="max-w-[150px] truncate text-sm">{record.supplierName || "-"}</TableCell>
-                  <TableCell className="sticky right-[520px] bg-background text-center">
+                  <TableCell className="text-center">
                     <div className="flex flex-col items-center">
                       <div className="font-medium">
                         {record.quantityLeft || 0} {record.uoMShortForm}
@@ -183,7 +184,7 @@ export default function AuditTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="sticky right-[420px] bg-background text-center">
+                  <TableCell className="text-center">
                     {metrcQty == null ? (
                       <span className="text-muted-foreground">-</span>
                     ) : (
@@ -192,7 +193,7 @@ export default function AuditTable({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="sticky right-[300px] bg-background">
+                  <TableCell className="max-w-[150px] truncate text-sm">
                     {record.rowLocationId
                       ? locationMap[record.rowLocationId] || record.rowLocationId
                       : locationFilter && locationMap[locationFilter]
@@ -204,14 +205,14 @@ export default function AuditTable({
                             : (
                                 <div className="flex flex-col gap-1">
                                   {locIds.map((id) => (
-                                    <div key={id} className="text-xs">
+                                    <div key={id} className="truncate text-xs">
                                       {locationMap[id] || id}
                                     </div>
                                   ))}
                                 </div>
                               )}
                   </TableCell>
-                  <TableCell className="sticky right-[180px] bg-background text-center">
+                  <TableCell className="text-center">
                     {record.rowLocationId ? (
                       `${record.rowLocationQty ?? 0} ${record.uoMShortForm}`
                     ) : locationFilter ? (
@@ -228,7 +229,9 @@ export default function AuditTable({
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="sticky right-0 bg-background text-center">
+                  <TableCell
+                    className={`sticky right-0 z-10 w-45 min-w-45 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${zebra}`}
+                  >
                     {countingMode === "scan" ? (
                       scanCount > 0 ? (
                         <span className="inline-flex min-w-13 items-center justify-center gap-1 rounded-full bg-green-100 px-3.5 py-0.5 text-sm font-bold text-green-600 dark:bg-green-950 dark:text-green-400">

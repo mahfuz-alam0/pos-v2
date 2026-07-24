@@ -58,8 +58,8 @@ export default function AuditFilterBar({
   onReset,
 }: AuditFilterBarProps) {
   return (
-    <div className="border-b px-3 py-2">
-      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5">
           <Input
             placeholder="Search By.."
@@ -71,6 +71,11 @@ export default function AuditFilterBar({
             }}
           />
           <Select
+            items={[
+              { value: "advertisedIds", label: "Package ID" },
+              { value: "metrcTags", label: "Metrc Tag" },
+              { value: "packageName", label: "Package Name" },
+            ]}
             value={filters.searchType}
             onValueChange={(v) => onFilterChange({ searchType: v as AuditFilters["searchType"] })}
           >
@@ -94,6 +99,7 @@ export default function AuditFilterBar({
         />
 
         <Select
+          items={[{ value: "__all__", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
           value={filters.location ?? "__all__"}
           onValueChange={(v) => onFilterChange({ location: v === "__all__" ? null : v })}
         >
@@ -111,6 +117,11 @@ export default function AuditFilterBar({
         </Select>
 
         <Select
+          items={[
+            { value: "__all__", label: "All" },
+            { value: "YES", label: "Has Metrc Discrepancy" },
+            { value: "NO", label: "No Metrc Discrepancy" },
+          ]}
           value={filters.discrepancyFilter ?? "__all__"}
           onValueChange={(v) => onFilterChange({ discrepancyFilter: v === "__all__" ? undefined : v })}
         >
@@ -125,6 +136,11 @@ export default function AuditFilterBar({
         </Select>
 
         <Select
+          items={[
+            { value: "__all__", label: "All" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
           value={filters.isActiveFilter === "" ? "__all__" : String(filters.isActiveFilter)}
           onValueChange={(v) =>
             onFilterChange({ isActiveFilter: v === "__all__" ? "" : v === "true" })
@@ -149,6 +165,7 @@ export default function AuditFilterBar({
         />
 
         <Select
+          items={[{ value: "__all__", label: "All Suppliers" }, ...suppliers.map((s) => ({ value: s.id, label: s.name || s.licenseNumber }))]}
           value={filters.supplier ?? "__all__"}
           onValueChange={(v) => onFilterChange({ supplier: v === "__all__" ? null : v })}
         >

@@ -234,7 +234,15 @@ export default function LiveCartDrawer({
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              <Select value={searchType} onValueChange={(v) => setSearchType(v as typeof searchType)}>
+              <Select
+                items={[
+                  { value: "advertisedIds", label: "Package ID" },
+                  { value: "metrcTags", label: "Metrc Tag" },
+                  { value: "packageName", label: "Package Name" },
+                ]}
+                value={searchType}
+                onValueChange={(v) => setSearchType(v as typeof searchType)}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -248,7 +256,11 @@ export default function LiveCartDrawer({
 
             <ApiSelect placeholder="All Categories" value={category} onChange={(v) => setCategory(v as string | null)} fetchPage={fetchCategoryPage} triggerClassName="w-40" />
 
-            <Select value={location ?? "__all__"} onValueChange={(v) => setLocation(v === "__all__" ? null : v)}>
+            <Select
+              items={[{ value: "__all__", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+              value={location ?? "__all__"}
+              onValueChange={(v) => setLocation(v === "__all__" ? null : v)}
+            >
               <SelectTrigger className="w-40 ring-2 ring-green-400 data-placeholder:ring-0">
                 <SelectValue placeholder="Select Location..." />
               </SelectTrigger>
@@ -262,7 +274,15 @@ export default function LiveCartDrawer({
               </SelectContent>
             </Select>
 
-            <Select value={discrepancyFilter ?? "__all__"} onValueChange={(v) => setDiscrepancyFilter(v === "__all__" ? undefined : v)}>
+            <Select
+              items={[
+                { value: "__all__", label: "All" },
+                { value: "YES", label: "Has Metrc Discrepancy" },
+                { value: "NO", label: "No Metrc Discrepancy" },
+              ]}
+              value={discrepancyFilter ?? "__all__"}
+              onValueChange={(v) => setDiscrepancyFilter(v === "__all__" ? undefined : v)}
+            >
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="Discrepancy Status" />
               </SelectTrigger>
@@ -274,6 +294,11 @@ export default function LiveCartDrawer({
             </Select>
 
             <Select
+              items={[
+                { value: "__all__", label: "All" },
+                { value: "true", label: "Active" },
+                { value: "false", label: "Inactive" },
+              ]}
               value={isActiveFilter === "" ? "__all__" : String(isActiveFilter)}
               onValueChange={(v) => setIsActiveFilter(v === "__all__" ? "" : v === "true")}
             >
@@ -289,7 +314,11 @@ export default function LiveCartDrawer({
 
             <ApiSelect placeholder="Select Brand..." value={brand} onChange={(v) => setBrand(v as string | null)} fetchPage={fetchBrandPage} triggerClassName="w-40" />
 
-            <Select value={supplier ?? "__all__"} onValueChange={(v) => setSupplier(v === "__all__" ? null : v)}>
+            <Select
+              items={[{ value: "__all__", label: "All Suppliers" }, ...suppliers.map((s) => ({ value: s.id, label: s.name || s.licenseNumber }))]}
+              value={supplier ?? "__all__"}
+              onValueChange={(v) => setSupplier(v === "__all__" ? null : v)}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Select Supplier" />
               </SelectTrigger>
