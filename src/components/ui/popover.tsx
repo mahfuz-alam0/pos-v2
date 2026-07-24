@@ -18,7 +18,7 @@ function PopoverTrigger({
 }
 
 function PopoverContent({
-  className,
+  className = "",
   align = "center",
   alignOffset = 0,
   side = "bottom",
@@ -46,7 +46,7 @@ function PopoverContent({
 }
 
 function PopoverHeader({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -58,7 +58,7 @@ function PopoverHeader({
 }
 
 function PopoverTitle({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Title>) {
   return (
@@ -70,7 +70,7 @@ function PopoverTitle({
 }
 
 function PopoverDescription({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Description>) {
   return (

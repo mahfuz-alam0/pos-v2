@@ -28,7 +28,7 @@ function isDobBefore(dateStr) {
   return new Date(dateStr) < new Date();
 }
 
-export default function QueueCard({ data, onRemove, onServe, sidepanel = false }) {
+export default function QueueCard({ data, onRemove, onServe, onOpenDetails, sidepanel = false }) {
   const { shopId } = useShop();
   const { queueBorder15, queueBorder20, queueYellowTime, queueRedTime } = useSettings();
   const [waitTime, setWaitTime] = useState(calculateWaitTime(data?.updatedAt));
@@ -157,7 +157,10 @@ export default function QueueCard({ data, onRemove, onServe, sidepanel = false }
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div
+          className={`min-w-0 flex-1 ${onOpenDetails ? "cursor-pointer" : ""}`}
+          onClick={() => onOpenDetails?.(data)}
+        >
           <div className="truncate pr-5 text-[13px] font-semibold text-text">
             {data?.firstName} {data?.lastName || ""}
           </div>

@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
 function Calendar({
-  className,
+  className = "",
   classNames,
   showOutsideDays = true,
   captionLayout = "label",
@@ -142,7 +142,7 @@ function Calendar({
 }
 
 function CalendarDayButton({
-  className,
+  className = "",
   day,
   modifiers,
   locale,

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Menu, Megaphone, Monitor } from "lucide-react";
+import { Menu, Megaphone, Monitor, Leaf } from "lucide-react";
 import { useSidebar } from "@/context/sidebar-context";
 import { useShop } from "@/context/shop-context";
 import UserProfile from "./UserProfile";
 import AnnouncementDrawer from "./AnnouncementDrawer";
+import LeaflyOrdersDrawer from "./LeaflyOrdersDrawer";
 import { cn } from "@/lib/utils";
 
 function ShopSwitcher() {
@@ -106,6 +107,7 @@ function RegisterSwitcher() {
 export default function Topbar() {
   const { isMobile, toggleMobile } = useSidebar();
   const [isAnnouncementDrawerOpen, setIsAnnouncementDrawerOpen] = useState(false);
+  const [isLeaflyDrawerOpen, setIsLeaflyDrawerOpen] = useState(false);
 
   return (
     <header className="flex h-18 shrink-0 items-center gap-3 bg-accent px-4">
@@ -130,6 +132,15 @@ export default function Topbar() {
         >
           <Megaphone className="size-4.5 text-white" />
         </button>
+        <button
+          type="button"
+          onClick={() => setIsLeaflyDrawerOpen(true)}
+          title="Leafly Orders"
+          className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/30 hover:shadow-sm"
+          aria-label="Open Leafly Orders"
+        >
+          <Leaf className="size-4.5 text-white" />
+        </button>
         <RegisterSwitcher />
         <ShopSwitcher />
         {isMobile && <UserProfile collapsed />}
@@ -138,6 +149,10 @@ export default function Topbar() {
       <AnnouncementDrawer
         open={isAnnouncementDrawerOpen}
         onClose={() => setIsAnnouncementDrawerOpen(false)}
+      />
+      <LeaflyOrdersDrawer
+        open={isLeaflyDrawerOpen}
+        onClose={() => setIsLeaflyDrawerOpen(false)}
       />
     </header>
   );

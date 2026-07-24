@@ -93,9 +93,18 @@ export async function decodeBarcodeFromImage(img) {
   return decodeViaZXingWasm(img);
 }
 
-// Single live-scan attempt on the current video frame: native detector when
+// Live-scan attempt on the current video frame: native detector when
 // available, else zxing-wasm over a sweeping lower band (PDF417 sits on the
 // lower-left of an AAMVA card back). Returns raw text or null.
+//
+// Previously this checked ONE band per call, cycling through LIVE_BANDS
+// round-robin across successive polling ticks (350ms apart) — covering all
+// bands once could take 4 ticks (1.4s+) even though each individual crop
+// decodes in a few ms. Now every call walks all bands in one pass (a single
+// video-frame capture, decoded sequentially — zxing-wasm's module isn't
+// safe to call concurrently, so this stays a tight loop, not Promise.all)
+// before giving up, so a hit in any band lands within one poll instead of
+// up to four.
 const LIVE_BANDS = [
   [0.0, 0.35, 1, 0.4],
   [0.0, 0.5, 1, 0.4],
@@ -103,7 +112,7 @@ const LIVE_BANDS = [
   [0.0, 0.0, 1, 1],
 ];
 
-export async function decodeVideoFrame(video, frameIndex = 0) {
+export async function decodeVideoFrame(video) {
   if (!video?.videoWidth) return null;
 
   if (typeof window !== "undefined" && "BarcodeDetector" in window) {
@@ -124,19 +133,21 @@ export async function decodeVideoFrame(video, frameIndex = 0) {
     const readBarcodesFromImageData = await getZXingReader();
     const W = video.videoWidth;
     const H = video.videoHeight;
-    const [xf, yf, wf, hf] = LIVE_BANDS[frameIndex % LIVE_BANDS.length];
-    const cw = Math.round(wf * W);
-    const ch = Math.round(hf * H);
-    const c = document.createElement("canvas");
-    c.width = cw;
-    c.height = ch;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(video, Math.round(xf * W), Math.round(yf * H), cw, ch, 0, 0, cw, ch);
-    const r = await readBarcodesFromImageData(ctx.getImageData(0, 0, cw, ch), {
-      formats: ["PDF417"],
-      textMode: "Plain",
-    });
-    if (r.length > 0 && r[0].text?.length > 30) return r[0].text;
+
+    for (const [xf, yf, wf, hf] of LIVE_BANDS) {
+      const cw = Math.round(wf * W);
+      const ch = Math.round(hf * H);
+      const c = document.createElement("canvas");
+      c.width = cw;
+      c.height = ch;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(video, Math.round(xf * W), Math.round(yf * H), cw, ch, 0, 0, cw, ch);
+      const r = await readBarcodesFromImageData(ctx.getImageData(0, 0, cw, ch), {
+        formats: ["PDF417"],
+        textMode: "Plain",
+      });
+      if (r.length > 0 && r[0].text?.length > 30) return r[0].text;
+    }
   } catch {}
   return null;
 }

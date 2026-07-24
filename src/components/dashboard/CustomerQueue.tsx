@@ -10,14 +10,19 @@ import QueueCard from "./QueueCard";
 import QuickCheckIn from "./QuickCheckIn";
 import QrCheckIn from "@/components/settings/QrCheckIn";
 import AddCustomerToQueue from "./AddCustomerToQueue";
+import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 
-export default function CustomerQueue({ sidepanel = false }) {
+// `onCustomerServed`: optional hook fired (in addition to the default
+// refetch) when a queue card is moved to serving — the Front Desk page uses
+// this to hand the customer off into POS; the Dashboard widget leaves it unset.
+export default function CustomerQueue({ sidepanel = false, onCustomerServed = null }) {
   const { shopId } = useShop();
   const [queueData, setQueueData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [detailsRecord, setDetailsRecord] = useState(null);
   const socketRef = useRef(null);
 
   const fetchQueue = async () => {
@@ -104,7 +109,17 @@ export default function CustomerQueue({ sidepanel = false }) {
           <div className="flex w-full items-center justify-center py-6 text-muted-foreground">No Data Found</div>
         ) : (
           queueData.map((ticket, index) => (
-            <QueueCard key={ticket.id || index} data={ticket} onRemove={fetchQueue} onServe={fetchQueue} sidepanel={sidepanel} />
+            <QueueCard
+              key={ticket.id || index}
+              data={ticket}
+              onRemove={fetchQueue}
+              onServe={(record) => {
+                fetchQueue();
+                onCustomerServed?.(record);
+              }}
+              onOpenDetails={setDetailsRecord}
+              sidepanel={sidepanel}
+            />
           ))
         )}
       </div>
@@ -116,6 +131,11 @@ export default function CustomerQueue({ sidepanel = false }) {
         shopId={shopId}
         queueData={queueData}
         onCheckedIn={fetchQueue}
+      />
+      <CustomerDetailDrawer
+        open={!!detailsRecord}
+        onClose={() => setDetailsRecord(null)}
+        customerId={detailsRecord?.customerId}
       />
     </div>
   );

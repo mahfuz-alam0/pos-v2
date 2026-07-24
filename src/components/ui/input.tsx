@@ -4,7 +4,7 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "@/lib/utils"
 
 function Input({
-  className,
+  className = "",
   type,
   ...props
 }: React.ComponentProps<typeof InputPrimitive>) {

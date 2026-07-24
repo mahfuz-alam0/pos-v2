@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 function Card({
-  className,
+  className = "",
   size = "default",
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
@@ -20,7 +20,7 @@ function Card({
 }
 
 function CardHeader({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -35,7 +35,7 @@ function CardHeader({
 }
 
 function CardTitle({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -50,7 +50,7 @@ function CardTitle({
 }
 
 function CardDescription({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -62,7 +62,7 @@ function CardDescription({
 }
 
 function CardAction({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -77,7 +77,7 @@ function CardAction({
 }
 
 function CardContent({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -89,7 +89,7 @@ function CardContent({
 }
 
 function CardFooter({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (

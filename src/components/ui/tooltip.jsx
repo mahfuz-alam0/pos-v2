@@ -24,7 +24,7 @@ function TooltipTrigger({
 }
 
 function TooltipContent({
-  className,
+  className = "",
   side = "top",
   sideOffset = 4,
   align = "center",
