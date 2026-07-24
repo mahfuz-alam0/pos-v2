@@ -536,7 +536,7 @@ export default function AuditPage() {
       toast.warning("No data available to export");
       return;
     }
-
+ 
     setExporting(true);
     try {
       if (type === "csv") {
