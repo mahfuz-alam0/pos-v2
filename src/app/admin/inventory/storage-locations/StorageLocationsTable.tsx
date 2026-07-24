@@ -89,10 +89,10 @@ export default function StorageLocationsTable() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <Table>
-          <TableHeader>
-            <TableRow className="border-b-0 bg-muted/60">
+          <TableHeader className="[&_tr]:border-b-0">
+            <TableRow className="bg-muted/60">
               <TableHead>Location Name</TableHead>
               <TableHead>Default Package Destination</TableHead>
               <TableHead>Sellable In Physical Store</TableHead>
@@ -102,7 +102,7 @@ export default function StorageLocationsTable() {
           <TableBody>
             {loading &&
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`}>
+                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                   {Array.from({ length: 4 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -112,7 +112,7 @@ export default function StorageLocationsTable() {
               ))}
 
             {!loading && rows.length === 0 && (
-              <TableRow>
+              <TableRow className="border-b-0">
                 <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
                   No storage locations found.
                 </TableCell>
@@ -121,7 +121,7 @@ export default function StorageLocationsTable() {
 
             {!loading &&
               rows.map((row, i) => (
-                <TableRow key={row.id} className={`border-b-0 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                   <TableCell className="font-medium">
                     <Link
                       href={`/admin/inventory/storage-locations/edit/${row.id}`}

@@ -50,7 +50,7 @@ export default function Drawer({
     <>
       {overlay && (
         <div
-          className="fixed inset-0 bg-black/30 transition-opacity duration-300 ease-in-out"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xs transition-opacity duration-300 ease-in-out"
           style={{
             zIndex,
             opacity: open ? 1 : 0,
