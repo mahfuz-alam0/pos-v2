@@ -250,36 +250,48 @@ export default function AuditPage() {
   };
 
   const fetchAllAuditData = async (maxRecords?: number) => {
-    let allData: AuditPackageRow[] = [];
-    let currentPage = 1;
-    let hasMore = true;
+    const PAGE_SIZE = 100;
+    const CONCURRENCY = 5;
 
-    while (hasMore) {
-      const params = buildQueryParams(filters, currentPage, 100);
-      if (filterCountedPackages) {
-        try {
-          const res = await fetchPackageIdsBeingCounted(shopId as string);
-          const keys: string[] = res?.data?.keys || [];
-          if (keys.length > 0) params.excludedPackageIds = keys;
-        } catch {
-          // proceed without exclusion
-        }
+    let excludedPackageIds: string[] | undefined;
+    if (filterCountedPackages) {
+      try {
+        const res = await fetchPackageIdsBeingCounted(shopId as string);
+        const keys: string[] = res?.data?.keys || [];
+        if (keys.length > 0) excludedPackageIds = keys;
+      } catch {
+        // proceed without exclusion
       }
-
-      const res = await fetchPackagesMinimalExtended(shopId as string, params);
-      const packages: AuditPackageRow[] = res?.data?.packages || [];
-      const paginationData = res?.data?.paginationData || {};
-
-      allData = allData.concat(expandPackages(packages, filters.location));
-
-      const totalPages = paginationData.totalPages || 1;
-      hasMore = currentPage < totalPages;
-      currentPage++;
-
-      if (maxRecords && allData.length >= maxRecords) hasMore = false;
     }
 
-    return allData;
+    const fetchPage = async (page: number) => {
+      const params = buildQueryParams(filters, page, PAGE_SIZE);
+      if (excludedPackageIds) params.excludedPackageIds = excludedPackageIds;
+      const res = await fetchPackagesMinimalExtended(shopId as string, params);
+      return {
+        packages: (res?.data?.packages || []) as AuditPackageRow[],
+        paginationData: res?.data?.paginationData || {},
+      };
+    };
+
+    const first = await fetchPage(1);
+    const totalPages = first.paginationData.totalPages || 1;
+    const pagesByNumber = new Map<number, AuditPackageRow[]>([[1, first.packages]]);
+
+    const remainingPages = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => i + 2);
+    for (let i = 0; i < remainingPages.length; i += CONCURRENCY) {
+      const batch = remainingPages.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(batch.map((page) => fetchPage(page)));
+      batch.forEach((page, idx) => pagesByNumber.set(page, results[idx].packages));
+    }
+
+    let allData: AuditPackageRow[] = [];
+    for (let page = 1; page <= totalPages; page++) {
+      allData = allData.concat(expandPackages(pagesByNumber.get(page) || [], filters.location));
+      if (maxRecords && allData.length >= maxRecords) break;
+    }
+
+    return maxRecords ? allData.slice(0, maxRecords) : allData;
   };
 
   const fetchSessionInfo = async () => {

@@ -2,6 +2,10 @@
 
 Reference implementation for "how a page should look": `src/app/admin/inventory/manage-inventories/ManageInventoriesTable.tsx`. When building or fixing any admin page/table, match its patterns below instead of guessing.
 
+## `accent` token is NOT shadcn's accent
+
+In this project `--color-accent` is the structural sidebar navy (`#001529`, `src/app/globals.css`) used by Sidebar/Topbar/login — and `--color-accent-foreground` doesn't exist. Any stock shadcn component that ships with `focus:bg-accent focus:text-accent-foreground` hover styles (dropdown-menu, menubar, context-menu, etc.) will render a near-black hover with invisible text. Swap those to `focus:bg-muted focus:text-foreground` (see `src/components/ui/select.tsx` items for the convention) whenever adding a new shadcn component.
+
 ## No visible borders on containers/toggles
 
 Don't type `border` on wrapper divs, card containers, filter bars, or segmented toggles. This is not a shadcn/Tailwind default leaking in — every border you see was hand-written as a literal `border` class somewhere. Search for it before assuming it's structural:

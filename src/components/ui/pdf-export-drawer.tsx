@@ -188,6 +188,11 @@ export default function PdfExportDrawer({
       max-width: 100%;
       word-wrap: break-word;
     }
+    .page-card td, .page-card th {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
     .section-divider {
       border: none;
       border-top: 1px dashed #bbb;
@@ -370,8 +375,14 @@ export default function PdfExportDrawer({
       const savedWidths = columnWidthsRef.current;
       const tables = container.querySelectorAll("table");
       tables.forEach((table, tableIndex) => {
-        if (!savedWidths[tableIndex]) return;
         (table as HTMLElement).style.tableLayout = "fixed";
+        (table as HTMLElement).style.width = "100%";
+        table.querySelectorAll("td, th").forEach((cell) => {
+          (cell as HTMLElement).style.wordBreak = "break-word";
+          (cell as HTMLElement).style.overflowWrap = "anywhere";
+          (cell as HTMLElement).style.whiteSpace = "normal";
+        });
+        if (!savedWidths[tableIndex]) return;
         const ths = table.querySelectorAll("thead th");
         ths.forEach((th, colIndex) => {
           if (savedWidths[tableIndex][colIndex] != null) {
@@ -385,6 +396,21 @@ export default function PdfExportDrawer({
       await new Promise((r) => setTimeout(r, 500));
 
       const scale = 2;
+
+      // Safe page-cut positions (canvas px): bottom edge of every table row and
+      // top-level block, so a slice never lands mid-row and chops text in half.
+      const containerRect = container.getBoundingClientRect();
+      const breakSet = new Set<number>();
+      const breakEls = [
+        ...Array.from(container.children),
+        ...Array.from(container.querySelectorAll("tr, h3, .section-divider")),
+      ];
+      breakEls.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        breakSet.add(Math.round((r.bottom - containerRect.top) * scale));
+      });
+      const breakpoints = Array.from(breakSet).sort((a, b) => a - b);
+
       const fullCanvas = await html2canvas(container, {
         scale,
         logging: false,
@@ -409,7 +435,18 @@ export default function PdfExportDrawer({
       let pageIndex = 0;
       let sourceY = 0;
       while (sourceY < totalCanvasHeight) {
-        const sliceHeight = Math.min(canvasPageHeight, totalCanvasHeight - sourceY);
+        let sliceEnd = Math.min(sourceY + canvasPageHeight, totalCanvasHeight);
+        if (sliceEnd < totalCanvasHeight) {
+          // Snap the cut up to the last safe boundary that fits on this page;
+          // fall back to a hard cut only if a single row is taller than a page.
+          let snapped = -1;
+          for (const bp of breakpoints) {
+            if (bp > sliceEnd) break;
+            if (bp > sourceY) snapped = bp;
+          }
+          if (snapped > sourceY) sliceEnd = snapped;
+        }
+        const sliceHeight = sliceEnd - sourceY;
 
         const sliceCanvas = document.createElement("canvas");
         sliceCanvas.width = totalCanvasWidth;
@@ -427,7 +464,7 @@ export default function PdfExportDrawer({
         }
         pdf.addImage(imgData, "PNG", marginMm, marginMm, contentWidthMm, imgHeightMm);
 
-        sourceY += canvasPageHeight;
+        sourceY = sliceEnd;
         pageIndex++;
       }
 
@@ -474,7 +511,7 @@ export default function PdfExportDrawer({
   return (
     <Drawer open={open} onClose={onClose} side="right" size={typeof window !== "undefined" ? window.innerWidth : 1200} zIndex={2000}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-6 py-3">
+        <div className="flex items-center justify-between px-6 py-3 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] dark:shadow-[inset_0_-1px_0_rgba(255,255,255,0.08)]">
           <h2 className="text-base font-semibold">Export to PDF</h2>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>
@@ -495,7 +532,7 @@ export default function PdfExportDrawer({
             <iframe ref={iframeRef} title="PDF Preview" className="h-full w-full border-0" />
           </div>
 
-          <div className="w-[380px] shrink-0 overflow-y-auto border-l bg-background p-6">
+          <div className="w-[380px] shrink-0 overflow-y-auto bg-background p-6 shadow-[inset_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]">
             <h3 className="mb-6 text-base font-semibold">Export Settings</h3>
 
             <div className="mb-6">
@@ -545,17 +582,17 @@ export default function PdfExportDrawer({
                 </div>
                 <div>
                   <div className="mb-1 text-xs">Unit</div>
-                  <div className="flex w-full overflow-hidden rounded-lg border">
+                  <div className="flex w-full rounded-lg bg-background p-0.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]">
                     {(["mm", "in", "px"] as const).map((unit) => (
                       <button
                         key={unit}
                         type="button"
                         onClick={() => setSettings((s) => ({ ...s, customUnit: unit }))}
                         className={cn(
-                          "flex-1 py-1 text-xs",
+                          "flex-1 rounded-[7px] py-1 text-xs transition-colors",
                           settings.customUnit === unit
                             ? "bg-primary text-primary-foreground"
-                            : "bg-transparent hover:bg-muted"
+                            : "text-muted-foreground hover:bg-muted"
                         )}
                       >
                         {unit === "in" ? "inches" : unit}
@@ -568,15 +605,17 @@ export default function PdfExportDrawer({
 
             <div className="mb-6">
               <div className="mb-2 text-sm font-semibold">Page Orientation</div>
-              <div className="flex w-full overflow-hidden rounded-lg border">
+              <div className="flex w-full rounded-lg bg-muted p-0.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]">
                 {(["portrait", "landscape"] as const).map((o) => (
                   <button
                     key={o}
                     type="button"
                     onClick={() => setSettings((s) => ({ ...s, orientation: o }))}
                     className={cn(
-                      "flex-1 py-1.5 text-sm capitalize",
-                      settings.orientation === o ? "bg-primary text-primary-foreground" : "bg-transparent hover:bg-muted"
+                      "flex-1 rounded-[7px] py-1.5 text-sm capitalize transition-colors",
+                      settings.orientation === o
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-background/60"
                     )}
                   >
                     {o}

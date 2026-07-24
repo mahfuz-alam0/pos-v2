@@ -4,22 +4,22 @@ import * as React from "react";
 
 const SIDE_CONFIG = {
   right: {
-    wrapper: "top-0 right-0 h-full max-w-[85vw] border-l",
+    wrapper: "top-0 right-0 h-full max-w-[100vw]",
     size: (px) => ({ width: px }),
     closedTransform: "translateX(100%)",
   },
   left: {
-    wrapper: "top-0 left-0 h-full max-w-[85vw] border-r",
+    wrapper: "top-0 left-0 h-full max-w-[100vw]",
     size: (px) => ({ width: px }),
     closedTransform: "translateX(-100%)",
   },
   top: {
-    wrapper: "top-0 left-0 w-full max-h-[85vh] border-b",
+    wrapper: "top-0 left-0 w-full max-h-[85vh]",
     size: (px) => ({ height: px }),
     closedTransform: "translateY(-100%)",
   },
   bottom: {
-    wrapper: "bottom-0 left-0 w-full max-h-[85vh] border-t",
+    wrapper: "bottom-0 left-0 w-full max-h-[85vh]",
     size: (px) => ({ height: px }),
     closedTransform: "translateY(100%)",
   },
