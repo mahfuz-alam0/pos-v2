@@ -36,7 +36,7 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }) {
     >
       {Icon ? <Icon className={cn("size-4.5 shrink-0", active && "text-white")} /> : null}
       {!collapsed && (
-        <span className="max-w-[160px] truncate opacity-100">{item.label}</span>
+        <span className="max-w-40 truncate opacity-100">{item.label}</span>
       )}
     </Link>
   );

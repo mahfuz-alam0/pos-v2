@@ -637,8 +637,8 @@ export default function ManageInventoriesTable() {
           </div>
         )}
         <Table>
-          <TableHeader>
-            <TableRow className="border-b-0 bg-muted/60">
+          <TableHeader className="[&_tr]:border-b-0">
+            <TableRow className="bg-muted/60">
               <TableHead className="w-70">Product Name</TableHead>
               <TableHead className="text-center">Health</TableHead>
               <TableHead>Category</TableHead>
@@ -648,7 +648,7 @@ export default function ManageInventoriesTable() {
               <TableHead className="text-center">Sellable Qty</TableHead>
               <TableHead className="text-center">Sellable In Store</TableHead>
               <TableHead className="w-28 text-center">Status</TableHead>
-              <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.12)]">
+              <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">
                 Action
               </TableHead>
             </TableRow>
@@ -656,7 +656,7 @@ export default function ManageInventoriesTable() {
           <TableBody>
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -675,7 +675,7 @@ export default function ManageInventoriesTable() {
 
             {rows.length > 0 &&
               rows.map((row, i) => (
-                <TableRow key={row.id} className={`border-b-0 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                   <TableCell className="max-w-70 truncate font-medium">
                     <div className="flex min-w-0 items-center gap-1.5">
                       {row.weedmapProductId && (
@@ -746,7 +746,7 @@ export default function ManageInventoriesTable() {
                     </Badge>
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-33 text-center shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.12)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
                   >
                     <Button
                       size="sm"

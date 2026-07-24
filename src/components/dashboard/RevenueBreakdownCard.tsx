@@ -85,14 +85,14 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
   return (
-    <div className="max-w-[300px] rounded border border-border bg-component-bg p-2.5 shadow">
+    <div className="max-w-75 rounded border border-border bg-component-bg p-2.5 shadow">
       <p className="m-0 text-sm text-orange-500">{data.name}</p>
       {Object.entries(data).map(
         ([key, value]) =>
           key !== "name" && (
             <div key={key} className="my-0.5 flex items-center justify-between gap-2">
-              <p className="m-0 mr-2 max-w-[150px] truncate text-[color:#038FDE]">{key}</p>
-              <p className="m-0 whitespace-nowrap text-[color:#038FDE]">QTY: {value as React.ReactNode}</p>
+              <p className="m-0 mr-2 max-w-37.5 truncate text-[#038FDE]">{key}</p>
+              <p className="m-0 whitespace-nowrap text-[#038FDE]">QTY: {value as React.ReactNode}</p>
             </div>
           )
       )}
@@ -178,7 +178,7 @@ export default function RevenueBreakdownCard() {
   return (
     <div className="h-full rounded-xl border border-border bg-component-bg p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="m-0 text-[18px] font-semibold text-text">Revenue Breakdown</h2>
+        <h2 className="m-0 text-lg font-semibold text-text">Revenue Breakdown</h2>
         <select
           className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
           value={statsDefaultValue}
@@ -223,7 +223,7 @@ export default function RevenueBreakdownCard() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[200px] flex-col items-center justify-center rounded-md bg-surface-alt">
+              <div className="flex h-50 flex-col items-center justify-center rounded-md bg-surface-alt">
                 <div className="text-muted-foreground">No data available</div>
                 <div className="mt-2 text-sm text-muted-foreground">Try selecting a different time period</div>
               </div>

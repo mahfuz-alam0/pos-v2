@@ -74,7 +74,7 @@ export default function MetrcAlerts() {
   return (
     <div className="rounded-xl border border-border bg-component-bg p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-[18px] font-semibold text-text">Metrc Alerts</h2>
+        <h2 className="m-0 text-lg font-semibold text-text">Metrc Alerts</h2>
         {logs.length > 0 && (
           <Button size="sm" variant="destructive" onClick={handleClearAll} disabled={clearingAll}>
             Clear All
@@ -82,7 +82,7 @@ export default function MetrcAlerts() {
         )}
       </div>
 
-      <div className="mt-4 max-h-[400px] space-y-2 overflow-y-auto">
+      <div className="mt-4 max-h-100 space-y-2 overflow-y-auto">
         {loading ? (
           <div className="py-6 text-center text-muted-foreground">Loading…</div>
         ) : logs.length === 0 ? (

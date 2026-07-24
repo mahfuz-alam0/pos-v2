@@ -109,16 +109,16 @@ export default function EmployeeSalesTodayChart({
     <div className="h-full rounded-xl border border-border bg-component-bg">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
         <span className="text-base font-semibold text-text">
-          Today&apos;s Sales by Employee &mdash; <span className="text-[color:#2A9D8F]">{dateLabel}</span>
+          Today&apos;s Sales by Employee &mdash; <span className="text-[#2A9D8F]">{dateLabel}</span>
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={goToPrev}
-            className="flex items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 py-1 text-sm font-medium text-[color:#2A9D8F]"
+            className="flex items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 py-1 text-sm font-medium text-[#2A9D8F]"
           >
             <ChevronLeft className="size-3" /> Previous
           </button>
-          <span className="rounded-full bg-surface-alt px-3 py-1 text-sm font-semibold text-[color:#2A9D8F]">{dateShort}</span>
+          <span className="rounded-full bg-surface-alt px-3 py-1 text-sm font-semibold text-[#2A9D8F]">{dateShort}</span>
           <button
             onClick={goToNext}
             disabled={isToday}
