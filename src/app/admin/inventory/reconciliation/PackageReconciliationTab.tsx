@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Table,
   TableBody,
@@ -205,8 +206,8 @@ export default function PackageReconciliationTab() {
 
         <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
           <Table>
-            <TableHeader>
-              <TableRow className="border-b-0 bg-muted/60">
+            <TableHeader className="[&_tr]:border-b-0">
+              <TableRow className="bg-muted/60">
                 <TableHead>Package ID</TableHead>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Date</TableHead>
@@ -217,7 +218,7 @@ export default function PackageReconciliationTab() {
             <TableBody>
               {loading &&
                 Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`}>
+                  <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                     {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -227,7 +228,7 @@ export default function PackageReconciliationTab() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow>
+                <TableRow className="border-b-0">
                   <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                     No package adjustments found.
                   </TableCell>
@@ -238,12 +239,12 @@ export default function PackageReconciliationTab() {
                 rows.map((row: any, i) => (
                   <TableRow
                     key={row.id}
-                    className={`cursor-pointer border-b-0 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""} ${
+                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""} ${
                       String(row.id) === selectedId ? "outline outline-primary" : ""
                     }`}
                     onClick={() => openAdjustment(row.id)}
                   >
-                    <TableCell className="font-medium">{row.advertisedPackageId}</TableCell>
+                    <TableCell className="font-medium text-primary hover:underline">{row.advertisedPackageId}</TableCell>
                     <TableCell>{row.packageNameSnapShot}</TableCell>
                     <TableCell>{new Date(row.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className={`text-center font-medium ${diffColor(row.totalDifferenceCount)}`}>
@@ -263,26 +264,14 @@ export default function PackageReconciliationTab() {
           </Table>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {totalEntries > 0
-              ? `${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, totalEntries)} of ${totalEntries}`
-              : null}
-          </span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => loadAdjustments(page - 1)}>
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || loading}
-              onClick={() => loadAdjustments(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          onPageChange={loadAdjustments}
+        />
       </div>
 
       {selectedId && (

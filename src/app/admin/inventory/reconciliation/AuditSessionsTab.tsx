@@ -13,6 +13,7 @@ import { fetchStorageLocations } from "@/services/storageLocations/list";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ export default function AuditSessionsTab() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);
@@ -62,6 +64,7 @@ export default function AuditSessionsTab() {
         setRows(res?.data?.sessions ?? []);
         setPage(res?.data?.paginationData?.currentPage ?? targetPage);
         setTotalPages(res?.data?.paginationData?.totalPages ?? 1);
+        setTotalEntries(res?.data?.paginationData?.totalEntries ?? 0);
       } catch (err) {
         toast.error(err?.message || "Failed to fetch audit sessions");
       } finally {
@@ -146,8 +149,8 @@ export default function AuditSessionsTab() {
 
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <Table>
-          <TableHeader>
-            <TableRow className="border-b-0 bg-muted/60">
+          <TableHeader className="[&_tr]:border-b-0">
+            <TableRow className="bg-muted/60">
               <TableHead>Storage Location</TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Started At</TableHead>
@@ -159,7 +162,7 @@ export default function AuditSessionsTab() {
           <TableBody>
             {loading &&
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`}>
+                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                   {Array.from({ length: 6 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -169,7 +172,7 @@ export default function AuditSessionsTab() {
               ))}
 
             {!loading && rows.length === 0 && (
-              <TableRow>
+              <TableRow className="border-b-0">
                 <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                   No audit sessions found.
                 </TableCell>
@@ -180,7 +183,7 @@ export default function AuditSessionsTab() {
               rows.map((row: any, i) => (
                 <TableRow
                   key={row.id}
-                  className={`cursor-pointer border-b-0 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
                   onClick={() => openSession(row.id)}
                 >
                   <TableCell>{row.storageLocation?.name || "-"}</TableCell>
@@ -199,14 +202,14 @@ export default function AuditSessionsTab() {
         </Table>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => loadSessions(page - 1)}>
-          Previous
-        </Button>
-        <Button variant="outline" size="sm" disabled={page >= totalPages || loading} onClick={() => loadSessions(page + 1)}>
-          Next
-        </Button>
-      </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalEntries={totalEntries}
+        pageSize={PAGE_SIZE}
+        loading={loading}
+        onPageChange={(p) => loadSessions(p)}
+      />
 
       <AuditSessionDetailDrawer
         sessionId={openSessionId}
