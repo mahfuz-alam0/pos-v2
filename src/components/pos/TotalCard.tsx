@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import { StickyNote, Percent, Trash2, Loader2, Play } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Drawer from "@/components/ui/Drawer";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 import ProductPromoTaxes from "@/components/pos/ProductPromoTaxes";
 import MiscellaneousChargeDrawer from "@/components/pos/MiscellaneousChargeDrawer";
-import NewAvailableCoupons from "@/components/pos/NewAvailableCoupons";
+import PaymentStatusRow from "@/components/pos/PaymentStatusRow";
+import QuickActionsRow from "@/components/pos/QuickActionsRow";
+import LoyaltyPointsPanel from "@/components/pos/LoyaltyPointsPanel";
 import Notes from "@/components/pos/Notes";
 import AddTip from "@/components/pos/AddTip";
 import EnterPin from "@/components/pos/EnterPin";
@@ -982,183 +982,40 @@ export default function TotalCard({
 
         {/* Action row: payment method + status + finalize buttons */}
         <div className="mb-2 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <button
-              disabled={saleDetail?.paymentStatus === "PAID_IN_FULL" || cartEmpty}
-              onClick={handleOpenPaymentSidebar}
-              className="flex-1 min-w-0 rounded-md bg-[#287372] px-3 py-2 font-semibold text-white transition-colors hover:bg-[#2A9D8F] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <div className="flex items-center justify-between gap-1">
-                <span className="truncate text-sm">
-                  {paymentMethod === "CASH"
-                    ? "Cash"
-                    : paymentMethod === "VIRTUAL"
-                    ? "Card/Digital"
-                    : paymentMethod === "BOTH_CASH_VIRTUAL"
-                    ? "Cash + Card"
-                    : "Payment Method"}
-                </span>
-                <span className="text-xs opacity-80">
-                  (${finalPayable.toFixed(2)}) ✏️
-                </span>
-              </div>
-            </button>
+          <PaymentStatusRow
+            paymentStatusPaidInFull={saleDetail?.paymentStatus === "PAID_IN_FULL"}
+            cartEmpty={cartEmpty}
+            onOpenPaymentSidebar={handleOpenPaymentSidebar}
+            paymentMethod={paymentMethod}
+            finalPayable={finalPayable}
+            currentAction={currentAction}
+            hasSale={hasSale}
+            orderStatus={orderStatus}
+            selectedStatus={selectedStatus}
+            onStatusChange={handleChange}
+            saleDetailStatusId={saleDetail?.status?.statusId}
+            selectedStatusObj={selectedStatusObj}
+            onQuickStatusChange={setSelectedStatus}
+            sendToFulfilmentLoading={sendToFulfilmentLoading}
+            onSendToFulfillment={() =>
+              runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
+            }
+          />
 
-            {(currentAction !== null || hasSale) && (
-              <Select
-                value={selectedStatus ?? ""}
-                onValueChange={handleChange}
-                disabled={currentAction === "processReturns"}
-              >
-                <SelectTrigger className="flex-1 min-w-0">
-                  <SelectValue placeholder="Select Status">
-                    {(value) =>
-                      (orderStatus || []).find((s) => s.statusId === value)
-                        ?.displayName || "Select Status"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(orderStatus || [])
-                    .filter(
-                      (s) =>
-                        s?.allowedSources?.includes(saleDetail?.status?.statusId) &&
-                        !s?.isRollBackState
-                    )
-                    .map((s) => (
-                      <SelectItem key={s.statusId} value={s.statusId}>
-                        <span className="flex items-center gap-1">
-                          <span
-                            className="inline-block h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: s.colorCode }}
-                          />
-                          {s.displayName}
-                        </span>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {!hasSale && currentAction === null && (
-              <div className="flex flex-1 min-w-0 gap-1">
-                <Select
-                  value={selectedStatus ?? ""}
-                  onValueChange={setSelectedStatus}
-                >
-                  <SelectTrigger className="w-9 shrink-0 justify-center px-0" size="sm">
-                    <Play
-                      className="h-3.5 w-3.5 fill-current"
-                      style={
-                        selectedStatusObj?.colorCode
-                          ? { color: selectedStatusObj.colorCode }
-                          : undefined
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(orderStatus || [])
-                      .filter((s) => !s.isTerminationState)
-                      .map((s) => (
-                        <SelectItem key={s.statusId} value={s.statusId}>
-                          <span className="flex items-center gap-1">
-                            <span
-                              className="inline-block h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: s.colorCode }}
-                            />
-                            {s.displayName}
-                          </span>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="default"
-                  size="sm"
-                  disabled={cartEmpty || sendToFulfilmentLoading}
-                  onClick={() =>
-                    runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
-                  }
-                  className="flex-1 min-w-0"
-                >
-                  {sendToFulfilmentLoading
-                    ? "Sending…"
-                    : selectedStatusObj?.displayName || "Send to Fulfillment"}
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Quick actions: draft / misc / notes / tip / coupons */}
-          <div className="flex flex-wrap gap-2">
-            {!hasSale && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentAction === "processReturns" || saveDraftLoading}
-                onClick={handleSaveAsDraft}
-                className="flex-1"
-              >
-                {saveDraftLoading ? "Saving…" : "Draft"}
-              </Button>
-            )}
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={cartEmpty || currentAction !== null}
-                    className="flex-1"
-                  >
-                    <Percent className="mr-1 h-4 w-4" /> Misc.
-                  </Button>
-                }
-              />
-              <PopoverContent className="w-44 p-1">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-                  onClick={() => setMiscallenousCharge(true)}
-                >
-                  <Percent className="h-4 w-4" /> Add Charge
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-                  onClick={() => setMiscallenousDiscount(true)}
-                >
-                  Add Discount
-                </button>
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={cartEmpty || currentAction !== null}
-              onClick={() => setNotesOpen(true)}
-              className="flex-1"
-            >
-              <StickyNote className="mr-1 h-4 w-4" /> Notes
-            </Button>
-            {!cartEmpty && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentAction !== null}
-                onClick={() => setVisibleTip(true)}
-                className="flex-1"
-              >
-                Tip
-              </Button>
-            )}
-            {currentAction === null &&
-              (selectedCustomer?.id || quoteBody?.customerId) && (
-                <div className="h-7 flex-1">
-                  <NewAvailableCoupons compact />
-                </div>
-              )}
-          </div>
+          <QuickActionsRow
+            hasSale={hasSale}
+            cartEmpty={cartEmpty}
+            currentAction={currentAction}
+            saveDraftLoading={saveDraftLoading}
+            onSaveDraft={handleSaveAsDraft}
+            onAddMiscCharge={() => setMiscallenousCharge(true)}
+            onAddMiscDiscount={() => setMiscallenousDiscount(true)}
+            onOpenNotes={() => setNotesOpen(true)}
+            onOpenTip={() => setVisibleTip(true)}
+            showCoupons={
+              currentAction === null && !!(selectedCustomer?.id || quoteBody?.customerId)
+            }
+          />
         </div>
 
         {(loading || orderProcessing) && currentAction === null && (
@@ -1252,85 +1109,23 @@ export default function TotalCard({
             )}
 
             {/* Loyalty Points */}
-            {(selectedCustomer?.id || quoteBody?.customerId) &&
-              (customerLoyaltyInfo?.userLoyaltyStatus?.isBlocked ? (
-                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                  This customer&apos;s loyalty status is blocked.
-                </div>
-              ) : (
-                <div className="mt-2 rounded-lg border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">Loyalty Points</div>
-                      <span className="text-xs text-muted-foreground">
-                        {customerLoyaltyInfo?.userLoyaltyStatus?.currentLoyaltyPoints ?? 0}
-                        {" = $"}
-                        {customerLoyaltyInfo?.amountRepresentation ?? 0}
-                      </span>
-                    </div>
-
-                    {getOrderSummary?.data?.loyaltyPointsUsed > 0 &&
-                    !(getOrderSummary?.data?.errorMessages?.loyaltyPoints?.length > 0) ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-green-600">
-                          {getOrderSummary.data.loyaltyPointsUsed}{" "}
-                          {getOrderSummary.data.loyaltyPointsUsed > 1 ? "pts" : "pt"} = $
-                          {getOrderSummary.data.loyaltyDiscountGiven}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Remove loyalty points"
-                          className="text-[#E86F51] transition-opacity hover:opacity-70"
-                          onClick={deleteLoyaltyPoints}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          placeholder="Points"
-                          disabled={isDisabledLoyalty || loyaltyLoading}
-                          value={appliedLoyaltyPoints || ""}
-                          onChange={(e) =>
-                            setAppliedLoyaltyPoints(Number(e.target.value) || 0)
-                          }
-                          className="w-24"
-                        />
-                        <Button
-                          size="sm"
-                          disabled={isDisabledLoyalty || loyaltyLoading}
-                          title={
-                            isDisabledLoyalty
-                              ? "This discount source is disabled."
-                              : undefined
-                          }
-                          onClick={() => applyLoyaltyPoints(appliedLoyaltyPoints)}
-                        >
-                          {loyaltyLoading ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            "Apply"
-                          )}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {appliedLoyaltyPoints > 0 &&
-                    (appliedLoyaltyPoints > (customerLoyaltyInfo?.amountRepresentation || 0) ? (
-                      <div className="mt-1 text-xs text-destructive">
-                        Loyalty points applied exceed available balance.
-                      </div>
-                    ) : appliedLoyaltyPoints > (getOrderSummary?.data?.finalPayable || 0) ? (
-                      <div className="mt-1 text-xs text-destructive">
-                        Loyalty points cannot exceed the order total.
-                      </div>
-                    ) : null)}
-                </div>
-              ))}
+            {(selectedCustomer?.id || quoteBody?.customerId) && (
+              <LoyaltyPointsPanel
+                customerLoyaltyInfo={customerLoyaltyInfo}
+                appliedLoyaltyPoints={appliedLoyaltyPoints}
+                onAppliedLoyaltyPointsChange={setAppliedLoyaltyPoints}
+                loyaltyLoading={loyaltyLoading}
+                isDisabledLoyalty={isDisabledLoyalty}
+                loyaltyPointsUsed={getOrderSummary?.data?.loyaltyPointsUsed || 0}
+                loyaltyDiscountGiven={getOrderSummary?.data?.loyaltyDiscountGiven}
+                hasLoyaltyErrors={
+                  (getOrderSummary?.data?.errorMessages?.loyaltyPoints?.length || 0) > 0
+                }
+                finalPayable={getOrderSummary?.data?.finalPayable || 0}
+                onApply={applyLoyaltyPoints}
+                onRemove={deleteLoyaltyPoints}
+              />
+            )}
 
             {/* Complete Order / Checkout */}
             {!cartEmpty && (
