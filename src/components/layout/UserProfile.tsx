@@ -72,7 +72,7 @@ function NotificationsPopover({ open, anchorRef, onClose }) {
       <div className="flex items-center justify-between border-b border-blue-400/20 px-4 py-3">
         <span className="text-sm font-semibold text-blue-100">Notifications</span>
       </div>
-      <div className="flex h-[160px] items-center justify-center text-sm text-blue-300">
+      <div className="flex h-40 items-center justify-center text-sm text-blue-300">
         No Notifications Found
       </div>
     </div>,
@@ -298,7 +298,7 @@ export default function UserProfile({ collapsed }) {
                 }}
                 className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
               >
-                <MessageCircle className="size-[18px]" />
+                <MessageCircle className="size-4.5" />
               </button>
               <button
                 ref={notifyButtonRef}
@@ -307,7 +307,7 @@ export default function UserProfile({ collapsed }) {
                 className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
                 title="Notifications"
               >
-                <Bell className="size-[18px]" />
+                <Bell className="size-4.5" />
               </button>
               <a
                 href="https://support.bleaum.io/"
@@ -317,7 +317,7 @@ export default function UserProfile({ collapsed }) {
                 className="flex size-9 items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
                 title="Support"
               >
-                <View className="size-[18px]" />
+                <View className="size-4.5" />
               </a>
               <button
                 type="button"
@@ -328,7 +328,7 @@ export default function UserProfile({ collapsed }) {
                 }}
                 className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
               >
-                <History className="size-[18px]" />
+                <History className="size-4.5" />
               </button>
             </div>
 

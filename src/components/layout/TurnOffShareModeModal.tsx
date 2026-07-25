@@ -26,7 +26,7 @@ export default function TurnOffShareModeModal({ open, error, submitting, onSubmi
 
   return (
     <div className="fixed inset-0 z-1050 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-[400px] rounded-2xl border border-primary/20 bg-accent p-5 shadow-2xl">
+      <div className="w-full max-w-100 rounded-2xl border border-primary/20 bg-accent p-5 shadow-2xl">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-base font-semibold text-white">End Share Mode session</h3>
           <button

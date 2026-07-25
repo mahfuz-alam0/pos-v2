@@ -19,8 +19,8 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] 
   return (
     <div className="rounded-lg border border-border bg-component-bg p-2.5 shadow">
       <p className="m-0 font-normal text-orange-500">{data.name}</p>
-      <p className="m-0 text-[color:#038FDE]">Total Added: {data["Total Added"]}</p>
-      <p className="m-0 text-[color:#038FDE]">Total Served: {data["Total Served"]}</p>
+      <p className="m-0 text-[#038FDE]">Total Added: {data["Total Added"]}</p>
+      <p className="m-0 text-[#038FDE]">Total Served: {data["Total Served"]}</p>
     </div>
   );
 }
@@ -66,10 +66,10 @@ export default function ConversionStats() {
   return (
     <div className="h-full rounded-xl border border-border bg-component-bg p-4">
       <div className="flex flex-row items-center gap-3">
-        <h2 className="m-0 text-[18px] font-semibold text-text">Conversions</h2>
+        <h2 className="m-0 text-lg font-semibold text-text">Conversions</h2>
         <div className="ml-auto truncate">
           <select
-            className="w-[110px] rounded-md border border-border bg-component-bg px-2 py-1 text-sm md:w-[120px] xl:w-[150px]"
+            className="w-27.5 rounded-md border border-border bg-component-bg px-2 py-1 text-sm md:w-30 xl:w-37.5"
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value)}
           >
@@ -83,11 +83,11 @@ export default function ConversionStats() {
       </div>
 
       {loading ? (
-        <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">Loading…</div>
+        <div className="flex h-32.5 items-center justify-center text-sm text-muted-foreground">Loading…</div>
       ) : data.length === 0 ? (
-        <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">No Data Found</div>
+        <div className="flex h-32.5 items-center justify-center text-sm text-muted-foreground">No Data Found</div>
       ) : (
-        <div className="mt-2 h-[130px] w-full">
+        <div className="mt-2 h-32.5 w-full">
           <ResponsiveContainer width="100%" height="100%" debounce={50}>
             <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Tooltip content={<CustomTooltip />} />

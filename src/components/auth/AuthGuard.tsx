@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AUTH_CHANGE_EVENT } from "@/util/use-auth";
 
@@ -30,7 +30,11 @@ export default function AuthGuard({ children }) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   const authed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const checked = typeof window !== "undefined";
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    setChecked(true);
+  }, []);
 
   useEffect(() => {
     if (!checked) return;

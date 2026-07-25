@@ -324,7 +324,7 @@ export default function GeneralPricingType({
         <>
           {!useExistingPricing && (
             <Card>
-              <CardContent className="flex flex-col gap-3 pt-6">
+              <CardContent className="flex flex-col gap-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <Label>Purchase Amount</Label>
@@ -376,7 +376,7 @@ export default function GeneralPricingType({
       <div className="flex flex-col gap-3">
         {tiers.map((tier, index) => (
           <Card key={index}>
-            <CardContent className="relative flex flex-col gap-2 pt-6">
+            <CardContent className="relative flex flex-col gap-2">
               {editMode && (
                 <Button
                   variant="destructive"
@@ -452,7 +452,7 @@ export default function GeneralPricingType({
 
       {editMode && (
         <Card>
-          <CardContent className="flex flex-col gap-3 pt-6">
+          <CardContent className="flex flex-col gap-3">
             <label className="flex items-center gap-2 text-sm font-medium">
               <Checkbox checked={useExistingPricing} onCheckedChange={(c) => setUseExistingPricing(!!c)} />
               Apply Pricing Template

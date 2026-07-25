@@ -74,13 +74,13 @@ export default function AllStatsTiles() {
         return (
           <Link href={tile.href} key={tile.key} className="w-[calc(50%-0.5rem)] md:w-1/6">
             <div
-              className="flex h-full min-h-[92px] items-center gap-3 rounded-xl p-4 text-white shadow-sm transition-opacity hover:opacity-90"
+              className="flex h-full min-h-23 items-center gap-3 rounded-xl p-4 text-white shadow-sm transition-opacity hover:opacity-90"
               style={{ backgroundColor: tile.color, opacity: loading ? 0.6 : 1 }}
             >
               <Icon className="size-8 shrink-0 opacity-90 xl:size-9" />
               <div className="min-w-0">
                 <h3 className="m-0 text-sm font-semibold xl:text-2xl">{value}</h3>
-                <p className="m-0 text-[12px] xl:text-sm">{tile.label}</p>
+                <p className="m-0 text-xs xl:text-sm">{tile.label}</p>
               </div>
             </div>
           </Link>
