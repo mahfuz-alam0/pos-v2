@@ -76,7 +76,7 @@ export default function CustomerQueue({ sidepanel = false }) {
   return (
     <div className={sidepanel ? "flex h-full flex-col" : "rounded-xl border border-border bg-component-bg p-4"}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-[18px] font-semibold text-text capitalize">Customer queue</h2>
+        <h2 className="m-0 text-lg font-semibold text-text capitalize">Customer queue</h2>
         <div className="flex gap-2">
           <Button size="sm" onClick={() => setQrOpen(true)}>
             Scan QR

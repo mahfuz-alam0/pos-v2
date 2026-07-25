@@ -19,7 +19,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] 
   return (
     <div className="rounded-lg border border-border bg-component-bg p-2.5 shadow">
       <p className="m-0 text-orange-500">{data.time.toUpperCase()}</p>
-      <p className="m-0 text-[color:#038FDE]">Sales: {data.sales}</p>
+      <p className="m-0 text-[#038FDE]">Sales: {data.sales}</p>
     </div>
   );
 }
@@ -65,7 +65,7 @@ export default function PopularTimeCard() {
 
   return (
     <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-4">
-      <h2 className="m-0 text-[18px] font-semibold text-text">Popular Times</h2>
+      <h2 className="m-0 text-lg font-semibold text-text">Popular Times</h2>
 
       <div className="mt-3 flex justify-center">
         {DAYS_OF_WEEK.map((day, index) => {
@@ -77,14 +77,14 @@ export default function PopularTimeCard() {
               onClick={() => setSelectedDay(dayNum)}
               className="relative flex-1 cursor-pointer text-center"
             >
-              <p className={`m-0 text-sm ${active ? "font-bold text-[color:#2A9D8F]" : "text-muted-foreground"}`}>{day}</p>
-              {active && <div className="absolute top-[17px] left-[16px] h-1 w-[20%] bg-[color:#2A9D8F]" />}
+              <p className={`m-0 text-sm ${active ? "font-bold text-[#2A9D8F]" : "text-muted-foreground"}`}>{day}</p>
+              {active && <div className="absolute top-4.25 left-4 h-1 w-[20%] bg-[#2A9D8F]" />}
             </div>
           );
         })}
       </div>
 
-      <div className="mt-2 h-[110px]">
+      <div className="mt-2 h-27.5">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : filteredStats.length !== 0 ? (

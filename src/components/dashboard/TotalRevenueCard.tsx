@@ -56,9 +56,9 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }
   const { value } = payload[0];
   const { name } = payload[0].payload;
   return (
-    <div className="max-w-[300px] rounded border border-border bg-component-bg p-2.5 shadow">
+    <div className="max-w-75 rounded border border-border bg-component-bg p-2.5 shadow">
       <p className="m-0 text-sm text-orange-500">{name}</p>
-      <p className="m-0 text-[color:#2A9D8F]">Total Revenue: ${value.toLocaleString()}</p>
+      <p className="m-0 text-[#2A9D8F]">Total Revenue: ${value.toLocaleString()}</p>
     </div>
   );
 }
@@ -104,7 +104,7 @@ export default function TotalRevenueCard() {
   return (
     <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-4">
       <div className="flex flex-row items-center gap-3">
-        <h2 className="m-0 text-[18px] font-semibold text-text">Total Revenue</h2>
+        <h2 className="m-0 text-lg font-semibold text-text">Total Revenue</h2>
         <div className="ml-auto truncate">
           <select
             className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
@@ -129,7 +129,7 @@ export default function TotalRevenueCard() {
         </h2>
       </div>
 
-      <div className="mt-2 h-[140px]">
+      <div className="mt-2 h-35">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : (

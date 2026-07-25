@@ -151,7 +151,7 @@ export default function QueueCard({ data, onRemove, onServe, sidepanel = false }
             </div>
           )}
           {isNewCustomer && (
-            <span className="absolute -right-1 -bottom-1 rounded-full bg-[#87d068] px-1 text-[8px] leading-[14px] font-bold text-white">
+            <span className="absolute -right-1 -bottom-1 rounded-full bg-[#87d068] px-1 text-[8px] leading-3.5 font-bold text-white">
               New
             </span>
           )}
@@ -164,9 +164,9 @@ export default function QueueCard({ data, onRemove, onServe, sidepanel = false }
           <div className="mt-0.5 flex flex-wrap items-center gap-1">
             {age && <span className="text-[10px] text-muted-foreground">{age} y/o</span>}
             {isExpired ? (
-              <span className="rounded bg-red-100 px-1 text-[9px] leading-[14px] text-red-600">MED Exp</span>
+              <span className="rounded bg-red-100 px-1 text-[9px] leading-3.5 text-red-600">MED Exp</span>
             ) : (
-              <span className="rounded bg-cyan-100 px-1 text-[9px] leading-[14px] text-cyan-700">Active</span>
+              <span className="rounded bg-cyan-100 px-1 text-[9px] leading-3.5 text-cyan-700">Active</span>
             )}
             {data?.isAddedByQrScan && (
               <span
@@ -204,12 +204,12 @@ export default function QueueCard({ data, onRemove, onServe, sidepanel = false }
               <span className="text-[11px] font-medium text-text">
                 {cartItems.length} item{cartItems.length !== 1 ? "s" : ""} in cart
               </span>
-              {hasDeals && <span className="rounded bg-green-100 px-1 text-[8px] leading-[14px] text-green-700">Deal</span>}
-              {hasMiscDiscount && <span className="rounded bg-cyan-100 px-1 text-[8px] leading-[14px] text-cyan-700">Disc</span>}
-              {hasLoyalty && <span className="rounded bg-amber-100 px-1 text-[8px] leading-[14px] text-amber-700">Pts</span>}
+              {hasDeals && <span className="rounded bg-green-100 px-1 text-[8px] leading-3.5 text-green-700">Deal</span>}
+              {hasMiscDiscount && <span className="rounded bg-cyan-100 px-1 text-[8px] leading-3.5 text-cyan-700">Disc</span>}
+              {hasLoyalty && <span className="rounded bg-amber-100 px-1 text-[8px] leading-3.5 text-amber-700">Pts</span>}
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[12px] font-bold text-text">${cartSubtotal.toFixed(2)}</span>
+              <span className="text-xs font-bold text-text">${cartSubtotal.toFixed(2)}</span>
               <span
                 className="text-[10px] text-muted-foreground transition-transform duration-200"
                 style={{ transform: cartExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
@@ -257,7 +257,7 @@ export default function QueueCard({ data, onRemove, onServe, sidepanel = false }
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">Subtotal</span>
-                  <span className="text-[12px] font-bold text-text">${cartSubtotal.toFixed(2)}</span>
+                  <span className="text-xs font-bold text-text">${cartSubtotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

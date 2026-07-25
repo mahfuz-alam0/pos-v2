@@ -39,7 +39,7 @@ export default function PricingDetails({
 
   if (uomLoading) {
     return (
-      <div className="flex h-[300px] w-full items-center justify-center">
+      <div className="flex h-75 w-full items-center justify-center">
         <Skeleton className="h-40 w-full" />
       </div>
     );
