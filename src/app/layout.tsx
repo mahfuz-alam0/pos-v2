@@ -45,23 +45,25 @@ export default function RootLayout({ children }) {
         <InlineScript id="no-flash-theme" html={noFlashThemeScript} />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <ThemeProvider>
-          <SettingsProvider>
-            <TooltipProvider>
-              <Suspense fallback={<InitializingScreen />}>
-                <AuthGuard>
-                  <ShopProvider>
-                    <ShopGate>
-                      <AppShell>{children}</AppShell>
-                    </ShopGate>
-                    <SettingsPanel />
-                  </ShopProvider>
-                </AuthGuard>
-              </Suspense>
-              <Toaster />
-            </TooltipProvider>
-          </SettingsProvider>
-        </ThemeProvider>
+        <StoreProvider>
+          <ThemeProvider>
+            <SettingsProvider>
+              <TooltipProvider>
+                <Suspense fallback={<InitializingScreen />}>
+                  <AuthGuard>
+                    <ShopProvider>
+                      <ShopGate>
+                        <AppShell>{children}</AppShell>
+                      </ShopGate>
+                      <SettingsPanel />
+                    </ShopProvider>
+                  </AuthGuard>
+                </Suspense>
+                <Toaster />
+              </TooltipProvider>
+            </SettingsProvider>
+          </ThemeProvider>
+        </StoreProvider>
       </body>
     </html>
   );
