@@ -208,16 +208,9 @@ export default function ProductGridView({
 }) {
   return (
     <div
-      style={{ height: "70vh", overflowY: noScroll ? "hidden" : "auto", overflowX: "hidden" }}
+      style={{ height: "100%", overflowY: noScroll ? "hidden" : "auto", overflowX: "hidden" }}
     >
-      <Pagination
-        page={paginationData?.page}
-        limit={paginationData?.limit}
-        totalEntries={paginationData?.totalEntries}
-        onChange={onPageChange}
-      />
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {data.map((product) => (
           <ProductCard
             key={product.id}
@@ -231,6 +224,13 @@ export default function ProductGridView({
           />
         ))}
       </div>
+
+      <Pagination
+        page={paginationData?.page}
+        limit={paginationData?.limit}
+        totalEntries={paginationData?.totalEntries}
+        onChange={onPageChange}
+      />
     </div>
   );
 }

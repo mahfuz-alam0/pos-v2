@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, ArrowUpDown, FilterX, ChevronLeft } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -58,6 +64,7 @@ export default function ProductList({
   initialView = "list",
   autoOpenProduct,
   showFooterActions = true,
+  onClose,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
@@ -187,7 +194,11 @@ export default function ProductList({
   // Opened via the "Search and select products..." dropdown — jump straight
   // to that product's package panel, same as clicking its grid card.
   useEffect(() => {
-    if (!autoOpenProduct) return;
+    if (!autoOpenProduct) {
+      setShowDetail(false);
+      setFetchModalProductDetails(null);
+      return;
+    }
     setFetchModalProductDetails(autoOpenProduct);
     setSelectedRowKeys([]);
     setShowDetail(true);
@@ -306,11 +317,11 @@ export default function ProductList({
   };
 
   return (
-    <div>
-      {/* Search + type toggle */}
-      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center">
+    <div className="flex h-full flex-col">
+      {/* Search + filters + type toggle — all in one row, matching the old POS toolbar */}
+      <div className="mb-3 flex flex-col gap-2 rounded-lg bg-[#00152A] p-3 text-white md:flex-row md:items-center md:flex-wrap">
         <Select defaultValue="product" onValueChange={setSearchTerm}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40 border-white/20 bg-[#00152B] text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -322,7 +333,7 @@ export default function ProductList({
         {searchTerm === "product" ? (
           <Input
             placeholder="Search product"
-            className="md:w-96"
+            className="border-white/20 bg-[#00152B] text-white placeholder:text-white/50 md:w-56"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch(e.currentTarget.value);
             }}
@@ -335,74 +346,125 @@ export default function ProductList({
         )}
 
         {searchTerm === "product" && (
+          <>
+            <Select onValueChange={handleCategoryFilter}>
+              <SelectTrigger className="w-48 border-white/20 bg-[#00152B] text-white">
+                <SelectValue placeholder="Select Category">
+                  {(value) => {
+                    if (value === "all") return "All Categories";
+                    const c = allCategory.find((item) => item.id === value);
+                    return c?.name || "Select Category";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {allCategory.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select onValueChange={handleBrandFilter}>
+              <SelectTrigger className="w-48 border-white/20 bg-[#00152B] text-white">
+                <SelectValue placeholder="Select Brand">
+                  {(value) => {
+                    if (value === "all") return "All Brands";
+                    const b = allBrands.find((item) => item.id === value);
+                    return b?.name || "Select Brand";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                {allBrands.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+
+        {searchTerm === "product" && (
           <div className="ml-auto flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                    aria-label="Sort"
+                  >
+                    <ArrowUpDown />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent>
+                {[
+                  { label: "Price: Low to High", name: "unitPrice", value: "asc" },
+                  { label: "Price: High to Low", name: "unitPrice", value: "desc" },
+                  { label: "Name: A-Z", name: "productName", value: "asc" },
+                  { label: "Name: Z-A", name: "productName", value: "desc" },
+                ].map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.label}
+                    onClick={() => {
+                      const updated = {
+                        ...activeFiltersRef.current,
+                        sortParam: { name: "sort", value: `${opt.name}:${opt.value}` },
+                      };
+                      activeFiltersRef.current = updated;
+                      fetchProductsData(buildBaseParams(updated));
+                    }}
+                  >
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="outline"
+              size="icon"
+              className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+              aria-label="Remove filters"
               onClick={() => {
                 activeFiltersRef.current = { categoryIds: [], brandIds: [], sortParam: null };
                 fetchProductsData();
               }}
             >
-              Reset
+              <FilterX />
             </Button>
             <Button
               variant="outline"
               size="icon"
+              className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
               onClick={() => setView(view === "list" ? "grid" : "list")}
               aria-label="Toggle view"
             >
               {view === "list" ? <LayoutGrid /> : <List />}
             </Button>
+            {onClose && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                aria-label="Close"
+                onClick={onClose}
+              >
+                <ChevronLeft />
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Category / brand filters */}
-      {searchTerm === "product" && (
-        <div className="mb-3 flex gap-2">
-          <Select onValueChange={handleCategoryFilter}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Select Category">
-                {(value) => {
-                  if (value === "all") return "All Categories";
-                  const c = allCategory.find((item) => item.id === value);
-                  return c?.name || "Select Category";
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {allCategory.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select onValueChange={handleBrandFilter}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Select Brand">
-                {(value) => {
-                  if (value === "all") return "All Brands";
-                  const b = allBrands.find((item) => item.id === value);
-                  return b?.name || "Select Brand";
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Brands</SelectItem>
-              {allBrands.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
       {/* Listing */}
+      <div className="min-h-0 flex-1 overflow-auto">
       {searchTerm === "product" &&
         (showDetail ? (
           <ProductDetailPanel
@@ -473,6 +535,7 @@ export default function ProductList({
             setFetchModalProductDetails={setFetchModalProductDetails}
           />
         ))}
+      </div>
 
       {/* Misc charge / notes actions (gated exactly as old) */}
       {showFooterActions && (

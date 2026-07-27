@@ -29,6 +29,7 @@ import {
 import { getSaleDetail, resetSaleDetail } from "@/store/slices/saleDataSlice";
 import { updateOrderAction } from "@/store/slices/orderActionSlice";
 import { resetAddedLineITems } from "@/store/slices/lineItemsSlice";
+import { resetCartForSale } from "@/store/slices/cartSlice";
 import {
   setSelectedCustomer,
   resetSelectedCustomer,
@@ -89,6 +90,7 @@ import RefundLineItems from "@/components/pos/RefundLineItems";
 import CustomerPanelPopovers from "@/components/pos/CustomerPanelPopovers";
 import PosDlPhotoManager from "@/components/pos/PosDlPhotoManager";
 import ScanIdDialog from "@/components/settings/verify/ScanIdDialog";
+import PhotoCheckinDialog from "@/components/settings/verify/PhotoCheckinDialog";
 import PosDlCheckinManager from "@/components/pos/PosDlCheckinManager";
 import RegisterDrawerModal from "@/components/pos/RegisterDrawerModal";
 import InProgressOrders from "@/components/pos/InProgressOrders";
@@ -137,7 +139,6 @@ function TabletPosInner() {
   const [scanReceipt, setScanReceipt] = useState(false);
   const [receiptId, setReceiptId] = useState("");
   const [refreshOrders, setRefreshOrders] = useState(null);
-  const [resetOrderHistory, setResetOrderHistory] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [queueDrawerVisible, setQueueDrawerVisible] = useState(false);
   const [docManagerOpen, setDocManagerOpen] = useState(false);
@@ -153,6 +154,7 @@ function TabletPosInner() {
   const [fullSelectedCustomer, setFullSelectedCustomer] = useState(null);
   const [dlManagerOpen, setDlManagerOpen] = useState(false);
   const [scanIdOpen, setScanIdOpen] = useState(false);
+  const [scanDlOpen, setScanDlOpen] = useState(false);
   const [dlUploadOnly, setDlUploadOnly] = useState(false);
   const [dlFrontViewOpen, setDlFrontViewOpen] = useState(false);
   const [shopPreferences, setShopPreferences] = useState(null);
@@ -300,6 +302,7 @@ function TabletPosInner() {
       );
       dispatch(resetSalesDetail());
       dispatch(resetAddedLineITems());
+      dispatch(resetCartForSale());
       dispatch(resetQuoteForSale());
     }
 
@@ -343,6 +346,9 @@ function TabletPosInner() {
     if (selectedDrawerId) {
       localStorage.setItem("drawerId", selectedDrawerId);
       dispatch(updateSalesDetail({ drawerId: selectedDrawerId }));
+    } else {
+      localStorage.removeItem("drawerId");
+      dispatch(updateSalesDetail({ drawerId: null }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDrawerId]);
@@ -357,6 +363,22 @@ function TabletPosInner() {
     window.addEventListener("registerDrawerSelected", handler);
     return () =>
       window.removeEventListener("registerDrawerSelected", handler);
+  }, []);
+
+  // If the active drawer gets closed from inside RegisterDrawerModal, stop
+  // treating the register as ready for checkout instead of leaving the
+  // stale drawerId in place (page.tsx state was the only copy the modal
+  // couldn't clear directly, since it closed a drawer that may no longer
+  // be the one selected here).
+  useEffect(() => {
+    const handler = (e) => {
+      const { drawerId } = e.detail || {};
+      setSelectedDrawerId((current) =>
+        current && String(current) === String(drawerId) ? null : current
+      );
+    };
+    window.addEventListener("registerDrawerClosed", handler);
+    return () => window.removeEventListener("registerDrawerClosed", handler);
   }, []);
 
   // --- Scan receipt -> load sale + jump into processReturns ---
@@ -560,6 +582,7 @@ function TabletPosInner() {
         applicableBogoDeals: [],
       })
     );
+    localStorage.removeItem("customerGroups");
 
     const upd = {
       ...quoteBody,
@@ -1008,7 +1031,6 @@ function TabletPosInner() {
                   key={posResetKey}
                   deliverySubType={deliverySubType}
                   deliveryType={deliveryType}
-                  setResetOrderHistory={setResetOrderHistory}
                   refreshOrders={refreshOrders}
                   onDraftSaved={confirmResetPOS}
                 />
@@ -1107,7 +1129,7 @@ function TabletPosInner() {
                 .catch(() => {});
             }
           }}
-          onScanDL={() => setScanIdOpen(true)}
+          onScanDL={() => setScanDlOpen(true)}
           customer={fullSelectedCustomer || selectedCustomer}
           uploadOnly={dlUploadOnly}
         />
@@ -1148,6 +1170,11 @@ function TabletPosInner() {
         />
 
         <ScanIdDialog open={scanIdOpen} onOpenChange={setScanIdOpen} />
+        <PhotoCheckinDialog
+          open={scanDlOpen}
+          onOpenChange={setScanDlOpen}
+          mode="dl-back"
+        />
 
         {/* Register / drawer picker */}
         <RegisterDrawerModal
