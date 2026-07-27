@@ -63,6 +63,7 @@ export default function PurchaseOrdersPage() {
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
   const [metrcIdInput, setMetrcIdInput] = useState("");
+  const debouncedMetrcId = useDebounce(metrcIdInput, 300);
   const [productNameInput, setProductNameInput] = useState("");
   const debouncedProductName = useDebounce(productNameInput, 300);
   const [supplierId, setSupplierId] = useState<string | null>(null);
@@ -91,7 +92,7 @@ export default function PurchaseOrdersPage() {
     setLoading(true);
     try {
       const params: Record<string, any> = {};
-      if (metrcIdInput) params.metrcId = metrcIdInput;
+      if (debouncedMetrcId) params.metrcId = debouncedMetrcId;
       if (debouncedProductName) params.productName = debouncedProductName;
       if (supplierId) params.supplierId = supplierId;
       if (status) params.status = status;
@@ -108,7 +109,7 @@ export default function PurchaseOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [shopId, metrcIdInput, debouncedProductName, supplierId, status, paymentStatus, dateRange]);
+  }, [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange]);
 
   useEffect(() => {
     loadPurchaseOrders();

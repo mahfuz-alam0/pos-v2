@@ -9,7 +9,7 @@ function createApiClient(baseURL) {
 }
 
 export const api = createApiClient(`${process.env.NEXT_PUBLIC_BASE_URL}/v1`);
-export const apiNoVersion = createApiClient(process.env.NEXT_PUBLIC_BASE_URL);
+export const ecomApiExternal = createApiClient(process.env.NEXT_PUBLIC_BASE_URL);
 export const ecomApi = createApiClient(`${process.env.NEXT_PUBLIC_ECCOMMERCE_URL}/v1`);
 
 ecomApi.interceptors.request.use(
