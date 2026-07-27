@@ -11,14 +11,18 @@ export async function loginWithBackendAndPersist({
   password,
   method,
   qrSession,
+  accountId,
+  pin,
 }: {
   orgId?: string
   email?: string
   password?: string
   method: string
   qrSession?: string
+  accountId?: string | number
+  pin?: string
 }) {
-  const res = await loginWithBackend({ orgId, email, password, method, qrSession });
+  const res = await loginWithBackend({ orgId, email, password, method, qrSession, accountId, pin });
 
   const userInfo = res?.data?.userInfo;
   if (userInfo) {

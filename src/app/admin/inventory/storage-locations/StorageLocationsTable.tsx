@@ -28,6 +28,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import StorageLocationDetails from "./StorageLocationDetails";
+import StorageLocationDrawer from "./StorageLocationDrawer";
 
 interface StorageLocationRow {
   id: string | number;
@@ -46,6 +47,11 @@ export default function StorageLocationsTable() {
 
   const [rows, setRows] = useState<StorageLocationRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
+    open: false,
+    mode: "add",
+    locationId: null,
+  });
 
   const loadLocations = useCallback(async () => {
     if (!shopId) return;
@@ -102,7 +108,7 @@ export default function StorageLocationsTable() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <Button onClick={() => router.push("/admin/inventory/storage-locations/add")}>
+          <Button onClick={() => setDrawer({ open: true, mode: "add", locationId: null })}>
             <Plus /> Add Storage Location
           </Button>
         </div>
@@ -169,10 +175,7 @@ export default function StorageLocationsTable() {
                       <Button
                         variant="outline"
                         size="icon-sm"
-                        onClick={() => {
-                          localStorage.setItem("locationShopId", JSON.stringify(row.shopId));
-                          router.push(`/admin/inventory/storage-locations/edit/${row.id}`);
-                        }}
+                        onClick={() => setDrawer({ open: true, mode: "edit", locationId: row.id })}
                       >
                         <Pencil />
                       </Button>
@@ -187,6 +190,14 @@ export default function StorageLocationsTable() {
       {openId && (
         <StorageLocationDetails locationId={openId} onClose={closeDetail} />
       )}
+
+      <StorageLocationDrawer
+        open={drawer.open}
+        mode={drawer.mode}
+        locationId={drawer.locationId}
+        onClose={() => setDrawer((prev) => ({ ...prev, open: false }))}
+        onSaved={loadLocations}
+      />
     </div>
   );
 }
