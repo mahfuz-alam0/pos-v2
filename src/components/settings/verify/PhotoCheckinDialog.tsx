@@ -212,11 +212,13 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
 
         if (cfg.liveScan) {
           liveScanningRef.current = true;
-          let frameIndex = 0;
+          // Each tick now walks every crop band in one pass (see dlBarcode.ts),
+          // so ticks are paced by requestAnimationFrame — as fast as the
+          // browser can go — instead of a fixed 350ms wait per single band.
           const loop = async () => {
             if (cancelled || !liveScanningRef.current) return;
             const video = videoRef.current;
-            const raw = await decodeVideoFrame(video, frameIndex++).catch(() => null);
+            const raw = await decodeVideoFrame(video).catch(() => null);
             if (cancelled || !liveScanningRef.current) return;
             if (raw) {
               const capCanvas = document.createElement("canvas");
@@ -229,7 +231,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
               await processRawText(raw);
               return;
             }
-            setTimeout(loop, 350);
+            requestAnimationFrame(loop);
           };
           loop();
         }

@@ -9,7 +9,7 @@ import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 const Select = SelectPrimitive.Root
 
 function SelectGroup({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Group>) {
   return (
@@ -21,7 +21,7 @@ function SelectGroup({
 }
 
 function SelectValue({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Value>) {
   return (
@@ -33,7 +33,7 @@ function SelectValue({
 }
 
 function SelectTrigger({
-  className,
+  className = "",
   size = "default",
   children,
   ...props
@@ -57,7 +57,7 @@ function SelectTrigger({
 }
 
 function SelectContent({
-  className,
+  className = "",
   children,
   side = "bottom",
   sideOffset = 4,
@@ -93,7 +93,7 @@ function SelectContent({
 }
 
 function SelectLabel({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.GroupLabel>) {
   return (
@@ -105,7 +105,7 @@ function SelectLabel({
 }
 
 function SelectItem({
-  className,
+  className = "",
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Item>) {
@@ -132,7 +132,7 @@ function SelectItem({
 }
 
 function SelectSeparator({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Separator>) {
   return (
@@ -144,7 +144,7 @@ function SelectSeparator({
 }
 
 function SelectScrollUpButton({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
   return (
@@ -161,7 +161,7 @@ function SelectScrollUpButton({
 }
 
 function SelectScrollDownButton({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
   return (

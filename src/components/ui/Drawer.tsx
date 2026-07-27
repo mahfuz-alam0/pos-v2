@@ -43,7 +43,7 @@ export default function Drawer({
   overlay = true,
   className = "",
   children,
-}: { open: boolean; onClose?: () => void; side?: "right" | "left" | "top" | "bottom"; size?: number; zIndex?: number; overlay?: boolean; className?: string; children?: React.ReactNode }) {
+}: { open: boolean; onClose?: () => void; side?: "right" | "left" | "top" | "bottom"; size?: number | string; zIndex?: number; overlay?: boolean; className?: string; children?: React.ReactNode }) {
   const cfg = SIDE_CONFIG[side];
 
   return (

@@ -10,6 +10,7 @@ import { ShopProvider } from "@/context/shop-context";
 import ShopGate from "@/components/shop/ShopGate";
 import InitializingScreen from "@/components/InitializingScreen";
 import AppShell from "@/components/layout/AppShell";
+import { StoreProvider } from "@/store/StoreProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 

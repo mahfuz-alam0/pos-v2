@@ -32,7 +32,7 @@ function DialogClose({
 }
 
 function DialogOverlay({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Backdrop>) {
   return (
@@ -47,7 +47,7 @@ function DialogOverlay({
 }
 
 function DialogContent({
-  className,
+  className = "",
   children,
   showCloseButton = true,
   ...props
@@ -79,7 +79,7 @@ function DialogContent({
 }
 
 function DialogHeader({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"div">) {
   return (
@@ -91,7 +91,7 @@ function DialogHeader({
 }
 
 function DialogFooter({
-  className,
+  className = "",
   showCloseButton = false,
   children,
   ...props
@@ -115,7 +115,7 @@ function DialogFooter({
 }
 
 function DialogTitle({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
@@ -127,7 +127,7 @@ function DialogTitle({
 }
 
 function DialogDescription({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Description>) {
   return (

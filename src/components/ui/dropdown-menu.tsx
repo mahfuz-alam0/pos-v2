@@ -29,7 +29,7 @@ function DropdownMenuContent({
   alignOffset = 0,
   side = "bottom",
   sideOffset = 4,
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof MenuPrimitive.Popup> & Pick<React.ComponentProps<typeof MenuPrimitive.Positioner>, "side" | "sideOffset" | "align" | "alignOffset">) {
   return (
@@ -59,7 +59,7 @@ function DropdownMenuGroup({
 }
 
 function DropdownMenuLabel({
-  className,
+  className = "",
   inset,
   ...props
 }: React.ComponentProps<typeof MenuPrimitive.GroupLabel> & { inset?: boolean }) {
@@ -76,7 +76,7 @@ function DropdownMenuLabel({
 }
 
 function DropdownMenuItem({
-  className,
+  className = "",
   inset,
   variant = "default",
   ...props
@@ -101,7 +101,7 @@ function DropdownMenuSub({
 }
 
 function DropdownMenuSubTrigger({
-  className,
+  className = "",
   inset,
   children,
   ...props
@@ -126,7 +126,7 @@ function DropdownMenuSubContent({
   alignOffset = -3,
   side = "right",
   sideOffset = 0,
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof DropdownMenuContent>) {
   return (
@@ -145,7 +145,7 @@ function DropdownMenuSubContent({
 }
 
 function DropdownMenuCheckboxItem({
-  className,
+  className = "",
   children,
   checked,
   inset,
@@ -180,7 +180,7 @@ function DropdownMenuRadioGroup({
 }
 
 function DropdownMenuRadioItem({
-  className,
+  className = "",
   children,
   inset,
   ...props
@@ -207,7 +207,7 @@ function DropdownMenuRadioItem({
 }
 
 function DropdownMenuSeparator({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<typeof MenuPrimitive.Separator>) {
   return (
@@ -219,7 +219,7 @@ function DropdownMenuSeparator({
 }
 
 function DropdownMenuShortcut({
-  className,
+  className = "",
   ...props
 }: React.ComponentProps<"span">) {
   return (
