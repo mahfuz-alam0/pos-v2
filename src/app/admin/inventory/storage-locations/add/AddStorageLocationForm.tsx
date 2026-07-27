@@ -9,9 +9,9 @@ import { createStorageLocation } from "@/services/storageLocations/create";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import StorageLocationFormFields from "../StorageLocationFormFields";
+import StorageLocationFormFields, { StorageLocationBase } from "../StorageLocationFormFields";
 
-const initialValues = {
+const initialValues: StorageLocationBase = {
   name: "",
   isSellableOnPhysicalStore: true,
   isSellableOnOnlineStore: true,
@@ -22,7 +22,7 @@ const initialValues = {
 export default function AddStorageLocationForm() {
   const router = useRouter();
   const { shopId } = useShop();
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState<StorageLocationBase>(initialValues);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -37,8 +37,8 @@ export default function AddStorageLocationForm() {
         toast.success("Storage location created successfully");
         router.push("/admin/inventory/storage-locations");
       }
-    } catch (err) {
-      toast.error(err?.message || "Failed to submit your data");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "Failed to submit your data");
     } finally {
       setSaving(false);
     }
