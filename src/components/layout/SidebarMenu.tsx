@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIdlePrefetch } from "./useIdlePrefetch";
 
 function isActive(pathname, href) {
   if (!href) return false;
@@ -36,7 +37,7 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }) {
     >
       {Icon ? <Icon className={cn("size-4.5 shrink-0", active && "text-white")} /> : null}
       {!collapsed && (
-        <span className="max-w-[160px] truncate opacity-100">{item.label}</span>
+        <span className="max-w-40 truncate opacity-100">{item.label}</span>
       )}
     </Link>
   );
@@ -223,6 +224,11 @@ function SidebarMenuItem({
 export default function SidebarMenu({ items, collapsed, onNavigate }) {
   // Accordion: only one top-level section open at a time.
   const [openKey, setOpenKey] = useState(null);
+
+  // Warm every sidebar route in the background, one at a time on browser
+  // idle, so switching pages feels instant even for links never scrolled
+  // into view or expanded (collapsed rail flyouts, closed accordions).
+  useIdlePrefetch(items);
 
   return (
     <nav className="flex flex-col gap-0.5 px-2">

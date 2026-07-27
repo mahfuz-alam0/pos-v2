@@ -75,7 +75,7 @@ export default function TaskItem({ data, taskStatuses, onStatusUpdate }) {
           {assigneeLabel && (
             <span className="flex items-center gap-1 rounded-md bg-surface-alt px-2 py-1 text-xs font-medium text-text">
               <User className="size-3" />
-              <span className="max-w-[100px] truncate">{assigneeLabel}</span>
+              <span className="max-w-25 truncate">{assigneeLabel}</span>
             </span>
           )}
 

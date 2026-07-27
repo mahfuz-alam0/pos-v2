@@ -129,7 +129,7 @@ export default function StorageLocations({
   return (
     <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
       <Table>
-        <TableHeader>
+        <TableHeader className="[&_tr]:border-b-0">
           <TableRow className="bg-muted/60">
             <TableHead className="w-8" />
             <TableHead>Storage Location</TableHead>
@@ -145,7 +145,7 @@ export default function StorageLocations({
               <>
                 <TableRow
                   key={row.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] hover:bg-muted/40"
                   onClick={() => setExpandedId(isExpanded ? null : row.id)}
                 >
                   <TableCell>
@@ -191,26 +191,31 @@ export default function StorageLocations({
                 {isExpanded && (
                   <TableRow key={`${row.id}-detail`}>
                     <TableCell colSpan={4} className="bg-muted/30 p-0">
-                      <div className="p-4">
+                      <div className="overflow-hidden rounded-lg p-4">
                         <p className="mb-2 text-sm font-medium">Package Details</p>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Platform Package ID</TableHead>
-                              <TableHead>Quantity</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {row.packagesBreakdown.map((pkg) => (
-                              <TableRow key={pkg.id}>
-                                <TableCell>{pkg.id}</TableCell>
-                                <TableCell>
-                                  {renderQuantityWithUom(pkg.totalQuantity, selectedUoMIds[row.id] ?? row.displayUoMId)}
-                                </TableCell>
+                        <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
+                          <Table>
+                            <TableHeader className="[&_tr]:border-b-0">
+                              <TableRow className="bg-muted/60">
+                                <TableHead>Platform Package ID</TableHead>
+                                <TableHead>Quantity</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {row.packagesBreakdown.map((pkg, idx) => (
+                                <TableRow
+                                  key={pkg.id}
+                                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${idx % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                                >
+                                  <TableCell>{pkg.id}</TableCell>
+                                  <TableCell>
+                                    {renderQuantityWithUom(pkg.totalQuantity, selectedUoMIds[row.id] ?? row.displayUoMId)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>

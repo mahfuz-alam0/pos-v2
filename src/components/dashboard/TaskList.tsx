@@ -84,7 +84,7 @@ export default function TaskList() {
   return (
     <div className="rounded-xl border border-border bg-component-bg p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-[18px] font-semibold text-text">Task List</h2>
+        <h2 className="m-0 text-lg font-semibold text-text">Task List</h2>
         <div className="flex gap-2">
           <Button size="sm" variant={showArchived ? "default" : "outline"} onClick={() => setShowArchived((v) => !v)}>
             {showArchived ? "Active Tasks" : "Archived"}

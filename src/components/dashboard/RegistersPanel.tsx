@@ -45,7 +45,7 @@ export default function RegistersPanel() {
 
   return (
     <div className="rounded-xl border border-border bg-component-bg p-4">
-      <h2 className="m-0 text-[18px] font-semibold text-text">Registers</h2>
+      <h2 className="m-0 text-lg font-semibold text-text">Registers</h2>
       <div className="mt-3 border-t border-border" />
 
       {loading ? (

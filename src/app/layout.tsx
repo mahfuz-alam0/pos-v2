@@ -12,6 +12,7 @@ import InitializingScreen from "@/components/InitializingScreen";
 import AppShell from "@/components/layout/AppShell";
 import { StoreProvider } from "@/store/StoreProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,21 +46,21 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
-          <StoreProvider>
-            <SettingsProvider>
+          <SettingsProvider>
+            <TooltipProvider>
               <Suspense fallback={<InitializingScreen />}>
                 <AuthGuard>
                   <ShopProvider>
                     <ShopGate>
                       <AppShell>{children}</AppShell>
-                      <SettingsPanel />
                     </ShopGate>
+                    <SettingsPanel />
                   </ShopProvider>
                 </AuthGuard>
               </Suspense>
               <Toaster />
-            </SettingsProvider>
-          </StoreProvider>
+            </TooltipProvider>
+          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>
