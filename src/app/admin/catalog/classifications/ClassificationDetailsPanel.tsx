@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import ActivityLogDrawer from "./ActivityLogDrawer";
+import ActivityLogDrawer from "@/components/admin/ActivityLogDrawer";
 import CategoryFormDrawer from "./CategoryFormDrawer";
 import CategoryDetailsPanel from "./CategoryDetailsPanel";
 import type { CategoryRow } from "./types";

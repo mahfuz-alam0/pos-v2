@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiSelect } from "@/components/ui/api-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Field, SingleImageUpload } from "./components";
+import { Field, SingleImageUpload } from "@/components/admin/form-fields";
 
 const COLOR_SWATCHES = [
   "#4D4D4D", "#999999", "#FFFFFF", "#F44E3B", "#FE9200", "#FCDC00",

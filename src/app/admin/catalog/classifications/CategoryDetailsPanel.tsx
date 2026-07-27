@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import ActivityLogDrawer from "./ActivityLogDrawer";
+import ActivityLogDrawer from "@/components/admin/ActivityLogDrawer";
 
 interface CategoryDetail {
   id: string | number;
