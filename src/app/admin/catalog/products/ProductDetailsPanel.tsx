@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import { Info, Loader2, X } from "lucide-react";
 
 import { getSingleProduct } from "@/services/products/getSingleProduct";
@@ -208,7 +209,10 @@ export default function ProductDetailsPanel({ productId, productName, onClose, o
 
             {product.details && (
               <Section title="Description">
-                <p className="text-sm whitespace-pre-wrap">{product.details}</p>
+                <div
+                  className="text-sm text-foreground [&_p]:m-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.details) }}
+                />
               </Section>
             )}
 
