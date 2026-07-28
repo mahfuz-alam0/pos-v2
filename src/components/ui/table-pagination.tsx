@@ -1,6 +1,17 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+
+export function TableLoadingOverlay({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 interface TablePaginationProps {
   page: number;
@@ -11,10 +22,16 @@ interface TablePaginationProps {
   onPageChange: (page: number) => void;
 }
 
-function getPageList(page: number, totalPages: number): (number | "ellipsis")[] {
-  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+const SIBLING_COUNT = 4;
 
-  const pages = new Set<number>([1, totalPages, page, page - 1, page + 1]);
+function getPageList(page: number, totalPages: number): (number | "ellipsis")[] {
+  if (totalPages <= SIBLING_COUNT * 2 + 3) return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const pages = new Set<number>([1, totalPages, page]);
+  for (let i = 1; i <= SIBLING_COUNT; i++) {
+    pages.add(page - i);
+    pages.add(page + i);
+  }
   const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
 
   const result: (number | "ellipsis")[] = [];

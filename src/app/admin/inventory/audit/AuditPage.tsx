@@ -594,9 +594,17 @@ export default function AuditPage() {
 
           <CountingModeToggle value={countingMode} onChange={handleCountingModeChange} />
 
+          {validAdjustments.length > 0 && (
+            <Button className="bg-green-600 font-semibold hover:bg-green-700" onClick={() => setIsAdjustDrawerOpen(true)}>
+              Adjust ({validAdjustments.length})
+            </Button>
+          )}
+
+          <div className="mx-1 h-6 w-px bg-border" />
+
           <DropdownMenu>
             <DropdownMenuTrigger>
-              <Button disabled={!data || data.length === 0 || exporting}>
+              <Button variant="outline" disabled={!data || data.length === 0 || exporting}>
                 <Download className="size-4" />
                 Export
               </Button>
@@ -610,7 +618,9 @@ export default function AuditPage() {
 
           <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
             <AlertDialogTrigger>
-              <Button variant="destructive">Reset</Button>
+              <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                Reset
+              </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -623,12 +633,6 @@ export default function AuditPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-
-          {validAdjustments.length > 0 && (
-            <Button className="bg-green-600 font-semibold hover:bg-green-700" onClick={() => setIsAdjustDrawerOpen(true)}>
-              Adjust ({validAdjustments.length})
-            </Button>
-          )}
 
           {viewMode === "live" && !sessionLoading && sessionCount !== null && (
             <div className="flex items-center gap-2">
@@ -678,7 +682,6 @@ export default function AuditPage() {
         countedPackageCount={countedPackageKeys.size}
         onFilterCountedToggle={handleFilterCountedToggle}
         viewMode={viewMode}
-        onReset={() => setIsResetConfirmOpen(true)}
       />
 
       {countingMode === "scan" && (

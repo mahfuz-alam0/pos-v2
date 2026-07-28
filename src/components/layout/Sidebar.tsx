@@ -62,6 +62,7 @@ function SidebarInner({
               width={110}
               height={28}
               className="w-3/4 object-contain"
+              priority
             />
           </Link>
         )}

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   AlertDialog,
@@ -392,7 +392,8 @@ export default function TransfersPage() {
 
         {activeTab === "within-storage-locations" && (
           <>
-            <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+              <TableLoadingOverlay show={withinLoading && withinRows.length > 0} />
               <Table>
                 <TableHeader className="[&_tr]:border-b-0">
                   <TableRow className="bg-muted/60">
@@ -451,7 +452,8 @@ export default function TransfersPage() {
 
         {activeTab === "with-in-shops" && (
           <>
-            <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+              <TableLoadingOverlay show={shopLoading && shopRows.length > 0} />
               <Table>
                 <TableHeader className="[&_tr]:border-b-0">
                   <TableRow className="bg-muted/60">
@@ -516,7 +518,8 @@ export default function TransfersPage() {
 
         {activeTab === "supplier-specific" && (
           <>
-            <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+              <TableLoadingOverlay show={supplierLoading && supplierRows.length > 0} />
               <Table>
                 <TableHeader className="[&_tr]:border-b-0">
                   <TableRow className="bg-muted/60">

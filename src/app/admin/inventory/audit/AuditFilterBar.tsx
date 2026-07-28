@@ -4,7 +4,6 @@ import { ApiSelect } from "@/components/ui/api-select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -26,7 +25,6 @@ interface AuditFilterBarProps {
   countedPackageCount: number;
   onFilterCountedToggle: (checked: boolean) => void;
   viewMode: "regular" | "live";
-  onReset: () => void;
 }
 
 async function fetchCategoryPage(page: number, search: string) {
@@ -55,7 +53,6 @@ export default function AuditFilterBar({
   countedPackageCount,
   onFilterCountedToggle,
   viewMode,
-  onReset,
 }: AuditFilterBarProps) {
   return (
     <div className="flex flex-col gap-2">
@@ -182,7 +179,7 @@ export default function AuditFilterBar({
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           <Switch
             checked={filters.isOutOfStockToggle}
             onCheckedChange={(checked) => onFilterChange({ isOutOfStockToggle: !!checked })}
@@ -191,10 +188,6 @@ export default function AuditFilterBar({
             Out of Stock
           </span>
         </div>
-
-        <Button variant="destructive" onClick={onReset} className="ml-auto">
-          Reset
-        </Button>
       </div>
 
       <div className="flex items-center gap-2 py-0.5">

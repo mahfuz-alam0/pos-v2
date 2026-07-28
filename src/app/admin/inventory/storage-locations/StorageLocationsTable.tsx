@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
-import { deleteStorageLocation } from "@/services/storageLocations/deleteLocation";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,22 +20,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import StorageLocationDetails from "./StorageLocationDetails";
+import StorageLocationDrawer from "./StorageLocationDrawer";
+
+interface StorageLocationRow {
+  id: string | number;
+  name: string;
+  openForAcceptingTransfers: boolean;
+  isSellableOnPhysicalStore: boolean;
+  shopId: string | number;
+}
 
 export default function StorageLocationsTable() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { shopId } = useShop();
 
-  const [rows, setRows] = useState([]);
+  const openId = searchParams.get("id");
+
+  const [rows, setRows] = useState<StorageLocationRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
+    open: false,
+    mode: "add",
+    locationId: null,
+  });
 
   const loadLocations = useCallback(async () => {
     if (!shopId) return;
@@ -54,8 +68,8 @@ export default function StorageLocationsTable() {
           shopId: location.shopId,
         }))
       );
-    } catch (err) {
-      toast.error(err?.message || "Failed to load storage locations");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "Failed to load storage locations");
     } finally {
       setLoading(false);
     }
@@ -65,123 +79,125 @@ export default function StorageLocationsTable() {
     loadLocations();
   }, [loadLocations]);
 
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      await deleteStorageLocation(deleteTarget.id, deleteTarget.shopId);
-      toast.success("Storage location deleted successfully");
-      setDeleteTarget(null);
-      loadLocations();
-    } catch (err) {
-      toast.error(err?.message || "Failed to delete storage location");
-    } finally {
-      setDeleteLoading(false);
-    }
+  const openDetail = (id: string | number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("id", String(id));
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const closeDetail = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("id");
+    const qs = params.toString();
+    router.push(qs ? `?${qs}` : ".", { scroll: false });
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Storage Locations</h1>
-        <Button onClick={() => router.push("/admin/inventory/storage-locations/add")}>
-          <Plus /> Add Storage Location
-        </Button>
-      </div>
+    <div className="flex gap-4 p-6">
+      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+        <div className="flex items-center justify-between">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/admin/inventory">Inventory</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Storage Locations</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <Table>
-          <TableHeader className="[&_tr]:border-b-0">
-            <TableRow className="bg-muted/60">
-              <TableHead>Location Name</TableHead>
-              <TableHead>Default Package Destination</TableHead>
-              <TableHead>Sellable In Physical Store</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading &&
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
-                  {Array.from({ length: 4 }).map((__, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
+          <Button onClick={() => setDrawer({ open: true, mode: "add", locationId: null })}>
+            <Plus /> Add Storage Location
+          </Button>
+        </div>
 
-            {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                  No storage locations found.
-                </TableCell>
+        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+          <Table>
+            <TableHeader className="[&_tr]:border-b-0">
+              <TableRow className="bg-muted/60">
+                <TableHead>Location Name</TableHead>
+                <TableHead>Default Package Destination</TableHead>
+                <TableHead>Sellable In Physical Store</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            )}
+            </TableHeader>
+            <TableBody>
+              {loading &&
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow
+                    key={`skeleton-${i}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  >
+                    {Array.from({ length: 4 }).map((__, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
 
-            {!loading &&
-              rows.map((row, i) => (
-                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/admin/inventory/storage-locations/edit/${row.id}`}
-                      className="hover:underline"
-                    >
-                      {row.name}
-                    </Link>
+              {!loading && rows.length === 0 && (
+                <TableRow className="border-b-0">
+                  <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                    No storage locations found.
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={row.openForAcceptingTransfers ? "default" : "secondary"}>
-                      {row.openForAcceptingTransfers ? "Yes" : "No"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.isSellableOnPhysicalStore ? "default" : "secondary"}>
-                      {row.isSellableOnPhysicalStore ? "Yes" : "No"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                </TableRow>
+              )}
+
+              {!loading &&
+                rows.map((row, i) => (
+                  <TableRow
+                    key={row.id}
+                    data-active={openId === String(row.id)}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  >
+                    <TableCell className="font-medium">
+                      <button
+                        onClick={() => openDetail(row.id)}
+                        className="cursor-pointer text-left text-primary hover:underline"
+                      >
+                        {row.name}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.openForAcceptingTransfers ? "default" : "secondary"}>
+                        {row.openForAcceptingTransfers ? "Yes" : "No"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.isSellableOnPhysicalStore ? "default" : "secondary"}>
+                        {row.isSellableOnPhysicalStore ? "Yes" : "No"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Button
                         variant="outline"
                         size="icon-sm"
-                        onClick={() => router.push(`/admin/inventory/storage-locations/edit/${row.id}`)}
+                        onClick={() => setDrawer({ open: true, mode: "edit", locationId: row.id })}
                       >
                         <Pencil />
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon-sm"
-                        onClick={() => setDeleteTarget(row)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete storage location</DialogTitle>
-            <DialogDescription>
-              Do you want to delete &quot;{deleteTarget?.name}&quot;? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
-              {deleteLoading ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {openId && (
+        <StorageLocationDetails locationId={openId} onClose={closeDetail} />
+      )}
+
+      <StorageLocationDrawer
+        open={drawer.open}
+        mode={drawer.mode}
+        locationId={drawer.locationId}
+        onClose={() => setDrawer((prev) => ({ ...prev, open: false }))}
+        onSaved={loadLocations}
+      />
     </div>
   );
 }
