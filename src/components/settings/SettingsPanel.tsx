@@ -21,6 +21,7 @@ export default function SettingsPanel() {
   const pathname = usePathname();
 
   const [top, setTop] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const draggingRef = useRef(false);
   const movedRef = useRef(false);
   const dragOffsetRef = useRef(0);
@@ -38,6 +39,7 @@ export default function SettingsPanel() {
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     draggingRef.current = true;
     movedRef.current = false;
+    setIsDragging(true);
     dragOffsetRef.current = e.clientY - (top ?? 0);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -51,6 +53,7 @@ export default function SettingsPanel() {
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+    setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
     setTop((current) => {
       if (current !== null) localStorage.setItem(POSITION_STORAGE_KEY, String(current));
@@ -77,7 +80,9 @@ export default function SettingsPanel() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         aria-label={open ? "Close settings" : "Open settings"}
-        className="fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover"
+        className={`fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover ${
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
         style={{
           top: top ?? "25%",
           transform: `translateY(-50%) translateX(${open ? -DRAWER_WIDTH : 0}px)`,
