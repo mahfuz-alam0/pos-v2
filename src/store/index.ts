@@ -24,3 +24,5 @@ export const store = configureStore({
     orderAction,
   },
 });
+
+export type AppDispatch = typeof store.dispatch;
