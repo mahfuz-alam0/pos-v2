@@ -254,7 +254,7 @@ export default function PosDlPhotoManager({ open, onClose, onScanDL, customer, u
     else if (step === "upload-done") reset();
   };
 
-  const types = uploadOnly ? TYPES.filter((t) => t.key !== "scan-dl") : TYPES;
+  const types = uploadOnly ? TYPES.filter((t) => t.key === "dl-front") : TYPES;
 
   return (
     <Drawer open={open} onClose={onClose} side="right" size={480}>

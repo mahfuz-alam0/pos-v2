@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import { useShop } from "@/context/shop-context";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,8 @@ import { resetSaleDetail } from "@/store/slices/saleDataSlice";
 import { resetAddedLineITems } from "@/store/slices/lineItemsSlice";
 import { addMiscallenousCharges } from "@/store/slices/miscChargesSlice";
 import { resetBogoLineItems } from "@/store/slices/bogoLineItemsSlice";
+import { resetCartForSale } from "@/store/slices/cartSlice";
+import { setSelectedCustomer } from "@/store/slices/customerSlice";
 import { updateOrderAction } from "@/store/slices/orderActionSlice";
 
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
@@ -46,7 +50,6 @@ import { createOrder as createOrderService } from "@/services/sales/createOrder"
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
-import { getSingleSale } from "@/services/sales/getSingleSales";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
@@ -80,11 +83,12 @@ import useDiscountTypes from "@/hooks/useDiscountTypes";
 export default function TotalCard({
   refreshOrders,
   onDraftSaved,
-  setResetOrderHistory,
   deliverySubType,
   deliveryType,
 }: any) {
   const dispatch = useDispatch();
+  const router = useRouter();
+  const { shopId, shopDetails } = useShop();
 
   const getOrderSummary = useSelector((state: any) => state?.quoteForSale?.lineItems);
   const quoteBody = useSelector((state: any) => state?.salesDetail);
@@ -174,11 +178,6 @@ export default function TotalCard({
   const shareMode =
     typeof window !== "undefined" && localStorage.getItem("shareMode");
   const isShareModeActive = () => shareMode === "true";
-
-  // Old header "Reset" toggle — visible once there's cart history.
-  useEffect(() => {
-    setResetOrderHistory?.(lineItems.length > 0 || bogoData.length > 0);
-  }, [lineItems.length, bogoData.length, setResetOrderHistory]);
 
   // ---- Order statuses -------------------------------------------------------
   const fetchOrderStatus = () => {
@@ -515,14 +514,29 @@ export default function TotalCard({
     );
   };
 
-  const resetSessionAfterOrder = () => {
+  // openReceiptModal=false is used by the "Send to Fulfillment" quick-create
+  // path (a non-terminal, unpaid pre-sale like "Processing") — that one
+  // routes to Order Ahead instead of showing the paid-order receipt. Since
+  // that skips the receipt modal, it never gets the cart/customer reset that
+  // normally happens when the user clicks "New Order" on that modal
+  // (PrintReceiptModal's handleNewOrder) — do it here instead, so the next
+  // customer doesn't inherit this sale's cart.
+  const resetSessionAfterOrder = (openReceiptModal = true) => {
     dispatch(resetBogoLineItems());
     dispatch(updateSalesDetail({}));
     dispatch(updateOrderAction("orderCreated"));
     setTimeout(() => dispatch(updateOrderAction(null)), 1000);
     if (typeof refreshOrders === "function") refreshOrders();
     setOrderChangeAmount(changeValue);
-    setIsNewOrderModal(true);
+    if (openReceiptModal) {
+      setIsNewOrderModal(true);
+    } else {
+      dispatch(resetSalesDetail());
+      dispatch(resetAddedLineITems());
+      dispatch(resetQuoteForSale());
+      dispatch(resetCartForSale());
+      dispatch(setSelectedCustomer(null));
+    }
   };
 
   // ---- Create order (checkout) ----------------------------------------------
@@ -661,7 +675,8 @@ export default function TotalCard({
         setInvoiceOrderId(res.data.data.saleId);
         setCreateOrderRes(res.data.data);
         toast.success("Order placed successfully");
-        resetSessionAfterOrder();
+        resetSessionAfterOrder(false);
+        router.push("/admin/orderahead");
       } else {
         toast.error("Order could not be completed.");
       }
@@ -969,6 +984,7 @@ export default function TotalCard({
               onClick={() => {
                 dispatch(updateOrderAction(null));
                 dispatch(resetAddedLineITems());
+                dispatch(resetCartForSale());
                 dispatch(resetBogoLineItems());
                 dispatch(addMiscallenousCharges([]));
                 dispatch(resetSaleDetail());
@@ -1390,9 +1406,15 @@ export default function TotalCard({
         onClose={() => setIsNewOrderModal(false)}
         handlePrint={handlePrint}
         createOrderRes={createOrderRes}
+        shopId={shopId}
+        shopDetails={shopDetails}
+        customerName={
+          selectedCustomer
+            ? `${selectedCustomer.firstName || ""} ${selectedCustomer.lastName || ""}`.trim()
+            : undefined
+        }
         reportToMetric={() => {}}
         changeAmount={orderChangeAmount}
-        labMode={false}
         onNewOrder={() => {
           setIsNewOrderModal(false);
           dispatch(resetSalesDetail());
