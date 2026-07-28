@@ -6,7 +6,7 @@ import { ArrowLeft, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -121,7 +121,7 @@ export default function CustomPagesTab() {
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">Body</Label>
-              <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Enter page content" />
+              <RichTextEditor value={body} onChange={setBody} placeholder="Enter page content" />
             </div>
 
             <div className="flex justify-end">
