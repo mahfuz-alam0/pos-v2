@@ -471,7 +471,7 @@ export default function AddCustomerForm({
           onClose?.();
         }}
         side="right"
-        size={560}
+        size={760}
         zIndex={60}
       >
         <div className="flex h-full flex-col">
