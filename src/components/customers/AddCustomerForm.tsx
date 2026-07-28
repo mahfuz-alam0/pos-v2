@@ -100,11 +100,34 @@ const eighteenYearsAgoISO = () => {
  *    forward as-is). City/state/zip remain plain editable fields, so no data
  *    the old form captured is missing — just the autofill convenience.
  */
-export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = undefined, customerId = null }) {
+export default function AddCustomerForm({
+  open,
+  onClose,
+  onCreated,
+  onUpdated = undefined,
+  customerId = null,
+  zIndex = 60,
+  initialValues = {},
+}: {
+  open: boolean;
+  onClose?: () => void;
+  onCreated?: (customer?: any, mode?: string) => void;
+  onUpdated?: (customer?: any) => void;
+  customerId?: string | null;
+  zIndex?: number;
+  initialValues?: Record<string, string>;
+}) {
   const isEditMode = !!customerId;
   const quoteBody = useSelector((state: any) => state?.salesDetail);
 
   const [form, setForm] = useState(EMPTY_FORM);
+
+  useEffect(() => {
+    if (open) {
+      reset(initialValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
@@ -141,17 +164,17 @@ export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = 
           if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     listCustomerTypes()
       .then((res) => setCustomerTypes(res?.data?.data?.customerTypes || []))
-      .catch(() => {});
+      .catch(() => { });
     getShopPreference()
       .then((res) =>
         setRequireGroupForMJ(
           !!res?.data?.preference?.isChoosingCustomerGroupMandatoryForMJProducts
         )
       )
-      .catch(() => {});
+      .catch(() => { });
   }, [open, isEditMode]);
 
   useEffect(() => {
@@ -202,8 +225,8 @@ export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = 
   const setField = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const reset = () => {
-    setForm(EMPTY_FORM);
+  const reset = (nextInitialValues: Record<string, string> = {}) => {
+    setForm({ ...EMPTY_FORM, ...nextInitialValues });
     setCustomerGroupIds([]);
     setAccountActive(true);
     setShouldWarnUser(false);
@@ -282,18 +305,18 @@ export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = 
       },
       mjMedicalData: isMjMedical
         ? {
-            medicalLicense: form.medicalLicense,
-            medicalLicenseExpiresAt: form.medicalLicenseExpiresAt || undefined,
-            isTemporaryPatient: temporaryPatient,
-            condition: form.condition || undefined,
-            physician: form.physician || undefined,
-            hasCareGiver: hasCaregiver,
-            isCareGiver: isCaregiver,
-            careGiverName: hasCaregiver ? form.careGiverName : undefined,
-            careGiverLicense: hasCaregiver ? form.careGiverLicense : undefined,
-            patientName: isCaregiver ? form.patientName : undefined,
-            patientLicense: isCaregiver ? form.patientLicense : undefined,
-          }
+          medicalLicense: form.medicalLicense,
+          medicalLicenseExpiresAt: form.medicalLicenseExpiresAt || undefined,
+          isTemporaryPatient: temporaryPatient,
+          condition: form.condition || undefined,
+          physician: form.physician || undefined,
+          hasCareGiver: hasCaregiver,
+          isCareGiver: isCaregiver,
+          careGiverName: hasCaregiver ? form.careGiverName : undefined,
+          careGiverLicense: hasCaregiver ? form.careGiverLicense : undefined,
+          patientName: isCaregiver ? form.patientName : undefined,
+          patientLicense: isCaregiver ? form.patientLicense : undefined,
+        }
         : undefined,
       customerGroupIds,
       note: form.note || undefined,
@@ -448,7 +471,8 @@ export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = 
           onClose?.();
         }}
         side="right"
-        size={720}
+        size={560}
+        zIndex={60}
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-3 px-6 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
@@ -1019,7 +1043,7 @@ export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = 
         </div>
       </Drawer>
 
-      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400}>
+      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400} zIndex={70}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin
