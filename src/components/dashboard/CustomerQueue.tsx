@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import QueueCard from "./QueueCard";
 import QuickCheckIn from "./QuickCheckIn";
 import QrCheckIn from "@/components/settings/QrCheckIn";
-import AddCustomerToQueue from "./AddCustomerToQueue";
+import AddCustomerToQueue from "@/components/customers/AddCustomerToQueue";
 import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 
 // `onCustomerServed`: optional hook fired (in addition to the default

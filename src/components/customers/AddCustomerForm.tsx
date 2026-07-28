@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
+import {
+  User,
+  MapPin,
+  Users,
+  Stethoscope,
+  MessageSquare,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -24,6 +33,7 @@ import { deleteCustomer } from "@/services/customers/deleteCustomer";
 import { listCustomerGroups } from "@/services/customers/listCustomerGroups";
 import { listCustomerTypes } from "@/services/customers/listCustomerTypes";
 import { findDuplicateCustomers } from "@/services/customers/findDuplicateCustomers";
+import { getSingleCustomer } from "@/services/customers/getSingleCustomer";
 import { getShopPreference } from "@/services/sales/getShopPreference";
 import { verifyOmmaLicense } from "@/services/metrc/verifyOmmaLicense";
 
@@ -90,7 +100,8 @@ const eighteenYearsAgoISO = () => {
  *    forward as-is). City/state/zip remain plain editable fields, so no data
  *    the old form captured is missing — just the autofill convenience.
  */
-export default function AddCustomerForm({ open, onClose, onCreated }) {
+export default function AddCustomerForm({ open, onClose, onCreated, onUpdated = undefined, customerId = null }) {
+  const isEditMode = !!customerId;
   const quoteBody = useSelector((state: any) => state?.salesDetail);
 
   const [form, setForm] = useState(EMPTY_FORM);
@@ -98,6 +109,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
   const [requireGroupForMJ, setRequireGroupForMJ] = useState(false);
+  const [loadingCustomer, setLoadingCustomer] = useState(false);
 
   const [accountActive, setAccountActive] = useState(true);
   const [shouldWarnUser, setShouldWarnUser] = useState(false);
@@ -124,8 +136,10 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
       .then((res) => {
         const list = res?.data?.data?.customerGroups || [];
         setGroups(list);
-        const defaultGroup = list.find((g) => g.isDefaultForShop);
-        if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
+        if (!isEditMode) {
+          const defaultGroup = list.find((g) => g.isDefaultForShop);
+          if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
+        }
       })
       .catch(() => {});
     listCustomerTypes()
@@ -138,7 +152,52 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
         )
       )
       .catch(() => {});
-  }, [open]);
+  }, [open, isEditMode]);
+
+  useEffect(() => {
+    if (!open || !customerId) return;
+    setLoadingCustomer(true);
+    getSingleCustomer(customerId)
+      .then((res) => {
+        const c = res?.data?.data?.customer;
+        if (!c) return;
+        setForm({
+          firstName: c.firstName || "",
+          lastName: c.lastName || "",
+          email: c.email || "",
+          phone: (c.phone || "").replace(/^\+/, ""),
+          sex: c.sex || "",
+          dob: c.dob ? c.dob.slice(0, 10) : "",
+          drivingLicense: c.drivingLicense || "",
+          drivingLicenseExpiry: c.drivingLicenseExpiry ? c.drivingLicenseExpiry.slice(0, 10) : "",
+          streetAddress: c.locationDetails?.streetAddress || "",
+          city: c.locationDetails?.city || "",
+          state: c.locationDetails?.state || "",
+          zipCode: c.locationDetails?.zipCode || "",
+          customerTypeId: c.customerTypeId || "none",
+          medicalLicense: c.mjMedicalData?.medicalLicense || "",
+          medicalLicenseExpiresAt: c.mjMedicalData?.medicalLicenseExpiresAt
+            ? c.mjMedicalData.medicalLicenseExpiresAt.slice(0, 10)
+            : "",
+          condition: c.mjMedicalData?.condition || "",
+          physician: c.mjMedicalData?.physician || "",
+          careGiverName: c.mjMedicalData?.careGiverName || "",
+          careGiverLicense: c.mjMedicalData?.careGiverLicense || "",
+          patientName: c.mjMedicalData?.patientName || "",
+          patientLicense: c.mjMedicalData?.patientLicense || "",
+          referralSource: c.referralSource || "",
+          note: c.note || "",
+        });
+        setCustomerGroupIds((c.customerGroups || []).map((g) => g.id));
+        setAccountActive(!c.isLocked);
+        setShouldWarnUser(!!c.shouldWarnUser);
+        setWarningMessage(c.warningMessage || "");
+        setTemporaryPatient(!!c.mjMedicalData?.isTemporaryPatient);
+        setHasCaregiver(!!c.mjMedicalData?.hasCareGiver);
+        setIsCaregiver(!!c.mjMedicalData?.isCareGiver);
+      })
+      .finally(() => setLoadingCustomer(false));
+  }, [open, customerId]);
 
   const setField = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -277,12 +336,33 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
     }
   };
 
+  const runUpdate = async () => {
+    setSubmitting(true);
+    try {
+      const res = await updateCustomerInfo(customerId, buildPayload());
+      const customer = res?.data?.data?.customer || res?.data?.data;
+      toast.success("Customer updated successfully");
+      onUpdated?.(customer);
+      onClose?.();
+    } catch (error: any) {
+      const msg = error?.errors?.join(", ") || error?.message || "Failed to update customer";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const shareModeActive =
     typeof window !== "undefined" && localStorage.getItem("shareMode") === "true";
 
   const handleSubmit = async (mode) => {
     if (!validate()) return;
     setSaveMode(mode);
+
+    if (isEditMode) {
+      runUpdate();
+      return;
+    }
 
     // Duplicate-license check, matching the legacy pre-create lookup.
     if (form.drivingLicense || form.medicalLicense) {
@@ -368,15 +448,37 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
           onClose?.();
         }}
         side="right"
-        size={560}
+        size={720}
       >
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-6 py-4 text-base font-semibold">
-            Add Customer
+          <div className="flex items-center justify-between gap-3 px-6 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+            <div>
+              <div className="text-lg font-semibold tracking-tight">
+                {isEditMode ? "Edit Customer" : "Add New Customer"}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {isEditMode
+                  ? "Update customer profile and account details"
+                  : "Create a customer profile for checkout and order history"}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                onClose?.();
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
-          {foundCustomers.length > 0 ? (
-            <div className="flex-1 space-y-3 overflow-auto p-4">
+          {loadingCustomer ? (
+            <div className="flex-1 p-6 text-sm text-muted-foreground">Loading customer…</div>
+          ) : foundCustomers.length > 0 ? (
+            <div className="flex-1 space-y-3 overflow-auto p-6">
               <p className="text-sm text-muted-foreground">
                 We found {foundCustomers.length} existing customer
                 {foundCustomers.length > 1 ? "s" : ""} with a matching
@@ -386,7 +488,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
               {foundCustomers.map((data) => (
                 <div
                   key={data.customer.id}
-                  className="rounded-lg border border-border p-3"
+                  className="rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10"
                 >
                   <div className="font-semibold">
                     {data.customer.firstName} {data.customer.lastName}
@@ -422,10 +524,11 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
               onSubmit={(e) => e.preventDefault()}
               className="flex flex-1 flex-col overflow-hidden"
             >
-              <div className="flex-1 space-y-5 overflow-auto p-4">
+              <div className="flex-1 space-y-6 overflow-auto p-6">
                 {/* Basic information */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <User className="h-4 w-4 text-muted-foreground" />
                     Basic Information
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -464,6 +567,11 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                     <div>
                       <Label>Gender</Label>
                       <Select
+                        items={[
+                          { value: "MALE", label: "Male" },
+                          { value: "FEMALE", label: "Female" },
+                          { value: "OTHER", label: "Other" },
+                        ]}
                         value={form.sex}
                         onValueChange={(value) =>
                           setForm((f) => ({ ...f, sex: value }))
@@ -531,8 +639,9 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                 </section>
 
                 {/* Address */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
                     Address Information
                   </h4>
                   <div>
@@ -576,59 +685,67 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                 </section>
 
                 {/* Customer classification */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Users className="h-4 w-4 text-muted-foreground" />
                     Customer Classification
                   </h4>
-                  <div>
-                    <Label>Customer Groups</Label>
-                    <div className="mt-1 max-h-32 space-y-1 overflow-auto rounded-lg border border-border p-2">
-                      {groups.length === 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          No customer groups configured.
-                        </div>
-                      )}
-                      {groups.map((g) => (
-                        <label
-                          key={g.id}
-                          className="flex items-center gap-2 text-sm"
-                        >
-                          <Checkbox
-                            checked={customerGroupIds.includes(g.id)}
-                            onCheckedChange={() => toggleGroup(g.id)}
-                          />
-                          {g.name}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Customer Type *</Label>
-                    <Select
-                      value={form.customerTypeId}
-                      onValueChange={(value) =>
-                        setForm((f) => ({ ...f, customerTypeId: value }))
-                      }
-                    >
-                      <SelectTrigger className="mt-1 w-full">
-                        <SelectValue placeholder="Select customer type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {customerTypes.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                          </SelectItem>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Customer Groups</Label>
+                      <div className="mt-1 max-h-32 space-y-1 overflow-auto rounded-lg bg-background p-2 ring-1 ring-foreground/10">
+                        {groups.length === 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            No customer groups configured.
+                          </div>
+                        )}
+                        {groups.map((g) => (
+                          <label
+                            key={g.id}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <Checkbox
+                              checked={customerGroupIds.includes(g.id)}
+                              onCheckedChange={() => toggleGroup(g.id)}
+                            />
+                            {g.name}
+                          </label>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Customer Type *</Label>
+                      <Select
+                        items={[
+                          { value: "none", label: "None" },
+                          ...customerTypes.map((t) => ({ value: t.id, label: t.name })),
+                        ]}
+                        value={form.customerTypeId}
+                        onValueChange={(value) =>
+                          setForm((f) => ({ ...f, customerTypeId: value }))
+                        }
+                      >
+                        <SelectTrigger className="mt-1 w-full">
+                          <SelectValue placeholder="Select customer type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {customerTypes.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </section>
 
                 {/* MJ Medical */}
                 {isMjMedical && (
-                  <section className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-destructive">
+                  <section className="space-y-3 rounded-xl bg-destructive/5 p-4 ring-1 ring-destructive/30">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                      <Stethoscope className="h-4 w-4" />
                       Medical Information (required for medical patients)
                     </h4>
                     <div className="grid grid-cols-2 gap-3">
@@ -677,15 +794,15 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 rounded-lg bg-muted p-3">
-                      <label className="flex items-center justify-between gap-2 text-sm">
+                    <div className="grid grid-cols-3 gap-2 rounded-lg bg-background p-2 ring-1 ring-foreground/10">
+                      <label className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
                         Temporary Patient
                         <Checkbox
                           checked={temporaryPatient}
                           onCheckedChange={(c) => setTemporaryPatient(!!c)}
                         />
                       </label>
-                      <label className="flex items-center justify-between gap-2 text-sm">
+                      <label className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
                         Has Caregiver
                         <Checkbox
                           checked={hasCaregiver}
@@ -695,7 +812,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                           }}
                         />
                       </label>
-                      <label className="flex items-center justify-between gap-2 text-sm">
+                      <label className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
                         Is Caregiver
                         <Checkbox
                           checked={isCaregiver}
@@ -760,8 +877,9 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                 )}
 
                 {/* Additional information */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
                     Notes &amp; Referral
                   </h4>
                   <div>
@@ -785,7 +903,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                     <textarea
                       id="note"
                       rows={3}
-                      className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="mt-1 w-full rounded-lg bg-background px-2.5 py-1.5 text-sm ring-1 ring-foreground/10 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                       value={form.note}
                       onChange={setField("note")}
                     />
@@ -793,11 +911,12 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                 </section>
 
                 {/* Account settings */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <ShieldAlert className="h-4 w-4 text-muted-foreground" />
                     Account Settings
                   </h4>
-                  <label className="flex items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm">
+                  <label className="flex items-center justify-between gap-2 rounded-lg bg-background p-3 text-sm ring-1 ring-foreground/10">
                     <div>
                       <div className="font-semibold">
                         {accountActive ? "Account Active" : "Account Disabled"}
@@ -814,7 +933,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                     />
                   </label>
 
-                  <label className="flex items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm">
+                  <label className="flex items-center justify-between gap-2 rounded-lg bg-background p-3 text-sm ring-1 ring-foreground/10">
                     <div>
                       <div className="font-semibold">
                         Warn Cashier on this Customer
@@ -835,7 +954,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                       <textarea
                         id="warningMessage"
                         rows={2}
-                        className="mt-1 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        className="mt-1 w-full rounded-lg bg-background px-2.5 py-1.5 text-sm ring-1 ring-foreground/10 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                         value={warningMessage}
                         onChange={(e) => setWarningMessage(e.target.value)}
                       />
@@ -844,7 +963,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                 </section>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
                 <Button
                   type="button"
                   variant="outline"
@@ -856,35 +975,43 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                   Cancel
                 </Button>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("queue")}
-                  >
-                    {submitting && saveMode === "queue"
-                      ? "Saving…"
-                      : "Save & Add to Queue"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("order")}
-                  >
-                    {submitting && saveMode === "order"
-                      ? "Saving…"
-                      : "Save and Order"}
-                  </Button>
-                  <Button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("save")}
-                  >
-                    {submitting && saveMode === "save"
-                      ? "Saving…"
-                      : "Save Customer"}
-                  </Button>
+                  {isEditMode ? (
+                    <Button type="button" disabled={submitting} onClick={() => handleSubmit("save")}>
+                      {submitting ? "Saving…" : "Save Changes"}
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={submitting}
+                        onClick={() => handleSubmit("queue")}
+                      >
+                        {submitting && saveMode === "queue"
+                          ? "Saving…"
+                          : "Save & Add to Queue"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={submitting}
+                        onClick={() => handleSubmit("order")}
+                      >
+                        {submitting && saveMode === "order"
+                          ? "Saving…"
+                          : "Save and Order"}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleSubmit("save")}
+                      >
+                        {submitting && saveMode === "save"
+                          ? "Saving…"
+                          : "Save Customer"}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </form>

@@ -1,10 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import AnimatedDrawer from "@/components/ui/AnimatedDrawer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getSingleCustomer } from "@/services/customers/getSingleCustomer";
+import { addCustomerToQueue } from "@/services/sales/addCustomerToQueue";
+import {
+  approveCustomerGroupRemarks,
+  approveCustomerTypeRemarks,
+  rejectCustomerGroupRemarks,
+  rejectCustomerTypeRemarks,
+} from "@/services/customers/remarksApproval";
+import ActivityLogDrawer from "@/components/admin/ActivityLogDrawer";
 import NotesSection from "./NotesSection";
 import TopProductsSection from "./TopProductsSection";
 import OrderHistorySection from "./OrderHistorySection";
@@ -26,9 +36,17 @@ function calculateAge(dob) {
 // the old app's front-desk drawer (customer info + notes/top-products/order
 // history/returns/loyalty/store-credits), rebuilt against this project's
 // existing services and shadcn primitives.
-export default function CustomerDetailDrawer({ open, onClose, customerId }) {
+export default function CustomerDetailDrawer({ open, onClose, customerId, checkedIn = false, onCheckedIn = undefined }) {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [remarksBusy, setRemarksBusy] = useState(false);
+
+  const refetch = () => {
+    if (!customerId) return;
+    getSingleCustomer(customerId).then((res) => setCustomer(res?.data?.data?.customer || null));
+  };
 
   useEffect(() => {
     if (!open || !customerId) return;
@@ -43,6 +61,76 @@ export default function CustomerDetailDrawer({ open, onClose, customerId }) {
     customer?.mjMedicalLicenseExpiresAt && customer?.mjMedicalLicense
       ? new Date(customer.mjMedicalLicenseExpiresAt) < new Date()
       : false;
+
+  const hasPendingRemarks =
+    customer?.isCustomerGroupsRemarksPending || customer?.isCustomerTypeRemarksPending;
+
+  const handleCheckIn = async () => {
+    if (!customerId) return;
+    setCheckingIn(true);
+    try {
+      const shopId = JSON.parse(localStorage.getItem("shopId") || "null");
+      await addCustomerToQueue({ shopId, customerId, isAnonymous: false });
+      toast.success("Customer added to queue");
+      onCheckedIn?.(customerId);
+    } catch (error: any) {
+      toast.error(error?.error || error?.message || "Error adding customer to queue");
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const handleApproveGroup = async () => {
+    setRemarksBusy(true);
+    try {
+      await approveCustomerGroupRemarks(customerId);
+      toast.success("Group change approved");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to approve group change");
+    } finally {
+      setRemarksBusy(false);
+    }
+  };
+
+  const handleRejectGroup = async () => {
+    setRemarksBusy(true);
+    try {
+      await rejectCustomerGroupRemarks(customerId);
+      toast.success("Group change rejected");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reject group change");
+    } finally {
+      setRemarksBusy(false);
+    }
+  };
+
+  const handleApproveType = async () => {
+    setRemarksBusy(true);
+    try {
+      await approveCustomerTypeRemarks(customerId);
+      toast.success("Type change approved");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to approve type change");
+    } finally {
+      setRemarksBusy(false);
+    }
+  };
+
+  const handleRejectType = async () => {
+    setRemarksBusy(true);
+    try {
+      await rejectCustomerTypeRemarks(customerId);
+      toast.success("Type change rejected");
+      refetch();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reject type change");
+    } finally {
+      setRemarksBusy(false);
+    }
+  };
 
   return (
     <AnimatedDrawer open={open} onClose={onClose} placement="right" width={720} title="Customer Details">
@@ -77,9 +165,72 @@ export default function CustomerDetailDrawer({ open, onClose, customerId }) {
                     Med ID {isMedExpired ? "(Expired)" : ""}
                   </Badge>
                 )}
+                {hasPendingRemarks && <Badge variant="destructive">Pending</Badge>}
               </div>
             </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+                Activity
+              </Button>
+              <Button size="sm" disabled={checkedIn || checkingIn} onClick={handleCheckIn}>
+                {checkedIn ? "Checked In" : checkingIn ? "Checking In…" : "Check In"}
+              </Button>
+            </div>
           </div>
+
+          {hasPendingRemarks && (
+            <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-destructive">
+                Action Required — Pending Requests
+              </div>
+
+              {customer.isCustomerGroupsRemarksPending && (
+                <div className="space-y-1.5 text-sm">
+                  <div className="font-medium">Group Change Request</div>
+                  <div className="text-muted-foreground">
+                    Current: {customer.customerGroups?.map((g) => g.name).join(", ") || "None"}
+                  </div>
+                  <div className="text-muted-foreground">
+                    Requested: {customer.remarkedCustomerGroups?.map((g) => g.name).join(", ") || "None"}
+                  </div>
+                  {customer.customerGroupsRemarks && (
+                    <div className="rounded bg-muted/60 p-2 text-xs italic">
+                      "{customer.customerGroupsRemarks}"
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" disabled={remarksBusy} onClick={handleApproveGroup}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={remarksBusy} onClick={handleRejectGroup}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {customer.isCustomerTypeRemarksPending && (
+                <div className="space-y-1.5 text-sm">
+                  <div className="font-medium">Type Change Request</div>
+                  <div className="text-muted-foreground">Current: {customer.customerType?.name || customer.customerType || "None"}</div>
+                  <div className="text-muted-foreground">
+                    Requested: {customer.remarkedCustomerType?.name || "None"}
+                  </div>
+                  {customer.customerTypeRemarks && (
+                    <div className="rounded bg-muted/60 p-2 text-xs italic">"{customer.customerTypeRemarks}"</div>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" disabled={remarksBusy} onClick={handleApproveType}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={remarksBusy} onClick={handleRejectType}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <Tabs defaultValue="notes">
             <TabsList>
@@ -112,6 +263,13 @@ export default function CustomerDetailDrawer({ open, onClose, customerId }) {
           </Tabs>
         </div>
       )}
+
+      <ActivityLogDrawer
+        open={activityOpen}
+        onClose={() => setActivityOpen(false)}
+        domain="CUSTOMER"
+        targetId={customerId}
+      />
     </AnimatedDrawer>
   );
 }

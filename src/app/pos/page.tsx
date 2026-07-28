@@ -99,7 +99,7 @@ import ReturnsPage from "@/components/pos/ReturnsPage";
 import CustomerUploads from "@/components/pos/CustomerUploads";
 import AddCustomerToQueue from "@/components/pos/AddCustomerToQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
-import AddCustomerForm from "@/components/pos/AddCustomerForm";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 
 const GreenDot = () => (
   <span className="ml-2 inline-block h-2 w-2 rounded-full bg-green-600" />
