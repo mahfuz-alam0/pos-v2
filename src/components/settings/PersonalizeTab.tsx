@@ -182,13 +182,16 @@ export default function PersonalizeTab({ onClose }) {
         description="Select a printer device per print job type. Saving a preference enables automated hardware printing."
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-sm text-text" suppressHydrationWarning>
+          <span className="flex items-center gap-2 text-sm text-text">
             <span
               className={`size-2.5 rounded-full ${
                 printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
               }`}
+              suppressHydrationWarning
             />
-            {printType === "hardware" ? "On — printing to hardware devices" : "Off — using browser print"}
+            <span suppressHydrationWarning>
+              {printType === "hardware" ? "On — printing to hardware devices" : "Off — using browser print"}
+            </span>
           </span>
           <div className="flex shrink-0 items-center gap-2">
             <Button
