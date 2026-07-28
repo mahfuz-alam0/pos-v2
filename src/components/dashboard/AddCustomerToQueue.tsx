@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Drawer from "@/components/ui/Drawer";
 import { searchCustomers } from "@/services/customers/search";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
 
@@ -40,12 +40,20 @@ export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueDa
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Add Customer to Queue</DialogTitle>
-        </DialogHeader>
+    <Drawer open={open} onClose={() => onOpenChange(false)} side="right" size={820} className="flex flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="text-lg font-semibold text-heading">Add Customer to Queue</h2>
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          aria-label="Close"
+          className="text-sidebar-text hover:text-text"
+        >
+          ✕
+        </button>
+      </div>
 
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
         <input
           type="text"
           value={search}
@@ -54,7 +62,7 @@ export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueDa
           className="w-full rounded-lg border border-border bg-component-bg px-3 py-2 text-sm outline-none focus:border-primary"
         />
 
-        <div className="mt-3 max-h-96 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           {loading ? (
             <div className="py-6 text-center text-sm text-muted-foreground">Loading…</div>
           ) : customers.length === 0 ? (
@@ -66,7 +74,9 @@ export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueDa
                   <th className="py-2 font-medium">Name</th>
                   <th className="py-2 font-medium">Email</th>
                   <th className="py-2 font-medium">Phone No.</th>
-                  <th className="py-2 text-right font-medium">Action</th>
+                  <th className="sticky right-0 z-10 w-24 bg-component-bg py-2 text-right font-medium shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -80,7 +90,7 @@ export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueDa
                       </td>
                       <td className="py-2 text-muted-foreground">{customer.email || "-"}</td>
                       <td className="py-2 text-muted-foreground">{customer.phone || "-"}</td>
-                      <td className="py-2 text-right">
+                      <td className="sticky right-0 z-10 w-24 bg-component-bg py-2 text-right shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
                         <button
                           disabled={isInQueue || isChecking}
                           onClick={() => handleCheckIn(customer)}
@@ -96,7 +106,7 @@ export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueDa
             </table>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Drawer>
   );
 }

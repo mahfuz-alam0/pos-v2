@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -149,10 +150,10 @@ export default function InventoryOnHandTable() {
   const [productRows, setProductRows] = useState<any[]>([]);
   const [packageRows, setPackageRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0, hasMore: true });
+  const [productPagination, setProductPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [packagePagination, setPackagePagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
 
   const [stats, setStats] = useState({
     categoryCount: 0,
@@ -219,20 +220,19 @@ export default function InventoryOnHandTable() {
   );
 
   const fetchProducts = useCallback(
-    async (filters: Filter[], page = 1, append = false) => {
+    async (filters: Filter[], page = 1) => {
       if (!shopId) return;
-      append ? setLoadingMore(true) : setLoading(true);
+      setLoading(true);
       try {
         const params = { limit: PAGE_SIZE, page, ...filtersToParams(filters) };
         const res = await fetchInventoryOnHandByProduct(shopId, params);
         if (res?.tableData) {
-          setProductRows((prev) => (append ? [...prev, ...res.tableData] : res.tableData));
+          setProductRows(res.tableData);
           if (res.paginationData) {
-            setPagination({
+            setProductPagination({
               page: res.paginationData.currentPage,
               totalPages: res.paginationData.totalPages,
               totalEntries: res.paginationData.totalEntries,
-              hasMore: res.paginationData.currentPage < res.paginationData.totalPages,
             });
           }
         }
@@ -240,27 +240,25 @@ export default function InventoryOnHandTable() {
         toast.error(err?.message || "Failed to load inventory data");
       } finally {
         setLoading(false);
-        setLoadingMore(false);
       }
     },
     [shopId]
   );
 
   const fetchPackages = useCallback(
-    async (filters: Filter[], page = 1, append = false) => {
+    async (filters: Filter[], page = 1) => {
       if (!shopId) return;
-      append ? setLoadingMore(true) : setLoading(true);
+      setLoading(true);
       try {
         const params = { limit: PAGE_SIZE, page, ...filtersToParams(filters) };
         const res = await fetchInventoryOnHandByPackage(shopId, params);
         if (res?.tableData) {
-          setPackageRows((prev) => (append ? [...prev, ...res.tableData] : res.tableData));
+          setPackageRows(res.tableData);
           if (res.paginationData) {
-            setPagination({
+            setPackagePagination({
               page: res.paginationData.currentPage,
               totalPages: res.paginationData.totalPages,
               totalEntries: res.paginationData.totalEntries,
-              hasMore: res.paginationData.currentPage < res.paginationData.totalPages,
             });
           }
         }
@@ -268,7 +266,6 @@ export default function InventoryOnHandTable() {
         toast.error(err?.message || "Failed to load package data");
       } finally {
         setLoading(false);
-        setLoadingMore(false);
       }
     },
     [shopId]
@@ -326,14 +323,6 @@ export default function InventoryOnHandTable() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minMarginPercent, maxMarginPercent]);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    if (el.scrollHeight - (el.scrollTop + el.clientHeight) > 100) return;
-    if (!pagination.hasMore || loadingMore) return;
-    if (activeTab === "products") fetchProducts(activeFilters, pagination.page + 1, true);
-    else fetchPackages(activeFilters, pagination.page + 1, true);
-  };
 
   const handleDrillFilter = async (record: any, type: Exclude<FilterType, null>) => {
     const value =
@@ -408,11 +397,9 @@ export default function InventoryOnHandTable() {
 
   function ProductsTable({ inModal = false }: { inModal?: boolean }) {
     return (
+      <div className="flex flex-col gap-3">
       <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-      <div
-        onScroll={handleScroll}
-        className={inModal ? "h-[calc(100vh-105px)] overflow-auto" : "h-[calc(100vh-500px)] min-h-100 overflow-auto"}
-      >
+      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto" : "h-[calc(100vh-500px)] min-h-100 overflow-auto"}>
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b-0">
             <TableRow className="bg-muted/60">
@@ -503,26 +490,25 @@ export default function InventoryOnHandTable() {
             })}
           </TableBody>
         </Table>
-        {loadingMore && (
-          <div className="flex justify-center py-3 text-sm text-muted-foreground">Loading more...</div>
-        )}
-        {!pagination.hasMore && productRows.length > 0 && (
-          <div className="py-3 text-center text-xs text-muted-foreground">
-            No more records ({productRows.length} of {pagination.totalEntries} items loaded)
-          </div>
-        )}
       </div>
+      </div>
+      <TablePagination
+        page={productPagination.page}
+        totalPages={productPagination.totalPages}
+        totalEntries={productPagination.totalEntries}
+        pageSize={PAGE_SIZE}
+        loading={loading}
+        onPageChange={(p) => fetchProducts(activeFilters, p)}
+      />
       </div>
     );
   }
 
   function PackagesTable({ inModal = false }: { inModal?: boolean }) {
     return (
+      <div className="flex flex-col gap-3">
       <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-      <div
-        onScroll={handleScroll}
-        className={inModal ? "h-[calc(100vh-105px)] overflow-auto" : "h-[calc(100vh-500px)] min-h-100 overflow-auto"}
-      >
+      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto" : "h-[calc(100vh-500px)] min-h-100 overflow-auto"}>
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b-0">
             <TableRow className="bg-muted/60">
@@ -594,15 +580,16 @@ export default function InventoryOnHandTable() {
             })}
           </TableBody>
         </Table>
-        {loadingMore && (
-          <div className="flex justify-center py-3 text-sm text-muted-foreground">Loading more...</div>
-        )}
-        {!pagination.hasMore && packageRows.length > 0 && (
-          <div className="py-3 text-center text-xs text-muted-foreground">
-            No more records ({packageRows.length} of {pagination.totalEntries} items loaded)
-          </div>
-        )}
       </div>
+      </div>
+      <TablePagination
+        page={packagePagination.page}
+        totalPages={packagePagination.totalPages}
+        totalEntries={packagePagination.totalEntries}
+        pageSize={PAGE_SIZE}
+        loading={loading}
+        onPageChange={(p) => fetchPackages(activeFilters, p)}
+      />
       </div>
     );
   }

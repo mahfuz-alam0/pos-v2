@@ -27,6 +27,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 // Admin "Sales" list — completed, non-cancelled orders only (in-progress
 // orders live in the POS's own tab). Modeled closely on pos/InProgressOrders,
@@ -671,19 +672,14 @@ export default function SalesTable() {
         </table>
       </div>
 
-      {paginationData.totalPages > 1 && (
-        <div className="mt-1 flex items-center justify-end gap-3 text-sm">
-          <span className="text-muted-foreground">
-            Page {paginationData.page} of {paginationData.totalPages}
-          </span>
-          <Button variant="outline" size="sm" disabled={paginationData.page <= 1} onClick={() => changePage(paginationData.page - 1)}>
-            Prev
-          </Button>
-          <Button variant="outline" size="sm" disabled={paginationData.page >= paginationData.totalPages} onClick={() => changePage(paginationData.page + 1)}>
-            Next
-          </Button>
-        </div>
-      )}
+      <TablePagination
+        page={paginationData.page}
+        totalPages={paginationData.totalPages}
+        totalEntries={paginationData.totalEntries}
+        pageSize={paginationData.limit}
+        loading={loading}
+        onPageChange={changePage}
+      />
 
       <Drawer open={detailOpen} onClose={() => { setDetailOpen(false); setDetailOrder(null); }} side="right" size={540} className="overflow-auto">
         <div className="flex h-full flex-col">

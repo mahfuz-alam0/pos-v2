@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Switch } from "@/components/ui/switch";
 import { ApiSelect } from "@/components/ui/api-select";
 import {
@@ -494,13 +495,6 @@ export default function ManageInventoriesTable() {
     setOptimizeProgress("");
   };
 
-  const rangeLabel = useMemo(() => {
-    if (totalEntries === 0) return "0 results";
-    const start = (page - 1) * PAGE_SIZE + 1;
-    const end = Math.min(page * PAGE_SIZE, totalEntries);
-    return `${start}-${end} of ${totalEntries}`;
-  }, [page, totalEntries]);
-
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
@@ -761,27 +755,14 @@ export default function ManageInventoriesTable() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>{rangeLabel}</span>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1 || loading}
-            onClick={() => loadInventories(page - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages || loading}
-            onClick={() => loadInventories(page + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalEntries={totalEntries}
+        pageSize={PAGE_SIZE}
+        loading={loading}
+        onPageChange={loadInventories}
+      />
 
       <Drawer open={optimizeOpen} onClose={closeOptimizeDrawer} side="right" size={480}>
         <div className="flex h-full flex-col">

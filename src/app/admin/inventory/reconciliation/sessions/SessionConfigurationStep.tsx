@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import LiveSessionTimer from "./live/LiveSessionTimer";
 import SessionPhaseOne from "./live/SessionPhaseOne";
 
@@ -553,21 +554,14 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
       </div>
 
       {sessionState.storageLocationId && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {totalEntries > 0
-              ? `${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, totalEntries)} of ${totalEntries}`
-              : null}
-          </span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => loadProducts(page - 1)}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={page >= totalPages || loading} onClick={() => loadProducts(page + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          onPageChange={loadProducts}
+        />
       )}
 
       {/* Assign / Start Session drawer */}
