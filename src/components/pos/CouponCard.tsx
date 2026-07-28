@@ -139,7 +139,7 @@ export default function CouponCard({ coupons = [] }) {
               return (
                 <div
                   key={index}
-                  className="relative flex min-w-[180px] max-w-[220px] flex-col overflow-hidden rounded-lg bg-[#ffc10738] p-3 shadow-md"
+                  className="relative flex min-w-45 max-w-55 flex-col overflow-hidden rounded-lg bg-[#ffc10738] p-3 shadow-md"
                 >
                   <span
                     className={`absolute right-2 top-2 rounded-full px-1.5 py-[3px] text-[9px] font-semibold ${

@@ -304,7 +304,7 @@ export default function BogoDealDrawer({
       <div className="flex h-full flex-col">
         {/* Header */}
         <div
-          className="flex flex-shrink-0 items-center justify-between px-4 py-3"
+          className="flex shrink-0 items-center justify-between px-4 py-3"
           style={{ background: "#00152A" }}
         >
           <div className="flex flex-1 items-center gap-6">

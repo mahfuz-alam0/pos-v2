@@ -421,7 +421,7 @@ export default function DiscountFinalPriceDrawer({
                             key={item.id}
                             className="flex justify-between py-1 text-xs text-blue-700 dark:text-blue-300"
                           >
-                            <span className="max-w-[200px] truncate">
+                            <span className="max-w-50 truncate">
                               {item.productName || item.name}
                             </span>
                             <span className="font-semibold">
@@ -573,7 +573,7 @@ export default function DiscountFinalPriceDrawer({
                                   key={item.id}
                                   className="flex justify-between text-xs"
                                 >
-                                  <span className="max-w-[200px] truncate">
+                                  <span className="max-w-50 truncate">
                                     {item.productName || item.name}
                                   </span>
                                   <span className="font-semibold">

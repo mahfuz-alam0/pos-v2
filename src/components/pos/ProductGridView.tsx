@@ -187,7 +187,7 @@ function ProductCard({ product, onClick }) {
           />
           <TooltipContent>{product?.productName ?? "N/A"}</TooltipContent>
         </Tooltip>
-        <div className="flex-shrink-0 text-right text-[15px] font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
+        <div className="shrink-0 text-right text-[15px] font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
           ${price}
           <em className="block text-[9px] font-normal not-italic opacity-70">/{unit}</em>
         </div>

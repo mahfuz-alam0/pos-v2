@@ -198,7 +198,7 @@ export default function CustomerUploads() {
     : [];
 
   return (
-    <div className="p-1">
+    <div>
       {/* Filters row */}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-wrap items-end gap-3">
@@ -294,7 +294,7 @@ export default function CustomerUploads() {
               <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
                       <FileText className="h-5 w-5 text-blue-600" />
                     </div>
                     <div className="min-w-0">
@@ -311,7 +311,7 @@ export default function CustomerUploads() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1">
                     {customerDetail?.updatedAt && (
                       <span className="mr-2 whitespace-nowrap text-xs text-gray-400">
                         {fmtDate(customerDetail.updatedAt)}
@@ -364,7 +364,7 @@ export default function CustomerUploads() {
                     .reverse()
                     .map((text, displayIdx) => (
                       <div key={displayIdx} className="flex items-start gap-3 p-3">
-                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-gray-500">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-gray-500">
                           {previousNotes.length - displayIdx}
                         </span>
                         <span className="whitespace-pre-wrap text-sm text-gray-600">

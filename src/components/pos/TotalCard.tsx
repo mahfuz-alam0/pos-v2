@@ -53,33 +53,7 @@ import { createReturn } from "@/services/sales/createReturn";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
-/**
- * Cart / checkout summary panel — the right side of the POS screen. Ported from
- * app/components/posModule/totalCard.js (~6080 lines).
- *
- * Orchestration reproduced from the old file:
- *  - orderAction drives the whole panel: null = live sale, "processReturns" =
- *    return flow (ReturnSummary + refund method + Process Return), "processOrder"
- *    = order-ahead editing (status update).
- *  - live sale: ProductPromoTaxes (line items / taxes / promos / misc-discount /
- *    loyalty display), applied-coupon row, NewAvailableCoupons,
- *    then the Complete Order / Checkout button that either opens PaymentSidebar or
- *    (when payment is already configured) fires createOrder.
- *  - PaymentSidebar.onProcessPayment stores payment details; the checkout button
- *    then calls createOrder(payload) -> buildOrderBody -> create-internal-sale.
- *  - new order status: Send to Fulfillment -> createOrderFullfilment.
- *  - existing order (processOrder): Update Order Status -> update-sale-status.
- *  - after a successful order: reset session, open PrintReceiptModal, refreshOrders.
- *  - Save as Draft -> sale-drafts/create.
- *  - deletes/removals (misc charge, misc discount, loyalty, regular deal) each
- *    dispatch to salesDetail then re-quote through quoteApiManager.
- *  - Share Mode: when a proxyPin is required it defers the action behind EnterPin.
- *
- * Intentionally deferred (named in report, not silently dropped):
- *  - ACH QR / socket payment-confirmation flow and manual-transaction verify.
- *  - Hardware auto-print (usePrint) — PrintReceiptModal handles browser print.
- *  - METRC sale/return reporting (no service in this app yet).
- */
+
 export default function TotalCard({
   refreshOrders,
   onDraftSaved,
@@ -974,7 +948,7 @@ export default function TotalCard({
 
   return (
     <>
-      <Card className="flex max-h-[calc(100vh-120px)] flex-col overflow-y-auto p-4">
+      <Card className="flex flex-col rounded-none p-4 ring-0">
         {/* processOrder: back / refresh */}
         {currentAction === "processOrder" && (
           <div className="mb-3 flex gap-2">
@@ -1145,7 +1119,7 @@ export default function TotalCard({
 
             {/* Complete Order / Checkout */}
             {!cartEmpty && (
-              <div className="sticky bottom-0 z-20 mt-2 bg-background pb-1 pt-2">
+              <div className="sticky bottom-0 z-20 mt-2 bg-background py-2">
               <button
                 disabled={
                   loading ||

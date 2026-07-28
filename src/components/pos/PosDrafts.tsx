@@ -241,7 +241,7 @@ export default function PosDrafts({ isActive, switchTab }) {
   };
 
   return (
-    <div className="p-1">
+    <div>
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -412,10 +412,10 @@ export default function PosDrafts({ isActive, switchTab }) {
                         <img
                           src={viewCustomer.avatarUrl}
                           alt={viewCustomer.firstName}
-                          className="h-11 w-11 flex-shrink-0 rounded-full object-cover"
+                          className="h-11 w-11 shrink-0 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
                           {(viewCustomer.firstName?.[0] || "").toUpperCase()}
                         </div>
                       )}
@@ -475,12 +475,12 @@ export default function PosDrafts({ isActive, switchTab }) {
                             <img
                               src={snap.productThumbNail}
                               alt={snap.productName}
-                              className="h-13 w-13 flex-shrink-0 rounded object-cover"
+                              className="h-13 w-13 shrink-0 rounded object-cover"
                               style={{ width: 52, height: 52 }}
                             />
                           ) : (
                             <div
-                              className="flex flex-shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
+                              className="flex shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
                               style={{ width: 52, height: 52 }}
                             >
                               ?
@@ -506,7 +506,7 @@ export default function PosDrafts({ isActive, switchTab }) {
                               </div>
                             )}
                           </div>
-                          <div className="flex-shrink-0 text-right">
+                          <div className="shrink-0 text-right">
                             <div className="font-bold">
                               ${Number(li?.finalTotalPrice ?? 0).toFixed(2)}
                             </div>

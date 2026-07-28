@@ -622,7 +622,7 @@ export default function ProductPromoTaxes({
                             )}
                           </div>
                         </div>
-                        <div className="mr-2 flex-shrink-0 whitespace-nowrap text-[14px] font-semibold">
+                        <div className="mr-2 shrink-0 whitespace-nowrap text-[14px] font-semibold">
                           $ {item?.createdLineItem?.finalTotalPrice?.toFixed(2)}
                         </div>
                       </div>

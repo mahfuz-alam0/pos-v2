@@ -132,17 +132,17 @@ function CustomerLimits({ getOrderSummary }) {
         return (
           <div key={index} className="mb-4 rounded-lg border border-border bg-muted/50 p-3">
             <div className="mb-2 flex justify-between">
-              <h3 className="min-w-[120px] text-sm font-medium">Type</h3>
+              <h3 className="min-w-30 text-sm font-medium">Type</h3>
               <span className="break-words text-right text-[13px]">{category?.name ?? "N/A"}</span>
             </div>
             <div className="mb-2 flex justify-between">
-              <h3 className="min-w-[120px] text-sm font-medium">Measurement Type</h3>
+              <h3 className="min-w-30 text-sm font-medium">Measurement Type</h3>
               <span className="text-right text-[13px]">
                 {category?.measurementType === "TOTAL_QUANTITIES" ? "Total Quantity" : "Total Weight"}
               </span>
             </div>
             <div className="mb-2 flex justify-between">
-              <h3 className="min-w-[120px] text-sm font-medium">Strategy</h3>
+              <h3 className="min-w-30 text-sm font-medium">Strategy</h3>
               <span className="break-words text-right text-[13px]">
                 {category?.orderConsiderationStrategy
                   ? category.orderConsiderationStrategy

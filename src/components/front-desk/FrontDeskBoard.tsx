@@ -16,7 +16,7 @@ export default function FrontDeskBoard() {
 
   function handleCustomerServed(record) {
     dispatch(addCustomerInQueue(record));
-    router.push("/pos/tablet");
+    router.push("/pos");
   }
 
   return (

@@ -104,7 +104,7 @@ function TopProducts({ customerId }) {
             className="flex items-center gap-2 rounded-md px-1 py-1 text-xs text-white/85 hover:bg-[#FA8D15]/10 hover:text-[#FA8D15]"
           >
             <span
-              className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+              className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
               style={{ background: "rgba(1,144,221,0.2)", color: BLUE }}
             >
               {i + 1}
@@ -235,7 +235,7 @@ export default function CustomerCartSidebar() {
         <div className="mb-3">
           <div className="flex items-center gap-2">
             <span
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-bold text-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-bold text-primary"
               style={{ border: `2px solid ${BLUE}` }}
             >
               {selectedCustomer.avatarUrl ? (

@@ -391,7 +391,7 @@ export default function SalesTable() {
       const res = await getSingleSale(record.id);
       dispatch(getSaleDetail(res?.data?.data?.sale));
       dispatch(updateOrderAction("processReturns"));
-      router.push("/pos/tablet");
+      router.push("/pos");
     } catch (error) {
       toast.error(error?.message || "Failed to load order");
     }
@@ -619,7 +619,7 @@ export default function SalesTable() {
                     <td className="px-3 py-2">{fmtDateTime(record.createdAt)}</td>
                     <td className="px-3 py-2 text-center">
                       <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_STYLES[statusName] || "bg-amber-100 text-amber-600"}`}>
-                        {statusName === "Packaged & Ready" ? "P&R" : statusName}
+                        {statusName === "Packaged & Ready 1" ? "P&R" : statusName}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-center">{record?.deliveryMethod?.replace(/_/g, " ")}</td>
