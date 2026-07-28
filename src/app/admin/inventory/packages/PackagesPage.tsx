@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiSelect } from "@/components/ui/api-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, } from "@/components/ui/breadcrumb";
@@ -603,7 +603,8 @@ export default function PackagesPage() {
           </div>
         )}
 
-        <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+          <TableLoadingOverlay show={loading && activeRows.length > 0} />
           <Table>
             <TableHeader className="[&_tr]:border-b-0">
               <TableRow className="bg-muted/60">

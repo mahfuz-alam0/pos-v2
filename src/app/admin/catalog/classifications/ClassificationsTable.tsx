@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import {
   AlertDialog,
@@ -129,6 +129,7 @@ export default function ClassificationsTable() {
         </div>
 
         <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+          <TableLoadingOverlay show={loading && rows.length > 0} />
           <Table>
             <TableHeader className="[&_tr]:border-b-0">
               <TableRow className="bg-muted/60">
@@ -140,6 +141,7 @@ export default function ClassificationsTable() {
             </TableHeader>
             <TableBody>
               {loading &&
+                rows.length === 0 &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow
                     key={`skeleton-${i}`}
@@ -161,7 +163,7 @@ export default function ClassificationsTable() {
                 </TableRow>
               )}
 
-              {!loading &&
+              {rows.length > 0 &&
                 rows.map((row, i) => (
                   <TableRow
                     key={row.id}
@@ -202,7 +204,7 @@ export default function ClassificationsTable() {
           </Table>
         </div>
 
-        {!loading && pagination.totalEntries > 0 && (
+        {pagination.totalEntries > 0 && (
           <TablePagination
             page={pagination.page}
             totalPages={pagination.totalPages}

@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiSelect } from "@/components/ui/api-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -259,7 +259,8 @@ export default function ProductsPage() {
           )}
         </div>
 
-        <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+          <TableLoadingOverlay show={loading && data.length > 0} />
           <Table>
             <TableHeader className="[&_tr]:border-b-0">
               <TableRow className="bg-muted/60">

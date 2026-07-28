@@ -12,7 +12,7 @@ import { fetchSingleActivityLog } from "@/services/activityLogs/getSingle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import {
   Dialog,
   DialogContent,
@@ -516,8 +516,9 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
         )}
       </div>
 
-      <div className="space-y-3">
-        {loading ? (
+      <div className="relative space-y-3">
+        <TableLoadingOverlay show={loading && logs.length > 0} />
+        {loading && logs.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
@@ -530,7 +531,7 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
         )}
       </div>
 
-      {!loading && totalEntries > 0 && (
+      {totalEntries > 0 && (
         <TablePagination
           page={page}
           totalPages={totalPages}
