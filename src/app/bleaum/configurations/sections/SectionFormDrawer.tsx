@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Image as ImageIcon, X } from "lucide-react";
+import { LayoutPanelTop, X } from "lucide-react";
 
-import { createBanner } from "@/services/banners/create";
-import { updateBanner } from "@/services/banners/update";
-import { getSingleBanner } from "@/services/banners/getSingle";
+import { createSection } from "@/services/sections/create";
+import { updateSection } from "@/services/sections/update";
+import { getSingleSection } from "@/services/sections/getSingle";
 import { fetchBrandsList } from "@/services/brands/list";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchProductsList } from "@/services/products/list";
 import { listAllDeals } from "@/services/sales/listDeals";
+import { listBusinessEntities } from "@/services/businessEntities/list";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiSelect } from "@/components/ui/api-select";
-import { Field, ShopMultiSelect, SingleImageUpload } from "@/components/admin/form-fields";
+import { Field, ShopMultiSelect } from "@/components/admin/form-fields";
 import {
   Select,
   SelectContent,
@@ -27,10 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import type { BannerType } from "./types";
-
-const DURATIONS = Array.from({ length: 9 }, (_, i) => (i + 1) * 5);
-const PROMOTION_TYPES = [
+const SUBJECT_TYPES = [
   { value: "BRANDS", label: "Brand" },
   { value: "CATEGORIES", label: "Category" },
   { value: "PRODUCTS", label: "Product" },
@@ -39,36 +37,32 @@ const PROMOTION_TYPES = [
 
 interface FormValues {
   title: string;
-  duration: number | null;
-  promotionType: string | null;
+  businessEntityId: string | number | null;
+  subject: string | null;
   targetId: string | number | null;
   shopIds: (string | number)[];
-  imageUrl: string | null;
   isEnabled: boolean;
 }
 
 const EMPTY_VALUES: FormValues = {
   title: "",
-  duration: null,
-  promotionType: null,
+  businessEntityId: null,
+  subject: null,
   targetId: null,
   shopIds: [],
-  imageUrl: null,
   isEnabled: true,
 };
 
-export default function BannerFormDrawer({
+export default function SectionFormDrawer({
   open,
   mode,
-  bannerId,
-  bannerType,
+  sectionId,
   onClose,
   onSaved,
 }: {
   open: boolean;
   mode: "add" | "edit";
-  bannerId: string | number | null;
-  bannerType: BannerType;
+  sectionId: string | number | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -76,92 +70,90 @@ export default function BannerFormDrawer({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deals, setDeals] = useState<{ id: string | number; name: string }[]>([]);
-
-  const isTargetLocked = bannerType === "CATEGORIES" || bannerType === "BRANDS";
+  const [entities, setEntities] = useState<{ id: string | number; name: string }[]>([]);
+  const [entitiesLoading, setEntitiesLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
 
     listAllDeals().then((res) => setDeals(res?.data?.data?.deals ?? []));
 
+    setEntitiesLoading(true);
+    listBusinessEntities()
+      .then((res) => setEntities(res?.data?.data?.businessEntities ?? []))
+      .catch((err: any) => toast.error(err?.message || "Failed to load business entities"))
+      .finally(() => setEntitiesLoading(false));
+
     if (mode === "add") {
-      setValues({
-        ...EMPTY_VALUES,
-        promotionType: isTargetLocked ? bannerType : null,
-      });
+      setValues(EMPTY_VALUES);
       return;
     }
 
-    if (mode === "edit" && bannerId) {
+    if (mode === "edit" && sectionId) {
       setLoading(true);
-      getSingleBanner(bannerId)
-        .then((banner) => {
-          if (!banner) {
-            toast.error("Banner not found");
+      getSingleSection(sectionId)
+        .then((section) => {
+          if (!section) {
+            toast.error("Section not found");
             return;
           }
           const target =
-            banner.brands?.[0]?.id ?? banner.categories?.[0]?.id ?? banner.products?.[0]?.id ?? banner.deals?.[0]?.id ?? null;
+            section.brands?.[0]?.id ?? section.categories?.[0]?.id ?? section.products?.[0]?.id ?? section.deals?.[0]?.id ?? null;
           setValues({
-            title: banner.title ?? "",
-            duration: banner.bannerDuration ?? null,
-            promotionType: banner.subject ?? null,
+            title: section.title ?? "",
+            businessEntityId: section.businessEntityId ?? null,
+            subject: section.subject ?? null,
             targetId: target,
-            shopIds: banner.shopIds ?? [],
-            imageUrl: banner.imageUrl ?? null,
-            isEnabled: !banner.isDisabled,
+            shopIds: section.shopIds ?? [],
+            isEnabled: !section.isDisabled,
           });
         })
-        .catch((err: any) => toast.error(err?.message || "Failed to load banner"))
+        .catch((err: any) => toast.error(err?.message || "Failed to load section"))
         .finally(() => setLoading(false));
     }
-  }, [open, mode, bannerId, bannerType, isTargetLocked]);
+  }, [open, mode, sectionId]);
 
   const handleSave = async () => {
-    if (!values.title.trim()) return toast.error("Please enter banner title");
-    if (!values.duration) return toast.error("Please select duration");
-    if (!values.promotionType) return toast.error("Please select promotion type");
+    if (!values.title.trim()) return toast.error("Please enter title");
+    if (!values.subject) return toast.error("Please select subject");
     if (values.shopIds.length === 0) return toast.error("Please select at least one shop");
-    if (!values.imageUrl) return toast.error("Please upload a banner image");
 
     setSaving(true);
     try {
       const body: Record<string, any> = {
         title: values.title,
-        bannerDuration: values.duration,
-        subject: values.promotionType,
-        bannerType,
+        subject: values.subject,
         shopIds: values.shopIds,
-        imageUrl: values.imageUrl,
         isDisabled: !values.isEnabled,
-        targetBrandIds: values.promotionType === "BRANDS" && values.targetId ? [values.targetId] : [],
-        targetCategoryIds: values.promotionType === "CATEGORIES" && values.targetId ? [values.targetId] : [],
-        targetProductIds: values.promotionType === "PRODUCTS" && values.targetId ? [values.targetId] : [],
-        targetDealIds: values.promotionType === "DEALS" && values.targetId ? [values.targetId] : [],
+        businessEntityId: values.businessEntityId || null,
+        targetBrandIds: values.subject === "BRANDS" && values.targetId ? [values.targetId] : [],
+        targetCategoryIds: values.subject === "CATEGORIES" && values.targetId ? [values.targetId] : [],
+        targetProductIds: values.subject === "PRODUCTS" && values.targetId ? [values.targetId] : [],
+        targetDealIds: values.subject === "DEALS" && values.targetId ? [values.targetId] : [],
       };
 
       if (mode === "add") {
-        await createBanner(body);
-        toast.success("Banner created successfully");
+        await createSection(body);
+        toast.success("Section added successfully!");
       } else {
-        await updateBanner({ id: bannerId, ...body });
-        toast.success("Banner updated successfully");
+        await updateSection({ id: sectionId, ...body });
+        toast.success("Section updated successfully!");
       }
       onSaved();
       onClose();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to submit banner");
+      toast.error(err?.message || "Failed to submit section");
     } finally {
       setSaving(false);
     }
   };
 
   const targetLabel =
-    values.promotionType === "BRANDS"
+    values.subject === "BRANDS"
       ? "Select Brand"
-      : values.promotionType === "CATEGORIES"
+      : values.subject === "CATEGORIES"
         ? "Select Category"
-        : values.promotionType === "PRODUCTS"
+        : values.subject === "PRODUCTS"
           ? "Select Product"
           : "Select Deal";
 
@@ -170,14 +162,14 @@ export default function BannerFormDrawer({
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <ImageIcon className="size-4 text-primary" />
+            <LayoutPanelTop className="size-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold leading-tight">
-              {mode === "add" ? "Add Banner" : "Edit Banner"}
+              {mode === "add" ? "Add Section" : "Edit Section"}
             </div>
             <div className="text-xs leading-tight text-muted-foreground">
-              {mode === "add" ? "Create a new banner" : "Update banner details"}
+              {mode === "add" ? "Create a new section" : "Update section details"}
             </div>
           </div>
           <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
@@ -194,41 +186,45 @@ export default function BannerFormDrawer({
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <Field label="Banner Title" required>
+              <Field label="Title" required>
                 <Input value={values.title} onChange={(e) => setValues({ ...values, title: e.target.value })} />
               </Field>
 
-              <Field label="Banner Duration (seconds)" required>
+              <Field label="Business Entity">
                 <Select
-                  items={DURATIONS.map((d) => ({ value: String(d), label: `${d} seconds` }))}
-                  value={values.duration ? String(values.duration) : ""}
-                  onValueChange={(v) => setValues({ ...values, duration: Number(v) })}
+                  items={[
+                    { value: "__none__", label: "None" },
+                    ...entities.map((e) => ({ value: String(e.id), label: e.name })),
+                  ]}
+                  value={values.businessEntityId ? String(values.businessEntityId) : "__none__"}
+                  onValueChange={(v) => setValues({ ...values, businessEntityId: v === "__none__" ? null : v })}
+                  disabled={entitiesLoading}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select duration" />
+                    <SelectValue placeholder="Select business entity" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DURATIONS.map((d) => (
-                      <SelectItem key={d} value={String(d)}>
-                        {d} seconds
+                    <SelectItem value="__none__">None</SelectItem>
+                    {entities.map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </Field>
 
-              <Field label="Promotion Type" required>
+              <Field label="Subject" required>
                 <Select
-                  items={PROMOTION_TYPES}
-                  value={values.promotionType ?? ""}
-                  onValueChange={(v) => setValues({ ...values, promotionType: v, targetId: null })}
-                  disabled={isTargetLocked}
+                  items={SUBJECT_TYPES}
+                  value={values.subject ?? ""}
+                  onValueChange={(v) => setValues({ ...values, subject: v, targetId: null })}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select promotion type" />
+                    <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROMOTION_TYPES.map((t) => (
+                    {SUBJECT_TYPES.map((t) => (
                       <SelectItem key={t.value} value={t.value}>
                         {t.label}
                       </SelectItem>
@@ -237,7 +233,7 @@ export default function BannerFormDrawer({
                 </Select>
               </Field>
 
-              {values.promotionType === "BRANDS" && (
+              {values.subject === "BRANDS" && (
                 <Field label={targetLabel}>
                   <ApiSelect
                     placeholder={targetLabel}
@@ -253,7 +249,7 @@ export default function BannerFormDrawer({
                 </Field>
               )}
 
-              {values.promotionType === "CATEGORIES" && (
+              {values.subject === "CATEGORIES" && (
                 <Field label={targetLabel}>
                   <ApiSelect
                     placeholder={targetLabel}
@@ -269,7 +265,7 @@ export default function BannerFormDrawer({
                 </Field>
               )}
 
-              {values.promotionType === "PRODUCTS" && (
+              {values.subject === "PRODUCTS" && (
                 <Field label={targetLabel}>
                   <ApiSelect
                     placeholder={targetLabel}
@@ -285,7 +281,7 @@ export default function BannerFormDrawer({
                 </Field>
               )}
 
-              {values.promotionType === "DEALS" && (
+              {values.subject === "DEALS" && (
                 <Field label={targetLabel}>
                   <Select
                     items={deals.map((d) => ({ value: String(d.id), label: d.name }))}
@@ -310,13 +306,6 @@ export default function BannerFormDrawer({
                 <ShopMultiSelect
                   value={values.shopIds}
                   onChange={(ids) => setValues({ ...values, shopIds: ids })}
-                />
-              </Field>
-
-              <Field label="Banner Image" required>
-                <SingleImageUpload
-                  imageUrl={values.imageUrl}
-                  onChange={(url) => setValues({ ...values, imageUrl: url })}
                 />
               </Field>
 
