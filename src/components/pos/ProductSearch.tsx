@@ -56,7 +56,7 @@ export default function ProductSearch({
           />
         </div>
         <Button
-          className="h-10 min-w-45 px-6"
+          className="h-[39px] min-w-[170px] bg-[#3390DE] px-6 hover:bg-[#3390DE]/90"
           disabled={isLocked}
           onClick={openManageCart}
         >

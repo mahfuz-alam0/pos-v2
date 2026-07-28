@@ -9,12 +9,13 @@ const DOMAIN_LABELS: Record<string, string> = {
   CLASSIFICATION: "Classification Activity",
   CATEGORY: "Category Activity",
   BRAND: "Brand Activity",
+  CUSTOMER: "Customer Activity",
 };
 
 interface ActivityLogDrawerProps {
   open: boolean;
   onClose: () => void;
-  domain: "CLASSIFICATION" | "CATEGORY" | "BRAND";
+  domain: "CLASSIFICATION" | "CATEGORY" | "BRAND" | "CUSTOMER";
   targetId: string | number | null;
 }
 

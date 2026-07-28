@@ -42,7 +42,7 @@ export default function QuickActionsRow({
           size="sm"
           disabled={currentAction === "processReturns" || saveDraftLoading}
           onClick={onSaveDraft}
-          className="flex-1"
+          className="flex-1 h-[46px] border-amber-400 text-amber-600 hover:bg-amber-50"
         >
           {saveDraftLoading ? "Saving…" : "Draft"}
         </Button>
@@ -54,7 +54,7 @@ export default function QuickActionsRow({
               variant="outline"
               size="sm"
               disabled={cartEmpty || currentAction !== null}
-              className="flex-1"
+              className="flex-1 h-[46px] border-transparent bg-violet-500 text-white hover:bg-violet-500/90 disabled:opacity-100"
             >
               <Percent className="mr-1 h-4 w-4" /> Misc.
             </Button>
@@ -82,7 +82,7 @@ export default function QuickActionsRow({
         size="sm"
         disabled={cartEmpty || currentAction !== null}
         onClick={onOpenNotes}
-        className="flex-1"
+        className="flex-1 h-[46px] border-transparent bg-[#23404B] text-white hover:bg-[#23404B]/90 disabled:opacity-100"
       >
         <StickyNote className="mr-1 h-4 w-4" /> Notes
       </Button>
@@ -92,13 +92,13 @@ export default function QuickActionsRow({
           size="sm"
           disabled={currentAction !== null}
           onClick={onOpenTip}
-          className="flex-1"
+          className="flex-1 h-[46px]"
         >
           Tip
         </Button>
       )}
       {showCoupons && (
-        <div className="h-7 flex-1">
+        <div className="h-[46px] flex-1">
           <NewAvailableCoupons compact />
         </div>
       )}
