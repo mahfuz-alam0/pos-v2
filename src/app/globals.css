@@ -32,19 +32,10 @@
   --muted-foreground: #9ca3af;
 }
 
-/* Fixed structural accent: sidebar, header, login page. Not swapped by
-   theme or mode — always this navy, per design. Values mirror the old
-   app's dark sider (@nav-dark-bg #001529, @nav-dark-text-color #038fdd). */
-:root,
-[data-mode="dark"] {
-  --color-accent: #001529;
-  --sidebar-bg: #001529;
-  --sidebar-text: #038fdd;
-  --sidebar-bg-hover: #002140;
-  --sidebar-active: #fa8c15;
-}
-
-/* Per-theme brand accents. Both presets are always switchable, independent of light/dark. */
+/* Per-theme brand accents, incl. sidebar/header. All switchable, independent
+   of light/dark. Navy keeps the original fixed values (mirrors the old app's
+   dark sider: @nav-dark-bg #001529, @nav-dark-text-color #038fdd); the rest
+   are derived variations of their primary/secondary pair. */
 [data-theme="navy"] {
   --color-primary: #0088df;
   --color-primary-hover: #1f98e3;
@@ -54,6 +45,11 @@
   --color-secondary: #001529;
   --color-secondary-hover: #002748;
   --on-secondary: #ffffff;
+  --color-accent: #001529;
+  --sidebar-bg: #001529;
+  --sidebar-text: #038fdd;
+  --sidebar-bg-hover: #002140;
+  --sidebar-active: #fa8c15;
 }
 
 [data-theme="purple"] {
@@ -65,6 +61,123 @@
   --color-secondary: #00b378;
   --color-secondary-hover: #00cc89;
   --on-secondary: #ffffff;
+  --color-accent: #423b5f;
+  --sidebar-bg: #423b5f;
+  --sidebar-text: #ada2df;
+  --sidebar-bg-hover: #504875;
+  --sidebar-active: #1abb86;
+}
+
+[data-theme="pink"] {
+  --color-primary: #ff2b7a;
+  --color-primary-hover: #ff448a;
+  --color-primary-active: #e0266b;
+  --color-primary-soft: rgba(255, 43, 122, 0.16);
+  --on-primary: #ffffff;
+  --color-secondary: #00d9c9;
+  --color-secondary-hover: #1fdecf;
+  --on-secondary: #ffffff;
+  --color-accent: #731337;
+  --sidebar-bg: #731337;
+  --sidebar-text: #ff609b;
+  --sidebar-bg-hover: #8c1843;
+  --sidebar-active: #1addce;
+}
+
+[data-theme="sky"] {
+  --color-primary: #3da4e6;
+  --color-primary-hover: #54afe9;
+  --color-primary-active: #3690ca;
+  --color-primary-soft: rgba(61, 164, 230, 0.16);
+  --on-primary: #ffffff;
+  --color-secondary: #fcb53b;
+  --color-secondary-hover: #fcbe53;
+  --on-secondary: #ffffff;
+  --color-accent: #1b4a67;
+  --sidebar-bg: #1b4a67;
+  --sidebar-text: #6ebbec;
+  --sidebar-bg-hover: #225a7f;
+  --sidebar-active: #fcbc4f;
+}
+
+[data-theme="ocean"] {
+  --color-primary: #0469b9;
+  --color-primary-hover: #227bc1;
+  --color-primary-active: #045ca3;
+  --color-primary-soft: rgba(4, 105, 185, 0.16);
+  --on-primary: #ffffff;
+  --color-secondary: #17bde5;
+  --color-secondary-hover: #33c5e8;
+  --on-secondary: #ffffff;
+  --color-accent: #022f53;
+  --sidebar-bg: #022f53;
+  --sidebar-text: #438eca;
+  --sidebar-bg-hover: #023a66;
+  --sidebar-active: #2ec4e8;
+}
+
+[data-theme="gold"] {
+  --color-primary: #f1d065;
+  --color-primary-hover: #f3d677;
+  --color-primary-active: #d4b759;
+  --color-primary-soft: rgba(241, 208, 101, 0.16);
+  --on-primary: #1a1a1a;
+  --color-secondary: #f18805;
+  --color-secondary-hover: #f39623;
+  --on-secondary: #ffffff;
+  --color-accent: #6c5e2d;
+  --sidebar-bg: #6c5e2d;
+  --sidebar-text: #f4dc8c;
+  --sidebar-bg-hover: #857238;
+  --sidebar-active: #f2941e;
+}
+
+[data-theme="azure"] {
+  --color-primary: #6a95ff;
+  --color-primary-hover: #7ca2ff;
+  --color-primary-active: #5d83e0;
+  --color-primary-soft: rgba(106, 149, 255, 0.16);
+  --on-primary: #ffffff;
+  --color-secondary: #59dcff;
+  --color-secondary-hover: #6de0ff;
+  --on-secondary: #ffffff;
+  --color-accent: #304373;
+  --sidebar-bg: #304373;
+  --sidebar-text: #8fb0ff;
+  --sidebar-bg-hover: #3a528c;
+  --sidebar-active: #6ae0ff;
+}
+
+[data-theme="coral"] {
+  --color-primary: #f87060;
+  --color-primary-hover: #f98173;
+  --color-primary-active: #da6354;
+  --color-primary-soft: rgba(248, 112, 96, 0.16);
+  --on-primary: #ffffff;
+  --color-secondary: #70a288;
+  --color-secondary-hover: #81ad96;
+  --on-secondary: #ffffff;
+  --color-accent: #70322b;
+  --sidebar-bg: #70322b;
+  --sidebar-text: #fa9488;
+  --sidebar-bg-hover: #883e35;
+  --sidebar-active: #7eab94;
+}
+
+[data-theme="violet"] {
+  --color-primary: #956fe7;
+  --color-primary-hover: #a280ea;
+  --color-primary-active: #8362cb;
+  --color-primary-soft: rgba(149, 111, 231, 0.16);
+  --on-primary: #ffffff;
+  --color-secondary: #64d7d6;
+  --color-secondary-hover: #77dcdb;
+  --on-secondary: #ffffff;
+  --color-accent: #433268;
+  --sidebar-bg: #433268;
+  --sidebar-text: #b093ed;
+  --sidebar-bg-hover: #523d7f;
+  --sidebar-active: #74dbda;
 }
 
 @theme inline {
@@ -171,4 +284,14 @@ body {
   100% {
     background-color: transparent;
   }
+}
+
+@keyframes gearSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-gear-spin {
+  animation: gearSpin 2s linear infinite;
 }
