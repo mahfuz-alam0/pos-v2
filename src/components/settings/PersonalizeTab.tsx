@@ -112,6 +112,7 @@ export default function PersonalizeTab({ onClose }) {
                   key={m}
                   type="button"
                   onClick={() => setMode(m)}
+                  suppressHydrationWarning
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
                     active
                       ? "bg-component-bg font-medium text-text shadow-sm"
@@ -181,7 +182,7 @@ export default function PersonalizeTab({ onClose }) {
         description="Select a printer device per print job type. Saving a preference enables automated hardware printing."
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-sm text-text">
+          <span className="flex items-center gap-2 text-sm text-text" suppressHydrationWarning>
             <span
               className={`size-2.5 rounded-full ${
                 printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
@@ -193,6 +194,7 @@ export default function PersonalizeTab({ onClose }) {
             <Button
               size="sm"
               variant={printType === "hardware" ? "outline" : "default"}
+              suppressHydrationWarning
               onClick={() => {
                 setPrinterModalOpen(true);
                 onClose?.();

@@ -97,23 +97,38 @@ export function MultiApiSelect({ placeholder = "Select...", value, onChange, ite
     onChange([]);
   };
 
-  const label =
-    value.length === 0
-      ? placeholder
-      : value.length === 1
-        ? (labelMap[value[0]] ?? "1 selected")
-        : `${value.length} selected`;
+  const removeOne = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    onChange(value.filter((v) => v !== id));
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "flex h-8 w-48 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none dark:bg-input/30",
+          "flex min-h-8 w-48 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none dark:bg-input/30",
           triggerClassName
         )}
       >
-        <span className={cn("truncate", value.length === 0 && "text-muted-foreground")}>{label}</span>
-        <span className="flex items-center gap-1">
+        {value.length === 0 ? (
+          <span className="truncate text-muted-foreground">{placeholder}</span>
+        ) : (
+          <span className="flex flex-1 flex-wrap items-center gap-1 py-0.5">
+            {value.map((id) => (
+              <span
+                key={id}
+                className="flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
+              >
+                <span className="max-w-24 truncate">{labelMap[id] ?? "…"}</span>
+                <X
+                  className="size-3 shrink-0 text-muted-foreground hover:text-foreground"
+                  onClick={(e) => removeOne(e, id)}
+                />
+              </span>
+            ))}
+          </span>
+        )}
+        <span className="flex shrink-0 items-center gap-1">
           {value.length > 0 && <X className="size-3.5 text-muted-foreground hover:text-foreground" onClick={clearAll} />}
           <ChevronDown className="size-4 text-muted-foreground" />
         </span>
