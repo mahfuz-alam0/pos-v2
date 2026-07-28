@@ -145,7 +145,7 @@ export default function DateShopStep({
   };
 
   return (
-    <div className="max-h-[500px] space-y-6 overflow-y-auto">
+    <div className="max-h-125 space-y-6 overflow-y-auto">
       <div className="space-y-1.5">
         <Label>
           Select Shops<span className="ml-1 text-destructive">*</span>

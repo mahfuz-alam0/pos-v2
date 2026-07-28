@@ -69,7 +69,7 @@ export default function TimeSlotsStep({
         All Day Event (Master Switch)
       </label>
 
-      <div className="max-h-[350px] overflow-y-auto rounded-lg ring-1 ring-foreground/10">
+      <div className="max-h-87.5 overflow-y-auto rounded-lg ring-1 ring-foreground/10">
         <table className="w-full table-auto">
           <thead className="sticky top-0 z-10 bg-muted/60">
             <tr>

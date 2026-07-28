@@ -306,7 +306,7 @@ export default function EventModal({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-[400px]">
+          <div className="min-h-100">
             {fetching ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="size-8 animate-spin text-muted-foreground" />

@@ -645,7 +645,7 @@ function TabletPosInner() {
     <TooltipProvider>
       <div className={wrapperClass}>
         {/* ──── TOP BAR ──── */}
-        <div className="flex h-[70px] shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-card px-4 shadow-sm">
+        <div className="flex h-17.5 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-card px-4 shadow-sm">
           <Select
             value={deliveryType}
             onValueChange={handleDeliveryTypeChange}

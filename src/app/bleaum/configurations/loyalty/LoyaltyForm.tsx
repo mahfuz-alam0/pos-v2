@@ -187,7 +187,7 @@ export default function LoyaltyForm() {
               <div className="mb-2.5 rounded-lg bg-muted px-4 py-3">
                 <span className="text-sm font-semibold">{day}</span>
                 {slots[day].length === 0 && (
-                  <Button variant="link" className="!mb-0 mt-1 flex h-auto items-center gap-1 p-0" onClick={() => addSlot(day)}>
+                  <Button variant="link" className="mb-0! mt-1 flex h-auto items-center gap-1 p-0" onClick={() => addSlot(day)}>
                     <PlusCircle className="size-4" />
                     Add time slot
                   </Button>
@@ -199,7 +199,7 @@ export default function LoyaltyForm() {
                   <div className="w-32 pt-6">
                     <Button
                       variant="link"
-                      className="!mb-0 flex h-auto items-center gap-1 p-0 text-destructive"
+                      className="mb-0! flex h-auto items-center gap-1 p-0 text-destructive"
                       onClick={() => removeSlot(day, slot.id)}
                     >
                       <XCircle className="size-4" />
@@ -231,7 +231,7 @@ export default function LoyaltyForm() {
 
               {slots[day].length > 0 && (
                 <div className="px-4 py-3">
-                  <Button variant="link" className="!mb-0 flex h-auto items-center gap-1 p-0" onClick={() => addSlot(day)}>
+                  <Button variant="link" className="mb-0! flex h-auto items-center gap-1 p-0" onClick={() => addSlot(day)}>
                     <PlusCircle className="size-4" />
                     Add time slot
                   </Button>

@@ -156,7 +156,7 @@ export default function BannersTable() {
 
       <div className="flex flex-col gap-4">
         {loading &&
-          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-[220px] w-full rounded-lg" />)}
+          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-55 w-full rounded-lg" />)}
 
         {!loading && rows.length === 0 && (
           <div className="rounded-lg py-16 text-center text-muted-foreground ring-1 ring-foreground/10">
@@ -168,7 +168,7 @@ export default function BannersTable() {
           rows.map((banner) => (
             <div
               key={banner.id}
-              className="group relative h-[220px] w-full overflow-hidden rounded-lg ring-1 ring-foreground/10"
+              className="group relative h-55 w-full overflow-hidden rounded-lg ring-1 ring-foreground/10"
             >
               <div
                 className="size-full bg-cover bg-center bg-no-repeat"
