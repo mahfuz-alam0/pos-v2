@@ -40,7 +40,7 @@ export default function ProductSearch({
   const isLocked = Object.keys(saleDetail).length > 0;
 
   return (
-    <div className="px-0">
+    <div>
       <div className="flex items-center gap-2">
         <div className="flex-1">
           <ScanInput setAddSelected={setAddSelected} />
@@ -56,7 +56,7 @@ export default function ProductSearch({
           />
         </div>
         <Button
-          className="h-10 min-w-[180px] px-6"
+          className="h-10 min-w-45 px-6"
           disabled={isLocked}
           onClick={openManageCart}
         >
@@ -104,7 +104,7 @@ export default function ProductSearch({
               type="button"
               onClick={() => setCartPanelOpen((v) => !v)}
               title={cartPanelOpen ? "Hide cart" : "Show cart"}
-              className="flex w-6 flex-shrink-0 items-center justify-center rounded-lg border border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE]"
+              className="flex w-6 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE]"
             >
               {cartPanelOpen ? (
                 <ChevronRight className="h-4 w-4" />
@@ -115,7 +115,7 @@ export default function ProductSearch({
             {cartPanelOpen && (
               <div
                 data-mode="dark"
-                className="w-[320px] flex-shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-[420px]"
+                className="w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-[420px]"
                 style={{ background: "#00152A", border: "1px solid rgba(1,144,221,0.18)" }}
               >
                 <CustomerCartSidebar />

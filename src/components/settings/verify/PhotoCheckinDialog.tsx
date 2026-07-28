@@ -23,6 +23,7 @@ import {
 import { uploadAnySingleFile } from "@/services/storage/uploadFile";
 import { findCustomersByLicense, findCustomersByInfoString } from "@/services/customers/lookup";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
+import AddCustomerForm from "@/components/pos/AddCustomerForm";
 import AnimatedDrawer from "@/components/ui/AnimatedDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,13 +109,10 @@ function dataUrlToFile(dataUrl) {
 }
 
 function normalizeOcrDoc(doc, isMedId) {
-  const rawFirst = doc.first_name || "";
-  const firstNameParts = rawFirst.trim().split(/\s+/);
   return {
     licenseId: isMedId ? "" : doc.license_no || "",
     medicalLicense: isMedId ? doc.medical_license || doc.license_no || "" : "",
-    firstName: firstNameParts[0] || "",
-    middleName: firstNameParts.slice(1).join(" "),
+    firstName: (doc.first_name || "").trim(),
     lastName: (doc.last_name || "").trim(),
     dob: doc.dob ? formatDLDate(doc.dob) : "",
     sex: doc.gender || "",
@@ -145,6 +143,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
   const [customerExists, setCustomerExists] = useState(false);
   const [queueLoading, setQueueLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -174,6 +173,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
     setQueueLoading(false);
     setDragOver(false);
     setFacingMode("environment");
+    setAddCustomerOpen(false);
   }
 
   useEffect(() => {
@@ -721,11 +721,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
               <Button
                 size="lg"
                 className="bg-[#1890ff] text-white hover:bg-[#1890ff]/90"
-                onClick={() =>
-                  toast.info(
-                    "Add Customer form is not available in the new POS yet. Create the customer from the Customers page."
-                  )
-                }
+                onClick={() => setAddCustomerOpen(true)}
               >
                 <UserPlus /> Add Customer
               </Button>
@@ -795,21 +791,46 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
   }
 
   return (
-    <AnimatedDrawer
-      open={open}
-      onClose={() => onOpenChange(false)}
-      title={showConfirmation ? cfg.confirmTitle : cfg.title}
-    >
-      <div className="mx-auto flex w-full max-w-412.5 flex-col items-center p-0">
-        {showConfirmation ? (
-          renderConfirmationView()
-        ) : (
-          <>
-            {renderSelector()}
-            <div className="w-full">{tab === "upload" ? renderUploadContent() : renderCameraContent()}</div>
-          </>
-        )}
-      </div>
-    </AnimatedDrawer>
+    <>
+      <AnimatedDrawer
+        open={open}
+        onClose={() => onOpenChange(false)}
+        title={showConfirmation ? cfg.confirmTitle : cfg.title}
+      >
+        <div className="mx-auto flex w-full max-w-412.5 flex-col items-center p-0">
+          {showConfirmation ? (
+            renderConfirmationView()
+          ) : (
+            <>
+              {renderSelector()}
+              <div className="w-full">{tab === "upload" ? renderUploadContent() : renderCameraContent()}</div>
+            </>
+          )}
+        </div>
+      </AnimatedDrawer>
+
+      <AddCustomerForm
+        open={addCustomerOpen}
+        zIndex={80}
+        onClose={() => setAddCustomerOpen(false)}
+        onCreated={() => {
+          setAddCustomerOpen(false);
+          onOpenChange(false);
+        }}
+        initialValues={{
+          firstName: formData.firstName || "",
+          lastName: formData.lastName || "",
+          dob: formData.dob || "",
+          drivingLicense: mode === "med-id" ? "" : formData.licenseId || "",
+          drivingLicenseExpiry: mode === "med-id" ? "" : formData.expiry || "",
+          medicalLicense: mode === "med-id" ? formData.medicalLicense || "" : "",
+          medicalLicenseExpiresAt: mode === "med-id" ? formData.expiry || "" : "",
+          streetAddress: formData.address || "",
+          city: formData.city || "",
+          state: formData.state || "",
+          zipCode: formData.postal_code || "",
+        }}
+      />
+    </>
   );
 }

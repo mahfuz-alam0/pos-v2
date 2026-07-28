@@ -224,7 +224,7 @@ export default function ProductDetailPanel({
       )}
 
       <div className="mb-4 flex flex-col gap-4 md:flex-row">
-        <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden rounded-xl border border-border md:h-[260px] md:w-[260px]">
+        <div className="relative h-[220px] w-full shrink-0 overflow-hidden rounded-xl border border-border md:h-[260px] md:w-[260px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imgUrl || defaultImage}

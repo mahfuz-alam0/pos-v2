@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Breadcrumb,
@@ -61,6 +62,9 @@ export default function PurchaseOrdersPage() {
   const [rows, setRows] = useState<PurchaseOrderRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
 
   const [metrcIdInput, setMetrcIdInput] = useState("");
   const debouncedMetrcId = useDebounce(metrcIdInput, 300);
@@ -87,32 +91,39 @@ export default function PurchaseOrdersPage() {
     return null;
   }, [dateFilter, customRange]);
 
-  const loadPurchaseOrders = useCallback(async () => {
-    if (!shopId) return;
-    setLoading(true);
-    try {
-      const params: Record<string, any> = {};
-      if (debouncedMetrcId) params.metrcId = debouncedMetrcId;
-      if (debouncedProductName) params.productName = debouncedProductName;
-      if (supplierId) params.supplierId = supplierId;
-      if (status) params.status = status;
-      if (paymentStatus) params.paymentStatus = paymentStatus;
-      const range = dateRange();
-      if (range) {
-        params.startDate = range.from;
-        params.endDate = range.to;
+  const loadPurchaseOrders = useCallback(
+    async (targetPage = 1) => {
+      if (!shopId) return;
+      setLoading(true);
+      try {
+        const params: Record<string, any> = { page: targetPage, limit: PAGE_SIZE };
+        if (debouncedMetrcId) params.metrcId = debouncedMetrcId;
+        if (debouncedProductName) params.productName = debouncedProductName;
+        if (supplierId) params.supplierId = supplierId;
+        if (status) params.status = status;
+        if (paymentStatus) params.paymentStatus = paymentStatus;
+        const range = dateRange();
+        if (range) {
+          params.startDate = range.from;
+          params.endDate = range.to;
+        }
+        const res = await fetchPurchaseOrdersList(shopId, params);
+        setRows(res?.data?.data ?? []);
+        const pagination = res?.data?.paginationData;
+        setTotalPages(pagination?.totalPages ?? 1);
+        setTotalEntries(pagination?.totalEntries ?? (res?.data?.data ?? []).length);
+        setPage(targetPage);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to load purchase orders");
+      } finally {
+        setLoading(false);
       }
-      const res = await fetchPurchaseOrdersList(shopId, params);
-      setRows(res?.data?.data ?? []);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to load purchase orders");
-    } finally {
-      setLoading(false);
-    }
-  }, [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange]);
+    },
+    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange]
+  );
 
   useEffect(() => {
-    loadPurchaseOrders();
+    loadPurchaseOrders(1);
   }, [loadPurchaseOrders]);
 
   useEffect(() => {
@@ -133,12 +144,6 @@ export default function PurchaseOrdersPage() {
     params.delete("id");
     router.push(`/admin/inventory/purchase-orders${params.toString() ? `?${params}` : ""}`, { scroll: false });
   };
-
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const [page, setPage] = useState(1);
-  const pagedRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  useEffect(() => setPage(1), [rows.length === 0]);
 
   return (
     <div className="flex gap-4 p-6">
@@ -280,7 +285,7 @@ export default function PurchaseOrdersPage() {
                 </TableRow>
               )}
 
-              {pagedRows.map((row, i) => (
+              {rows.map((row, i) => (
                 <TableRow
                   key={row.id}
                   className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
@@ -309,30 +314,17 @@ export default function PurchaseOrdersPage() {
           </Table>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {rows.length === 0 ? "0 results" : `${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, rows.length)} of ${rows.length}`}
-          </span>
-          <div className="flex gap-2">
-            <button
-              className="rounded-md border px-3 py-1 disabled:opacity-40"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Previous
-            </button>
-            <button
-              className="rounded-md border px-3 py-1 disabled:opacity-40"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          onPageChange={loadPurchaseOrders}
+        />
       </div>
 
-      {openId && <PurchaseOrderDetailPanel id={openId} onClose={closeDetail} onChanged={loadPurchaseOrders} />}
+      {openId && <PurchaseOrderDetailPanel id={openId} onClose={closeDetail} onChanged={() => loadPurchaseOrders(page)} />}
     </div>
   );
 }

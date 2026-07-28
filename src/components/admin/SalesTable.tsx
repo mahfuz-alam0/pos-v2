@@ -27,6 +27,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 // Admin "Sales" list — completed, non-cancelled orders only (in-progress
 // orders live in the POS's own tab). Modeled closely on pos/InProgressOrders,
@@ -391,7 +392,7 @@ export default function SalesTable() {
       const res = await getSingleSale(record.id);
       dispatch(getSaleDetail(res?.data?.data?.sale));
       dispatch(updateOrderAction("processReturns"));
-      router.push("/pos/tablet");
+      router.push("/pos");
     } catch (error) {
       toast.error(error?.message || "Failed to load order");
     }
@@ -619,7 +620,7 @@ export default function SalesTable() {
                     <td className="px-3 py-2">{fmtDateTime(record.createdAt)}</td>
                     <td className="px-3 py-2 text-center">
                       <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_STYLES[statusName] || "bg-amber-100 text-amber-600"}`}>
-                        {statusName === "Packaged & Ready" ? "P&R" : statusName}
+                        {statusName === "Packaged & Ready 1" ? "P&R" : statusName}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-center">{record?.deliveryMethod?.replace(/_/g, " ")}</td>
@@ -671,19 +672,14 @@ export default function SalesTable() {
         </table>
       </div>
 
-      {paginationData.totalPages > 1 && (
-        <div className="mt-1 flex items-center justify-end gap-3 text-sm">
-          <span className="text-muted-foreground">
-            Page {paginationData.page} of {paginationData.totalPages}
-          </span>
-          <Button variant="outline" size="sm" disabled={paginationData.page <= 1} onClick={() => changePage(paginationData.page - 1)}>
-            Prev
-          </Button>
-          <Button variant="outline" size="sm" disabled={paginationData.page >= paginationData.totalPages} onClick={() => changePage(paginationData.page + 1)}>
-            Next
-          </Button>
-        </div>
-      )}
+      <TablePagination
+        page={paginationData.page}
+        totalPages={paginationData.totalPages}
+        totalEntries={paginationData.totalEntries}
+        pageSize={paginationData.limit}
+        loading={loading}
+        onPageChange={changePage}
+      />
 
       <Drawer open={detailOpen} onClose={() => { setDetailOpen(false); setDetailOrder(null); }} side="right" size={540} className="overflow-auto">
         <div className="flex h-full flex-col">

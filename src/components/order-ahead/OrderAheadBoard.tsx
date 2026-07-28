@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { LayoutGrid, TableIcon, Maximize, Minimize, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutGrid, TableIcon, Maximize, Minimize, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +33,7 @@ export default function OrderAheadBoard() {
   const [filters, setFilters] = useState({ source: undefined, deliveryMethod: undefined, lifecycle: undefined, paymentStatus: undefined });
   const [customerSearch, setCustomerSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ down: false, moved: false, startX: 0, startScroll: 0 });
 
   const [preSales, setPreSales] = useState([]);
   const [sales, setSales] = useState([]);
@@ -114,10 +115,31 @@ export default function OrderAheadBoard() {
   );
   const salesByStatus = (statusId) => sortedSales.filter((s) => s?.status?.statusId === statusId);
 
-  const scrollByColumn = (direction) => {
+  const handleScrollPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollBy({ left: direction * 300, behavior: "smooth" });
+    dragRef.current = { down: true, moved: false, startX: e.clientX, startScroll: el.scrollLeft };
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("select-none");
+  };
+
+  const handleScrollPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const el = scrollRef.current;
+    if (!drag.down || !el) return;
+    const delta = e.clientX - drag.startX;
+    if (Math.abs(delta) > 3) drag.moved = true;
+    el.scrollLeft = drag.startScroll - delta;
+  };
+
+  const handleScrollPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag.down) return;
+    dragRef.current.down = false;
+    const el = scrollRef.current;
+    el?.releasePointerCapture(e.pointerId);
+    el?.classList.remove("select-none");
   };
 
   const cardHandlers = {
@@ -145,12 +167,19 @@ export default function OrderAheadBoard() {
 
   return (
     <div className={fullscreen ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-background p-4" : "flex flex-col gap-3 p-4"}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-950 dark:text-blue-300">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/40 p-2.5">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-950 dark:text-blue-300">
           {preSales.length + sales.length} Orders
         </span>
 
-        <Select value={sortOrder} onValueChange={setSortOrder}>
+        <Select
+          items={[
+            { value: "OLDEST_FIRST", label: "Oldest" },
+            { value: "NEWEST_FIRST", label: "Newest" },
+          ]}
+          value={sortOrder}
+          onValueChange={setSortOrder}
+        >
           <SelectTrigger size="sm" className="w-36">
             <SelectValue />
           </SelectTrigger>
@@ -160,7 +189,11 @@ export default function OrderAheadBoard() {
           </SelectContent>
         </Select>
 
-        <Select value={filters.source ?? "ALL"} onValueChange={(v) => setFilter("source", v)}>
+        <Select
+          items={[{ value: "ALL", label: "All Sources" }, ...SOURCE_OPTIONS]}
+          value={filters.source ?? "ALL"}
+          onValueChange={(v) => setFilter("source", v)}
+        >
           <SelectTrigger size="sm" className="w-36">
             <SelectValue placeholder="Source" />
           </SelectTrigger>
@@ -174,7 +207,11 @@ export default function OrderAheadBoard() {
           </SelectContent>
         </Select>
 
-        <Select value={filters.deliveryMethod ?? "ALL"} onValueChange={(v) => setFilter("deliveryMethod", v)}>
+        <Select
+          items={[{ value: "ALL", label: "All Types" }, ...DELIVERY_METHOD_OPTIONS]}
+          value={filters.deliveryMethod ?? "ALL"}
+          onValueChange={(v) => setFilter("deliveryMethod", v)}
+        >
           <SelectTrigger size="sm" className="w-36">
             <SelectValue placeholder="Order Type" />
           </SelectTrigger>
@@ -188,7 +225,11 @@ export default function OrderAheadBoard() {
           </SelectContent>
         </Select>
 
-        <Select value={filters.lifecycle ?? "ALL"} onValueChange={(v) => setFilter("lifecycle", v)}>
+        <Select
+          items={[{ value: "ALL", label: "All Stages" }, ...LIFECYCLE_COLUMNS.map((o) => ({ value: o.key, label: o.label }))]}
+          value={filters.lifecycle ?? "ALL"}
+          onValueChange={(v) => setFilter("lifecycle", v)}
+        >
           <SelectTrigger size="sm" className="w-40">
             <SelectValue placeholder="Lifecycle" />
           </SelectTrigger>
@@ -202,7 +243,11 @@ export default function OrderAheadBoard() {
           </SelectContent>
         </Select>
 
-        <Select value={filters.paymentStatus ?? "ALL"} onValueChange={(v) => setFilter("paymentStatus", v)}>
+        <Select
+          items={[{ value: "ALL", label: "All Payments" }, ...PAYMENT_STATUS_OPTIONS]}
+          value={filters.paymentStatus ?? "ALL"}
+          onValueChange={(v) => setFilter("paymentStatus", v)}
+        >
           <SelectTrigger size="sm" className="w-36">
             <SelectValue placeholder="Payment" />
           </SelectTrigger>
@@ -233,11 +278,11 @@ export default function OrderAheadBoard() {
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <div className="flex items-center overflow-hidden rounded-md border">
+          <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
             <Button
               variant={viewMode === "KANBAN" ? "default" : "ghost"}
               size="icon-sm"
-              className="rounded-none"
+              className={viewMode === "KANBAN" ? "rounded-[7px]" : "rounded-[7px] text-muted-foreground hover:bg-background/60"}
               onClick={() => setViewMode("KANBAN")}
               aria-label="Card view"
             >
@@ -246,7 +291,7 @@ export default function OrderAheadBoard() {
             <Button
               variant={viewMode === "TABLE" ? "default" : "ghost"}
               size="icon-sm"
-              className="rounded-none"
+              className={viewMode === "TABLE" ? "rounded-[7px]" : "rounded-[7px] text-muted-foreground hover:bg-background/60"}
               onClick={() => setViewMode("TABLE")}
               aria-label="Table view"
             >
@@ -259,7 +304,7 @@ export default function OrderAheadBoard() {
         </div>
       </div>
 
-      <div className="border-t" />
+      <div className="shadow-[0_1px_0_rgba(0,0,0,0.06)]" />
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {viewMode === "TABLE" ? (
@@ -272,42 +317,27 @@ export default function OrderAheadBoard() {
             />
           </div>
         ) : (
-          <div className="relative flex h-full items-stretch gap-2">
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="z-10 mt-[45%] shrink-0 rounded-full shadow"
-              onClick={() => scrollByColumn(-1)}
-              aria-label="Scroll left"
-            >
-              <ChevronLeft />
-            </Button>
-
-            <div ref={scrollRef} className="flex h-full flex-1 gap-3 overflow-x-auto scroll-smooth">
-              {columns.map((col) => (
-                <div key={col.key} className="w-[340px] shrink-0">
-                  <KanbanColumn
-                    label={col.label}
-                    accent={col.accent}
-                    type={col.type}
-                    loading={col.loading}
-                    items={col.items}
-                    count={col.items.length}
-                    {...cardHandlers}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="z-10 mt-[45%] shrink-0 rounded-full shadow"
-              onClick={() => scrollByColumn(1)}
-              aria-label="Scroll right"
-            >
-              <ChevronRight />
-            </Button>
+          <div
+            ref={scrollRef}
+            onPointerDown={handleScrollPointerDown}
+            onPointerMove={handleScrollPointerMove}
+            onPointerUp={handleScrollPointerUp}
+            onPointerLeave={handleScrollPointerUp}
+            className="flex h-full flex-1 cursor-grab gap-3 overflow-x-auto scroll-smooth active:cursor-grabbing"
+          >
+            {columns.map((col) => (
+              <div key={col.key} className="w-[340px] shrink-0">
+                <KanbanColumn
+                  label={col.label}
+                  accent={col.accent}
+                  type={col.type}
+                  loading={col.loading}
+                  items={col.items}
+                  count={col.items.length}
+                  {...cardHandlers}
+                />
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -645,13 +645,13 @@ function TabletPosInner() {
     <TooltipProvider>
       <div className={wrapperClass}>
         {/* ──── TOP BAR ──── */}
-        <div className="flex h-[70px] flex-shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-card px-4 shadow-sm">
+        <div className="flex h-[70px] shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-card px-4 shadow-sm">
           <Select
             value={deliveryType}
             onValueChange={handleDeliveryTypeChange}
             disabled={hasSale}
           >
-            <SelectTrigger className="h-11 w-32 flex-shrink-0">
+            <SelectTrigger className="h-11 w-32 shrink-0">
               <SelectValue placeholder="Order Type">
                 {(value) =>
                   value === "IN_STORE"
@@ -691,7 +691,7 @@ function TabletPosInner() {
               value={quoteBody.customerGroupId || "__none__"}
               onValueChange={handleCustomerGroupChange}
             >
-              <SelectTrigger className="h-11 w-40 flex-shrink-0">
+              <SelectTrigger className="h-11 w-40 shrink-0">
                 <SelectValue placeholder="Cust. Group">
                   {(value) => {
                     if (value === "__none__" || !value) return "None";
@@ -712,7 +712,7 @@ function TabletPosInner() {
           )}
 
           {scanReceipt && (
-            <div className="relative flex-shrink-0">
+            <div className="relative shrink-0">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={receiptId}
@@ -728,7 +728,7 @@ function TabletPosInner() {
           {showScanReceiptBtn && (
             <Button
               variant="outline"
-              className="h-11 flex-shrink-0"
+              className="h-11 shrink-0"
               onClick={() => setScanReceipt((v) => !v)}
             >
               Scan Receipt
@@ -741,7 +741,7 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`h-10 w-10 flex-shrink-0 ${
+                  className={`h-10 w-10 shrink-0 ${
                     registerReady
                       ? "border-green-500 text-green-600"
                       : ""
@@ -761,7 +761,7 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 flex-shrink-0"
+                  className="h-10 w-10 shrink-0"
                   onClick={() => setDocManagerOpen(true)}
                 >
                   <IdCard className="h-5 w-5" />
@@ -776,7 +776,7 @@ function TabletPosInner() {
               render={
                 <button
                   type="button"
-                  className="relative flex-shrink-0"
+                  className="relative shrink-0"
                   onClick={() => setQueueDrawerVisible(true)}
                 >
                   <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -799,7 +799,7 @@ function TabletPosInner() {
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="h-10 w-10 flex-shrink-0"
+                  className="h-10 w-10 shrink-0"
                   onClick={confirmResetPOS}
                 >
                   <RotateCcw className="h-5 w-5" />
@@ -815,7 +815,7 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 flex-shrink-0"
+                  className="h-10 w-10 shrink-0"
                   onClick={() => setFullscreen((f) => !f)}
                 >
                   {fullscreen ? (
@@ -833,7 +833,7 @@ function TabletPosInner() {
         </div>
 
         {/* ──── TAB NAV ──── */}
-        <div className="flex flex-shrink-0 gap-1 overflow-x-auto border-b-2 border-border bg-card px-4">
+        <div className="flex shrink-0 gap-1 overflow-x-auto border-b-2 border-border bg-card px-4">
           {TAB_ITEMS.map(({ key, label }) => (
             <button
               key={key}
@@ -859,11 +859,11 @@ function TabletPosInner() {
               }`}
             >
               {/* Customer bar */}
-              <div className="flex flex-shrink-0 flex-wrap items-center gap-2 px-4 py-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-2">
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 rounded-lg bg-primary px-2.5 py-1.5 text-primary-foreground">
-                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20 text-xs font-bold">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20 text-xs font-bold">
                         {selectedCustomer.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -922,7 +922,7 @@ function TabletPosInner() {
 
                 {!selectedCustomer &&
                   shopPreferences?.shouldAllowAnonymousCustomer && (
-                    <label className="flex flex-shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                    <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                       <Checkbox
                         checked={anonymous}
                         disabled={hasSale}
@@ -1007,7 +1007,7 @@ function TabletPosInner() {
                   ? "Expand cart"
                   : "Show products"
               }
-              className="flex w-6 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted"
+              className="flex w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted"
             >
               {panelMode === "right-only" ? (
                 <ChevronLeft className="h-4 w-4" />
@@ -1026,7 +1026,7 @@ function TabletPosInner() {
                   : "flex-[0_0_45%]"
               }`}
             >
-              <div className="h-full overflow-y-auto bg-card p-4">
+              <div className="h-full overflow-y-auto">
                 <TotalCard
                   key={posResetKey}
                   deliverySubType={deliverySubType}

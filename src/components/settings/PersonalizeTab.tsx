@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Check,
   Sun,
@@ -9,7 +8,6 @@ import {
   Monitor,
   Palette,
   Timer,
-  LayoutGrid,
   Printer,
 } from "lucide-react";
 import { useTheme } from "@/context/theme-context";
@@ -17,19 +15,7 @@ import { useSettings } from "@/context/settings-context";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import PrinterSelectionModal from "./PrinterSelectionModal";
-
-const POS_VIEW_OPTIONS = [
-  { value: "regular", label: "Computer View" },
-  { value: "tablet", label: "Tablet View" },
-];
 
 const MODE_META = {
   light: { label: "Light", icon: Sun },
@@ -57,29 +43,20 @@ function SectionCard({ icon: Icon, title, description, children }) {
 }
 
 export default function PersonalizeTab({ onClose }) {
-  const router = useRouter();
   const { theme, setTheme, themes, mode, setMode, modes } = useTheme();
   const {
     queueBorder15,
     queueBorder20,
     queueYellowTime,
     queueRedTime,
-    posMode,
     printType,
     setQueueBorder15,
     setQueueBorder20,
     setQueueYellowTime,
     setQueueRedTime,
-    setPosMode,
     setPrintType,
   } = useSettings();
   const [printerModalOpen, setPrinterModalOpen] = useState(false);
-
-  function handlePosViewChange(value) {
-    setPosMode(value);
-    router.push(value === "tablet" ? "/sales" : "/pos");
-    onClose?.();
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -196,25 +173,6 @@ export default function PersonalizeTab({ onClose }) {
             <Switch checked={queueBorder20} onCheckedChange={setQueueBorder20} />
           </div>
         </div>
-      </SectionCard>
-
-      <SectionCard
-        icon={LayoutGrid}
-        title="Point-of-Sale Screen"
-        description="Default layout opened when starting a sale."
-      >
-        <Select value={posMode} onValueChange={handlePosViewChange}>
-          <SelectTrigger className="w-full sm:w-1/2">
-            <SelectValue placeholder="Select View" />
-          </SelectTrigger>
-          <SelectContent>
-            {POS_VIEW_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </SectionCard>
 
       <SectionCard

@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,6 +30,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import StorageLocationDetails from "./StorageLocationDetails";
 import StorageLocationDrawer from "./StorageLocationDrawer";
+
+const PAGE_SIZE = 30;
 
 interface StorageLocationRow {
   id: string | number;
@@ -47,36 +50,46 @@ export default function StorageLocationsTable() {
 
   const [rows, setRows] = useState<StorageLocationRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
     open: false,
     mode: "add",
     locationId: null,
   });
 
-  const loadLocations = useCallback(async () => {
-    if (!shopId) return;
-    setLoading(true);
-    try {
-      const res = await fetchStorageLocations(shopId);
-      const locations = res?.data?.data?.locations ?? [];
-      setRows(
-        locations.map((location) => ({
-          id: location.id,
-          name: location.name,
-          openForAcceptingTransfers: location.openForAcceptingTransfers,
-          isSellableOnPhysicalStore: location.isSellableOnPhysicalStore,
-          shopId: location.shopId,
-        }))
-      );
-    } catch (err: unknown) {
-      toast.error((err as Error)?.message || "Failed to load storage locations");
-    } finally {
-      setLoading(false);
-    }
-  }, [shopId]);
+  const loadLocations = useCallback(
+    async (targetPage = 1) => {
+      if (!shopId) return;
+      setLoading(true);
+      try {
+        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: PAGE_SIZE });
+        const locations = res?.data?.data?.locations ?? [];
+        setRows(
+          locations.map((location) => ({
+            id: location.id,
+            name: location.name,
+            openForAcceptingTransfers: location.openForAcceptingTransfers,
+            isSellableOnPhysicalStore: location.isSellableOnPhysicalStore,
+            shopId: location.shopId,
+          }))
+        );
+        const pagination = res?.data?.data?.paginationData;
+        setTotalPages(pagination?.totalPages ?? 1);
+        setTotalEntries(pagination?.totalEntries ?? locations.length);
+        setPage(targetPage);
+      } catch (err: unknown) {
+        toast.error((err as Error)?.message || "Failed to load storage locations");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shopId]
+  );
 
   useEffect(() => {
-    loadLocations();
+    loadLocations(1);
   }, [loadLocations]);
 
   const openDetail = (id: string | number) => {
@@ -185,6 +198,15 @@ export default function StorageLocationsTable() {
             </TableBody>
           </Table>
         </div>
+
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          onPageChange={loadLocations}
+        />
       </div>
 
       {openId && (
@@ -196,7 +218,7 @@ export default function StorageLocationsTable() {
         mode={drawer.mode}
         locationId={drawer.locationId}
         onClose={() => setDrawer((prev) => ({ ...prev, open: false }))}
-        onSaved={loadLocations}
+        onSaved={() => loadLocations(page)}
       />
     </div>
   );

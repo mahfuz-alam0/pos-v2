@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/popover";
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
+import { TablePagination } from "@/components/ui/table-pagination";
+
+const PAGE_SIZE = 30;
 
 const fmtDate = (d) => {
   if (!d) return "-";
@@ -66,6 +69,9 @@ const calcFinalPrice = (item, misc) => {
 export default function ReturnsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -135,10 +141,16 @@ export default function ReturnsPage() {
     fetchCustomers({ limit: 100, page: 1 });
   };
 
+  // Filter changes reset to page 1.
+  useEffect(() => {
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomerId, returnIdSearch, searchTrigger]);
+
   useEffect(() => {
     const filters: { name: string; value: any }[] = [
-      { name: "limit", value: 30 },
-      { name: "page", value: 1 },
+      { name: "limit", value: PAGE_SIZE },
+      { name: "page", value: page },
     ];
     if (selectedCustomerId)
       filters.push({ name: "customerId", value: selectedCustomerId });
@@ -146,7 +158,7 @@ export default function ReturnsPage() {
       filters.push({ name: "advertisedSaleReturnId", value: returnIdSearch });
     fetchReturns(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCustomerId, returnIdSearch, searchTrigger]);
+  }, [selectedCustomerId, returnIdSearch, searchTrigger, page]);
 
   const fetchReturns = async (filters) => {
     const requestId = ++requestIdRef.current;
@@ -155,6 +167,9 @@ export default function ReturnsPage() {
       const res = await getReturnsList(filters);
       if (requestId !== requestIdRef.current) return;
       setData(res?.data?.data?.saleReturns || []);
+      const pagination = res?.data?.data?.paginationData;
+      setTotalPages(pagination?.totalPages || 1);
+      setTotalEntries(pagination?.totalEntries || 0);
     } catch (error) {
       if (requestId === requestIdRef.current)
         toast.error(error?.message || "Failed to load returns");
@@ -191,10 +206,13 @@ export default function ReturnsPage() {
       });
       toast.success("This sale has been reported to metrc successfully");
       fetchReturns([
-        { name: "limit", value: 30 },
-        { name: "page", value: 1 },
+        { name: "limit", value: PAGE_SIZE },
+        { name: "page", value: page },
         ...(selectedCustomerId
           ? [{ name: "customerId", value: selectedCustomerId }]
+          : []),
+        ...(returnIdSearch
+          ? [{ name: "advertisedSaleReturnId", value: returnIdSearch }]
           : []),
       ]);
     } catch (error) {
@@ -423,6 +441,17 @@ export default function ReturnsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-3">
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalEntries={totalEntries}
+            pageSize={PAGE_SIZE}
+            loading={loading}
+            onPageChange={setPage}
+          />
         </div>
       </div>
 

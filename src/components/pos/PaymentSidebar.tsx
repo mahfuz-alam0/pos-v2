@@ -1491,7 +1491,7 @@ export default function PaymentSidebar({
                   </p>
                   <button
                     onClick={onClearQuoteError}
-                    className="flex-shrink-0 text-xs leading-none text-red-400 hover:text-red-600"
+                    className="shrink-0 text-xs leading-none text-red-400 hover:text-red-600"
                   >
                     ✕
                   </button>

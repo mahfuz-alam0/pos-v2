@@ -90,10 +90,15 @@ const eighteenYearsAgoISO = () => {
  *    forward as-is). City/state/zip remain plain editable fields, so no data
  *    the old form captured is missing — just the autofill convenience.
  */
-export default function AddCustomerForm({ open, onClose, onCreated }) {
+export default function AddCustomerForm({ open, onClose, onCreated, initialValues, zIndex = 50 }) {
   const quoteBody = useSelector((state: any) => state?.salesDetail);
 
   const [form, setForm] = useState(EMPTY_FORM);
+
+  useEffect(() => {
+    if (open) setForm({ ...EMPTY_FORM, ...initialValues });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
@@ -369,6 +374,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
         }}
         side="right"
         size={560}
+        zIndex={zIndex}
       >
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
@@ -892,7 +898,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
         </div>
       </Drawer>
 
-      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400}>
+      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400} zIndex={zIndex + 10}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin

@@ -400,7 +400,7 @@ export default function ProductsCart() {
   if (cart.length === 0) {
     return (
       <div className="flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
-        <Info className="size-4 flex-shrink-0" />
+        <Info className="size-4 shrink-0" />
         No items in cart
       </div>
     );

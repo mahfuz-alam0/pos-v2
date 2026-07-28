@@ -493,7 +493,7 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-[220px] truncate">{pkg.productName}</TableCell>
+                        <TableCell className="max-w-55 truncate">{pkg.productName}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">{pkg.metrcTag || "—"}</TableCell>
                         <TableCell className="text-center">{pkg.startingCount ?? "—"}</TableCell>
                         <TableCell className="text-center">

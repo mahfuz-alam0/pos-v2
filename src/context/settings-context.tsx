@@ -12,7 +12,6 @@ const DEFAULTS = {
   queueBorder20: false,
   queueYellowTime: 15,
   queueRedTime: 20,
-  posMode: "regular",
   printType: "browser",
 };
 
@@ -49,7 +48,6 @@ export function SettingsProvider({ children }) {
     setQueueBorder20: (v) => update({ queueBorder20: v }),
     setQueueYellowTime: (v) => update({ queueYellowTime: v }),
     setQueueRedTime: (v) => update({ queueRedTime: v }),
-    setPosMode: (v) => update({ posMode: v }),
     setPrintType: (v) => update({ printType: v }),
   };
 
