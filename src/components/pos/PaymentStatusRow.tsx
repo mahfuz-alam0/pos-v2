@@ -115,13 +115,19 @@ export default function PaymentStatusRow({
             value={selectedStatus ?? ""}
             onValueChange={onQuickStatusChange}
           >
-            <SelectTrigger className="w-11 shrink-0 justify-center rounded-lg px-0 shadow-sm">
+            <SelectTrigger className="flex-1 min-w-0 rounded-lg shadow-sm">
               <span
                 className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{
                   backgroundColor: selectedStatusObj?.colorCode || "var(--muted-foreground)",
                 }}
               />
+              <SelectValue placeholder="Select Status">
+                {(value) =>
+                  quickStatusItems.find((s) => s.statusId === value)?.displayName ||
+                  "Select Status"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {quickStatusItems.map((s) => (
@@ -142,11 +148,9 @@ export default function PaymentStatusRow({
             size="sm"
             disabled={cartEmpty || sendToFulfilmentLoading}
             onClick={onSendToFulfillment}
-            className="flex-1 min-w-0 rounded-lg shadow-sm"
+            className="shrink-0 rounded-lg shadow-sm"
           >
-            {sendToFulfilmentLoading
-              ? "Sending…"
-              : selectedStatusObj?.displayName || "Send to Fulfillment"}
+            {sendToFulfilmentLoading ? "Sending…" : "Send"}
           </Button>
         </div>
       )}

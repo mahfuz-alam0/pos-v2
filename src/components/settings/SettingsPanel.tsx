@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSettings } from "@/context/settings-context";
 import Drawer from "@/components/ui/Drawer";
@@ -11,6 +11,8 @@ import CustomerQueue from "@/components/dashboard/CustomerQueue";
 
 const DRAWER_WIDTH = 660;
 const HIDDEN_PATHS = ["/signin"];
+const POSITION_STORAGE_KEY = "settingsFabTop";
+const DEFAULT_TOP_RATIO = 0.25;
 
 export default function SettingsPanel() {
   const [open, setOpen] = useState(false);
@@ -18,17 +20,68 @@ export default function SettingsPanel() {
   const { labMode } = useSettings();
   const pathname = usePathname();
 
+  const [top, setTop] = useState<number | null>(null);
+  const draggingRef = useRef(false);
+  const movedRef = useRef(false);
+  const dragOffsetRef = useRef(0);
+
+  useEffect(() => {
+    const stored = Number(localStorage.getItem(POSITION_STORAGE_KEY));
+    setTop(Number.isFinite(stored) && stored > 0 ? stored : window.innerHeight * DEFAULT_TOP_RATIO);
+  }, []);
+
+  const clampTop = (value: number) => {
+    const buttonHeight = 44;
+    return Math.min(Math.max(value, 8), window.innerHeight - buttonHeight - 8);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    draggingRef.current = true;
+    movedRef.current = false;
+    dragOffsetRef.current = e.clientY - (top ?? 0);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!draggingRef.current) return;
+    movedRef.current = true;
+    setTop(clampTop(e.clientY - dragOffsetRef.current));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setTop((current) => {
+      if (current !== null) localStorage.setItem(POSITION_STORAGE_KEY, String(current));
+      return current;
+    });
+  };
+
+  const handleClick = () => {
+    if (movedRef.current) {
+      movedRef.current = false;
+      return;
+    }
+    setOpen((v) => !v);
+  };
+
   if (HIDDEN_PATHS.includes(pathname)) return null;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         aria-label={open ? "Close settings" : "Open settings"}
-        className="fixed top-1/4 right-0 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-transform duration-300 ease-in-out hover:bg-primary-hover"
+        className="fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover"
         style={{
+          top: top ?? "25%",
           transform: `translateY(-50%) translateX(${open ? -DRAWER_WIDTH : 0}px)`,
+          visibility: top === null ? "hidden" : "visible",
         }}
       >
         <GearIcon />
