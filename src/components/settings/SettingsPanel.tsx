@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Settings } from "lucide-react";
 import { useSettings } from "@/context/settings-context";
 import Drawer from "@/components/ui/Drawer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -21,6 +22,7 @@ export default function SettingsPanel() {
   const pathname = usePathname();
 
   const [top, setTop] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const draggingRef = useRef(false);
   const movedRef = useRef(false);
   const dragOffsetRef = useRef(0);
@@ -38,6 +40,7 @@ export default function SettingsPanel() {
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     draggingRef.current = true;
     movedRef.current = false;
+    setIsDragging(true);
     dragOffsetRef.current = e.clientY - (top ?? 0);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -51,6 +54,7 @@ export default function SettingsPanel() {
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+    setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
     setTop((current) => {
       if (current !== null) localStorage.setItem(POSITION_STORAGE_KEY, String(current));
@@ -77,14 +81,16 @@ export default function SettingsPanel() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         aria-label={open ? "Close settings" : "Open settings"}
-        className="fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover"
+        className={`fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover ${
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
         style={{
           top: top ?? "25%",
           transform: `translateY(-50%) translateX(${open ? -DRAWER_WIDTH : 0}px)`,
           visibility: top === null ? "hidden" : "visible",
         }}
       >
-        <GearIcon />
+        <Settings className="size-5 animate-gear-spin" />
       </button>
 
       <Drawer open={open} onClose={() => setOpen(false)} side="right" size={DRAWER_WIDTH} className="flex flex-col">
@@ -137,13 +143,4 @@ export default function SettingsPanel() {
 
 function ActivityTabPlaceholder() {
   return <div className="text-sm text-sidebar-text">Activity tab — coming next.</div>;
-}
-
-function GearIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.14.5.6.9 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-    </svg>
-  );
 }

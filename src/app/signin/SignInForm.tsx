@@ -493,7 +493,7 @@ export default function SignInForm() {
                     <Label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/55">
                       PIN
                     </Label>
-                    <div className="mb-3 min-h-[44px] select-none rounded-lg border border-white/10 bg-white/6 px-4 py-2.5 text-center text-2xl tracking-[8px] text-white">
+                    <div className="mb-3 min-h-11 select-none rounded-lg border border-white/10 bg-white/6 px-4 py-2.5 text-center text-2xl tracking-[8px] text-white">
                       {pin.length > 0 ? (
                         "●".repeat(pin.length)
                       ) : (

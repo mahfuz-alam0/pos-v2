@@ -115,7 +115,7 @@ export default function ProductSearch({
             {cartPanelOpen && (
               <div
                 data-mode="dark"
-                className="w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-[420px]"
+                className="w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
                 style={{ background: "#00152A", border: "1px solid rgba(1,144,221,0.18)" }}
               >
                 <CustomerCartSidebar />

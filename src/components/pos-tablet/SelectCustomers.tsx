@@ -130,7 +130,7 @@ export default function SelectCustomers({ open, onClose, onSelect }) {
       ?.displayName || "name";
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
+    <div className="fixed inset-0 z-60 flex flex-col bg-background">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 shadow-sm md:px-7">
         <div className="flex shrink-0 items-center gap-3">

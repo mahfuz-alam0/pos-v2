@@ -326,7 +326,7 @@ export default function OrderAheadBoard() {
             className="flex h-full flex-1 cursor-grab gap-3 overflow-x-auto scroll-smooth active:cursor-grabbing"
           >
             {columns.map((col) => (
-              <div key={col.key} className="w-[340px] shrink-0">
+              <div key={col.key} className="w-85 shrink-0">
                 <KanbanColumn
                   label={col.label}
                   accent={col.accent}

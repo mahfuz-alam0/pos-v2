@@ -23,7 +23,7 @@ import {
 import { uploadAnySingleFile } from "@/services/storage/uploadFile";
 import { findCustomersByLicense, findCustomersByInfoString } from "@/services/customers/lookup";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
-import AddCustomerForm from "@/components/pos/AddCustomerForm";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import AnimatedDrawer from "@/components/ui/AnimatedDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

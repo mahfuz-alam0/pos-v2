@@ -610,11 +610,11 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                           {record.advertisedId}
                         </button>
                       </td>
-                      <td className="max-w-[160px] truncate px-3 py-2">
+                      <td className="max-w-40 truncate px-3 py-2">
                         {`${record?.customerInfo?.firstName ?? ""} ${record?.customerInfo?.lastName ?? ""
                           }`.trim() || "-"}
                       </td>
-                      <td className="max-w-[140px] truncate px-3 py-2">
+                      <td className="max-w-35 truncate px-3 py-2">
                         {record?.employeeInfo?.name || "-"}
                       </td>
                       <td className="px-3 py-2">
