@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { useDebounce } from "@/hooks/useDebounce";
 import { useShop } from "@/context/shop-context";
 import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
 import { fetchCategoriesList } from "@/services/categories/list";
@@ -96,6 +97,7 @@ export default function MetrcPackagesPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0, totalPages: 1 });
 
   const [filters, setFilters] = useState<MetrcFilters>(DEFAULT_FILTERS);
+  const debouncedSearchText = useDebounce(filters.searchText, 300);
   const [showLastUpdated, setShowLastUpdated] = useState(false);
   const [showLastAdjusted, setShowLastAdjusted] = useState(false);
 
@@ -119,7 +121,7 @@ export default function MetrcPackagesPage() {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = buildParams(tab, filters, page, limit);
+        const params = buildParams(tab, { ...filters, searchText: debouncedSearchText }, page, limit);
         const res = await fetchPackagesMinimalExtended(shopId as string, params);
         const list = res?.data?.packages ?? [];
         setRows(list);
@@ -134,7 +136,7 @@ export default function MetrcPackagesPage() {
         setLoading(false);
       }
     },
-    [shopId, tab, filters, pagination.pageSize]
+    [shopId, tab, filters, debouncedSearchText, pagination.pageSize]
   );
 
   useEffect(() => {
@@ -142,7 +144,20 @@ export default function MetrcPackagesPage() {
     setSelectedRowKeys([]);
     setSelectedRows([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, tab, filters]);
+  }, [
+    shopId,
+    tab,
+    filters.originalCategoryName,
+    filters.productBrandIds,
+    filters.storageLocationId,
+    filters.discrepancyFilter,
+    filters.source,
+    filters.packageStatus,
+    filters.productProfile,
+    filters.lastUpdatedWithinDays,
+    filters.lastManuallyAdjustedWithinDays,
+    debouncedSearchText,
+  ]);
 
   const handleClearFilter = (key: keyof MetrcFilters) => {
     setFilters((prev) => ({ ...prev, [key]: key === "searchText" ? "" : undefined }));
@@ -177,7 +192,7 @@ export default function MetrcPackagesPage() {
 
   const isRowSelected = (id: string | number) => selectedRowKeys.includes(id);
   const canSelectRow = (row: PackageRow) => (row.quantityLeft ?? 0) !== (row.metrQuantity ?? 0);
-  const selectableRows = rows.filter(canSelectRow);
+  const selectableRows = useMemo(() => rows.filter(canSelectRow), [rows]);
 
   const toggleRow = (row: PackageRow, checked: boolean) => {
     setSelectedRowKeys((prev) => (checked ? [...prev, row.id] : prev.filter((k) => k !== row.id)));
