@@ -1,7 +1,7 @@
 import {
   Home, Tag, LayoutGrid, Star,
   Image as ImageIcon, Store, Info,
-  Instagram, Download, MessageCircle,
+  Camera, Download, MessageCircle,
   LayoutTemplate, Link2,
 } from "lucide-react";
 
@@ -17,7 +17,7 @@ export const SECTION_META: Record<string, { label: string; icon: React.Component
   dealTypeSection: { label: "Deal Type Section", icon: ImageIcon },
   bannerSection: { label: "Banner Section", icon: Link2 },
   aboutSection: { label: "About Section", icon: Info },
-  instagramFeed: { label: "Instagram Feed", icon: Instagram },
+  instagramFeed: { label: "Instagram Feed", icon: Camera },
   downloadAppBanner: { label: "Download App Banner", icon: Download },
   reviewsSection: { label: "Reviews Section", icon: MessageCircle },
 };

@@ -397,17 +397,16 @@ export default function CoverPageForm() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex h-8 items-center gap-2 rounded-lg bg-muted/50 px-3">
-                <div className="relative size-5 shrink-0 overflow-hidden rounded ring-1 ring-foreground/10" style={{ background: webColor || "#000000" }}>
-                  <input
-                    type="color"
-                    value={webColor || "#000000"}
-                    onChange={(e) => setWebColor(e.target.value)}
-                    className="absolute inset-0 size-full cursor-pointer border-none p-0 opacity-0"
-                  />
-                </div>
+              <label className="relative flex h-8 cursor-pointer items-center gap-2 rounded-lg bg-muted/50 px-3">
+                <div className="size-5 shrink-0 overflow-hidden rounded ring-1 ring-foreground/10" style={{ background: webColor || "#000000" }} />
                 <span className="text-xs font-medium">Web Color{webColor ? ` (${webColor})` : ""}</span>
-              </div>
+                <input
+                  type="color"
+                  value={webColor || "#000000"}
+                  onChange={(e) => setWebColor(e.target.value)}
+                  className="absolute inset-0 size-full cursor-pointer border-none p-0 opacity-0"
+                />
+              </label>
 
               <div className="flex h-8 items-center gap-2 rounded-lg bg-muted/50 px-3">
                 {coverPageVisibility ? <Eye className="size-3.5 text-emerald-600" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
