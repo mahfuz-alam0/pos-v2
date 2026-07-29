@@ -39,7 +39,6 @@ import { addCustomerAhead } from "@/store/slices/customerQueueSlice";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getAllPaginatedRegisterDrawer } from "@/services/registers/getRegisterDrawer";
 import { listRegisters } from "@/services/registers/listRegisters";
-import { getSingleSale } from "@/services/sales/getSingleSales";
 import { getShopPreference } from "@/services/sales/getShopPreference";
 import { getShopPreferences } from "@/services/sales/getShopPreferences";
 import { getSingleCustomer } from "@/services/customers/getSingleCustomer";
@@ -50,6 +49,7 @@ import { quoteApiManager } from "@/utils/quoteApiManager";
 import useCustomerQueue from "@/hooks/useQueue";
 import useResetPOS from "@/hooks/useResetPOS";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
+import { useShop } from "@/context/shop-context";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,8 +116,22 @@ const TAB_ITEMS = [
 function TabletPosInner() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { shopDetails } = useShop();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // POS runs the register — always light, regardless of the admin panel's
+  // dark-mode setting. CSS-variable overrides alone don't stop `dark:`
+  // utility classes baked into shared components, so flip the actual
+  // data-mode attribute while mounted and restore it on the way out.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previousMode = root.getAttribute("data-mode");
+    root.setAttribute("data-mode", "light");
+    return () => {
+      if (previousMode) root.setAttribute("data-mode", previousMode);
+    };
+  }, []);
 
   const [deliverySubType] = useState("");
   const posResetKey = useSelector((state: any) => state?.lineItems?.resetKey || 0);
@@ -136,8 +150,6 @@ function TabletPosInner() {
   const { discountTypes } = useDiscountTypes();
 
   const [activeTab, setActiveTab] = useState("1");
-  const [scanReceipt, setScanReceipt] = useState(false);
-  const [receiptId, setReceiptId] = useState("");
   const [refreshOrders, setRefreshOrders] = useState(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [queueDrawerVisible, setQueueDrawerVisible] = useState(false);
@@ -381,19 +393,6 @@ function TabletPosInner() {
     return () => window.removeEventListener("registerDrawerClosed", handler);
   }, []);
 
-  // --- Scan receipt -> load sale + jump into processReturns ---
-  useEffect(() => {
-    if (receiptId) {
-      getSingleSale(receiptId)
-        .then((res) => {
-          dispatch(getSaleDetail(res?.data?.data?.sale));
-          dispatch(updateOrderAction("processReturns"));
-        })
-        .catch((error) => console.error("Error fetching sale:", error));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [receiptId]);
-
   // --- Auto-select default customer group from queued customer ---
   useEffect(() => {
     if (quoteBody.customerId) {
@@ -627,7 +626,6 @@ function TabletPosInner() {
       JSON.parse(localStorage.getItem("customerGroups") || "null")) ||
     [];
 
-  const showScanReceiptBtn = !hasSale && quoteBody?.customerId == null;
   const queueCount = customerQueue?.length || 0;
   const customerName = selectedCustomer
     ? `${selectedCustomer.firstName || ""} ${
@@ -645,23 +643,35 @@ function TabletPosInner() {
     <TooltipProvider>
       <div className={wrapperClass}>
         {/* ──── TOP BAR ──── */}
-        <div className="flex h-17.5 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-card px-4 shadow-sm">
+        <div className="flex h-[70px] shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-gray-100 px-4 shadow-sm">
+          {shopDetails?.label && (
+            <span className="flex h-[33px] shrink-0 items-center gap-2 rounded-full bg-secondary px-[13px] text-xs font-bold text-white">
+              <span className="inline-block h-2 w-2 rounded-full bg-green-600" />
+              {shopDetails.label}
+            </span>
+          )}
+
+          <div className="h-8 w-px shrink-0 bg-gray-200" />
+
           <Select
             value={deliveryType}
             onValueChange={handleDeliveryTypeChange}
             disabled={hasSale}
           >
-            <SelectTrigger className="h-11 w-32 shrink-0">
+            <SelectTrigger className="!h-9 w-[105px] shrink-0 bg-white text-xs">
               <SelectValue placeholder="Order Type">
-                {(value) =>
-                  value === "IN_STORE"
-                    ? "In Store"
-                    : value === "PICK_UP"
-                    ? "Pickup"
-                    : value === "DELIVERY"
-                    ? "Delivery"
-                    : "Order Type"
-                }
+                {(value) => (
+                  <span className="flex items-center">
+                    {value === "IN_STORE"
+                      ? "In Store"
+                      : value === "PICK_UP"
+                      ? "Pickup"
+                      : value === "DELIVERY"
+                      ? "Delivery"
+                      : "Order Type"}
+                    {persistedDeliveryType === value && <GreenDot />}
+                  </span>
+                )}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -711,44 +721,23 @@ function TabletPosInner() {
             </Select>
           )}
 
-          {scanReceipt && (
-            <div className="relative shrink-0">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={receiptId}
-                onChange={(e) => setReceiptId(e.target.value)}
-                placeholder="Scan barcode…"
-                className="h-11 w-44 pl-9"
-              />
-            </div>
-          )}
+          <div className="flex-1 bg-gray-50" />
 
-          <div className="flex-1" />
-
-          {showScanReceiptBtn && (
-            <Button
-              variant="outline"
-              className="h-11 shrink-0"
-              onClick={() => setScanReceipt((v) => !v)}
-            >
-              Scan Receipt
-            </Button>
-          )}
-
+          <div className="flex items-center gap-1.5">
           <Tooltip>
             <TooltipTrigger
               render={
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`h-10 w-10 shrink-0 ${
+                  className={`h-14 w-14 shrink-0 ${
                     registerReady
-                      ? "border-green-500 text-green-600"
+                      ? "border-[#96C790] text-[#96C790]"
                       : ""
                   }`}
                   onClick={() => setIsRegisterDrawerOpen(true)}
                 >
-                  <Monitor className="h-5 w-5" />
+                  <Monitor className="size-6" />
                 </Button>
               }
             />
@@ -761,10 +750,10 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 shrink-0"
+                  className="h-14 w-14 shrink-0 border-gray-300 bg-white"
                   onClick={() => setDocManagerOpen(true)}
                 >
-                  <IdCard className="h-5 w-5" />
+                  <IdCard className="size-6 text-gray-600" />
                 </Button>
               }
             />
@@ -779,8 +768,8 @@ function TabletPosInner() {
                   className="relative shrink-0"
                   onClick={() => setQueueDrawerVisible(true)}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <User className="h-5 w-5" />
+                  <span className="flex h-14 w-14 items-center justify-center rounded-md bg-[#3A80F2] text-white">
+                    <User className="size-6" />
                   </span>
                   {queueCount > 0 && (
                     <Badge className="absolute -right-2 -top-2 h-5 min-w-5 justify-center rounded-full px-1">
@@ -799,10 +788,10 @@ function TabletPosInner() {
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="h-10 w-10 shrink-0"
+                  className="h-14 w-14 shrink-0 bg-[#DE4E42] text-white hover:bg-[#E14F43]/90"
                   onClick={confirmResetPOS}
                 >
-                  <RotateCcw className="h-5 w-5" />
+                  <RotateCcw className="size-6 text-white-700" />
                 </Button>
               }
             />
@@ -815,13 +804,13 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 shrink-0"
+                  className="h-14 w-14 shrink-0 border-gray-300 bg-white"
                   onClick={() => setFullscreen((f) => !f)}
                 >
                   {fullscreen ? (
-                    <Minimize2 className="h-5 w-5" />
+                    <Minimize2 className="size-6 text-gray-600"  />
                   ) : (
-                    <Maximize2 className="h-5 w-5" />
+                    <Maximize2 className="size-6 text-gray-600" />
                   )}
                 </Button>
               }
@@ -830,18 +819,19 @@ function TabletPosInner() {
               {fullscreen ? "Exit fullscreen" : "Fullscreen"}
             </TooltipContent>
           </Tooltip>
+          </div>
         </div>
 
         {/* ──── TAB NAV ──── */}
-        <div className="flex shrink-0 gap-1 overflow-x-auto border-b-2 border-border bg-card px-4">
+        <div className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto bg-card px-4">
           {TAB_ITEMS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => switchTab(key)}
               className={`-mb-0.5 whitespace-nowrap border-b-[3px] px-3 py-2 text-sm transition-colors ${
                 activeTab === key
-                  ? "border-primary font-bold text-primary"
-                  : "border-transparent font-medium text-muted-foreground hover:text-foreground"
+                  ? "border-primary  text-primary"
+                  : "border-transparent  text-muted-foreground hover:text-foreground"
               }`}
             >
               {label}
@@ -851,15 +841,15 @@ function TabletPosInner() {
 
         {/* ──── MAIN CONTENT ──── */}
         {activeTab === "1" ? (
-          <div className="flex flex-1 gap-4 overflow-hidden bg-surface p-3">
+          <div className="flex min-h-0 flex-1 overflow-hidden bg-surface pb-3">
             {/* LEFT: Products */}
             <div
-              className={`flex min-w-0 flex-col overflow-hidden transition-all duration-300 ${
+              className={`flex h-full min-w-0 flex-col overflow-hidden border border-border transition-all duration-300 ${
                 panelMode === "right-only" ? "w-0 flex-[0_0_0px]" : "flex-1"
               }`}
             >
-              {/* Customer bar */}
-              <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-2">
+            {/* Customer bar */}
+            <div className="flex shrink-0 flex-wrap items-center gap-2 bg-white px-4 py-2">
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 rounded-lg bg-primary px-2.5 py-1.5 text-primary-foreground">
@@ -922,7 +912,7 @@ function TabletPosInner() {
 
                 {!selectedCustomer &&
                   shopPreferences?.shouldAllowAnonymousCustomer && (
-                    <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                    <label className="mr-1.5 flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                       <Checkbox
                         checked={anonymous}
                         disabled={hasSale}
@@ -948,6 +938,7 @@ function TabletPosInner() {
                   <Button
                     disabled={hasSale}
                     onClick={() => setAddCustomerOpen(true)}
+                    className="!h-[39px] w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
                   >
                     Add
                   </Button>
@@ -1007,18 +998,18 @@ function TabletPosInner() {
                   ? "Expand cart"
                   : "Show products"
               }
-              className="flex w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted"
+              className="z-10 mx-0.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm hover:bg-muted"
             >
               {panelMode === "right-only" ? (
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-5 w-5" />
               )}
             </button>
 
             {/* RIGHT: Cart & Checkout */}
             <div
-              className={`min-w-0 overflow-hidden rounded-lg border border-border transition-all duration-300 ${
+              className={`h-full min-w-0 overflow-hidden border border-border transition-all duration-300 ${
                 panelMode === "left-only"
                   ? "w-0 flex-[0_0_0px]"
                   : panelMode === "right-only"

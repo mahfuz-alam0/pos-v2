@@ -971,7 +971,7 @@ export default function TotalCard({
         )}
 
         {/* Action row: payment method + status + finalize buttons */}
-        <div className="mb-2 flex flex-col gap-2">
+        <div className="mb-2 flex flex-col gap-2 px-4">
           <PaymentStatusRow
             paymentStatusPaidInFull={saleDetail?.paymentStatus === "PAID_IN_FULL"}
             cartEmpty={cartEmpty}
@@ -1074,7 +1074,7 @@ export default function TotalCard({
         {/* ---- Live sale ---- */}
         {currentAction === null && (
           <>
-            <div className="mt-2">
+            <div className="mt-2 px-4">
               <ProductPromoTaxes
                 currentAction={currentAction}
                 getOrderSummary={getOrderSummary}

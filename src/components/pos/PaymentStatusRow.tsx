@@ -1,7 +1,6 @@
 "use client";
 
-import { Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Pencil, Play } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -58,11 +57,11 @@ export default function PaymentStatusRow({
   const quickStatusItems = (orderStatus || []).filter((s) => !s.isTerminationState);
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1">
       <button
         disabled={paymentStatusPaidInFull || cartEmpty}
         onClick={onOpenPaymentSidebar}
-        className="group flex-1 min-w-0 rounded-lg bg-[#287372] px-3 py-2 text-left text-white shadow-sm transition-colors hover:bg-[#2A9D8F] disabled:cursor-not-allowed disabled:opacity-50"
+        className="group flex-1 min-w-0 h-11 rounded-[min(var(--radius-md),12px)] bg-[#287372] px-3 py-2 text-left text-white shadow-sm transition-colors hover:bg-[#2A9D8F] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-semibold">{paymentLabel}</span>
@@ -80,7 +79,7 @@ export default function PaymentStatusRow({
           onValueChange={onStatusChange}
           disabled={currentAction === "processReturns"}
         >
-          <SelectTrigger className="flex-1 min-w-0 rounded-lg shadow-sm">
+          <SelectTrigger className="flex-1 min-w-0 !h-11 rounded-xl shadow-sm">
             <span
               className="inline-block h-2 w-2 shrink-0 rounded-full"
               style={{ backgroundColor: selectedStatusObj?.colorCode || "var(--muted-foreground)" }}
@@ -108,27 +107,36 @@ export default function PaymentStatusRow({
         </Select>
       )}
 
+      {/* Split button, mirrors the old app's Dropdown.Button: the colored
+          label area submits/advances the order to selectedStatus, the
+          docked play-icon segment just opens the status picker. */}
       {!hasSale && currentAction === null && (
-        <div className="flex flex-1 min-w-0 gap-1.5">
+        <div className="relative flex h-11 flex-1 min-w-0 gap-1">
+          <button
+            type="button"
+            disabled={cartEmpty || sendToFulfilmentLoading}
+            onClick={onSendToFulfillment}
+            style={{ backgroundColor: selectedStatusObj?.colorCode || "#FF8D49" }}
+            className="min-w-0 flex-1 truncate rounded-lg px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors hover:brightness-95 disabled:cursor-not-allowed"
+          >
+            {sendToFulfilmentLoading
+              ? "Sending…"
+              : selectedStatusObj?.displayName || "Select Status"}
+          </button>
           <Select
             items={quickStatusItems.map((s) => ({ value: s.statusId, label: s.displayName }))}
             value={selectedStatus ?? ""}
             onValueChange={onQuickStatusChange}
           >
-            <SelectTrigger className="flex-1 min-w-0 rounded-lg shadow-sm">
-              <span
-                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{
-                  backgroundColor: selectedStatusObj?.colorCode || "var(--muted-foreground)",
-                }}
-              />
-              <SelectValue placeholder="Select Status">
-                {(value) =>
-                  quickStatusItems.find((s) => s.statusId === value)?.displayName ||
-                  "Select Status"
-                }
-              </SelectValue>
+            <SelectTrigger
+              className="!h-full w-[50px] shrink-0 items-center justify-center rounded-lg border-transparent p-0 shadow-sm [&_svg]:hidden"
+              style={{ backgroundColor: selectedStatusObj?.colorCode || "#FF8D49" }}
+            >
+              <SelectValue placeholder="" className="hidden" />
             </SelectTrigger>
+            <span className="pointer-events-none absolute inset-y-0 right-0 flex w-[50px] shrink-0 items-center justify-center">
+              <Play className="h-4 w-4 fill-white text-white" />
+            </span>
             <SelectContent>
               {quickStatusItems.map((s) => (
                 <SelectItem key={s.statusId} value={s.statusId}>
@@ -143,15 +151,6 @@ export default function PaymentStatusRow({
               ))}
             </SelectContent>
           </Select>
-          <Button
-            variant="default"
-            size="sm"
-            disabled={cartEmpty || sendToFulfilmentLoading}
-            onClick={onSendToFulfillment}
-            className="shrink-0 rounded-lg shadow-sm"
-          >
-            {sendToFulfilmentLoading ? "Sending…" : "Send"}
-          </Button>
         </div>
       )}
     </div>
