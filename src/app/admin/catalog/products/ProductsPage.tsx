@@ -317,7 +317,7 @@ export default function ProductsPage() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              router.push(`/admin/catalog/products/matrix/template/edit/${row.matrixId}`);
+                              router.push(`/admin/catalog/products/matrix?matrixId=${row.matrixId}`);
                             }}
                           >
                             <Info className="size-3.5 animate-pulse text-blue-500" />

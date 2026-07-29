@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IdCard, ScanBarcode, FileImage, ScanLine, UserPlus } from "lucide-react";
 import PhotoCheckinDialog from "@/components/settings/verify/PhotoCheckinDialog";
 import ScanIdDialog from "@/components/settings/verify/ScanIdDialog";
-import AddCustomerToQueue from "@/components/dashboard/AddCustomerToQueue";
+import AddCustomerToQueue from "@/components/customers/AddCustomerToQueue";
 
 // Dark-themed reskin of settings/VerifyTab for the Front Desk screen — same
 // underlying dialogs (ScanIdDialog/PhotoCheckinDialog), old-app tile order and
