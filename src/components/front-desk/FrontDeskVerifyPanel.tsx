@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IdCard, ScanBarcode, FileImage, ScanLine, UserPlus } from "lucide-react";
 import PhotoCheckinDialog from "@/components/settings/verify/PhotoCheckinDialog";
 import ScanIdDialog from "@/components/settings/verify/ScanIdDialog";
-import AddCustomerToQueue from "@/components/customers/AddCustomerToQueue";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 
 // Reskin of settings/VerifyTab for the Front Desk screen — same underlying
 // dialogs (ScanIdDialog/PhotoCheckinDialog), old-app tile order and look.
@@ -76,7 +76,7 @@ export default function FrontDeskVerifyPanel({ shopId, onCheckedIn }) {
           onClick={() => setAddCustomerOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
         >
-          <UserPlus className="size-4" /> Add Customer to Queue
+          <UserPlus className="size-4" /> Add Customer
         </button>
       </div>
 
@@ -88,12 +88,12 @@ export default function FrontDeskVerifyPanel({ shopId, onCheckedIn }) {
 
       <PhotoCheckinDialog open={Boolean(photoMode)} onOpenChange={(v) => !v && setPhotoMode(null)} mode={photoMode || "dl-front"} />
       <ScanIdDialog open={scanIdOpen} onOpenChange={setScanIdOpen} />
-      <AddCustomerToQueue
+      <AddCustomerForm
         open={addCustomerOpen}
-        onOpenChange={setAddCustomerOpen}
-        shopId={shopId}
-        queueData={[]}
-        onCheckedIn={onCheckedIn}
+        onClose={() => setAddCustomerOpen(false)}
+        onCreated={(customer, mode) => {
+          if (mode === "queue") onCheckedIn?.();
+        }}
       />
     </div>
   );
