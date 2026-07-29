@@ -46,6 +46,23 @@ export default function Drawer({
 }: { open: boolean; onClose?: () => void; side?: "right" | "left" | "top" | "bottom"; size?: number | string; zIndex?: number; overlay?: boolean; className?: string; children?: React.ReactNode }) {
   const cfg = SIDE_CONFIG[side];
 
+  // Only in the DOM while open or mid-close-transition — this component is
+  // mounted a couple dozen times on /pos at once, and a permanently-present
+  // fixed, backdrop-blur'd overlay per instance (even at opacity:0) is a lot
+  // of simultaneous GPU compositor layers, which is a known flicker trigger
+  // on macOS. Unmounting when fully closed avoids that entirely.
+  const [shouldRender, setShouldRender] = React.useState(open);
+  React.useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      return;
+    }
+    const timeoutId = setTimeout(() => setShouldRender(false), 300);
+    return () => clearTimeout(timeoutId);
+  }, [open]);
+
+  if (!shouldRender) return null;
+
   return (
     <>
       {overlay && (
