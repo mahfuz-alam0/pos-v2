@@ -62,6 +62,18 @@ If you need a fixed-height scrollable table with a sticky header, use one wrappe
 
 Don't hand-roll Previous/Next buttons. Use `TablePagination` from `src/components/ui/table-pagination.tsx` — it already renders numbered page buttons (with ellipsis for large ranges) plus a range label, and is the pattern used in `PackageReconciliationTab.tsx` / `AuditSessionsTab.tsx`. Needs `page`, `totalPages`, `totalEntries`, `pageSize`, `loading`, `onPageChange` — make sure the page's pagination state actually stores `totalPages` from the API response (`paginationData.totalPages`), it's easy to forget since some endpoints are only used for `currentPage`/`totalEntries`/`limit` elsewhere in the same file.
 
+## Breadcrumb needs explicit `BreadcrumbSeparator`
+
+`Breadcrumb`/`BreadcrumbItem` do NOT render a separator (`>`) between crumbs automatically — unlike the old antd `<Breadcrumb separator=">">`. Forgetting it is easy since the page still looks fine at a glance, just missing the `>`. Always import `BreadcrumbSeparator` from `@/components/ui/breadcrumb` and place one between every two `BreadcrumbItem`s:
+
+```tsx
+<BreadcrumbItem><BreadcrumbPage>Settings</BreadcrumbPage></BreadcrumbItem>
+<BreadcrumbSeparator />
+<BreadcrumbItem><BreadcrumbPage>Store Information</BreadcrumbPage></BreadcrumbItem>
+```
+
+Known offenders still missing it as of this writing: `settings/suppliers/SuppliersTable.tsx`, `settings/tax/TaxesTable.tsx` — fix opportunistically if you touch those files.
+
 ## Scrollbar theming (dark mode)
 
 Already handled globally in `src/app/globals.css` (`scrollbar-color` + `::-webkit-scrollbar*` rules keyed off `var(--border)` / `var(--muted-foreground)`). Every scrollable element site-wide inherits it automatically — never add per-component/per-table scrollbar CSS, and never need to "fix" a white scrollbar in dark mode again by hand.
