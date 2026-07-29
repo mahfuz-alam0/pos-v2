@@ -47,6 +47,7 @@ import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getCustomerLoyaltyStatus } from "@/services/loyalty/getCustomerLoyaltyStatus";
 import { getOrderStatuses } from "@/services/sales/getOrderStatuses";
 import { createOrder as createOrderService } from "@/services/sales/createOrder";
+import { getSingleSale } from "@/services/sales/getSingleSales";
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
@@ -86,6 +87,7 @@ export default function TotalCard({
   const [orderStatusDetails, setOrderStatusDetails] = useState(null);
 
   const [loading, setLoading] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const [orderProcessing, setOrderProcessing] = useState(false);
   const [saveDraftLoading, setSaveDraftLoading] = useState(false);
   const [sendToFulfilmentLoading, setSendToFulfilmentLoading] = useState(false);
@@ -563,9 +565,23 @@ export default function TotalCard({
       if (res.data.success) {
         const saleId = res.data.data.saleId;
         setInvoiceOrderId(saleId);
+
+        // create-internal-sale's own response is minimal ({ saleId,
+        // shouldAttemptMetrcReporting, isAutomatedReportingEnabled }) — the
+        // receipt needs the full sale record (budtender, customer type,
+        // advertised order #, transactions for cash paid) for that a
+        // follow-up fetch, same as the old app's completeOrderAfterPayment.
+        const fullSale = await getSingleSale(saleId).catch(() => null);
+        const sale = fullSale?.data?.data?.sale;
+
         setCreateOrderRes({
           ...res.data.data,
+          ...sale,
+          // Line items keep their quote-sourced shape (already renders
+          // correctly here) rather than the sale record's differently
+          // shaped nonPackagedLineItems.
           nonPackagedLineItems: getOrderSummary?.data?.nonPackagedLineItems,
+          receiptNote: quoteBody?.receiptNote,
         });
         toast.success("Order placed successfully");
         resetSessionAfterOrder();
@@ -671,6 +687,12 @@ export default function TotalCard({
       return;
     }
 
+    if (!quoteBody?.registerId) {
+      toast.error("Please select a register before saving a draft.");
+      window.dispatchEvent(new CustomEvent("openRegisterModal"));
+      return;
+    }
+
     const {
       couponId,
       applicableBogoDeals,
@@ -710,7 +732,13 @@ export default function TotalCard({
         toast.error("Failed to save draft.");
       }
     } catch (error) {
-      toast.error(error?.message || error?.error || "Failed to save draft.");
+      // handleApiError throws { status, errors } (not .message) for 422s —
+      // without this, validation failures silently fall through to the
+      // generic string below and the real reason is lost.
+      const validationMessage = error?.errors?.length ? error.errors.join(" ") : null;
+      toast.error(
+        validationMessage || error?.message || error?.error || "Failed to save draft."
+      );
     } finally {
       setSaveDraftLoading(false);
     }
@@ -718,6 +746,7 @@ export default function TotalCard({
 
   // ---- Process payment (stores payment details, closes sidebar) -------------
   const handleProcessPayment = async (paymentPayload) => {
+    setProcessingPayment(true);
     try {
       setMethod(paymentPayload.onlinePaymentMethod);
       const updatedQuoteBody = {
@@ -804,6 +833,8 @@ export default function TotalCard({
         setQuoteError({ message: error.error, requestId: error.requestId || null });
       }
       toast.error(error?.message || error?.error || "Something went wrong");
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -1354,7 +1385,7 @@ export default function TotalCard({
         onRemoveMiscCharge={handleRemoveMiscCharge}
         miscDiscount={quoteBody?.miscDiscount || 0}
         onProcessPayment={handleProcessPayment}
-        loading={loading || sendToFulfilmentLoading}
+        loading={loading || sendToFulfilmentLoading || processingPayment}
         resetFields={resetPaymentFields}
         initialCashAmount={cashAmount}
         initialStoreCreditAmount={storeCreditAmount}

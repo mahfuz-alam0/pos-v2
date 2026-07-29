@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { IdCard, Plus, Gauge, ShoppingBag, Layers, Copy } from "lucide-react";
+import { IdCard, Plus, BarChart3, ShoppingCart, Network, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -225,7 +225,7 @@ export default function CustomerPanelPopovers({
   }, [selectedCustomer]);
 
   return (
-    <div className="flex flex-row space-x-1">
+    <div className="flex flex-row items-center gap-2">
       {/* DL icon (front image present) or upload-plus */}
       {fullSelectedCustomer?.drivingLicenseFrontImage ? (
         <Tooltip>
@@ -233,12 +233,13 @@ export default function CustomerPanelPopovers({
             render={
               <Button
                 size="icon"
+                className="size-11"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDLIconClick?.();
                 }}
               >
-                <IdCard />
+                <IdCard className="size-5" />
               </Button>
             }
           />
@@ -251,12 +252,13 @@ export default function CustomerPanelPopovers({
               render={
                 <Button
                   size="icon"
+                  className="size-11"
                   onClick={(e) => {
                     e.stopPropagation();
                     onPlusClick();
                   }}
                 >
-                  <Plus />
+                  <Plus className="size-5" />
                 </Button>
               }
             />
@@ -269,8 +271,8 @@ export default function CustomerPanelPopovers({
         <Popover>
           <PopoverTrigger
             render={
-              <Button size="icon" variant="outline">
-                <Gauge />
+              <Button size="icon" variant="outline" className="size-11">
+                <BarChart3 className="size-5" />
               </Button>
             }
           />
@@ -284,8 +286,8 @@ export default function CustomerPanelPopovers({
       <Popover>
         <PopoverTrigger
           render={
-            <Button size="icon" variant="outline">
-              <ShoppingBag />
+            <Button size="icon" variant="outline" className="size-11">
+              <ShoppingCart className="size-5" />
             </Button>
           }
         />
@@ -298,8 +300,8 @@ export default function CustomerPanelPopovers({
       <Popover>
         <PopoverTrigger
           render={
-            <Button size="icon" variant="outline">
-              <Layers />
+            <Button size="icon" variant="outline" className="size-11">
+              <Network className="size-5" />
             </Button>
           }
         />
@@ -313,13 +315,13 @@ export default function CustomerPanelPopovers({
         <Tooltip>
           <TooltipTrigger
             render={
-              <button
-                type="button"
-                className="flex h-[35px] items-center justify-center rounded bg-[#018FDE] px-3 text-white"
+              <Button
+                size="icon"
+                className="size-11 bg-[#018FDE] text-white hover:bg-[#018FDE]/90"
                 onClick={() => copyToClipboard(selectedCustomer?.medicalLicense)}
               >
                 <Copy className="size-5" />
-              </button>
+              </Button>
             }
           />
           <TooltipContent>Copy Med License {medLicenseNo}</TooltipContent>

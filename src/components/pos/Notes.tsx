@@ -11,9 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 /**
- * Internal + receipt notes on the sale. Both map onto `salesDetail`
- * (`internalNote`, `receiptNote`). Receipt note is required (whitespace-only
- * is rejected), internal note is optional.
+ * Receipt note on the sale — maps onto `salesDetail.receiptNote`. Required
+ * (whitespace-only is rejected).
  *
  * Props:
  *   setNotes(bool) — close callback (called with false after save).
@@ -21,7 +20,6 @@ import { Label } from "@/components/ui/label";
 export default function Notes({ setNotes }) {
   const [loading, setLoading] = useState(false);
   const [receiptNote, setReceiptNote] = useState("");
-  const [internalNote, setInternalNote] = useState("");
 
   const dispatch = useDispatch();
   const quoteBody = useSelector((state: any) => state?.salesDetail);
@@ -33,8 +31,8 @@ export default function Notes({ setNotes }) {
       return;
     }
     setLoading(true);
-    dispatch(updateSalesDetail({ internalNote, receiptNote }));
-    const updatedQuoteBody = { ...quoteBody, internalNote, receiptNote };
+    dispatch(updateSalesDetail({ receiptNote }));
+    const updatedQuoteBody = { ...quoteBody, receiptNote };
     try {
       const res = await quoteApiManager.call(
         getQuoteForSales,
@@ -62,17 +60,6 @@ export default function Notes({ setNotes }) {
           placeholder="Enter Receipt Note"
           value={receiptNote}
           onChange={(e) => setReceiptNote(e.target.value)}
-        />
-      </div>
-
-      <div className="mb-4">
-        <Label className="mb-1.5">Internal Note</Label>
-        <textarea
-          className={textareaCls}
-          rows={2}
-          placeholder="Internal Note"
-          value={internalNote}
-          onChange={(e) => setInternalNote(e.target.value)}
         />
       </div>
 

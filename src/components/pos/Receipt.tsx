@@ -11,7 +11,6 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
 
   const lineItems = order?.nonPackagedLineItems || [];
   const subTotal = order?.subTotal ?? order?.finalSubTotal ?? 0;
-  const tax = order?.tax ?? 0;
   const total = order?.total ?? order?.finalPayable ?? 0;
   const orderId = order?.orderId ?? order?.advertisedId ?? order?.saleId ?? "N/A";
 
@@ -27,6 +26,8 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
   const taxBreakdown = lineItems
     .flatMap((item) => item?.createdLineItem?.snapShotData?.taxesApplied || [])
     .filter((t, i, self) => self.findIndex((s) => s.name === t.name) === i);
+  const tax =
+    order?.tax ?? taxBreakdown.reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
   const address = shopDetails?.locationDetails;
   const addressLine = [address?.streetAddress, address?.city, address?.state, address?.zipCode]
@@ -60,15 +61,30 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
 
       <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
         <tbody>
-          {lineItems.map((item, i) => (
-            <tr key={item?.createdLineItem?.packageId ?? i} style={{ fontWeight: "bold" }}>
-              <td>{item?.createdLineItem?.snapShotData?.productName ?? "Item"}</td>
-              <td style={{ textAlign: "center" }}>{item?.createdLineItem?.purchaseQuantity ?? 1}</td>
-              <td style={{ textAlign: "right" }}>
-                {(item?.createdLineItem?.finalTotalPrice ?? 0).toFixed(2)}
-              </td>
-            </tr>
-          ))}
+          {lineItems.map((item, i) => {
+            const discountNote = (item?.createdLineItem?.discountBreakDownHierarchy || [])
+              .filter((d) => !d.isDisabled && d.notes)
+              .map((d) => d.notes)
+              .join(", ");
+            return (
+              <tr key={item?.createdLineItem?.packageId ?? i}>
+                <td style={{ fontWeight: "bold" }}>
+                  {item?.createdLineItem?.snapShotData?.productName ?? "Item"}
+                  {discountNote && (
+                    <div style={{ fontSize: 10, fontWeight: "normal", color: "#4b5563" }}>
+                      {discountNote}
+                    </div>
+                  )}
+                </td>
+                <td style={{ textAlign: "center", fontWeight: "bold" }}>
+                  {item?.createdLineItem?.purchaseQuantity ?? 1}
+                </td>
+                <td style={{ textAlign: "right", fontWeight: "bold" }}>
+                  {(item?.createdLineItem?.finalTotalPrice ?? 0).toFixed(2)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -95,6 +111,12 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
         {cardPaid > 0 && row("CARD:", `$${cardPaid.toFixed(2)}`)}
         {changeAmount > 0 && row("CHANGE:", `$${Number(changeAmount).toFixed(2)}`)}
       </div>
+
+      {order?.receiptNote && (
+        <div style={{ marginTop: 8 }}>
+          <span>Receipt Note: {order.receiptNote}</span>
+        </div>
+      )}
 
       <div style={{ textAlign: "center", fontWeight: "bold", marginTop: 10 }}>THANK YOU!</div>
 

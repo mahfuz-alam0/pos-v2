@@ -15,6 +15,8 @@ import {
   Search,
   Trash2,
   X,
+  TriangleAlert,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -112,6 +114,13 @@ const TAB_ITEMS = [
   { key: "4", label: "Notes" },
   { key: "5", label: "Drafts" },
 ];
+
+// Module-level (not React state): survives client-side navigation away from
+// and back to /pos within the same tab, but resets to false on a real hard
+// reload/new tab, since the module re-evaluates from scratch. Used so the
+// session-reset below only fires on a genuinely fresh load, not every time
+// the user navigates back to this route.
+let hasInitializedPosSession = false;
 
 function TabletPosInner() {
   const dispatch = useDispatch();
@@ -304,7 +313,7 @@ function TabletPosInner() {
       .catch(() => {});
 
     const orderSource = localStorage.getItem("orderSource");
-    if (orderSource !== "ORDER_AHEAD") {
+    if (orderSource !== "ORDER_AHEAD" && !hasInitializedPosSession) {
       dispatch(
         updateSalesDetail({
           customerId: null,
@@ -316,7 +325,9 @@ function TabletPosInner() {
       dispatch(resetAddedLineITems());
       dispatch(resetCartForSale());
       dispatch(resetQuoteForSale());
+      dispatch(resetSelectedCustomer());
     }
+    hasInitializedPosSession = true;
 
     if (storedRegisterId)
       dispatch(updateSalesDetail({ registerId: storedRegisterId }));
@@ -633,6 +644,17 @@ function TabletPosInner() {
       }`.trim()
     : null;
 
+  const currentNote = selectedCustomer?.note || fullSelectedCustomer?.note;
+  const currentNoteSubject =
+    selectedCustomer?.noteSubject || fullSelectedCustomer?.noteSubject;
+  const previousNotes = Array.isArray(fullSelectedCustomer?.notesHistory)
+    ? fullSelectedCustomer.notesHistory.filter(Boolean)
+    : [];
+  const hasCustomerWarning = Boolean(fullSelectedCustomer?.shouldWarnUser);
+  const hasCustomerNotes = Boolean(
+    currentNote || currentNoteSubject || previousNotes.length > 0
+  );
+
   const registerReady = selectedRegister && selectedDrawerId;
 
   const wrapperClass = fullscreen
@@ -852,7 +874,7 @@ function TabletPosInner() {
             <div className="flex shrink-0 flex-wrap items-center gap-2 bg-white px-4 py-2">
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 rounded-lg bg-primary px-2.5 py-1.5 text-primary-foreground">
+                    <div className="flex items-center gap-2 rounded-lg bg-primary px-2.5 py-2 text-primary-foreground">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20 text-xs font-bold">
                         {selectedCustomer.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -865,16 +887,97 @@ function TabletPosInner() {
                           (selectedCustomer.firstName || "?")[0].toUpperCase()
                         )}
                       </span>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold leading-tight">
-                          {customerName}
-                        </div>
-                        {selectedCustomer.customerType && (
-                          <div className="text-[11px] leading-tight text-primary-foreground/70">
-                            {selectedCustomer.customerType}
+                      {hasCustomerWarning || hasCustomerNotes ? (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1 text-sm font-semibold leading-tight">
+                                  {customerName}
+                                  {hasCustomerWarning && (
+                                    <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                                  )}
+                                  {hasCustomerNotes && (
+                                    <FileText className="h-3.5 w-3.5 shrink-0 text-[#4B47C8]" />
+                                  )}
+                                </div>
+                                {selectedCustomer.customerType && (
+                                  <div className="text-[11px] leading-tight text-primary-foreground/70">
+                                    {selectedCustomer.customerType}
+                                  </div>
+                                )}
+                              </div>
+                            }
+                          />
+                          <TooltipContent className="block max-h-75 w-80 max-w-80 overflow-y-auto rounded-lg bg-white p-3 text-left text-foreground shadow-lg">
+                            {hasCustomerWarning && (
+                              <div
+                                className={`rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 ${
+                                  hasCustomerNotes ? "mb-2.5" : ""
+                                }`}
+                              >
+                                <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
+                                  ⚠ Warning
+                                </div>
+                                <div className="text-xs whitespace-pre-wrap text-amber-800">
+                                  {fullSelectedCustomer?.warningMessage ||
+                                    "This customer is flagged for a warning"}
+                                </div>
+                              </div>
+                            )}
+                            {(currentNote || currentNoteSubject) && (
+                              <div className={previousNotes.length ? "mb-2.5" : ""}>
+                                <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-blue-600 uppercase">
+                                  Current Note
+                                </div>
+                                {currentNoteSubject && (
+                                  <div className="text-[13px] font-semibold text-gray-800">
+                                    {currentNoteSubject}
+                                  </div>
+                                )}
+                                <div className="text-xs whitespace-pre-wrap text-gray-700">
+                                  {currentNote}
+                                </div>
+                              </div>
+                            )}
+                            {previousNotes.length > 0 && (
+                              <div>
+                                <div className="mb-1 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
+                                  Previous Notes
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  {previousNotes
+                                    .slice()
+                                    .reverse()
+                                    .map((noteText, idx) => (
+                                      <div
+                                        key={idx}
+                                        className={`text-xs whitespace-pre-wrap text-gray-600 ${
+                                          idx < previousNotes.length - 1
+                                            ? "border-b border-gray-100 pb-1.5"
+                                            : ""
+                                        }`}
+                                      >
+                                        {noteText}
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold leading-tight">
+                            {customerName}
                           </div>
-                        )}
-                      </div>
+                          {selectedCustomer.customerType && (
+                            <div className="text-[11px] leading-tight text-primary-foreground/70">
+                              {selectedCustomer.customerType}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <button
                         type="button"
                         className="ml-1 opacity-70 hover:opacity-100 disabled:opacity-30"

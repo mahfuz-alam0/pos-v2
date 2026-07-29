@@ -28,8 +28,9 @@ export default function ProductSearch({
   const [autoOpenProduct, setAutoOpenProduct] = useState(null);
   const [cartPanelOpen, setCartPanelOpen] = useState(false);
   // Drawer keeps its children mounted (CSS-only slide), so ProductList never
-  // remounts on its own between opens — bump this to force a fresh stock
-  // fetch each time "Manage Cart Items" is opened, instead of showing
+  // remounts on its own between opens. Passed to ProductList as
+  // `refreshSignal` — bumping it re-fetches stock in place (no unmount, so
+  // no flash/flicker while the drawer is sliding in) instead of showing
   // whatever quantities were fetched the first time it was opened.
   const [manageCartOpenCount, setManageCartOpenCount] = useState(0);
   const openManageCart = () => {
@@ -87,7 +88,7 @@ export default function ProductSearch({
           <div className="flex flex-1 gap-4 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-hidden">
               <ProductList
-                key={manageCartOpenCount}
+                refreshSignal={manageCartOpenCount}
                 setAddSelected={setAddSelected}
                 setMiscallenousType={setMiscallenousType}
                 setNotes={setNotes}
