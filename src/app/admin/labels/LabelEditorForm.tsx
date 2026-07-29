@@ -168,6 +168,13 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
     return false;
   };
 
+  function getDimensionsWithUnit(dimensions: { width: number; height: number }, type: string) {
+    if (isReceiptType(type)) {
+      return { width: dimensions.width, height: dimensions.height, unit: "mm" };
+    }
+    return { width: dimensions.width, height: dimensions.height, unit: "in" };
+  }
+
   async function renderPreview() {
     if (!previewRef.current) return;
     const template = templates.find((t) => t.id === selectedTemplateId);
@@ -295,7 +302,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
         <Card className="gap-4 p-4 lg:col-span-2">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Name" required>
@@ -403,12 +410,19 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
         </Card>
 
         {selectedTemplateId && (
-          <Card className="gap-3 p-4">
+          <Card className="h-full gap-3 p-4">
             <p className="text-sm font-semibold">Preview</p>
-            <div
-              className={`overflow-auto rounded-lg ring-1 ring-foreground/10 ${isReceiptType(labelType) ? "max-h-[600px]" : ""}`}
-            >
-              <div ref={previewRef} />
+            <div className="h-full w-full overflow-auto rounded-lg ring-1 ring-foreground/10">
+              <div
+                ref={previewRef}
+                style={{
+                  width: (() => {
+                    const templateDims = templates.find((t) => t.id === selectedTemplateId)?.dimensions;
+                    const d = getDimensionsWithUnit(templateDims || { width: 0, height: 0 }, labelType);
+                    return `${d.width}${d.unit}`;
+                  })(),
+                }}
+              />
             </div>
           </Card>
         )}
