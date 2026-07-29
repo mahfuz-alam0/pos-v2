@@ -22,15 +22,30 @@ interface MultiApiSelectProps {
   items?: MultiApiSelectOption[];
   /** Paginated remote source — mutually exclusive with `items`. */
   fetchPage?: (page: number, search: string) => Promise<{ items: MultiApiSelectOption[]; totalPages: number }>;
+  /** Known labels for pre-selected values (e.g. edit mode), shown before the popover is ever opened. */
+  initialLabels?: MultiApiSelectOption[];
   triggerClassName?: string;
 }
 
-export function MultiApiSelect({ placeholder = "Select...", value, onChange, items, fetchPage, triggerClassName }: MultiApiSelectProps) {
+export function MultiApiSelect({ placeholder = "Select...", value, onChange, items, fetchPage, initialLabels, triggerClassName }: MultiApiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [remoteItems, setRemoteItems] = React.useState<MultiApiSelectOption[]>([]);
-  const [labelMap, setLabelMap] = React.useState<Record<string, string>>({});
+  const [labelMap, setLabelMap] = React.useState<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    initialLabels?.forEach((item) => (next[item.id] = item.name));
+    return next;
+  });
+
+  React.useEffect(() => {
+    if (!initialLabels?.length) return;
+    setLabelMap((prev) => {
+      const next = { ...prev };
+      initialLabels.forEach((item) => (next[item.id] = item.name));
+      return next;
+    });
+  }, [initialLabels]);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
