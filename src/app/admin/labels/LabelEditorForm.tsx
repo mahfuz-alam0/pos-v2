@@ -409,23 +409,39 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
           </div>
         </Card>
 
-        {selectedTemplateId && (
-          <Card className="h-full gap-3 p-4">
-            <p className="text-sm font-semibold">Preview</p>
-            <div className="h-full w-full overflow-auto rounded-lg ring-1 ring-foreground/10">
-              <div
-                ref={previewRef}
-                style={{
-                  width: (() => {
-                    const templateDims = templates.find((t) => t.id === selectedTemplateId)?.dimensions;
-                    const d = getDimensionsWithUnit(templateDims || { width: 0, height: 0 }, labelType);
-                    return `${d.width}${d.unit}`;
-                  })(),
-                }}
-              />
-            </div>
-          </Card>
-        )}
+        {selectedTemplateId &&
+          (() => {
+            const PPI = 96; // CSS px per inch
+            const templateDims = templates.find((t) => t.id === selectedTemplateId)?.dimensions;
+            const d = getDimensionsWithUnit(templateDims || { width: 0, height: 0 }, labelType);
+            const unitToPx = d.unit === "mm" ? PPI / 25.4 : PPI;
+            const nativeW = Number(d.width) * unitToPx;
+            const nativeH = Number(d.height) * unitToPx;
+
+            const MAX_BOX = 320; // px cap the preview scales down to fit within
+            const fitScale = Math.min(1, MAX_BOX / nativeW, MAX_BOX / nativeH);
+
+            return (
+              <Card className="gap-3 p-4">
+                <p className="text-sm font-semibold">Preview</p>
+                <div
+                  className="flex items-center justify-center overflow-hidden rounded-lg ring-1 ring-foreground/10"
+                  style={{ width: nativeW * fitScale, height: nativeH * fitScale }}
+                >
+                  <div
+                    style={{
+                      width: nativeW,
+                      height: nativeH,
+                      transform: `scale(${fitScale})`,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <div ref={previewRef} style={{ width: `${d.width}${d.unit}` }} />
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
       </div>
     </div>
   );
