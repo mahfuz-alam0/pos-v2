@@ -15,7 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/admin/form-fields";
 
@@ -23,6 +29,14 @@ import { LabelFieldMap, isReceiptType, type LabelFieldDef } from "./labelFieldMa
 import type { LabelModel, PrintTemplate } from "./types";
 
 const DEFAULT_CUSTOM_LABEL = "PACKAGE_LABEL";
+
+const BARCODE_DIGIT_OPTIONS: Record<string, string> = {
+  full: "Full (all digits)",
+  "5": "Last 5 digits",
+  "8": "Last 8 digits",
+  "10": "Last 10 digits",
+  "12": "Last 12 digits",
+};
 
 interface FieldState extends LabelFieldDef {
   selected: boolean;
@@ -231,6 +245,24 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
     previewRef.current.appendChild(container);
   }
 
+  function handleTestPrint() {
+    const node = previewRef.current;
+    if (!node) return;
+    const styleId = "label-editor-print-styles";
+    document.getElementById(styleId)?.remove();
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.innerHTML = `
+      @media print {
+        body * { visibility: hidden; }
+        #label-editor-print-area, #label-editor-print-area * { visibility: visible; }
+        #label-editor-print-area { position: absolute !important; left: 0 !important; top: 0 !important; }
+      }
+    `;
+    document.head.appendChild(style);
+    window.print();
+  }
+
   async function handleSubmit() {
     if (!name.trim()) {
       toast.error("Please add labels name!");
@@ -267,7 +299,8 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
     }
   }
 
-  const relevantTemplates = templates.filter((t) => t.type === labelType);
+  // pos-web-old shows every template in the dropdown regardless of type — match that.
+  const relevantTemplates = templates;
 
   if (loading) {
     return (
@@ -288,9 +321,11 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
               <BreadcrumbItem>
                 <BreadcrumbPage>Settings</BreadcrumbPage>
               </BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Labels</BreadcrumbPage>
               </BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>{labelId ? "Edit Labels" : "New Label"}</BreadcrumbPage>
               </BreadcrumbItem>
@@ -312,7 +347,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
             <Field label="Label Type" required>
               <Select value={labelType} disabled>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(value) => LabelFieldMap[value]?.label ?? value}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.keys(LabelFieldMap).map((key) => (
@@ -330,7 +365,9 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
               ) : (
                 <Select value={selectedTemplateId ?? undefined} onValueChange={setSelectedTemplateId}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Template" />
+                    <SelectValue placeholder="Select Template">
+                      {(value) => templates.find((t) => t.id === value)?.name ?? "Select Template"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {relevantTemplates.map((template) => (
@@ -360,14 +397,14 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
               <Field label="Barcode / QR Digits">
                 <Select value={barcodeDigits} onValueChange={setBarcodeDigits}>
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>{(value) => BARCODE_DIGIT_OPTIONS[value] ?? value}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="full">Full (all digits)</SelectItem>
-                    <SelectItem value="5">Last 5 digits</SelectItem>
-                    <SelectItem value="8">Last 8 digits</SelectItem>
-                    <SelectItem value="10">Last 10 digits</SelectItem>
-                    <SelectItem value="12">Last 12 digits</SelectItem>
+                    {Object.entries(BARCODE_DIGIT_OPTIONS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>
@@ -423,9 +460,14 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
 
             return (
               <Card className="gap-3 p-4">
-                <p className="text-sm font-semibold">Preview</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">Preview</p>
+                  <Button variant="outline" size="sm" onClick={handleTestPrint}>
+                    Test Print
+                  </Button>
+                </div>
                 <div
-                  className="flex items-center justify-center overflow-hidden rounded-lg ring-1 ring-foreground/10"
+                  className="overflow-hidden rounded-lg ring-1 ring-foreground/10"
                   style={{ width: nativeW * fitScale, height: nativeH * fitScale }}
                 >
                   <div
@@ -436,7 +478,11 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
                       transformOrigin: "top left",
                     }}
                   >
-                    <div ref={previewRef} style={{ width: `${d.width}${d.unit}` }} />
+                    <div
+                      id="label-editor-print-area"
+                      ref={previewRef}
+                      style={{ width: `${d.width}${d.unit}`, height: `${d.height}${d.unit}` }}
+                    />
                   </div>
                 </div>
               </Card>

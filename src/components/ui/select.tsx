@@ -63,7 +63,7 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  alignItemWithTrigger = false,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Popup> & Pick<React.ComponentProps<typeof SelectPrimitive.Positioner>, "side" | "sideOffset" | "align" | "alignOffset" | "alignItemWithTrigger">) {
   return (
