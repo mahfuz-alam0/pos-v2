@@ -1131,6 +1131,7 @@ export default function TotalCard({
 
             {/* Loyalty Points */}
             {(selectedCustomer?.id || quoteBody?.customerId) && (
+              <div className="px-4">
               <LoyaltyPointsPanel
                 customerLoyaltyInfo={customerLoyaltyInfo}
                 appliedLoyaltyPoints={appliedLoyaltyPoints}
@@ -1146,6 +1147,7 @@ export default function TotalCard({
                 onApply={applyLoyaltyPoints}
                 onRemove={deleteLoyaltyPoints}
               />
+              </div>
             )}
 
             {/* Complete Order / Checkout */}

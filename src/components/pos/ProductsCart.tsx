@@ -430,7 +430,7 @@ export default function ProductsCart() {
       <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b text-left text-muted-foreground">
+          <tr className="border-b border-border text-left text-muted-foreground">
             {!isLocked && <th className="w-8 px-2 py-2" />}
             {!isLocked && <th className="w-8 px-2 py-2" />}
             <th className="px-2 py-2">Product Name</th>
@@ -442,7 +442,7 @@ export default function ProductsCart() {
         <tbody>
           {cart.map((record) => (
             <Fragment key={record.key ?? record.id}>
-            <tr className="border-b">
+            <tr className="border-b border-border">
               {!isLocked && (
                 <td className="px-2 py-2">
                   <button
@@ -566,7 +566,7 @@ export default function ProductsCart() {
               </td>
             </tr>
             {expandedKey === record.key && (
-              <tr className="border-b bg-muted/40">
+              <tr className="border-b border-border bg-muted/40">
                 <td colSpan={6} className="px-4 py-3">
                   <div className="mb-2 text-xs font-semibold text-muted-foreground">
                     Available Deals
@@ -586,10 +586,10 @@ export default function ProductsCart() {
                       <div className="mb-2 text-xs font-semibold text-muted-foreground">
                         Available Discounts
                       </div>
-                      <div className="overflow-x-auto rounded-md border">
+                      <div className="overflow-x-auto rounded-md border border-border">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b bg-muted/60 text-left text-xs text-muted-foreground">
+                            <tr className="border-b border-border bg-muted/60 text-left text-xs text-muted-foreground">
                               <th className="px-3 py-2">Discount Applied</th>
                               <th className="px-3 py-2">Discount Rate</th>
                               <th className="px-3 py-2">Notes</th>
@@ -605,7 +605,7 @@ export default function ProductsCart() {
                               );
                               const locked = isTiered || !hasApiMapping;
                               return (
-                                <tr key={d.source ?? i} className="border-b last:border-0">
+                                <tr key={d.source ?? i} className="border-b border-border last:border-0">
                                   <td className="px-3 py-2">
                                     {d.totalDiscountApplied != null
                                       ? `$${Number(d.totalDiscountApplied).toFixed(2)}`
@@ -696,7 +696,7 @@ export default function ProductsCart() {
             const shouldAllowDecimal = getShouldAllowDecimal(splitRecord);
             return (
               <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
                   <span className="text-muted-foreground">Current Quantity</span>
                   <span className="font-semibold">
                     {displayQtyTotal} {uom}

@@ -172,6 +172,7 @@ function TabletPosInner() {
   // customer overlay + panel state
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState(null);
   const [fullSelectedCustomer, setFullSelectedCustomer] = useState(null);
   const [dlManagerOpen, setDlManagerOpen] = useState(false);
   const [scanIdOpen, setScanIdOpen] = useState(false);
@@ -1046,6 +1047,16 @@ function TabletPosInner() {
                     Add
                   </Button>
                 )}
+
+                {selectedCustomer && (
+                  <Button
+                    disabled={hasSale}
+                    onClick={() => setEditingCustomerId(selectedCustomer.id)}
+                    className="!h-[39px] w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
+                  >
+                    Edit
+                  </Button>
+                )}
               </div>
 
               {/* Product browsing + line items */}
@@ -1156,10 +1167,20 @@ function TabletPosInner() {
         />
 
         <AddCustomerForm
-          open={addCustomerOpen}
-          onClose={() => setAddCustomerOpen(false)}
+          open={addCustomerOpen || !!editingCustomerId}
+          customerId={editingCustomerId}
+          onClose={() => {
+            setAddCustomerOpen(false);
+            setEditingCustomerId(null);
+          }}
           onCreated={(customer, mode) => {
             if (mode === "order" || !mode) handleSelectCustomer(customer);
+          }}
+          onUpdated={(customer) => {
+            if (customer) {
+              dispatch(setSelectedCustomer(customer));
+              setFullSelectedCustomer(customer);
+            }
           }}
         />
 
