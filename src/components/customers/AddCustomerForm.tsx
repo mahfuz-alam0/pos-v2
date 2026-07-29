@@ -81,25 +81,6 @@ const eighteenYearsAgoISO = () => {
   return d.toISOString().slice(0, 10);
 };
 
-/**
- * Full customer-creation form, ported field-for-field and check-for-check
- * from the legacy Add Customer page (routes/Admin/Customer Management/Add
- * Customer/index.js) — identity, address, customer groups/type, MJ-medical
- * section, referral source, notes, account-status + cashier-warning toggles,
- * the pre-create duplicate-license check with override/delete, the OMMA
- * medical-license verification check, and the share-mode PIN gate.
- *
- * Not ported (flagged, not silently dropped) — these depend on subsystems
- * that don't exist in this app yet:
- *  - OCR / camera driving-license scan and the barcode DL scanner
- *  - Avatar photo + document upload (no uploadFile/uploadFiles pipeline here)
- *  - Country picker (no country-list service here) — countryCode is fixed to
- *    "US"
- *  - ZIP → city/state autofill (legacy called Google Geocoding directly from
- *    the browser with a hardcoded API key; that's not something to carry
- *    forward as-is). City/state/zip remain plain editable fields, so no data
- *    the old form captured is missing — just the autofill convenience.
- */
 export default function AddCustomerForm({
   open,
   onClose,
