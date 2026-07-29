@@ -65,6 +65,7 @@ export default function ProductList({
   autoOpenProduct,
   showFooterActions = true,
   onClose,
+  refreshSignal,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
@@ -154,6 +155,19 @@ export default function ProductList({
       ]);
     }
   }, [quoteBody?.customerGroupId, fetchProductsData]);
+
+  // Re-fetch current stock in place (no unmount/remount) each time the
+  // "Manage Cart Items" drawer is reopened — skips the initial mount, which
+  // already fetches via the effect above.
+  const isFirstRefreshRef = useRef(true);
+  useEffect(() => {
+    if (isFirstRefreshRef.current) {
+      isFirstRefreshRef.current = false;
+      return;
+    }
+    fetchProductsData(buildBaseParams(activeFiltersRef.current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshSignal]);
 
   // Build params from an explicit filters snapshot — no stale-closure risk.
   const buildBaseParams = (filters, searchValue = "") => {

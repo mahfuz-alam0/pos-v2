@@ -70,7 +70,13 @@ export default function PosDrafts({ isActive, switchTab }) {
   }, [shopId]);
 
   useEffect(() => {
-    if (isActive) fetchDrafts();
+    if (!isActive) return;
+    fetchDrafts();
+    // Safety net for the drafts list's read replica lagging just behind a
+    // just-saved draft (backend list query reads from a secondary) — one
+    // silent follow-up refetch catches it without polling indefinitely.
+    const retryTimer = setTimeout(fetchDrafts, 1500);
+    return () => clearTimeout(retryTimer);
   }, [isActive, fetchDrafts]);
 
   // Returns { draft, quote }
@@ -264,7 +270,6 @@ export default function PosDrafts({ isActive, switchTab }) {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-2 font-medium">Draft ID</th>
                 <th className="px-4 py-2 font-medium">Customer</th>
                 <th className="px-4 py-2 text-center font-medium">
                   Total Price
@@ -276,11 +281,6 @@ export default function PosDrafts({ isActive, switchTab }) {
             <tbody className="divide-y divide-border">
               {drafts.map((record) => (
                 <tr key={record.id}>
-                  <td className="px-4 py-2">
-                    <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
-                      {record.id}
-                    </span>
-                  </td>
                   <td className="px-4 py-2">{record.customerName || "—"}</td>
                   <td className="px-4 py-2 text-center">
                     {record.totalPrice != null ? (
