@@ -26,6 +26,7 @@ const DEFAULT_CUSTOM_LABEL = "PACKAGE_LABEL";
 
 interface FieldState extends LabelFieldDef {
   selected: boolean;
+  isAvailableInTemplate: boolean;
 }
 
 export default function LabelEditorForm({ labelId }: { labelId: string | null }) {
@@ -54,6 +55,28 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
   }, [labelId]);
 
   useEffect(() => {
+    // Recompute which fields actually exist in the selected template's HTML.
+    // For new labels, also auto-select fields (QR prioritized) the first time a template is chosen.
+    const template = templates.find((t) => t.id === selectedTemplateId);
+    const html = template?.templateHtml;
+    if (!html || fields.length === 0) return;
+
+    setFields((prev) =>
+      prev.map((f) => {
+        const isAvailableInTemplate = html.includes(`id="d-${f.id}"`) || html.includes(`id="container-${f.id}"`);
+        if (isAvailableInTemplate === f.isAvailableInTemplate) return f;
+
+        if (!labelId && isAvailableInTemplate) {
+          const preferQr = labelType === "PACKAGE_LABEL" && (f.id === "package_id_qr" || f.type === "qr");
+          return { ...f, isAvailableInTemplate, selected: preferQr ? true : f.selected };
+        }
+        return { ...f, isAvailableInTemplate };
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId, templates]);
+
+  useEffect(() => {
     renderPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplateId, fields, templates]);
@@ -69,7 +92,11 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
   function buildFields(type: string, excluded: string[]): FieldState[] {
     return (LabelFieldMap[type]?.fields ?? []).map((f) => {
       const autoSelect = type === "PACKAGE_LABEL" && (f.id === "package_id_qr" || f.type === "qr");
-      return { ...f, selected: excluded.length > 0 ? !excluded.includes(f.id) : autoSelect };
+      return {
+        ...f,
+        selected: excluded.length > 0 ? !excluded.includes(f.id) : autoSelect,
+        isAvailableInTemplate: true,
+      };
     });
   }
 
@@ -109,7 +136,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
   const toggleField = (fieldId: string) => {
     setFields((prev) => {
       const target = prev.find((f) => f.id === fieldId);
-      if (!target) return prev;
+      if (!target || !target.isAvailableInTemplate) return prev;
 
       // mutual exclusivity between barcode and QR for package labels
       if (labelType === "PACKAGE_LABEL" && !target.selected) {
@@ -130,6 +157,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
   };
 
   const isFieldDisabled = (field: FieldState) => {
+    if (!field.isAvailableInTemplate) return true;
     if (labelType !== "PACKAGE_LABEL") return false;
     if (field.id === "package_barcode") {
       return !!fields.find((f) => f.id === "package_id_qr")?.selected && !field.selected;
@@ -140,7 +168,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
     return false;
   };
 
-  function renderPreview() {
+  async function renderPreview() {
     if (!previewRef.current) return;
     const template = templates.find((t) => t.id === selectedTemplateId);
     if (!template?.templateHtml) {
@@ -151,6 +179,19 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
     const container = document.createElement("div");
     container.innerHTML = template.templateHtml;
 
+    const qrFields = fields.filter((f) => f.selected && f.type === "qr" && f.testValue);
+    const qrUrls = await Promise.all(
+      qrFields.map(async (field) => {
+        try {
+          const QRCode = await import("qrcode");
+          return [field.id, await QRCode.toDataURL(field.testValue!, { width: 64, margin: 0 })] as const;
+        } catch {
+          return [field.id, null] as const;
+        }
+      })
+    );
+    const qrMap = new Map(qrUrls);
+
     fields.forEach((field) => {
       const target = container.querySelector(`#d-${field.id}`) || container.querySelector(`#container-${field.id}`);
       if (!field.selected) {
@@ -159,8 +200,21 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
       }
       if (!target) return;
 
-      if (field.type === "barcode" || field.type === "qr") {
-        target.innerHTML = `<div style="background:#f0f0f0;font-style:italic;padding:5px;text-align:center;font-size:10px;">[${field.type.toUpperCase()}: ${field.testValue ?? ""}]</div>`;
+      if (field.type === "qr") {
+        const qrUrl = qrMap.get(field.id);
+        target.innerHTML = "";
+        if (qrUrl) {
+          const img = document.createElement("img");
+          img.src = qrUrl;
+          img.alt = "QR Code";
+          img.style.width = "50px";
+          img.style.height = "50px";
+          img.style.display = "block";
+          img.style.margin = "0 auto";
+          target.appendChild(img);
+        }
+      } else if (field.type === "barcode") {
+        // barcode rendering is handled by the template's own embedded markup
       } else {
         target.innerHTML = field.testValue ?? "";
       }
@@ -324,7 +378,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
                     type="button"
                     disabled={disabled}
                     onClick={() => toggleField(field.id)}
-                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
                       field.selected && !disabled
                         ? "border-primary bg-primary text-primary-foreground"
                         : disabled
@@ -333,6 +387,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
                     }`}
                   >
                     {field.label}
+                    {!field.isAvailableInTemplate && <span className="opacity-70">(not in template)</span>}
                   </button>
                 );
               })}
