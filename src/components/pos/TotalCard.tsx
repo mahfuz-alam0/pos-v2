@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -85,6 +86,8 @@ export default function TotalCard({
   onDraftSaved,
   deliverySubType,
   deliveryType,
+  statusRowContainer,
+  checkoutButtonContainer,
 }: any) {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -963,6 +966,55 @@ export default function TotalCard({
   const hasSale = Object.keys(saleDetail).length > 0;
   const cartEmpty = lineItems.length === 0 && bogoData.length === 0;
 
+  // Shared by the sticky "Complete Order" button below and, when this card
+  // is used in Tablet Mode, by the same action portaled into the always-
+  // visible status row up top (see statusRowContainer/checkoutOverride) —
+  // one behavior, two possible places to trigger it from.
+  const handleCheckoutClick = () => {
+    if (isPaymentConfigured) {
+      createOrder({
+        paymentMethod,
+        storeCreditAmount,
+        cashAmount,
+        cashlessATMAmount,
+        cardAmount: cardPaymentAmount,
+        bleaumACHAmount,
+        debitCardAmount,
+        cashPaid: cashAmount,
+        virtualPaid: cashlessATMAmount + cardPaymentAmount + bleaumACHAmount,
+        changeAmount: changeValue,
+        changeMethod: quoteBody?.changeMethod || "CASH",
+        tipAmount: tipAmountSidebar || quoteBody?.tipGiven || 0,
+        notes: paymentNotes,
+        miscCharges: currentMiscallenousCharges || [],
+        miscDiscount: quoteBody?.miscDiscount || 0,
+        totalAmount: finalPayable,
+        totalPaid,
+        splitMode,
+        storeCreditsUtilized:
+          selectedStoreCredit && storeCreditAmount > 0
+            ? [{ shopId: selectedStoreCredit.shopId, utilized: storeCreditAmount }]
+            : [],
+      });
+    } else {
+      handleOpenPaymentSidebar();
+    }
+  };
+  const checkoutButtonDisabled =
+    loading || orderProcessing || (isPaymentConfigured && !paymentCompleted);
+  const checkoutButtonLabel = (
+    <>
+      {loading
+        ? "Processing…"
+        : isPaymentConfigured
+        ? paymentCompleted
+          ? "Complete Order"
+          : `Pay Remaining $${remainingAmount.toFixed(2)}`
+        : "Checkout"}{" "}
+      (Total: ${(finalPayable + (onlineTransactionFee || 0)).toFixed(2)})
+    </>
+  );
+
   const runOrDeferForPin = (action) => {
     if (isShareModeActive() && quoteBody?.proxyPin == null) {
       pendingPinActionRef.current = action;
@@ -972,8 +1024,52 @@ export default function TotalCard({
     }
   };
 
+  // Rendered inline by default; when a host page passes statusRowContainer
+  // (e.g. Tablet Mode POS wants this always visible above its "Attach
+  // Customer" section rather than tucked inside this card) it's portaled
+  // there instead — same component, same handlers, just a different DOM spot.
+  const paymentStatusRowEl = (
+    <PaymentStatusRow
+      paymentStatusPaidInFull={saleDetail?.paymentStatus === "PAID_IN_FULL"}
+      cartEmpty={cartEmpty}
+      onOpenPaymentSidebar={handleOpenPaymentSidebar}
+      paymentMethod={paymentMethod}
+      finalPayable={finalPayable}
+      currentAction={currentAction}
+      hasSale={hasSale}
+      orderStatus={orderStatus}
+      selectedStatus={selectedStatus}
+      onStatusChange={handleChange}
+      saleDetailStatusId={saleDetail?.status?.statusId}
+      selectedStatusObj={selectedStatusObj}
+      onQuickStatusChange={setSelectedStatus}
+      sendToFulfilmentLoading={sendToFulfilmentLoading}
+      onSendToFulfillment={() =>
+        runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
+      }
+      selectPortalContainer={statusRowContainer}
+    />
+  );
+
+  // Same "Complete Order" button as the sticky one further down — rendered
+  // there by default, or portaled to checkoutButtonContainer when a host
+  // (Tablet Mode) wants it pinned at the end of its own layout instead
+  // (e.g. below the Subtotal/Tax/Total block) rather than inside this card.
+  const checkoutButtonEl = !cartEmpty && currentAction === null && (
+    <button
+      disabled={checkoutButtonDisabled}
+      onClick={handleCheckoutClick}
+      className="w-full rounded-lg bg-[#297473] px-4 py-3 font-bold text-white shadow-lg transition-all hover:bg-[#20605f] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {checkoutButtonLabel}
+    </button>
+  );
+
   return (
     <>
+      {statusRowContainer && createPortal(paymentStatusRowEl, statusRowContainer)}
+      {checkoutButtonContainer && checkoutButtonEl &&
+        createPortal(checkoutButtonEl, checkoutButtonContainer)}
       <Card className="flex max-h-[calc(100vh-120px)] flex-col overflow-y-auto p-4">
         {/* processOrder: back / refresh */}
         {currentAction === "processOrder" && (
@@ -998,25 +1094,7 @@ export default function TotalCard({
 
         {/* Action row: payment method + status + finalize buttons */}
         <div className="mb-2 flex flex-col gap-2">
-          <PaymentStatusRow
-            paymentStatusPaidInFull={saleDetail?.paymentStatus === "PAID_IN_FULL"}
-            cartEmpty={cartEmpty}
-            onOpenPaymentSidebar={handleOpenPaymentSidebar}
-            paymentMethod={paymentMethod}
-            finalPayable={finalPayable}
-            currentAction={currentAction}
-            hasSale={hasSale}
-            orderStatus={orderStatus}
-            selectedStatus={selectedStatus}
-            onStatusChange={handleChange}
-            saleDetailStatusId={saleDetail?.status?.statusId}
-            selectedStatusObj={selectedStatusObj}
-            onQuickStatusChange={setSelectedStatus}
-            sendToFulfilmentLoading={sendToFulfilmentLoading}
-            onSendToFulfillment={() =>
-              runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
-            }
-          />
+          {!statusRowContainer && paymentStatusRowEl}
 
           <QuickActionsRow
             hasSale={hasSale}
@@ -1143,58 +1221,14 @@ export default function TotalCard({
               />
             )}
 
-            {/* Complete Order / Checkout */}
-            {!cartEmpty && (
+            {/* Complete Order / Checkout — omitted here when this same
+                button is already portaled elsewhere (see
+                checkoutButtonContainer above), so there's just one place to
+                trigger it from instead of two. */}
+            {!cartEmpty && !checkoutButtonContainer && (
               <div className="sticky bottom-0 z-20 mt-2 bg-background pb-1 pt-2">
-              <button
-                disabled={
-                  loading ||
-                  orderProcessing ||
-                  (isPaymentConfigured && !paymentCompleted)
-                }
-                onClick={() => {
-                  if (isPaymentConfigured) {
-                    createOrder({
-                      paymentMethod,
-                      storeCreditAmount,
-                      cashAmount,
-                      cashlessATMAmount,
-                      cardAmount: cardPaymentAmount,
-                      bleaumACHAmount,
-                      debitCardAmount,
-                      cashPaid: cashAmount,
-                      virtualPaid:
-                        cashlessATMAmount + cardPaymentAmount + bleaumACHAmount,
-                      changeAmount: changeValue,
-                      changeMethod: quoteBody?.changeMethod || "CASH",
-                      tipAmount: tipAmountSidebar || quoteBody?.tipGiven || 0,
-                      notes: paymentNotes,
-                      miscCharges: currentMiscallenousCharges || [],
-                      miscDiscount: quoteBody?.miscDiscount || 0,
-                      totalAmount: finalPayable,
-                      totalPaid,
-                      splitMode,
-                      storeCreditsUtilized:
-                        selectedStoreCredit && storeCreditAmount > 0
-                          ? [{ shopId: selectedStoreCredit.shopId, utilized: storeCreditAmount }]
-                          : [],
-                    });
-                  } else {
-                    handleOpenPaymentSidebar();
-                  }
-                }}
-                className="w-full rounded-lg bg-[#297473] px-4 py-3 font-bold text-white shadow-lg transition-all hover:bg-[#20605f] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading
-                  ? "Processing…"
-                  : isPaymentConfigured
-                  ? paymentCompleted
-                    ? "Complete Order"
-                    : `Pay Remaining $${remainingAmount.toFixed(2)}`
-                  : "Checkout"}{" "}
-                (Total: ${(finalPayable + (onlineTransactionFee || 0)).toFixed(2)})
-              </button>
-            </div>
+                {checkoutButtonEl}
+              </div>
             )}
           </>
         )}

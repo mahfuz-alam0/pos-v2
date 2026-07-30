@@ -34,7 +34,7 @@ import { quoteApiManager } from "@/utils/quoteApiManager";
 // NOT ported (out of the product/cart scope, and depend on unported services):
 // within-store transfer drawer, breakdown-package fallback (listPackagesMinimal),
 // matrix product resolution.
-export default function ScanInput({ setAddSelected }) {
+export default function ScanInput({ setAddSelected, placeholder = "Scan barcode / package ID", className = "" }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const quoteBody = useSelector((state: any) => state?.salesDetail);
@@ -397,12 +397,12 @@ export default function ScanInput({ setAddSelected }) {
     <div className="w-full">
       <Input
         ref={searchInputRef}
-        className="h-10"
+        className={className || "h-10"}
         value={inputValue}
         onChange={handleInputChange}
         onPaste={handlePaste}
         disabled={packagesLoading || isLocked}
-        placeholder="Scan barcode / package ID"
+        placeholder={placeholder}
         autoFocus
       />
 

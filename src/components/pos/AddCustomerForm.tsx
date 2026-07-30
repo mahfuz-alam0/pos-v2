@@ -90,8 +90,15 @@ const eighteenYearsAgoISO = () => {
  *    forward as-is). City/state/zip remain plain editable fields, so no data
  *    the old form captured is missing — just the autofill convenience.
  */
-export default function AddCustomerForm({ open, onClose, onCreated }) {
+export default function AddCustomerForm({
+  open,
+  onClose,
+  onCreated,
+  customer = null,
+  onUpdated = undefined,
+}) {
   const quoteBody = useSelector((state: any) => state?.salesDetail);
+  const isEditMode = !!customer;
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
@@ -124,8 +131,12 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
       .then((res) => {
         const list = res?.data?.data?.customerGroups || [];
         setGroups(list);
-        const defaultGroup = list.find((g) => g.isDefaultForShop);
-        if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
+        // Only pre-select the shop's default group when creating — editing
+        // prefills from the customer's actual groups instead (see below).
+        if (!isEditMode) {
+          const defaultGroup = list.find((g) => g.isDefaultForShop);
+          if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
+        }
       })
       .catch(() => {});
     listCustomerTypes()
@@ -138,7 +149,49 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
         )
       )
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Prefill from the existing customer when editing.
+  useEffect(() => {
+    if (!open || !customer) return;
+    setForm({
+      firstName: customer.firstName || "",
+      lastName: customer.lastName || "",
+      email: customer.email || "",
+      phone: (customer.phone || "").replace(/^\+/, ""),
+      sex: customer.sex || "",
+      dob: customer.dob || "",
+      drivingLicense: customer.drivingLicense || "",
+      drivingLicenseExpiry: customer.drivingLicenseExpiry || "",
+      streetAddress: customer.locationDetails?.streetAddress || "",
+      city: customer.locationDetails?.city || "",
+      state: customer.locationDetails?.state || "",
+      zipCode: customer.locationDetails?.zipCode || "",
+      customerTypeId: customer.customerTypeId || "",
+      medicalLicense: customer.mjMedicalData?.medicalLicense || "",
+      medicalLicenseExpiresAt: customer.mjMedicalData?.medicalLicenseExpiresAt || "",
+      condition: customer.mjMedicalData?.condition || "",
+      physician: customer.mjMedicalData?.physician || "",
+      careGiverName: customer.mjMedicalData?.careGiverName || "",
+      careGiverLicense: customer.mjMedicalData?.careGiverLicense || "",
+      patientName: customer.mjMedicalData?.patientName || "",
+      patientLicense: customer.mjMedicalData?.patientLicense || "",
+      referralSource: customer.referralSource || "",
+      note: customer.note || "",
+    });
+    setCustomerGroupIds(
+      (customer.customerGroups || [])
+        .map((g) => (typeof g === "string" ? g : g?.id))
+        .filter(Boolean)
+    );
+    setAccountActive(!customer.isLocked);
+    setShouldWarnUser(!!customer.shouldWarnUser);
+    setWarningMessage(customer.warningMessage || "");
+    setTemporaryPatient(!!customer.mjMedicalData?.isTemporaryPatient);
+    setHasCaregiver(!!customer.mjMedicalData?.hasCareGiver);
+    setIsCaregiver(!!customer.mjMedicalData?.isCareGiver);
+  }, [open, customer]);
 
   const setField = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -277,12 +330,44 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
     }
   };
 
+  const runUpdate = async (proxyPin) => {
+    setSubmitting(true);
+    try {
+      await updateCustomerInfo(customer.id, { ...buildPayload(), proxyPin });
+      toast.success("Customer updated successfully");
+      onUpdated?.({ ...customer, ...buildPayload() });
+      onClose?.();
+    } catch (error) {
+      if (error?.message === "No user found for the pin") {
+        toast.error("Invalid PIN");
+        setPinOpen(true);
+        return;
+      }
+      const msg = error?.errors?.join(", ") || error?.message || "Failed to update customer";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const shareModeActive =
     typeof window !== "undefined" && localStorage.getItem("shareMode") === "true";
 
   const handleSubmit = async (mode) => {
     if (!validate()) return;
     setSaveMode(mode);
+
+    // Editing skips the duplicate-license lookup (that's a create-time
+    // safeguard) and the queue/order save modes — just save the changes.
+    if (isEditMode) {
+      if (shareModeActive && quoteBody?.proxyPin == null) {
+        pendingSubmitRef.current = () => runUpdate(quoteBody?.proxyPin);
+        setPinOpen(true);
+        return;
+      }
+      runUpdate(quoteBody?.proxyPin);
+      return;
+    }
 
     // Duplicate-license check, matching the legacy pre-create lookup.
     if (form.drivingLicense || form.medicalLicense) {
@@ -372,7 +457,7 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
       >
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
-            Add Customer
+            {isEditMode ? "Edit Customer" : "Add Customer"}
           </div>
 
           {foundCustomers.length > 0 ? (
@@ -856,35 +941,47 @@ export default function AddCustomerForm({ open, onClose, onCreated }) {
                   Cancel
                 </Button>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("queue")}
-                  >
-                    {submitting && saveMode === "queue"
-                      ? "Saving…"
-                      : "Save & Add to Queue"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("order")}
-                  >
-                    {submitting && saveMode === "order"
-                      ? "Saving…"
-                      : "Save and Order"}
-                  </Button>
-                  <Button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleSubmit("save")}
-                  >
-                    {submitting && saveMode === "save"
-                      ? "Saving…"
-                      : "Save Customer"}
-                  </Button>
+                  {isEditMode ? (
+                    <Button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleSubmit("save")}
+                    >
+                      {submitting ? "Saving…" : "Save Changes"}
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={submitting}
+                        onClick={() => handleSubmit("queue")}
+                      >
+                        {submitting && saveMode === "queue"
+                          ? "Saving…"
+                          : "Save & Add to Queue"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={submitting}
+                        onClick={() => handleSubmit("order")}
+                      >
+                        {submitting && saveMode === "order"
+                          ? "Saving…"
+                          : "Save and Order"}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleSubmit("save")}
+                      >
+                        {submitting && saveMode === "save"
+                          ? "Saving…"
+                          : "Save Customer"}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </form>

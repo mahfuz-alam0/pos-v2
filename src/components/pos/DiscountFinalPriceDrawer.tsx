@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 import { updateSalesDetail } from "@/store/slices/salesDetailSlice";
+import { buildLineItemAssignment } from "@/utils/lineItemMatching";
 
 /**
  * Manual line-item pricing override drawer. Two modes:
@@ -50,6 +51,14 @@ export default function DiscountFinalPriceDrawer({
 }) {
   const dispatch = useDispatch();
   const quoteBody = useSelector((state: any) => state?.salesDetail);
+
+  // Disambiguates lines that share the same package (e.g. added twice at
+  // different quantities) so each resolves to its own quote result instead
+  // of the first packageId match — see lineItemMatching.ts.
+  const lineItemAssignment = useMemo(
+    () => buildLineItemAssignment(filteredLineItems, getOrderSummary?.data?.nonPackagedLineItems),
+    [filteredLineItems, getOrderSummary?.data?.nonPackagedLineItems]
+  );
 
   const [tab, setTab] = useState(defaultTab);
   const [discountType, setDiscountType] = useState("PERCENTAGE");
@@ -147,12 +156,9 @@ export default function DiscountFinalPriceDrawer({
         const newTotalPrice = parseFloat(totalPriceOverride);
 
         const totalBefore = selectedItemsData.reduce((sum, item) => {
-          const orderSummaryItem =
-            getOrderSummary?.data?.nonPackagedLineItems?.find(
-              (orderItem) =>
-                orderItem.createdLineItem.packageId ===
-                (item.packageId || item.id)
-            );
+          const orderSummaryItem = lineItemAssignment.get(
+            item.key ?? item.appMaintainedId ?? item.id
+          );
           const unitPrice =
             orderSummaryItem?.createdLineItem?.initialUnitPrice || item.price;
           return sum + unitPrice * item.purchaseQuantity;
@@ -164,12 +170,9 @@ export default function DiscountFinalPriceDrawer({
           const lineItemAMId = lineItem.appMaintainedId || lineItem.key;
           if (!selectedAMIds.has(lineItemAMId)) return lineItem;
 
-          const orderSummaryItem =
-            getOrderSummary?.data?.nonPackagedLineItems?.find(
-              (orderItem) =>
-                orderItem.createdLineItem.packageId ===
-                (lineItem.packageId || lineItem.id)
-            );
+          const orderSummaryItem = lineItemAssignment.get(
+            lineItem.key ?? lineItem.appMaintainedId ?? lineItem.id
+          );
           const unitPrice =
             orderSummaryItem?.createdLineItem?.initialUnitPrice ||
             lineItem.price;
@@ -249,16 +252,16 @@ export default function DiscountFinalPriceDrawer({
     setFinalPrices({ ...finalPrices, [itemId]: value });
   };
 
-  const hasFinalPrice = (itemId) => {
-    const orderSummaryItem = getOrderSummary?.data?.nonPackagedLineItems?.find(
-      (orderItem) => orderItem.createdLineItem.packageId === itemId
+  const hasFinalPrice = (item) => {
+    const orderSummaryItem = lineItemAssignment.get(
+      item.key ?? item.appMaintainedId ?? item.id
     );
     return orderSummaryItem?.createdLineItem?.isPriceManuallySet === true;
   };
 
   const unitPriceOf = (item) => {
-    const orderSummaryItem = getOrderSummary?.data?.nonPackagedLineItems?.find(
-      (orderItem) => orderItem.createdLineItem.packageId === item.id
+    const orderSummaryItem = lineItemAssignment.get(
+      item.key ?? item.appMaintainedId ?? item.id
     );
     return orderSummaryItem?.createdLineItem?.initialUnitPrice || item.price;
   };
@@ -498,26 +501,9 @@ export default function DiscountFinalPriceDrawer({
                         Selected Total: $
                         {selectedItemsData
                           .reduce((sum, item) => {
-                            const samePackageInCart = (
-                              filteredLineItems || []
-                            ).filter(
-                              (li) =>
-                                (li.packageId || li.id) ===
-                                (item.packageId || item.id)
+                            const summaryItem = lineItemAssignment.get(
+                              item.key ?? item.appMaintainedId ?? item.id
                             );
-                            const posInGroup = samePackageInCart.findIndex(
-                              (li) =>
-                                (li.appMaintainedId || li.key) ===
-                                (item.appMaintainedId || item.key)
-                            );
-                            const samePackageInSummary =
-                              getOrderSummary?.data?.nonPackagedLineItems?.filter(
-                                (o) => o.createdLineItem.packageId === item.id
-                              );
-                            const summaryItem =
-                              samePackageInSummary?.[
-                                posInGroup >= 0 ? posInGroup : 0
-                              ];
                             const unitPrice =
                               summaryItem?.createdLineItem?.finalUnitPrice ??
                               summaryItem?.createdLineItem?.initialUnitPrice ??
@@ -652,7 +638,7 @@ export default function DiscountFinalPriceDrawer({
                         {selectedItemsData.map((item) => {
                           const unitPrice = unitPriceOf(item);
                           const totalPrice = unitPrice * item.purchaseQuantity;
-                          const priceManuallySet = hasFinalPrice(item.id);
+                          const priceManuallySet = hasFinalPrice(item);
                           return (
                             <div
                               key={item.id}
