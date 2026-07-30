@@ -77,7 +77,7 @@ export default function AuditTable({
             )}
             <TableHead className="min-w-[220px]">Product</TableHead>
             <TableHead className="min-w-[130px]">Package ID</TableHead>
-            <TableHead className="min-w-[120px]">Metrc Tag</TableHead>
+            <TableHead className="min-w-30">Metrc Tag</TableHead>
             <TableHead className="min-w-[130px]">Brand</TableHead>
             <TableHead className="min-w-[130px]">Category</TableHead>
             <TableHead className="min-w-[130px]">Supplier</TableHead>

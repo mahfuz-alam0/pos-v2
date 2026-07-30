@@ -94,7 +94,7 @@ export default function RefundLineItems({ cart = [], discountTypes, onAddSelecte
 
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left text-muted-foreground">
             <tr>
@@ -147,12 +147,12 @@ export default function RefundLineItems({ cart = [], discountTypes, onAddSelecte
       </div>
 
       {visible && (
-        <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-9990 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setVisible(false)}
           />
-          <div className="relative z-[1] max-h-[80vh] w-full max-w-2xl overflow-auto rounded-xl bg-card p-5 shadow-2xl">
+          <div className="relative z-1 max-h-[80vh] w-full max-w-2xl overflow-auto rounded-xl bg-card p-5 shadow-2xl">
             <div className="mb-3 text-base font-semibold">Add Line Items</div>
             {error && packagesData.length === 0 && (
               <div className="mb-3 rounded-lg border border-border bg-muted p-3 text-sm">

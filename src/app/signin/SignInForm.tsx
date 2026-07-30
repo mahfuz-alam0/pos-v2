@@ -56,7 +56,7 @@ function EmployeeSelect({ employees, loading, value, onChange }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className="flex h-11 w-full items-center justify-between gap-1.5 rounded-lg border border-white/10 bg-white/[0.06] px-3 text-sm text-white outline-none"
+        className="flex h-11 w-full items-center justify-between gap-1.5 rounded-lg border border-white/10 bg-white/6 px-3 text-sm text-white outline-none"
       >
         <span className={selected ? "text-white" : "text-white/25"}>
           {selected ? selected.name : loading ? "Loading employees…" : "Select employee"}
@@ -74,7 +74,7 @@ function EmployeeSelect({ employees, loading, value, onChange }) {
             placeholder="Search employee..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 border-white/10 bg-white/[0.06] pl-8 text-sm text-white placeholder:text-white/25"
+            className="h-8 border-white/10 bg-white/6 pl-8 text-sm text-white placeholder:text-white/25"
           />
         </div>
         <div className="max-h-56 overflow-y-auto">
@@ -90,7 +90,7 @@ function EmployeeSelect({ employees, loading, value, onChange }) {
                 setOpen(false);
                 setSearch("");
               }}
-              className="flex w-full items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-white/80 hover:bg-white/[0.08]"
+              className="flex w-full items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-white/80 hover:bg-white/8"
             >
               <span className="truncate">{emp.name}</span>
               {value === emp.id && <Check className="h-3.5 w-3.5 shrink-0 text-[#038fdd]" />}
@@ -353,7 +353,7 @@ export default function SignInForm() {
                     type="text"
                     value={orgUsername}
                     onChange={(e) => handleOrgUsernameChange(e.target.value)}
-                    className="h-11 rounded-lg border-white/10 bg-white/[0.06] pl-9 pr-9 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
+                    className="h-11 rounded-lg border-white/10 bg-white/6 pl-9 pr-9 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
                     placeholder="acme"
                     autoComplete="organization"
                     suppressHydrationWarning
@@ -374,7 +374,7 @@ export default function SignInForm() {
                   onClick={() => setQrOpen(true)}
                   disabled={qrSubmitting}
                   title="Sign in with QR code"
-                  className="h-11 w-11 shrink-0 border-white/10 bg-white/[0.06] p-0 text-white hover:bg-white/[0.12]"
+                  className="h-11 w-11 shrink-0 border-white/10 bg-white/6 p-0 text-white hover:bg-white/12"
                 >
                   {qrSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -414,7 +414,7 @@ export default function SignInForm() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="h-11 rounded-lg border-white/10 bg-white/[0.06] pl-9 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
+                        className="h-11 rounded-lg border-white/10 bg-white/6 pl-9 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
                         placeholder="you@example.com"
                         autoComplete="email"
                         suppressHydrationWarning
@@ -436,7 +436,7 @@ export default function SignInForm() {
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="h-11 rounded-lg border-white/10 bg-white/[0.06] pl-9 pr-10 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
+                        className="h-11 rounded-lg border-white/10 bg-white/6 pl-9 pr-10 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
                         placeholder="••••••••"
                         autoComplete="current-password"
                         suppressHydrationWarning
@@ -493,7 +493,7 @@ export default function SignInForm() {
                     <Label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/55">
                       PIN
                     </Label>
-                    <div className="mb-3 min-h-[44px] select-none rounded-lg border border-white/10 bg-white/[0.06] px-4 py-2.5 text-center text-2xl tracking-[8px] text-white">
+                    <div className="mb-3 min-h-11 select-none rounded-lg border border-white/10 bg-white/6 px-4 py-2.5 text-center text-2xl tracking-[8px] text-white">
                       {pin.length > 0 ? (
                         "●".repeat(pin.length)
                       ) : (
@@ -512,7 +512,7 @@ export default function SignInForm() {
                               ? "border-red-500/30 bg-red-500/10 text-red-400"
                               : key === ""
                               ? "cursor-default border-transparent bg-transparent"
-                              : "border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.12]"
+                              : "border-white/10 bg-white/6 text-white hover:bg-white/12"
                           }`}
                         >
                           {key === "⌫" ? <Delete className="mx-auto h-4 w-4" /> : key}

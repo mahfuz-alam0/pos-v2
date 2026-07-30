@@ -1,7 +1,6 @@
 "use client";
 
-import { Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Pencil, Play } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -50,8 +49,25 @@ export default function PaymentStatusRow({
   // where the trigger itself renders.
   selectPortalContainer?: HTMLElement | null;
 }) {
+  const paymentLabel =
+    paymentMethod === "CASH"
+      ? "Cash"
+      : paymentMethod === "VIRTUAL"
+        ? "Card/Digital"
+        : paymentMethod === "BOTH_CASH_VIRTUAL"
+          ? "Cash + Card"
+          : "Payment Method";
+
+  const mainStatusItems = (orderStatus || []).filter(
+    (s) =>
+      s?.allowedSources?.includes(saleDetailStatusId) && !s?.isRollBackState,
+  );
+  const quickStatusItems = (orderStatus || []).filter(
+    (s) => !s.isTerminationState,
+  );
+
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1">
       <button
         disabled={paymentStatusPaidInFull || cartEmpty}
         onClick={onOpenPaymentSidebar}
@@ -74,6 +90,10 @@ export default function PaymentStatusRow({
 
       {(currentAction !== null || hasSale) && (
         <Select
+          items={mainStatusItems.map((s) => ({
+            value: s.statusId,
+            label: s.displayName,
+          }))}
           value={selectedStatus ?? ""}
           onValueChange={onStatusChange}
           disabled={currentAction === "processReturns"}>
@@ -94,7 +114,7 @@ export default function PaymentStatusRow({
               )
               .map((s) => (
                 <SelectItem key={s.statusId} value={s.statusId}>
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1.5">
                     <span
                       className="inline-block h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: s.colorCode }}

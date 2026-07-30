@@ -104,7 +104,7 @@ function TopProducts({ customerId }) {
             className="flex items-center gap-2 rounded-md px-1 py-1 text-xs text-white/85 hover:bg-[#FA8D15]/10 hover:text-[#FA8D15]"
           >
             <span
-              className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+              className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
               style={{ background: "rgba(1,144,221,0.2)", color: BLUE }}
             >
               {i + 1}
@@ -235,7 +235,7 @@ export default function CustomerCartSidebar() {
         <div className="mb-3">
           <div className="flex items-center gap-2">
             <span
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-bold text-primary"
+              className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-bold text-primary"
               style={{ border: `2px solid ${BLUE}` }}
             >
               {selectedCustomer.avatarUrl ? (
@@ -254,10 +254,10 @@ export default function CustomerCartSidebar() {
                 {customerName || "No customer selected"}
               </div>
               <div className="mt-1 flex flex-wrap gap-1">
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-[18px] text-white" style={{ background: "#389e0d" }}>
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-4.5 text-white" style={{ background: "#389e0d" }}>
                   {selectedCustomer.customerType ?? "No Type"}
                 </span>
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-[18px] text-white" style={{ background: BLUE }}>
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-4.5 text-white" style={{ background: BLUE }}>
                   {groupName}
                 </span>
               </div>

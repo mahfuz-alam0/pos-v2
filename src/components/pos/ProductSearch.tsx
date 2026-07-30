@@ -28,8 +28,9 @@ export default function ProductSearch({
   const [autoOpenProduct, setAutoOpenProduct] = useState(null);
   const [cartPanelOpen, setCartPanelOpen] = useState(false);
   // Drawer keeps its children mounted (CSS-only slide), so ProductList never
-  // remounts on its own between opens — bump this to force a fresh stock
-  // fetch each time "Manage Cart Items" is opened, instead of showing
+  // remounts on its own between opens. Passed to ProductList as
+  // `refreshSignal` — bumping it re-fetches stock in place (no unmount, so
+  // no flash/flicker while the drawer is sliding in) instead of showing
   // whatever quantities were fetched the first time it was opened.
   const [manageCartOpenCount, setManageCartOpenCount] = useState(0);
   const openManageCart = () => {
@@ -40,7 +41,7 @@ export default function ProductSearch({
   const isLocked = Object.keys(saleDetail).length > 0;
 
   return (
-    <div className="px-0">
+    <div>
       <div className="flex items-center gap-2">
         <div className="flex-1">
           <ScanInput setAddSelected={setAddSelected} />
@@ -56,7 +57,7 @@ export default function ProductSearch({
           />
         </div>
         <Button
-          className="h-10 min-w-[180px] px-6"
+          className="h-[39px] min-w-[170px] bg-[#3390DE] px-6 hover:bg-[#3390DE]/90"
           disabled={isLocked}
           onClick={openManageCart}
         >
@@ -87,7 +88,7 @@ export default function ProductSearch({
           <div className="flex flex-1 gap-4 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-hidden">
               <ProductList
-                key={manageCartOpenCount}
+                refreshSignal={manageCartOpenCount}
                 setAddSelected={setAddSelected}
                 setMiscallenousType={setMiscallenousType}
                 setNotes={setNotes}
@@ -104,7 +105,7 @@ export default function ProductSearch({
               type="button"
               onClick={() => setCartPanelOpen((v) => !v)}
               title={cartPanelOpen ? "Hide cart" : "Show cart"}
-              className="flex w-6 flex-shrink-0 items-center justify-center rounded-lg border border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE]"
+              className="flex w-6 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE]"
             >
               {cartPanelOpen ? (
                 <ChevronRight className="h-4 w-4" />
@@ -115,7 +116,7 @@ export default function ProductSearch({
             {cartPanelOpen && (
               <div
                 data-mode="dark"
-                className="w-[320px] flex-shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-[420px]"
+                className="w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
                 style={{ background: "#00152A", border: "1px solid rgba(1,144,221,0.18)" }}
               >
                 <CustomerCartSidebar />

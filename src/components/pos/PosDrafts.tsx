@@ -70,7 +70,13 @@ export default function PosDrafts({ isActive, switchTab }) {
   }, [shopId]);
 
   useEffect(() => {
-    if (isActive) fetchDrafts();
+    if (!isActive) return;
+    fetchDrafts();
+    // Safety net for the drafts list's read replica lagging just behind a
+    // just-saved draft (backend list query reads from a secondary) — one
+    // silent follow-up refetch catches it without polling indefinitely.
+    const retryTimer = setTimeout(fetchDrafts, 1500);
+    return () => clearTimeout(retryTimer);
   }, [isActive, fetchDrafts]);
 
   // Returns { draft, quote }
@@ -241,7 +247,7 @@ export default function PosDrafts({ isActive, switchTab }) {
   };
 
   return (
-    <div className="p-1">
+    <div>
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -264,7 +270,6 @@ export default function PosDrafts({ isActive, switchTab }) {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-2 font-medium">Draft ID</th>
                 <th className="px-4 py-2 font-medium">Customer</th>
                 <th className="px-4 py-2 text-center font-medium">
                   Total Price
@@ -276,11 +281,6 @@ export default function PosDrafts({ isActive, switchTab }) {
             <tbody className="divide-y divide-border">
               {drafts.map((record) => (
                 <tr key={record.id}>
-                  <td className="px-4 py-2">
-                    <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
-                      {record.id}
-                    </span>
-                  </td>
                   <td className="px-4 py-2">{record.customerName || "—"}</td>
                   <td className="px-4 py-2 text-center">
                     {record.totalPrice != null ? (
@@ -412,10 +412,10 @@ export default function PosDrafts({ isActive, switchTab }) {
                         <img
                           src={viewCustomer.avatarUrl}
                           alt={viewCustomer.firstName}
-                          className="h-11 w-11 flex-shrink-0 rounded-full object-cover"
+                          className="h-11 w-11 shrink-0 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
                           {(viewCustomer.firstName?.[0] || "").toUpperCase()}
                         </div>
                       )}
@@ -475,12 +475,12 @@ export default function PosDrafts({ isActive, switchTab }) {
                             <img
                               src={snap.productThumbNail}
                               alt={snap.productName}
-                              className="h-13 w-13 flex-shrink-0 rounded object-cover"
+                              className="h-13 w-13 shrink-0 rounded object-cover"
                               style={{ width: 52, height: 52 }}
                             />
                           ) : (
                             <div
-                              className="flex flex-shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
+                              className="flex shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
                               style={{ width: 52, height: 52 }}
                             >
                               ?
@@ -506,7 +506,7 @@ export default function PosDrafts({ isActive, switchTab }) {
                               </div>
                             )}
                           </div>
-                          <div className="flex-shrink-0 text-right">
+                          <div className="shrink-0 text-right">
                             <div className="font-bold">
                               ${Number(li?.finalTotalPrice ?? 0).toFixed(2)}
                             </div>

@@ -156,8 +156,8 @@ export default function ProductSearchDropdown({ onSelectProduct, disabled = fals
                 <button
                   key={product.id}
                   type="button"
-                  className={`block w-full truncate px-3 py-2 text-left text-sm hover:bg-accent ${
-                    i === highlightedIndex ? "bg-accent" : ""
+                  className={`block w-full truncate px-3 py-2 text-left text-sm hover:bg-muted ${
+                    i === highlightedIndex ? "bg-muted" : ""
                   }`}
                   onMouseEnter={() => setHighlightedIndex(i)}
                   onClick={() => selectProduct(product)}
@@ -174,7 +174,7 @@ export default function ProductSearchDropdown({ onSelectProduct, disabled = fals
                 ) : (
                   <button
                     type="button"
-                    className="w-full border-t border-border px-3 py-2 text-center text-xs font-medium text-primary hover:bg-accent"
+                    className="w-full border-t border-border px-3 py-2 text-center text-xs font-medium text-primary hover:bg-muted"
                     onClick={loadMore}
                   >
                     Load More ({remaining} remaining)

@@ -206,7 +206,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
           if (pendingFiltersRef.current) {
             const pf = pendingFiltersRef.current;
             pendingFiltersRef.current = null;
-            fetchOrders(pf).catch(() => {});
+            fetchOrders(pf).catch(() => { });
           }
           resolve(res?.data);
         })
@@ -268,14 +268,14 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
 
   // Filter-driven fetch
   useEffect(() => {
-    fetchOrders(buildFilters(1)).catch(() => {});
+    fetchOrders(buildFilters(1)).catch(() => { });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildFilters]);
 
   // Refresh when the tab becomes active (skip the very first activation).
   useEffect(() => {
     if (isActive && hasInitiallyLoaded.current) {
-      fetchOrders(buildFilters(1)).catch(() => {});
+      fetchOrders(buildFilters(1)).catch(() => { });
     } else if (isActive) {
       hasInitiallyLoaded.current = true;
     }
@@ -289,13 +289,13 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
       lastOrderAction.current !== orderAction
     ) {
       lastOrderAction.current = orderAction;
-      setTimeout(() => fetchOrders(buildFilters(1)).catch(() => {}), 500);
+      setTimeout(() => fetchOrders(buildFilters(1)).catch(() => { }), 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderAction]);
 
   const refreshOrdersData = useCallback(() => {
-    return fetchOrders(buildFilters(paginationData.page || 1)).catch(() => {});
+    return fetchOrders(buildFilters(paginationData.page || 1)).catch(() => { });
   }, [fetchOrders, buildFilters, paginationData.page]);
 
   // Expose refresh to parent.
@@ -364,7 +364,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
 
   const changePage = (nextPage) => {
     if (nextPage < 1 || nextPage > (paginationData.totalPages || 1)) return;
-    fetchOrders(buildFilters(nextPage)).catch(() => {});
+    fetchOrders(buildFilters(nextPage)).catch(() => { });
   };
 
   return (
@@ -610,12 +610,11 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                           {record.advertisedId}
                         </button>
                       </td>
-                      <td className="max-w-[160px] truncate px-3 py-2">
-                        {`${record?.customerInfo?.firstName ?? ""} ${
-                          record?.customerInfo?.lastName ?? ""
-                        }`.trim() || "-"}
+                      <td className="max-w-40 truncate px-3 py-2">
+                        {`${record?.customerInfo?.firstName ?? ""} ${record?.customerInfo?.lastName ?? ""
+                          }`.trim() || "-"}
                       </td>
-                      <td className="max-w-[140px] truncate px-3 py-2">
+                      <td className="max-w-35 truncate px-3 py-2">
                         {record?.employeeInfo?.name || "-"}
                       </td>
                       <td className="px-3 py-2">
@@ -623,9 +622,8 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                       </td>
                       <td className="px-3 py-2 text-center">
                         <span
-                          className={`rounded px-2 py-1 text-xs font-medium ${
-                            STATUS_STYLES[statusName] || "bg-amber-100 text-amber-600"
-                          }`}
+                          className={`rounded px-2 py-1 text-xs font-medium ${STATUS_STYLES[statusName] || "bg-amber-100 text-amber-600"
+                            }`}
                         >
                           {statusName === "Packaged & Ready"
                             ? "P&R"
@@ -637,11 +635,10 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`rounded px-2 py-1 text-xs ${
-                            record?.paymentStatus === "PAID_IN_FULL"
-                              ? "bg-teal-100 text-teal-600"
-                              : "bg-amber-100 text-amber-600"
-                          }`}
+                          className={`rounded px-2 py-1 text-xs ${record?.paymentStatus === "PAID_IN_FULL"
+                            ? "bg-teal-100 text-teal-600"
+                            : "bg-amber-100 text-amber-600"
+                            }`}
                         >
                           {record?.paymentStatus === "PAID_IN_FULL"
                             ? "Completed"
@@ -662,15 +659,14 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                                   if (statusName === "Completed")
                                     createSaleReportFor(record.id);
                                 }}
-                                className={`rounded px-2 py-1 text-xs font-medium capitalize ${
-                                  record?.reportingStatus === "SUCCESS"
-                                    ? "bg-teal-100 text-teal-600"
-                                    : record?.reportingStatus === "PENDING"
+                                className={`rounded px-2 py-1 text-xs font-medium capitalize ${record?.reportingStatus === "SUCCESS"
+                                  ? "bg-teal-100 text-teal-600"
+                                  : record?.reportingStatus === "PENDING"
                                     ? "bg-amber-100 text-amber-600"
                                     : record?.reportingStatus === "FAILED"
-                                    ? "bg-red-100 text-red-500"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
+                                      ? "bg-red-100 text-red-500"
+                                      : "bg-muted text-muted-foreground"
+                                  }`}
                               >
                                 {reportingLoadingId === record.id
                                   ? "…"
@@ -815,9 +811,8 @@ function OrderDetail({ order }) {
           <Row label="Completed At" value={fmtDateTime(order?.placedAtISO)} />
           <Row
             label="Customer"
-            value={`${order?.customer?.firstName ?? "-"} ${
-              order?.customer?.lastName ?? "-"
-            }`}
+            value={`${order?.customer?.firstName ?? "-"} ${order?.customer?.lastName ?? "-"
+              }`}
           />
           <Row label="Store" value={storeLabel} />
           <Row label="Customer Type" value={order?.customerType?.name ?? "-"} />

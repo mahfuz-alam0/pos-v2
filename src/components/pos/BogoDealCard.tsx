@@ -744,7 +744,7 @@ function BogoDealCard({ bogoDeals, productRecord }) {
             return (
               <div
                 key={item.dealId}
-                className={`relative flex min-w-[180px] max-w-[220px] flex-col overflow-hidden rounded-lg bg-[#ff9f434a] p-3 shadow-md ${
+                className={`relative flex min-w-45 max-w-55 flex-col overflow-hidden rounded-lg bg-[#ff9f434a] p-3 shadow-md ${
                   dealDisabled && !applied ? "border-2 border-neutral-300 opacity-60" : ""
                 }`}
               >

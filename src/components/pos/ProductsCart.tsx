@@ -2,7 +2,19 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Trash2, Minus, Plus, Info, ChevronDown, ChevronRight, SplitSquareHorizontal, FileText, Package, Tag, Percent } from "lucide-react";
+import {
+  Trash2,
+  Minus,
+  Plus,
+  Info,
+  ChevronDown,
+  ChevronRight,
+  SplitSquareHorizontal,
+  FileText,
+  Package,
+  Tag,
+  Percent,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useShop } from "@/context/shop-context";
 
@@ -75,7 +87,9 @@ export default function ProductsCart() {
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const quoteBody = useSelector((state: any) => state?.salesDetail);
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
-  const getOrderSummary = useSelector((state: any) => state?.quoteForSale?.lineItems);
+  const getOrderSummary = useSelector(
+    (state: any) => state?.quoteForSale?.lineItems,
+  );
   const [counters, setCounters] = useState({});
 
   // Two cart lines can share the same package (added separately at
@@ -83,15 +97,21 @@ export default function ProductsCart() {
   // response entry instead of every same-package line resolving to the
   // first match. See lineItemMatching.ts.
   const lineItemAssignment = useMemo(
-    () => buildLineItemAssignment(cart, getOrderSummary?.data?.nonPackagedLineItems),
-    [cart, getOrderSummary?.data?.nonPackagedLineItems]
+    () =>
+      buildLineItemAssignment(
+        cart,
+        getOrderSummary?.data?.nonPackagedLineItems,
+      ),
+    [cart, getOrderSummary?.data?.nonPackagedLineItems],
   );
 
   // Bulk selection -> Apply Deal / Apply Discount / Set Final Price toolbar,
   // ported from products-cart.js's selectedItemsForDiscount + the
   // Apply Deal/Discount/Final Price buttons.
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const [discountTab, setDiscountTab] = useState<"discount" | "finalPrice" | null>(null);
+  const [discountTab, setDiscountTab] = useState<
+    "discount" | "finalPrice" | null
+  >(null);
   const [dealDrawerOpen, setDealDrawerOpen] = useState(false);
   const [bulkDeals, setBulkDeals] = useState([]);
   const [bulkDealsLoading, setBulkDealsLoading] = useState(false);
@@ -123,7 +143,8 @@ export default function ProductsCart() {
     setRowDeals([]);
     setRowDealsLoading(true);
     const unitPriceToTarget =
-      lineItemAssignment.get(record.key)?.createdLineItem?.initialUnitPrice ?? record.price;
+      lineItemAssignment.get(record.key)?.createdLineItem?.initialUnitPrice ??
+      record.price;
     findApplicableDeals({
       shopId: JSON.parse(localStorage.getItem("shopId") || "null"),
       saleSource: "INTERNAL",
@@ -132,11 +153,17 @@ export default function ProductsCart() {
       customerTypeId: quoteBody?.customerTypeId,
       customerGroupId: quoteBody?.customerGroupId,
       lineItems: [
-        { productId: record.productId, packageId: record.id, unitPriceToTarget },
+        {
+          productId: record.productId,
+          packageId: record.id,
+          unitPriceToTarget,
+        },
       ],
     })
       .then((res) =>
-        setRowDeals(res?.data?.data?.deals?.applicableDeals?.regularDeals || [])
+        setRowDeals(
+          res?.data?.data?.deals?.applicableDeals?.regularDeals || [],
+        ),
       )
       .catch(() => toast.error("Failed to load available deals"))
       .finally(() => setRowDealsLoading(false));
@@ -144,11 +171,13 @@ export default function ProductsCart() {
 
   const toggleSelected = (key) =>
     setSelectedKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
 
   const openBulkDeals = () => {
-    const selectedItems = cart.filter((item) => selectedKeys.includes(item.key));
+    const selectedItems = cart.filter((item) =>
+      selectedKeys.includes(item.key),
+    );
     setDealDrawerOpen(true);
     setBulkDealsLoading(true);
     getBulkDeals({
@@ -181,7 +210,11 @@ export default function ProductsCart() {
   };
 
   const refreshQuote = (updatedLineItems, overrides = {}) => {
-    const updatedQuoteBody = { ...quoteBody, lineItems: updatedLineItems, ...overrides };
+    const updatedQuoteBody = {
+      ...quoteBody,
+      lineItems: updatedLineItems,
+      ...overrides,
+    };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "productsCart-quote")
       .then((res) => dispatch(getQuoteForSale(res.data)))
@@ -198,7 +231,7 @@ export default function ProductsCart() {
             purchaseQuantity: backendQuantity,
             disabledDiscountSources: [],
           }
-        : item
+        : item,
     );
     dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
     dispatch(addToCart(updatedLineItems));
@@ -289,12 +322,12 @@ export default function ProductsCart() {
     // stale entry would otherwise show as still "Applied" if this same
     // product gets added back to the cart later.
     const stillInCart = updatedLineItems.some(
-      (item) => item.productId === record.productId
+      (item) => item.productId === record.productId,
     );
     const updatedApplicableDeals = stillInCart
       ? quoteBody?.applicableRegularDeals
       : quoteBody?.applicableRegularDeals?.filter(
-          (d) => d.productId !== record.productId
+          (d) => d.productId !== record.productId,
         );
     dispatch(addLineItemsAction(updatedLineItems));
     dispatch(addToCart(updatedLineItems));
@@ -302,14 +335,16 @@ export default function ProductsCart() {
       updateSalesDetail({
         lineItems: updatedLineItems,
         applicableRegularDeals: updatedApplicableDeals,
-      })
+      }),
     );
     setCounters((c) => {
       const next = { ...c };
       delete next[record.key];
       return next;
     });
-    refreshQuote(updatedLineItems, { applicableRegularDeals: updatedApplicableDeals });
+    refreshQuote(updatedLineItems, {
+      applicableRegularDeals: updatedApplicableDeals,
+    });
   };
 
   const openSplit = (record) => {
@@ -338,7 +373,7 @@ export default function ProductsCart() {
     const updatedLineItems = cart.flatMap((item) =>
       item.key === splitRecord.key
         ? [{ ...item, purchaseQuantity: remainingBackendQty }, splitOffItem]
-        : [item]
+        : [item],
     );
 
     dispatch(addLineItemsAction(updatedLineItems));
@@ -376,29 +411,36 @@ export default function ProductsCart() {
   const hasPromo = (record) =>
     quoteBody?.couponId != null ||
     quoteBody?.loyaltyPointsClaimed !== 0 ||
-    quoteBody?.applicableRegularDeals?.some((d) => d.productId === record?.productId);
+    quoteBody?.applicableRegularDeals?.some(
+      (d) => d.productId === record?.productId,
+    );
 
   const orderSummaryItemFor = (record) => lineItemAssignment.get(record.key);
 
   const unitPriceOf = (record) =>
-    orderSummaryItemFor(record)?.createdLineItem?.initialUnitPrice ?? record.price;
+    orderSummaryItemFor(record)?.createdLineItem?.initialUnitPrice ??
+    record.price;
 
   // Total reflects any applied deal/discount — finalUnitPrice falls back to
   // the (pre-discount) unit price when nothing has been applied.
   const effectiveUnitPriceOf = (record) =>
-    orderSummaryItemFor(record)?.createdLineItem?.finalUnitPrice ?? unitPriceOf(record);
+    orderSummaryItemFor(record)?.createdLineItem?.finalUnitPrice ??
+    unitPriceOf(record);
 
   const discountBreakdownFor = (record) =>
-    orderSummaryItemFor(record)?.createdLineItem?.discountBreakDownHierarchy || [];
+    orderSummaryItemFor(record)?.createdLineItem?.discountBreakDownHierarchy ||
+    [];
 
   const advertisedPackageIdOf = (record) =>
-    orderSummaryItemFor(record)?.createdLineItem?.snapShotData?.advertisedPackageId ??
-    record.id;
+    orderSummaryItemFor(record)?.createdLineItem?.snapShotData
+      ?.advertisedPackageId ?? record.id;
 
   const displayQty = (record) => {
     if (counters[record.key] !== undefined) return counters[record.key];
     const conversionRate = record?.projectQtyConversionRate || 1;
-    return record.purchaseQuantity ? record.purchaseQuantity / conversionRate : 1;
+    return record.purchaseQuantity
+      ? record.purchaseQuantity / conversionRate
+      : 1;
   };
 
   if (cart.length === 0) {
@@ -417,15 +459,25 @@ export default function ProductsCart() {
           <span className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
             {selectedKeys.length}
           </span>
-          <span className="text-base font-medium text-muted-foreground">selected</span>
+          <span className="text-base font-medium text-muted-foreground">
+            selected
+          </span>
           <div className="ml-auto flex gap-2">
-            <Button className="h-11 rounded-lg text-base" onClick={openBulkDeals}>
+            <Button
+              className="h-11 rounded-lg text-base"
+              onClick={openBulkDeals}>
               Apply Deal
             </Button>
-            <Button variant="outline" className="h-11 rounded-lg text-base" onClick={() => setDiscountTab("discount")}>
+            <Button
+              variant="outline"
+              className="h-11 rounded-lg text-base"
+              onClick={() => setDiscountTab("discount")}>
               Apply Discount
             </Button>
-            <Button variant="outline" className="h-11 rounded-lg text-base" onClick={() => setDiscountTab("finalPrice")}>
+            <Button
+              variant="outline"
+              className="h-11 rounded-lg text-base"
+              onClick={() => setDiscountTab("finalPrice")}>
               Set Final Price
             </Button>
           </div>
@@ -433,246 +485,271 @@ export default function ProductsCart() {
       )}
 
       <div className="w-full overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 text-left">
-            {!isLocked && <th className="w-11 px-2 py-3.5" />}
-            {!isLocked && <th className="w-11 px-2 py-3.5" />}
-            <th className="px-3 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Product
-            </th>
-            <th className="px-3 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Price
-            </th>
-            <th className="px-3 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Qty
-            </th>
-            <th className="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Action
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {cart.map((record, i) => {
-            const isExpandedRow = expandedKey === record.key;
-            const zebra = i % 2 === 1 ? "bg-stone-50 dark:bg-stone-900/40" : "bg-background";
-            return (
-            <Fragment key={record.key ?? record.id}>
-            <tr
-              className={`${zebra} shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] transition-colors hover:bg-primary/3`}
-            >
-              {!isLocked && (
-                <td className="px-2 py-3">
-                  <button
-                    type="button"
-                    aria-label={isExpandedRow ? "Collapse" : "Show available deals"}
-                    onClick={() => toggleExpand(record)}
-                    className={`flex size-10 items-center justify-center rounded-full transition-colors ${
-                      isExpandedRow ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {isExpandedRow ? (
-                      <ChevronDown className="size-5" />
-                    ) : (
-                      <ChevronRight className="size-5" />
-                    )}
-                  </button>
-                </td>
-              )}
-              {!isLocked && (
-                <td className="px-2 py-3">
-                  <Checkbox
-                    className="size-5"
-                    checked={selectedKeys.includes(record.key)}
-                    onCheckedChange={() => toggleSelected(record.key)}
-                  />
-                </td>
-              )}
-              <td className="px-3 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-foreground">{record?.productName}</span>
-                  {hasPromo(record) && (
-                    <Badge className="h-6 border-transparent px-2.5 text-sm bg-green-600/10 text-green-700 dark:bg-green-500/15 dark:text-green-400">
-                      Promo
-                    </Badge>
-                  )}
-                </div>
-                {advertisedPackageIdOf(record) && (
-                  <div className="mt-1 flex items-center gap-1 font-mono text-xs text-muted-foreground">
-                    <Package className="size-3.5" />
-                    {advertisedPackageIdOf(record)}
-                  </div>
-                )}
-              </td>
-              <td className="px-3 py-3">
-                <div className="text-xs text-muted-foreground">
-                  Unit ${unitPriceOf(record).toFixed(2)}
-                </div>
-                <div className="text-lg font-bold text-foreground">
-                  ${(effectiveUnitPriceOf(record) * (record.purchaseQuantity ?? 1)).toFixed(2)}
-                </div>
-              </td>
-              <td className="px-3 py-3">
-                <div className="flex items-center justify-center gap-1.5 rounded-full bg-muted/60 p-1.5">
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="size-10 rounded-full"
-                    disabled={isLocked}
-                    onClick={() => handleDecrement(record)}
-                  >
-                    <Minus className="size-5" />
-                  </Button>
-                  <Input
-                    value={displayQty(record)}
-                    onChange={(e) => handleQuantityChange(record, e.target.value)}
-                    disabled={isLocked}
-                    inputMode={getShouldAllowDecimal(record) ? "decimal" : "numeric"}
-                    className="h-10 w-16 rounded-full border-0 bg-transparent text-center text-base font-semibold shadow-none"
-                  />
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="size-10 rounded-full"
-                    disabled={isLocked}
-                    onClick={() => handleIncrement(record)}
-                  >
-                    <Plus className="size-5" />
-                  </Button>
-                </div>
-              </td>
-              <td className="px-3 py-3 text-right">
-                {!isLocked && (
-                  <div className="flex items-center justify-end gap-2">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            type="button"
-                            aria-label="Print Label"
-                            className="inline-flex size-11 items-center justify-center rounded-full bg-sky-500/10 text-sky-600 transition-all hover:scale-105 hover:bg-sky-500/20 dark:bg-sky-500/15 dark:text-sky-400"
-                            onClick={() => setPrintLabelRecord(record)}
-                          >
-                            <FileText className="size-5" />
-                          </button>
-                        }
-                      />
-                      <TooltipContent>Print Label</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            type="button"
-                            aria-label="Split"
-                            className="inline-flex size-11 items-center justify-center rounded-full bg-violet-500/10 text-violet-600 transition-all hover:scale-105 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:text-violet-400"
-                            onClick={() => openSplit(record)}
-                          >
-                            <SplitSquareHorizontal className="size-5" />
-                          </button>
-                        }
-                      />
-                      <TooltipContent>Split</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            type="button"
-                            aria-label="Remove"
-                            className="inline-flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive transition-all hover:scale-105 hover:bg-destructive/20"
-                            onClick={() => handleRemove(record)}
-                          >
-                            <Trash2 className="size-5" />
-                          </button>
-                        }
-                      />
-                      <TooltipContent>Remove</TooltipContent>
-                    </Tooltip>
-                  </div>
-                )}
-              </td>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 text-left">
+              {!isLocked && <th className="w-11 px-2 py-3.5" />}
+              {!isLocked && <th className="w-11 px-2 py-3.5" />}
+              <th className="px-3 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Product
+              </th>
+              <th className="px-3 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Price
+              </th>
+              <th className="px-3 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Qty
+              </th>
+              <th className="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Action
+              </th>
             </tr>
-            {isExpandedRow && (
-              <tr className={zebra}>
-                <td colSpan={6} className="px-4 pb-4 pt-1 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-                  <div className="rounded-xl bg-muted/40 p-4">
-                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      <Tag className="size-4" />
-                      Available Deals
-                    </div>
-                    {rowDealsLoading ? (
-                      <div className="text-sm text-muted-foreground">Loading deals…</div>
-                    ) : (
-                      <DealCard
-                        deals={rowDeals}
-                        productRecord={null}
-                        onDealApplied={() => setExpandedKey(null)}
-                      />
+          </thead>
+          <tbody>
+            {cart.map((record, i) => {
+              const isExpandedRow = expandedKey === record.key;
+              const zebra =
+                i % 2 === 1
+                  ? "bg-stone-50 dark:bg-stone-900/40"
+                  : "bg-background";
+              return (
+                <Fragment key={record.key ?? record.id}>
+                  <tr
+                    className={`${zebra} shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] transition-colors hover:bg-primary/3`}>
+                    {!isLocked && (
+                      <td className="px-2 py-3">
+                        <button
+                          type="button"
+                          aria-label={
+                            isExpandedRow ? "Collapse" : "Show available deals"
+                          }
+                          onClick={() => toggleExpand(record)}
+                          className={`flex size-10 items-center justify-center rounded-full transition-colors ${
+                            isExpandedRow
+                              ? "bg-primary/15 text-primary"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}>
+                          {isExpandedRow ? (
+                            <ChevronDown className="size-5" />
+                          ) : (
+                            <ChevronRight className="size-5" />
+                          )}
+                        </button>
+                      </td>
                     )}
-
-                    {discountBreakdownFor(record).length > 0 && (
-                      <div className="mt-4">
-                        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          <Percent className="size-4" />
-                          Available Discounts
-                        </div>
-                        <div className="space-y-2">
-                          {discountBreakdownFor(record).map((d, di) => {
-                            const isTiered = d.source === "TIERED_PRICING";
-                            const isManual = d.source === "MANUAL_LINE_ITEM_DISCOUNT";
-                            const hasApiMapping = Boolean(
-                              DISCOUNT_SOURCE_TO_API_ENUM[d.source]
-                            );
-                            const locked = isTiered || !hasApiMapping;
-                            return (
-                              <div
-                                key={d.source ?? di}
-                                className="flex flex-wrap items-center gap-3 rounded-lg bg-background px-4 py-3.5 ring-1 ring-foreground/6"
-                              >
-                                <div className="text-lg font-bold text-foreground">
-                                  {d.totalDiscountApplied != null
-                                    ? `$${Number(d.totalDiscountApplied).toFixed(2)}`
-                                    : "-"}
-                                </div>
-                                <Badge variant="outline" className="h-6 px-2.5 text-sm font-semibold">
-                                  {isTiered
-                                    ? "N/A"
-                                    : d.discountRateType === "PERCENTAGE"
-                                    ? `${d.discountRate}%`
-                                    : `$${d.discountRate}`}
-                                </Badge>
-                                <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                                  {d.notes || "-"}
-                                </div>
-                                {isManual ? (
-                                  <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                                    Manual
-                                  </span>
-                                ) : (
-                                  <Switch
-                                    disabled={locked}
-                                    checked={locked ? true : !d.isDisabled}
-                                    onCheckedChange={(checked) =>
-                                      toggleDiscountSource(record, d.source, checked)
-                                    }
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                    {!isLocked && (
+                      <td className="px-2 py-3">
+                        <Checkbox
+                          className="size-5"
+                          checked={selectedKeys.includes(record.key)}
+                          onCheckedChange={() => toggleSelected(record.key)}
+                        />
+                      </td>
+                    )}
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-semibold text-foreground">
+                          {record?.productName}
+                        </span>
+                        {hasPromo(record) && (
+                          <Badge className="h-6 border-transparent px-2.5 text-sm bg-green-600/10 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                            Promo
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )}
-            </Fragment>
-            );
-          })}
-        </tbody>
-      </table>
+                      {advertisedPackageIdOf(record) && (
+                        <div className="mt-1 flex items-center gap-1 font-mono text-xs text-muted-foreground">
+                          <Package className="size-3.5" />
+                          {advertisedPackageIdOf(record)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="text-xs text-muted-foreground">
+                        Unit ${unitPriceOf(record).toFixed(2)}
+                      </div>
+                      <div className="text-lg font-bold text-foreground">
+                        $
+                        {(
+                          effectiveUnitPriceOf(record) *
+                          (record.purchaseQuantity ?? 1)
+                        ).toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center justify-center gap-1.5 rounded-full bg-muted/60 p-1.5">
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="size-10 rounded-full"
+                          disabled={isLocked}
+                          onClick={() => handleDecrement(record)}>
+                          <Minus className="size-5" />
+                        </Button>
+                        <Input
+                          value={displayQty(record)}
+                          onChange={(e) =>
+                            handleQuantityChange(record, e.target.value)
+                          }
+                          disabled={isLocked}
+                          inputMode={
+                            getShouldAllowDecimal(record)
+                              ? "decimal"
+                              : "numeric"
+                          }
+                          className="h-10 w-16 rounded-full border-0 bg-transparent text-center text-base font-semibold shadow-none"
+                        />
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="size-10 rounded-full"
+                          disabled={isLocked}
+                          onClick={() => handleIncrement(record)}>
+                          <Plus className="size-5" />
+                        </Button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      {!isLocked && (
+                        <div className="flex items-center justify-end gap-2">
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  aria-label="Print Label"
+                                  className="inline-flex size-11 items-center justify-center rounded-full bg-sky-500/10 text-sky-600 transition-all hover:scale-105 hover:bg-sky-500/20 dark:bg-sky-500/15 dark:text-sky-400"
+                                  onClick={() => setPrintLabelRecord(record)}>
+                                  <FileText className="size-5" />
+                                </button>
+                              }
+                            />
+                            <TooltipContent>Print Label</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  aria-label="Split"
+                                  className="inline-flex size-11 items-center justify-center rounded-full bg-violet-500/10 text-violet-600 transition-all hover:scale-105 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:text-violet-400"
+                                  onClick={() => openSplit(record)}>
+                                  <SplitSquareHorizontal className="size-5" />
+                                </button>
+                              }
+                            />
+                            <TooltipContent>Split</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  aria-label="Remove"
+                                  className="inline-flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive transition-all hover:scale-105 hover:bg-destructive/20"
+                                  onClick={() => handleRemove(record)}>
+                                  <Trash2 className="size-5" />
+                                </button>
+                              }
+                            />
+                            <TooltipContent>Remove</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                  {isExpandedRow && (
+                    <tr className={zebra}>
+                      <td
+                        colSpan={6}
+                        className="px-4 pb-4 pt-1 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                        <div className="rounded-xl bg-muted/40 p-4">
+                          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <Tag className="size-4" />
+                            Available Deals
+                          </div>
+                          {rowDealsLoading ? (
+                            <div className="text-sm text-muted-foreground">
+                              Loading deals…
+                            </div>
+                          ) : (
+                            <DealCard
+                              deals={rowDeals}
+                              productRecord={null}
+                              onDealApplied={() => setExpandedKey(null)}
+                            />
+                          )}
+
+                          {discountBreakdownFor(record).length > 0 && (
+                            <div className="mt-4">
+                              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <Percent className="size-4" />
+                                Available Discounts
+                              </div>
+                              <div className="space-y-2">
+                                {discountBreakdownFor(record).map((d, di) => {
+                                  const isTiered =
+                                    d.source === "TIERED_PRICING";
+                                  const isManual =
+                                    d.source === "MANUAL_LINE_ITEM_DISCOUNT";
+                                  const hasApiMapping = Boolean(
+                                    DISCOUNT_SOURCE_TO_API_ENUM[d.source],
+                                  );
+                                  const locked = isTiered || !hasApiMapping;
+                                  return (
+                                    <div
+                                      key={d.source ?? di}
+                                      className="flex flex-wrap items-center gap-3 rounded-lg bg-background px-4 py-3.5 ring-1 ring-foreground/6">
+                                      <div className="text-lg font-bold text-foreground">
+                                        {d.totalDiscountApplied != null
+                                          ? `$${Number(d.totalDiscountApplied).toFixed(2)}`
+                                          : "-"}
+                                      </div>
+                                      <Badge
+                                        variant="outline"
+                                        className="h-6 px-2.5 text-sm font-semibold">
+                                        {isTiered
+                                          ? "N/A"
+                                          : d.discountRateType === "PERCENTAGE"
+                                            ? `${d.discountRate}%`
+                                            : `$${d.discountRate}`}
+                                      </Badge>
+                                      <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                                        {d.notes || "-"}
+                                      </div>
+                                      {isManual ? (
+                                        <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                                          Manual
+                                        </span>
+                                      ) : (
+                                        <Switch
+                                          disabled={locked}
+                                          checked={
+                                            locked ? true : !d.isDisabled
+                                          }
+                                          onCheckedChange={(checked) =>
+                                            toggleDiscountSource(
+                                              record,
+                                              d.source,
+                                              checked,
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <DiscountFinalPriceDrawer
@@ -685,14 +762,20 @@ export default function ProductsCart() {
         onSuccess={() => setSelectedKeys([])}
       />
 
-      <Drawer open={dealDrawerOpen} onClose={() => setDealDrawerOpen(false)} side="right" size={600}>
+      <Drawer
+        open={dealDrawerOpen}
+        onClose={() => setDealDrawerOpen(false)}
+        side="right"
+        size={600}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-4 py-3 text-base font-semibold">
             Available Deals
           </div>
           <div className="flex-1 overflow-auto p-4">
             {bulkDealsLoading ? (
-              <div className="text-sm text-muted-foreground">Loading deals…</div>
+              <div className="text-sm text-muted-foreground">
+                Loading deals…
+              </div>
             ) : (
               <DealCard
                 deals={bulkDeals}
@@ -707,36 +790,49 @@ export default function ProductsCart() {
         </div>
       </Drawer>
 
-      <Dialog open={splitRecord != null} onOpenChange={(open) => !open && setSplitRecord(null)}>
+      <Dialog
+        open={splitRecord != null}
+        onOpenChange={(open) => !open && setSplitRecord(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Split &quot;{splitRecord?.productName}&quot;</DialogTitle>
+            <DialogTitle>
+              Split &quot;{splitRecord?.productName}&quot;
+            </DialogTitle>
           </DialogHeader>
-          {splitRecord && (() => {
-            const conversionRate = splitRecord.projectQtyConversionRate || 1;
-            const uom = splitRecord.projectQtyUomShortForm || splitRecord.sellableUomShortForm || "";
-            const displayQtyTotal = (splitRecord.purchaseQuantity || 1) / conversionRate;
-            const shouldAllowDecimal = getShouldAllowDecimal(splitRecord);
-            return (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                  <span className="text-muted-foreground">Current Quantity</span>
-                  <span className="font-semibold">
-                    {displayQtyTotal} {uom}
-                  </span>
+          {splitRecord &&
+            (() => {
+              const conversionRate = splitRecord.projectQtyConversionRate || 1;
+              const uom =
+                splitRecord.projectQtyUomShortForm ||
+                splitRecord.sellableUomShortForm ||
+                "";
+              const displayQtyTotal =
+                (splitRecord.purchaseQuantity || 1) / conversionRate;
+              const shouldAllowDecimal = getShouldAllowDecimal(splitRecord);
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">
+                      Current Quantity
+                    </span>
+                    <span className="font-semibold">
+                      {displayQtyTotal} {uom}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      Split Quantity
+                    </label>
+                    <Input
+                      value={splitCount}
+                      onChange={(e) => setSplitCount(e.target.value)}
+                      inputMode={shouldAllowDecimal ? "decimal" : "numeric"}
+                      placeholder="Enter qty"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Split Quantity</label>
-                  <Input
-                    value={splitCount}
-                    onChange={(e) => setSplitCount(e.target.value)}
-                    inputMode={shouldAllowDecimal ? "decimal" : "numeric"}
-                    placeholder="Enter qty"
-                  />
-                </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSplitRecord(null)}>
               Cancel
@@ -746,10 +842,10 @@ export default function ProductsCart() {
                 !splitRecord ||
                 !(parseFloat(splitCount) > 0) ||
                 parseFloat(splitCount) >=
-                  (splitRecord.purchaseQuantity || 1) / (splitRecord.projectQtyConversionRate || 1)
+                  (splitRecord.purchaseQuantity || 1) /
+                    (splitRecord.projectQtyConversionRate || 1)
               }
-              onClick={handleSplit}
-            >
+              onClick={handleSplit}>
               Confirm Split
             </Button>
           </DialogFooter>

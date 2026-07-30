@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IdCard, ScanBarcode, FileImage, ScanLine, UserPlus } from "lucide-react";
 import PhotoCheckinDialog from "@/components/settings/verify/PhotoCheckinDialog";
 import ScanIdDialog from "@/components/settings/verify/ScanIdDialog";
-import AddCustomerToQueue from "@/components/dashboard/AddCustomerToQueue";
+import AddCustomerToQueue from "@/components/customers/AddCustomerToQueue";
 
 // Dark-themed reskin of settings/VerifyTab for the Front Desk screen — same
 // underlying dialogs (ScanIdDialog/PhotoCheckinDialog), old-app tile order and
@@ -77,7 +77,7 @@ export default function FrontDeskVerifyPanel({ shopId, onCheckedIn }) {
           onClick={() => setAddCustomerOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
         >
-          <UserPlus className="size-4" /> Add Customer
+          <UserPlus className="size-4" /> Add Customer to Queue
         </button>
       </div>
 

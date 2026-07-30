@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Check,
+  Plus,
   Sun,
   Moon,
   Monitor,
   Palette,
   Timer,
-  LayoutGrid,
   Printer,
 } from "lucide-react";
 import { useTheme } from "@/context/theme-context";
@@ -17,19 +16,75 @@ import { useSettings } from "@/context/settings-context";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PrinterSelectionModal from "./PrinterSelectionModal";
 
-const POS_VIEW_OPTIONS = [
-  { value: "regular", label: "Computer View" },
-  { value: "tablet", label: "Tablet View" },
+const COLOR_FIELDS = [
+  { key: "primary", label: "Primary" },
+  { key: "secondary", label: "Secondary" },
+  { key: "accent", label: "Accent (sidebar)" },
 ];
+
+function CustomThemeSwatch() {
+  const { theme, setTheme, customColors, setCustomColors, customThemeId } = useTheme();
+  const [draft, setDraft] = useState(customColors);
+  const active = theme === customThemeId;
+
+  const apply = () => {
+    setCustomColors(draft);
+    setTheme(customThemeId);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        className="group flex flex-col items-center gap-1.5"
+        onClick={() => setDraft(customColors)}
+      >
+        <span
+          className={`relative flex size-9 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 transition-transform group-hover:scale-105 ${
+            active ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg" : ""
+          }`}
+          style={
+            active
+              ? {
+                  background: `conic-gradient(${customColors.primary} 0deg 120deg, ${customColors.secondary} 120deg 240deg, ${customColors.accent} 240deg 360deg)`,
+                  border: "none",
+                }
+              : undefined
+          }
+        >
+          {active ? (
+            <Check className="size-4 text-white drop-shadow" strokeWidth={3} />
+          ) : (
+            <Plus className="size-4 text-muted-foreground" />
+          )}
+        </span>
+        <span className={`text-[11px] ${active ? "font-medium text-primary" : "text-muted-foreground"}`}>
+          Custom
+        </span>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56">
+        <div className="flex flex-col gap-2.5">
+          {COLOR_FIELDS.map(({ key, label }) => (
+            <label key={key} className="flex items-center justify-between gap-3 text-xs text-text">
+              {label}
+              <input
+                type="color"
+                value={draft[key]}
+                onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                className="size-7 cursor-pointer rounded border border-border bg-transparent p-0"
+              />
+            </label>
+          ))}
+          <Button type="button" size="sm" onClick={apply} className="mt-1">
+            Apply
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const MODE_META = {
   light: { label: "Light", icon: Sun },
@@ -57,29 +112,20 @@ function SectionCard({ icon: Icon, title, description, children }) {
 }
 
 export default function PersonalizeTab({ onClose }) {
-  const router = useRouter();
   const { theme, setTheme, themes, mode, setMode, modes } = useTheme();
   const {
     queueBorder15,
     queueBorder20,
     queueYellowTime,
     queueRedTime,
-    posMode,
     printType,
     setQueueBorder15,
     setQueueBorder20,
     setQueueYellowTime,
     setQueueRedTime,
-    setPosMode,
     setPrintType,
   } = useSettings();
   const [printerModalOpen, setPrinterModalOpen] = useState(false);
-
-  function handlePosViewChange(value) {
-    setPosMode(value);
-    router.push(value === "tablet" ? "/sales" : "/pos");
-    onClose?.();
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -107,7 +153,7 @@ export default function PersonalizeTab({ onClose }) {
                         : ""
                     }`}
                     style={{
-                      background: `linear-gradient(135deg, ${t.primary} 50%, ${t.secondary} 50%)`,
+                      background: `conic-gradient(${t.primary} 0deg 120deg, ${t.secondary} 120deg 240deg, ${t.accent} 240deg 360deg)`,
                     }}
                   >
                     {active && (
@@ -124,6 +170,7 @@ export default function PersonalizeTab({ onClose }) {
                 </button>
               );
             })}
+            <CustomThemeSwatch />
           </div>
 
           <div className="flex rounded-lg bg-surface-alt p-1">
@@ -135,6 +182,7 @@ export default function PersonalizeTab({ onClose }) {
                   key={m}
                   type="button"
                   onClick={() => setMode(m)}
+                  suppressHydrationWarning
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
                     active
                       ? "bg-component-bg font-medium text-text shadow-sm"
@@ -199,25 +247,6 @@ export default function PersonalizeTab({ onClose }) {
       </SectionCard>
 
       <SectionCard
-        icon={LayoutGrid}
-        title="Point-of-Sale Screen"
-        description="Default layout opened when starting a sale."
-      >
-        <Select value={posMode} onValueChange={handlePosViewChange}>
-          <SelectTrigger className="w-full sm:w-1/2">
-            <SelectValue placeholder="Select View" />
-          </SelectTrigger>
-          <SelectContent>
-            {POS_VIEW_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </SectionCard>
-
-      <SectionCard
         icon={Printer}
         title="Automated Printing"
         description="Select a printer device per print job type. Saving a preference enables automated hardware printing."
@@ -228,13 +257,17 @@ export default function PersonalizeTab({ onClose }) {
               className={`size-2.5 rounded-full ${
                 printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
               }`}
+              suppressHydrationWarning
             />
-            {printType === "hardware" ? "On — printing to hardware devices" : "Off — using browser print"}
+            <span suppressHydrationWarning>
+              {printType === "hardware" ? "On — printing to hardware devices" : "Off — using browser print"}
+            </span>
           </span>
           <div className="flex shrink-0 items-center gap-2">
             <Button
               size="sm"
               variant={printType === "hardware" ? "outline" : "default"}
+              suppressHydrationWarning
               onClick={() => {
                 setPrinterModalOpen(true);
                 onClose?.();

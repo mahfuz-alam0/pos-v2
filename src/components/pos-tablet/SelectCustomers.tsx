@@ -130,10 +130,10 @@ export default function SelectCustomers({ open, onClose, onSelect }) {
       ?.displayName || "name";
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
+    <div className="fixed inset-0 z-60 flex flex-col bg-background">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 shadow-sm md:px-7">
-        <div className="flex flex-shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <User className="h-5 w-5" />
           </div>
@@ -197,7 +197,7 @@ export default function SelectCustomers({ open, onClose, onSelect }) {
         </Select>
 
         {shouldSegmentByShop && (
-          <div className="flex flex-shrink-0 overflow-hidden rounded-md border border-border">
+          <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
             <button
               type="button"
               className={`h-11 px-3 text-sm ${
@@ -240,7 +240,7 @@ export default function SelectCustomers({ open, onClose, onSelect }) {
         <Button
           variant="outline"
           size="icon"
-          className="h-11 w-11 flex-shrink-0"
+          className="h-11 w-11 shrink-0"
           onClick={handleClose}
         >
           <X className="h-5 w-5" />
@@ -284,7 +284,7 @@ export default function SelectCustomers({ open, onClose, onSelect }) {
                     key={customer.id}
                     className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/60"
                   >
-                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-lg font-bold text-primary-foreground">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-lg font-bold text-primary-foreground">
                       {customer.avatarUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -324,7 +324,7 @@ export default function SelectCustomers({ open, onClose, onSelect }) {
                       )}
                     </div>
                     <Button
-                      className="h-11 flex-shrink-0"
+                      className="h-11 shrink-0"
                       onClick={() => handleSelect(customer)}
                     >
                       Select

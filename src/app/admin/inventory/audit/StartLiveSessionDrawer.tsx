@@ -90,7 +90,7 @@ export default function StartLiveSessionDrawer({
               <TableBody>
                 {selectedRows.map((row, i) => (
                   <TableRow key={`${row.id}-${row.rowLocationId ?? i}`}>
-                    <TableCell className="max-w-[200px] truncate">{row.name}</TableCell>
+                    <TableCell className="max-w-50 truncate">{row.name}</TableCell>
                     <TableCell className="font-mono text-xs">{row.advertisedId}</TableCell>
                     <TableCell>
                       {row.rowLocationId ? locationMap[row.rowLocationId] || row.rowLocationId : "-"}

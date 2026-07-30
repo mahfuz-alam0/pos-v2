@@ -487,9 +487,9 @@ export default function ProductPromoTaxes({
 
   return (
     <TooltipProvider>
-      <div className="mb-5 rounded-lg border border-border p-2">
+      <div className="mb-5 rounded-lg p-2 shadow-[0_0_6px_rgba(0,0,0,0.08)]">
         <div className="flex items-center">
-          <div className="mt-1 mb-0 font-semibold capitalize">
+          <div className="mt-1 mb-0 font-semibold capitalize text-muted-foreground">
             Cart Items ({cartItemsCount})
             {errorList.length > 0 && (
               <div className="mt-2 flex items-center justify-between gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -622,7 +622,7 @@ export default function ProductPromoTaxes({
                             )}
                           </div>
                         </div>
-                        <div className="mr-2 flex-shrink-0 whitespace-nowrap text-[14px] font-semibold">
+                        <div className="mr-2 shrink-0 whitespace-nowrap text-[14px] font-semibold">
                           $ {item?.createdLineItem?.finalTotalPrice?.toFixed(2)}
                         </div>
                       </div>

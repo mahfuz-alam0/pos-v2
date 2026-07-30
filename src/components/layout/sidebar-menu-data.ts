@@ -31,6 +31,7 @@ export const retailMenu = [
     children: [
       { key: "pos-tablet", label: "POS", href: "/pos/tablet" },
       { key: "tablet-mode-pos", label: "Tablet Mode POS", href: "/pos/tablet-mode" },
+
       { key: "order-ahead", label: "Order Ahead", href: "/admin/orderahead" },
       { key: "front-desk", label: "Front Desk", href: "/admin/front-desk" },
       { key: "sales", label: "Sales", href: "/admin/orders" },

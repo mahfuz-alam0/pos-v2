@@ -17,19 +17,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import UomFormDrawer from "./UomFormDrawer";
+
+const PAGE_SIZE = 30;
 
 export default function UomTable() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | number | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
 
-  const loadUoms = useCallback(async () => {
+  const loadUoms = useCallback(async (targetPage = 1) => {
     setLoading(true);
     try {
-      const res = await fetchUomList({ page: 1, limit: 100 });
+      const res = await fetchUomList({ page: targetPage, limit: PAGE_SIZE });
       setRows(res?.data?.data?.uoms ?? []);
+      const pagination = res?.data?.data?.paginationData;
+      setTotalPages(pagination?.totalPages ?? 1);
+      setTotalEntries(pagination?.totalEntries ?? (res?.data?.data?.uoms ?? []).length);
+      setPage(targetPage);
     } catch (err) {
       toast.error(err?.message || "Failed to load units of measurement");
     } finally {
@@ -38,7 +48,7 @@ export default function UomTable() {
   }, []);
 
   useEffect(() => {
-    loadUoms();
+    loadUoms(1);
   }, [loadUoms]);
 
   const openAdd = () => {
@@ -54,7 +64,7 @@ export default function UomTable() {
   const handleSaved = () => {
     setDrawerOpen(false);
     setEditingId(null);
-    loadUoms();
+    loadUoms(page);
   };
 
   return (
@@ -134,6 +144,15 @@ export default function UomTable() {
           </TableBody>
         </Table>
       </div>
+
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalEntries={totalEntries}
+        pageSize={PAGE_SIZE}
+        loading={loading}
+        onPageChange={loadUoms}
+      />
 
       <UomFormDrawer
         open={drawerOpen}
