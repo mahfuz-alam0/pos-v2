@@ -1024,7 +1024,7 @@ export default function AddCustomerForm({
         </div>
       </Drawer>
 
-      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400} zIndex={70}>
+      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400} zIndex={60}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin

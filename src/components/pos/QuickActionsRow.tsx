@@ -60,20 +60,37 @@ export default function QuickActionsRow({
             </Button>
           }
         />
-        <PopoverContent className="w-44 p-1">
+        <PopoverContent className="w-60 p-1">
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+            className="flex w-full items-center gap-2.5 rounded-md p-1.5 text-left hover:bg-muted"
             onClick={onAddMiscCharge}
           >
-            <Percent className="h-4 w-4" /> Add Charge
+            <span className="text-base leading-none">💳</span>
+            <div>
+              <div className="text-[13px] font-semibold text-foreground">
+                Misc. Charge
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                Add a custom charge
+              </div>
+            </div>
           </button>
+          <div className="my-1 h-px bg-border" />
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+            className="flex w-full items-center gap-2.5 rounded-md p-1.5 text-left hover:bg-muted"
             onClick={onAddMiscDiscount}
           >
-            Add Discount
+            <span className="text-base leading-none">🏷️</span>
+            <div>
+              <div className="text-[13px] font-semibold text-foreground">
+                Misc. Discount
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                Apply a custom discount
+              </div>
+            </div>
           </button>
         </PopoverContent>
       </Popover>
