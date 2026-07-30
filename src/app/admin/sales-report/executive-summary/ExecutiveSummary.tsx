@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import type { DateRange } from "react-day-picker";
 import {
   Area,
   Bar,
@@ -22,6 +21,7 @@ import {
 import {
   DollarSign,
   FileText,
+  Loader2,
   Percent,
   ShoppingCart,
   TrendingUp,
@@ -39,7 +39,7 @@ import { fetchSalesHoursStats } from "@/services/analytics/salesHoursStats";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRangeSelector, type SelectedDateResult } from "@/components/ui/date-range-selector";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
@@ -88,7 +88,7 @@ function SummaryCard({
   value: string;
 }) {
   return (
-    <Card size="sm" className="flex-1 basis-37.5">
+    <Card className="flex-1 basis-37.5 p-4">
       <div className="flex items-center gap-3">
         <div
           className="flex size-9 shrink-0 items-center justify-center rounded-lg"
@@ -105,12 +105,39 @@ function SummaryCard({
   );
 }
 
+function LoadingOverlay({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/60 backdrop-blur-[1px]">
+      <Loader2 className="size-6 animate-spin text-primary" />
+    </div>
+  );
+}
+
+function TableSkeletonRows({ columns, rows = 4 }: { columns: number; rows?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, r) => (
+        <TableRow key={r} className="border-b-0">
+          {Array.from({ length: columns }).map((__, c) => (
+            <TableCell key={c}>
+              <Skeleton className="h-4 w-full" />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
+  );
+}
+
 export default function ExecutiveSummary() {
   const { shopId, shopDetails } = useShop();
 
-  const [range, setRange] = useState<DateRange | undefined>({
-    from: new Date(new Date().setHours(0, 0, 0, 0)),
-    to: new Date(new Date().setHours(23, 59, 59, 999)),
+  const todayStr = toDayString(new Date());
+  const [range, setRange] = useState<SelectedDateResult>({
+    startDate: todayStr,
+    endDate: todayStr,
+    timeEnabled: false,
   });
 
   const [summary, setSummary] = useState<SummaryData>(EMPTY_SUMMARY);
@@ -125,9 +152,11 @@ export default function ExecutiveSummary() {
   const [eodSalesSummary, setEodSalesSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const hasLoadedOnce = useRef(false);
+  const isInitialLoading = loading && !hasLoadedOnce.current;
 
-  const startDate = range?.from ? toDayString(range.from) : undefined;
-  const endDate = range?.to ? toDayString(range.to) : startDate;
+  const startDate = range.startDate ?? undefined;
+  const endDate = range.endDate ?? startDate;
 
   useEffect(() => {
     if (!shopId || !startDate || !endDate) return;
@@ -160,9 +189,9 @@ export default function ExecutiveSummary() {
         setSalesHourStats(hoursRes.value?.data?.weekDaysData || []);
       }
 
-      if (aovRes.status === "fulfilled" && aovRes.value?.data?.data) {
+      if (aovRes.status === "fulfilled" && aovRes.value?.data?.data?.data) {
         setSalesStatusAOVOverTime(
-          aovRes.value.data.data.map((item: any) => ({
+          aovRes.value.data.data.data.map((item: any) => ({
             date: item.date,
             new: item.newAmount || 0,
             returning: item.returningAmount || 0,
@@ -180,8 +209,8 @@ export default function ExecutiveSummary() {
         ]);
       }
 
-      if (sourceRes.status === "fulfilled" && sourceRes.value?.data) {
-        const d = sourceRes.value.data;
+      if (sourceRes.status === "fulfilled" && sourceRes.value?.data?.data) {
+        const d = sourceRes.value.data.data;
         setSalesByOrderSource(Array.isArray(d) ? d : [d]);
       }
 
@@ -189,6 +218,13 @@ export default function ExecutiveSummary() {
         setEodSalesSummary(eodRes.value?.data ?? null);
       }
 
+      hasLoadedOnce.current = true;
+      setLoading(false);
+    }).catch((err) => {
+      if (cancelled) return;
+      console.error("Failed to load executive summary", err);
+      toast.error("Failed to load executive summary");
+      hasLoadedOnce.current = true;
       setLoading(false);
     });
 
@@ -257,7 +293,7 @@ export default function ExecutiveSummary() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <Card size="sm">
+      <Card className="p-4">
         <div className="flex items-center gap-2">
           <FileText className="size-5 text-primary" />
           <div>
@@ -269,9 +305,13 @@ export default function ExecutiveSummary() {
         </div>
       </Card>
 
-      <Card size="sm">
+      <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <DateRangePicker value={range} onChange={setRange} />
+          <DateRangeSelector
+            setSelectedDate={setRange}
+            initialDate={{ startDate: range.startDate, endDate: range.endDate }}
+            showAllOption={false}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" disabled={loading}>Export</Button>} />
             <DropdownMenuContent>
@@ -285,15 +325,21 @@ export default function ExecutiveSummary() {
         </div>
       </Card>
 
-      <div className="flex flex-wrap gap-3">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 flex-1 basis-37.5 rounded-xl" />)
-          : summaryCards.map((c) => <SummaryCard key={c.title} {...c} />)}
+      <div className="relative flex flex-wrap gap-3">
+        {isInitialLoading ? (
+          Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 flex-1 basis-37.5 rounded-xl" />)
+        ) : (
+          <>
+            {summaryCards.map((c) => <SummaryCard key={c.title} {...c} />)}
+            <LoadingOverlay show={loading} />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">
-          <Card size="sm">
+          <Card className="relative p-4">
+            <LoadingOverlay show={!isInitialLoading && loading} />
             <h2 className="mb-3 text-sm font-semibold">Sales by Order Source</h2>
             <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
               <Table>
@@ -308,14 +354,15 @@ export default function ExecutiveSummary() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {salesByOrderSource.length === 0 && (
+                  {isInitialLoading && <TableSkeletonRows columns={6} />}
+                  {!isInitialLoading && salesByOrderSource.length === 0 && (
                     <TableRow className="border-b-0">
                       <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                         No data available.
                       </TableCell>
                     </TableRow>
                   )}
-                  {salesByOrderSource.map((row, i) => (
+                  {!isInitialLoading && salesByOrderSource.map((row, i) => (
                     <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                       <TableCell>{row.orderSource || "-"}</TableCell>
                       <TableCell>{row.onlineType || "N/A"}</TableCell>
@@ -330,8 +377,12 @@ export default function ExecutiveSummary() {
             </div>
           </Card>
 
-          <Card size="sm">
+          <Card className="relative p-4">
+            <LoadingOverlay show={!isInitialLoading && loading} />
             <h2 className="mb-3 text-sm font-semibold">Sales, Status &amp; AOV over Time</h2>
+            {isInitialLoading ? (
+              <Skeleton className="h-87.5 w-full rounded-xl" />
+            ) : (
             <ResponsiveContainer width="100%" height={350}>
               <ComposedChart data={salesStatusAOVOverTime} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -349,10 +400,12 @@ export default function ExecutiveSummary() {
                 <Line yAxisId="right" type="monotone" dataKey="aov" stroke="#ff7875" strokeWidth={2} name="AOV" />
               </ComposedChart>
             </ResponsiveContainer>
+            )}
           </Card>
         </div>
 
-        <Card size="sm">
+        <Card className="relative p-4">
+          <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Sales by Category</h2>
           <div className="max-h-125 overflow-auto rounded-xl ring-1 ring-foreground/10">
             <Table>
@@ -364,14 +417,15 @@ export default function ExecutiveSummary() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salesByCategory.length === 0 && (
+                {isInitialLoading && <TableSkeletonRows columns={3} />}
+                {!isInitialLoading && salesByCategory.length === 0 && (
                   <TableRow className="border-b-0">
                     <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
                       No data available.
                     </TableCell>
                   </TableRow>
                 )}
-                {salesByCategory.map((row, i) => (
+                {!isInitialLoading && salesByCategory.map((row, i) => (
                   <TableRow key={row.categoryId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                     <TableCell>{row.categoryName || "-"}</TableCell>
                     <TableCell className="text-right">${Number(row.netSales || 0).toFixed(2)}</TableCell>
@@ -384,15 +438,23 @@ export default function ExecutiveSummary() {
         </Card>
       </div>
 
-      <Card size="sm">
+      <Card className="relative p-4">
+        <LoadingOverlay show={!isInitialLoading && loading} />
         <h2 className="mb-3 text-sm font-semibold">Busy Times of Day</h2>
-        <BusyTimesChart salesHourStats={salesHourStats} />
+        {isInitialLoading ? (
+          <Skeleton className="h-75 w-full rounded-xl" />
+        ) : (
+          <BusyTimesChart salesHourStats={salesHourStats} />
+        )}
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card size="sm">
+        <Card className="relative p-4">
+          <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Medical vs. Recreational</h2>
-          {medicalVsRecreational.length === 0 || medicalTotal === 0 ? (
+          {isInitialLoading ? (
+            <Skeleton className="h-75 w-full rounded-xl" />
+          ) : medicalVsRecreational.length === 0 || medicalTotal === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">No data available.</p>
           ) : (
             <>
@@ -430,7 +492,8 @@ export default function ExecutiveSummary() {
           )}
         </Card>
 
-        <Card size="sm">
+        <Card className="relative p-4">
+          <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Sales by Store</h2>
           <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
             <Table>
@@ -442,14 +505,15 @@ export default function ExecutiveSummary() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salesByStore.length === 0 && (
+                {isInitialLoading && <TableSkeletonRows columns={3} />}
+                {!isInitialLoading && salesByStore.length === 0 && (
                   <TableRow className="border-b-0">
                     <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
                       No data available.
                     </TableCell>
                   </TableRow>
                 )}
-                {salesByStore.map((row, i) => (
+                {!isInitialLoading && salesByStore.map((row, i) => (
                   <TableRow key={row.shopId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                     <TableCell>{row.shopName || "-"}</TableCell>
                     <TableCell className="text-right">${Number(row.netSales || 0).toFixed(2)}</TableCell>
@@ -461,14 +525,24 @@ export default function ExecutiveSummary() {
           </div>
         </Card>
 
-        <Card size="sm">
+        <Card className="relative p-4">
+          <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Tax Summary</h2>
-          <TaxSummaryTable statsByTaxProfile={statsByTaxProfile} overallStats={overallStats} />
+          {isInitialLoading ? (
+            <Skeleton className="h-50 w-full rounded-xl" />
+          ) : (
+            <TaxSummaryTable statsByTaxProfile={statsByTaxProfile} overallStats={overallStats} />
+          )}
         </Card>
 
-        <Card size="sm">
+        <Card className="relative p-4">
+          <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Tax Breakdown by Classification</h2>
-          <TaxBreakdownCard taxesByClassification={eodSalesSummary?.taxesByClassification || []} />
+          {isInitialLoading ? (
+            <Skeleton className="h-50 w-full rounded-xl" />
+          ) : (
+            <TaxBreakdownCard taxesByClassification={eodSalesSummary?.taxesByClassification || []} />
+          )}
         </Card>
       </div>
 
