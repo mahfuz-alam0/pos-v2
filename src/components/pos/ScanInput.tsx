@@ -34,7 +34,7 @@ import { quoteApiManager } from "@/utils/quoteApiManager";
 // NOT ported (out of the product/cart scope, and depend on unported services):
 // within-store transfer drawer, breakdown-package fallback (listPackagesMinimal),
 // matrix product resolution.
-export default function ScanInput({ setAddSelected }) {
+export default function ScanInput({ setAddSelected, placeholder = "Scan barcode / package ID", className = "" }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const quoteBody = useSelector((state: any) => state?.salesDetail);
@@ -186,23 +186,18 @@ export default function ScanInput({ setAddSelected }) {
         return;
       }
 
-      const uniqueSelectedPackagesData = packagesWithQuantity.filter(
-        (p) => !cart.some((item) => item.id === p.id)
-      );
-
-      if (uniqueSelectedPackagesData.length === 0) {
-        toast.error(
-          "Oops! It looks like you have already added the selected item. Please choose another item to add to your cart."
-        );
-        setIsAddingToCart(false);
-        return;
-      }
-
+      // Always adds a new, independent cart line — scanning/selecting the
+      // same package again (e.g. to ring up another unit as its own line)
+      // is not merged or blocked; each line's own quote data stays distinct
+      // via a fresh appMaintainedId (see lineItemMatching.ts).
       const conversionRate = inventoryData?.inventoryInfo?.projectQtyConversionRate;
-      const packagesWithExtraFields = uniqueSelectedPackagesData.map((item) => {
+      const packagesWithExtraFields = packagesWithQuantity.map((item) => {
         const baseQuantity = counters[item.id] !== undefined ? counters[item.id] : 1;
+        const lineId = crypto.randomUUID();
         return {
           ...item,
+          key: lineId,
+          appMaintainedId: lineId,
           inventoryId: item.inventoryId,
           packageId: item.id,
           purchaseQuantity: conversionRate ? conversionRate * baseQuantity : baseQuantity,
@@ -279,8 +274,10 @@ export default function ScanInput({ setAddSelected }) {
 
         const updatedPackagesInfo = mapPackages(inventory);
 
-        // Scan-only single-package flow: skip the drawer, add straight to cart
-        // (or bump quantity if already present).
+        // Scan-only single-package flow: skip the drawer, add straight to
+        // cart as its own new line every time — rescanning the same package
+        // adds another line rather than bumping an existing one's quantity,
+        // same as everywhere else (see lineItemMatching.ts).
         if (shouldEnableScanOnlyCart && updatedPackagesInfo.length === 1) {
           const scannedPackage =
             updatedPackagesInfo.find(
@@ -289,43 +286,12 @@ export default function ScanInput({ setAddSelected }) {
                 pkg.advertisedId?.endsWith(advertisedPackageId)
             ) || updatedPackagesInfo[0];
           const conversionRate = inventory?.inventoryInfo?.projectQtyConversionRate || 1;
-          const existingItemIndex = cart.findIndex((item) => item.id === scannedPackage.id);
-
-          if (existingItemIndex !== -1) {
-            const updatedCart = cart.map((item, index) =>
-              index === existingItemIndex
-                ? {
-                    ...item,
-                    purchaseQuantity:
-                      (item.purchaseQuantity || conversionRate) + conversionRate,
-                  }
-                : item
-            );
-            dispatch(addToCart(updatedCart));
-            dispatch(addLineItemsAction(updatedCart));
-            dispatch(updateSalesDetail({ lineItems: updatedCart }));
-            refreshQuote(updatedCart, "scanInput-scanOnly-qtyUpdate")
-              .then((quoteRes) => {
-                dispatch(getQuoteForSale(quoteRes.data));
-                const newQty =
-                  (cart[existingItemIndex].purchaseQuantity || conversionRate) /
-                    conversionRate +
-                  1;
-                toast.success(`${scannedPackage.productName} quantity updated to ${newQty}`);
-              })
-              .catch((error) =>
-                toast.error(error?.message ?? "Failed to update quote. Please try again.")
-              )
-              .finally(() => {
-                setInputValue("");
-                setScannedPackageId(null);
-                setPackagesLoading(false);
-              });
-            return;
-          }
+          const lineId = crypto.randomUUID();
 
           const packageWithExtraFields = {
             ...scannedPackage,
+            key: lineId,
+            appMaintainedId: lineId,
             inventoryId: scannedPackage.inventoryId,
             packageId: scannedPackage.id,
             purchaseQuantity: conversionRate * 1,
@@ -397,12 +363,12 @@ export default function ScanInput({ setAddSelected }) {
     <div className="w-full">
       <Input
         ref={searchInputRef}
-        className="h-10"
+        className={className || "h-10"}
         value={inputValue}
         onChange={handleInputChange}
         onPaste={handlePaste}
         disabled={packagesLoading || isLocked}
-        placeholder="Scan barcode / package ID"
+        placeholder={placeholder}
         autoFocus
       />
 

@@ -63,11 +63,12 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = false,
+  alignItemWithTrigger = true,
+  container,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Popup> & Pick<React.ComponentProps<typeof SelectPrimitive.Positioner>, "side" | "sideOffset" | "align" | "alignOffset" | "alignItemWithTrigger">) {
+}: React.ComponentProps<typeof SelectPrimitive.Popup> & Pick<React.ComponentProps<typeof SelectPrimitive.Positioner>, "side" | "sideOffset" | "align" | "alignOffset" | "alignItemWithTrigger"> & { container?: HTMLElement | null }) {
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={container}>
       <SelectPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}

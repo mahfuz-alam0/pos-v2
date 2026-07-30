@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { X, Minus, Trash2 } from "lucide-react";
 import {
@@ -646,7 +647,9 @@ export default function PaymentSidebar({
 
   const grandTotal = totalAmount;
 
-  const calculateChange = () => {
+  // Pure — safe to call during render (e.g. for display). Does not touch
+  // React state; use calculateChange() below for that.
+  const getChangeAmount = () => {
     const cashPaid = Number.parseFloat(String(cashAmountInternal)) || 0;
     const virtualPaid =
       (Number.parseFloat(String(cashlessATMAmount)) || 0) +
@@ -656,8 +659,17 @@ export default function PaymentSidebar({
     const totalPaid = storeCreditAmount + cashPaid + virtualPaid;
     const change = totalPaid - grandTotal;
     const changeAmount = Math.max(0, change);
-    setChangeValue(Number.parseFloat(changeAmount.toFixed(2)));
     return Number.parseFloat(changeAmount.toFixed(2));
+  };
+
+  // Side-effecting: also pushes the value up via setChangeValue (a parent
+  // state setter). Only call this from event handlers/effects — calling it
+  // during render updates a different component (TotalCard) mid-render,
+  // which React disallows. Render-time reads should use getChangeAmount().
+  const calculateChange = () => {
+    const value = getChangeAmount();
+    setChangeValue(value);
+    return value;
   };
 
   const calculateRemaining = () => {
@@ -913,11 +925,16 @@ export default function PaymentSidebar({
     availableStoreCredits.length > 0,
   ].filter(Boolean).length;
 
-  return (
+  // Portaled straight to <body> — this overlay must always cover the full
+  // viewport regardless of where its trigger lives in the tree; rendering it
+  // inline would put it at the mercy of any ancestor with a CSS `transform`
+  // (e.g. a sliding Drawer), which creates a new containing block and would
+  // shrink/misplace this `fixed` panel to that ancestor's box instead.
+  return createPortal(
     <div className="fixed inset-0 z-[999] overflow-hidden">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-card text-foreground shadow-2xl">
+      <div className="absolute right-0 top-0 h-full w-full max-w-[75vw] bg-card text-foreground shadow-2xl">
         <div className="flex h-full flex-col">
           <div className="flex w-full items-center justify-between px-6 pt-2">
             <button
@@ -1241,7 +1258,7 @@ export default function PaymentSidebar({
               <div className="rounded-xl border border-border p-6">
                 <div className="space-y-3">
                   <h3 className="text-lg font-semibold">
-                    Change Amount: ${calculateChange().toFixed(2)}
+                    Change Amount: ${getChangeAmount().toFixed(2)}
                   </h3>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -1251,7 +1268,7 @@ export default function PaymentSidebar({
                       <input
                         type="number"
                         className="h-[50px] w-full rounded-lg border border-input bg-transparent pl-7 pr-3 text-lg font-semibold outline-none"
-                        value={calculateChange().toFixed(2)}
+                        value={getChangeAmount().toFixed(2)}
                         readOnly
                       />
                     </div>
@@ -1633,6 +1650,7 @@ export default function PaymentSidebar({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

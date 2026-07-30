@@ -85,35 +85,52 @@ export default function AddCustomerForm({
   open,
   onClose,
   onCreated,
-  onUpdated = undefined,
+  // Two ways to edit an existing customer: pass the object directly
+  // (customer — no extra fetch), or just its id (customerId — this form
+  // fetches it itself). Both resolve to the same editSource/editTargetId
+  // below, so the rest of the component doesn't need to care which was used.
+  customer = null,
   customerId = null,
+  onUpdated = undefined,
+  // Prefills a NEW customer's fields (e.g. from a DL/med-ID scan) — ignored
+  // once editing, since the edit-prefill effect below takes over.
+  initialValues = undefined,
   zIndex = 60,
-  initialValues = {},
-}: {
-  open: boolean;
-  onClose?: () => void;
-  onCreated?: (customer?: any, mode?: string) => void;
-  onUpdated?: (customer?: any) => void;
-  customerId?: string | null;
-  zIndex?: number;
-  initialValues?: Record<string, string>;
 }) {
-  const isEditMode = !!customerId;
   const quoteBody = useSelector((state: any) => state?.salesDetail);
 
   const [form, setForm] = useState(EMPTY_FORM);
-
-  useEffect(() => {
-    if (open) {
-      reset(initialValues);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const [fetchedCustomer, setFetchedCustomer] = useState(null);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
   const [requireGroupForMJ, setRequireGroupForMJ] = useState(false);
   const [loadingCustomer, setLoadingCustomer] = useState(false);
+
+  const editTargetId = customerId || customer?.id || null;
+  const editSource = customer || fetchedCustomer;
+  const isEditMode = !!editTargetId;
+
+  // Fetch by id when only customerId was given (customer object skips this).
+  useEffect(() => {
+    if (!open || !customerId || customer) {
+      setFetchedCustomer(null);
+      return;
+    }
+    setLoadingCustomer(true);
+    getSingleCustomer(customerId)
+      .then((res) => setFetchedCustomer(res?.data?.data?.customer || null))
+      .catch(() => setFetchedCustomer(null))
+      .finally(() => setLoadingCustomer(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, customerId, customer]);
+
+  useEffect(() => {
+    if (open && !isEditMode) {
+      reset(initialValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const [accountActive, setAccountActive] = useState(true);
   const [shouldWarnUser, setShouldWarnUser] = useState(false);
@@ -140,68 +157,70 @@ export default function AddCustomerForm({
       .then((res) => {
         const list = res?.data?.data?.customerGroups || [];
         setGroups(list);
+        // Only pre-select the shop's default group when creating — editing
+        // prefills from the customer's actual groups instead (see below).
         if (!isEditMode) {
           const defaultGroup = list.find((g) => g.isDefaultForShop);
           if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
         }
       })
-      .catch(() => { });
+      .catch(() => {});
     listCustomerTypes()
       .then((res) => setCustomerTypes(res?.data?.data?.customerTypes || []))
-      .catch(() => { });
+      .catch(() => {});
     getShopPreference()
       .then((res) =>
         setRequireGroupForMJ(
-          !!res?.data?.preference?.isChoosingCustomerGroupMandatoryForMJProducts
-        )
+          !!res?.data?.preference
+            ?.isChoosingCustomerGroupMandatoryForMJProducts,
+        ),
       )
-      .catch(() => { });
-  }, [open, isEditMode]);
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
+  // Prefill from the existing customer when editing — editSource is either
+  // the object passed in directly, or the one this form just fetched by id.
   useEffect(() => {
-    if (!open || !customerId) return;
-    setLoadingCustomer(true);
-    getSingleCustomer(customerId)
-      .then((res) => {
-        const c = res?.data?.data?.customer;
-        if (!c) return;
-        setForm({
-          firstName: c.firstName || "",
-          lastName: c.lastName || "",
-          email: c.email || "",
-          phone: (c.phone || "").replace(/^\+/, ""),
-          sex: c.sex || "",
-          dob: c.dob ? c.dob.slice(0, 10) : "",
-          drivingLicense: c.drivingLicense || "",
-          drivingLicenseExpiry: c.drivingLicenseExpiry ? c.drivingLicenseExpiry.slice(0, 10) : "",
-          streetAddress: c.locationDetails?.streetAddress || "",
-          city: c.locationDetails?.city || "",
-          state: c.locationDetails?.state || "",
-          zipCode: c.locationDetails?.zipCode || "",
-          customerTypeId: c.customerTypeId || "none",
-          medicalLicense: c.mjMedicalData?.medicalLicense || "",
-          medicalLicenseExpiresAt: c.mjMedicalData?.medicalLicenseExpiresAt
-            ? c.mjMedicalData.medicalLicenseExpiresAt.slice(0, 10)
-            : "",
-          condition: c.mjMedicalData?.condition || "",
-          physician: c.mjMedicalData?.physician || "",
-          careGiverName: c.mjMedicalData?.careGiverName || "",
-          careGiverLicense: c.mjMedicalData?.careGiverLicense || "",
-          patientName: c.mjMedicalData?.patientName || "",
-          patientLicense: c.mjMedicalData?.patientLicense || "",
-          referralSource: c.referralSource || "",
-          note: c.note || "",
-        });
-        setCustomerGroupIds((c.customerGroups || []).map((g) => g.id));
-        setAccountActive(!c.isLocked);
-        setShouldWarnUser(!!c.shouldWarnUser);
-        setWarningMessage(c.warningMessage || "");
-        setTemporaryPatient(!!c.mjMedicalData?.isTemporaryPatient);
-        setHasCaregiver(!!c.mjMedicalData?.hasCareGiver);
-        setIsCaregiver(!!c.mjMedicalData?.isCareGiver);
-      })
-      .finally(() => setLoadingCustomer(false));
-  }, [open, customerId]);
+    if (!open || !editSource) return;
+    setForm({
+      firstName: editSource.firstName || "",
+      lastName: editSource.lastName || "",
+      email: editSource.email || "",
+      phone: (editSource.phone || "").replace(/^\+/, ""),
+      sex: editSource.sex || "",
+      dob: editSource.dob || "",
+      drivingLicense: editSource.drivingLicense || "",
+      drivingLicenseExpiry: editSource.drivingLicenseExpiry || "",
+      streetAddress: editSource.locationDetails?.streetAddress || "",
+      city: editSource.locationDetails?.city || "",
+      state: editSource.locationDetails?.state || "",
+      zipCode: editSource.locationDetails?.zipCode || "",
+      customerTypeId: editSource.customerTypeId || "",
+      medicalLicense: editSource.mjMedicalData?.medicalLicense || "",
+      medicalLicenseExpiresAt:
+        editSource.mjMedicalData?.medicalLicenseExpiresAt || "",
+      condition: editSource.mjMedicalData?.condition || "",
+      physician: editSource.mjMedicalData?.physician || "",
+      careGiverName: editSource.mjMedicalData?.careGiverName || "",
+      careGiverLicense: editSource.mjMedicalData?.careGiverLicense || "",
+      patientName: editSource.mjMedicalData?.patientName || "",
+      patientLicense: editSource.mjMedicalData?.patientLicense || "",
+      referralSource: editSource.referralSource || "",
+      note: editSource.note || "",
+    });
+    setCustomerGroupIds(
+      (editSource.customerGroups || [])
+        .map((g) => (typeof g === "string" ? g : g?.id))
+        .filter(Boolean),
+    );
+    setAccountActive(!editSource.isLocked);
+    setShouldWarnUser(!!editSource.shouldWarnUser);
+    setWarningMessage(editSource.warningMessage || "");
+    setTemporaryPatient(!!editSource.mjMedicalData?.isTemporaryPatient);
+    setHasCaregiver(!!editSource.mjMedicalData?.hasCareGiver);
+    setIsCaregiver(!!editSource.mjMedicalData?.isCareGiver);
+  }, [open, editSource]);
 
   const setField = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -223,7 +242,7 @@ export default function AddCustomerForm({
     setCustomerGroupIds((prev) =>
       prev.includes(groupId)
         ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        : [...prev, groupId],
     );
   };
 
@@ -286,26 +305,25 @@ export default function AddCustomerForm({
       },
       mjMedicalData: isMjMedical
         ? {
-          medicalLicense: form.medicalLicense,
-          medicalLicenseExpiresAt: form.medicalLicenseExpiresAt || undefined,
-          isTemporaryPatient: temporaryPatient,
-          condition: form.condition || undefined,
-          physician: form.physician || undefined,
-          hasCareGiver: hasCaregiver,
-          isCareGiver: isCaregiver,
-          careGiverName: hasCaregiver ? form.careGiverName : undefined,
-          careGiverLicense: hasCaregiver ? form.careGiverLicense : undefined,
-          patientName: isCaregiver ? form.patientName : undefined,
-          patientLicense: isCaregiver ? form.patientLicense : undefined,
-        }
+            medicalLicense: form.medicalLicense,
+            medicalLicenseExpiresAt: form.medicalLicenseExpiresAt || undefined,
+            isTemporaryPatient: temporaryPatient,
+            condition: form.condition || undefined,
+            physician: form.physician || undefined,
+            hasCareGiver: hasCaregiver,
+            isCareGiver: isCaregiver,
+            careGiverName: hasCaregiver ? form.careGiverName : undefined,
+            careGiverLicense: hasCaregiver ? form.careGiverLicense : undefined,
+            patientName: isCaregiver ? form.patientName : undefined,
+            patientLicense: isCaregiver ? form.patientLicense : undefined,
+          }
         : undefined,
       customerGroupIds,
       note: form.note || undefined,
       dob: form.dob || undefined,
       drivingLicense: form.drivingLicense || undefined,
       drivingLicenseExpiry: form.drivingLicenseExpiry || undefined,
-      customerTypeId:
-        form.customerTypeId !== "none" ? form.customerTypeId : "",
+      customerTypeId: form.customerTypeId !== "none" ? form.customerTypeId : "",
       isLocked: !accountActive,
       shouldWarnUser,
       warningMessage: shouldWarnUser ? warningMessage : null,
@@ -333,23 +351,33 @@ export default function AddCustomerForm({
         setPinOpen(true);
         return;
       }
-      const msg = error?.errors?.join(", ") || error?.message || "Failed to create customer";
+      const msg =
+        error?.errors?.join(", ") ||
+        error?.message ||
+        "Failed to create customer";
       toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const runUpdate = async () => {
+  const runUpdate = async (proxyPin) => {
     setSubmitting(true);
     try {
-      const res = await updateCustomerInfo(customerId, buildPayload());
-      const customer = res?.data?.data?.customer || res?.data?.data;
+      await updateCustomerInfo(editTargetId, { ...buildPayload(), proxyPin });
       toast.success("Customer updated successfully");
-      onUpdated?.(customer);
+      onUpdated?.({ ...editSource, ...buildPayload() });
       onClose?.();
-    } catch (error: any) {
-      const msg = error?.errors?.join(", ") || error?.message || "Failed to update customer";
+    } catch (error) {
+      if (error?.message === "No user found for the pin") {
+        toast.error("Invalid PIN");
+        setPinOpen(true);
+        return;
+      }
+      const msg =
+        error?.errors?.join(", ") ||
+        error?.message ||
+        "Failed to update customer";
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -357,14 +385,22 @@ export default function AddCustomerForm({
   };
 
   const shareModeActive =
-    typeof window !== "undefined" && localStorage.getItem("shareMode") === "true";
+    typeof window !== "undefined" &&
+    localStorage.getItem("shareMode") === "true";
 
   const handleSubmit = async (mode) => {
     if (!validate()) return;
     setSaveMode(mode);
 
+    // Editing skips the duplicate-license lookup (that's a create-time
+    // safeguard) and the queue/order save modes — just save the changes.
     if (isEditMode) {
-      runUpdate();
+      if (shareModeActive && quoteBody?.proxyPin == null) {
+        pendingSubmitRef.current = () => runUpdate(quoteBody?.proxyPin);
+        setPinOpen(true);
+        return;
+      }
+      runUpdate(quoteBody?.proxyPin);
       return;
     }
 
@@ -419,7 +455,9 @@ export default function AddCustomerForm({
     try {
       await updateCustomerInfo(customerId, buildPayload());
       toast.success("Customer created successfully");
-      setFoundCustomers((prev) => prev.filter((c) => c.customer.id !== customerId));
+      setFoundCustomers((prev) =>
+        prev.filter((c) => c.customer.id !== customerId),
+      );
       reset();
       onCreated?.({ id: customerId, ...buildPayload() }, saveMode);
       onClose?.();
@@ -435,7 +473,9 @@ export default function AddCustomerForm({
     try {
       await deleteCustomer(customerId);
       toast.success("Customer deleted successfully");
-      setFoundCustomers((prev) => prev.filter((c) => c.customer.id !== customerId));
+      setFoundCustomers((prev) =>
+        prev.filter((c) => c.customer.id !== customerId),
+      );
     } catch (error) {
       toast.error(error?.message || "Failed to delete customer");
     } finally {
@@ -453,48 +493,28 @@ export default function AddCustomerForm({
         }}
         side="right"
         size={760}
-        zIndex={60}
-      >
+        zIndex={zIndex}>
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between gap-3 px-6 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-            <div>
-              <div className="text-lg font-semibold tracking-tight">
-                {isEditMode ? "Edit Customer" : "Add New Customer"}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isEditMode
-                  ? "Update customer profile and account details"
-                  : "Create a customer profile for checkout and order history"}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                reset();
-                onClose?.();
-              }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div className="border-b border-border px-6 py-4 text-base font-semibold">
+            {isEditMode ? "Edit Customer" : "Add Customer"}
           </div>
 
           {loadingCustomer ? (
-            <div className="flex-1 p-6 text-sm text-muted-foreground">Loading customer…</div>
+            <div className="flex-1 p-6 text-sm text-muted-foreground">
+              Loading customer…
+            </div>
           ) : foundCustomers.length > 0 ? (
             <div className="flex-1 space-y-3 overflow-auto p-6">
               <p className="text-sm text-muted-foreground">
                 We found {foundCustomers.length} existing customer
                 {foundCustomers.length > 1 ? "s" : ""} with a matching
-                driving/medical license. Override an existing record, delete
-                it, or go back and change the license number.
+                driving/medical license. Override an existing record, delete it,
+                or go back and change the license number.
               </p>
               {foundCustomers.map((data) => (
                 <div
                   key={data.customer.id}
-                  className="rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10"
-                >
+                  className="rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
                   <div className="font-semibold">
                     {data.customer.firstName} {data.customer.lastName}
                   </div>
@@ -505,16 +525,14 @@ export default function AddCustomerForm({
                     <Button
                       size="sm"
                       disabled={overridingId === data.customer.id}
-                      onClick={() => handleOverride(data.customer.id)}
-                    >
+                      onClick={() => handleOverride(data.customer.id)}>
                       Override
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
                       disabled={overridingId === data.customer.id}
-                      onClick={() => handleDeleteFound(data.customer.id)}
-                    >
+                      onClick={() => handleDeleteFound(data.customer.id)}>
                       Delete
                     </Button>
                   </div>
@@ -527,8 +545,7 @@ export default function AddCustomerForm({
           ) : (
             <form
               onSubmit={(e) => e.preventDefault()}
-              className="flex flex-1 flex-col overflow-hidden"
-            >
+              className="flex flex-1 flex-col overflow-hidden">
               <div className="flex-1 space-y-6 overflow-auto p-6">
                 {/* Basic information */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
@@ -580,8 +597,7 @@ export default function AddCustomerForm({
                         value={form.sex}
                         onValueChange={(value) =>
                           setForm((f) => ({ ...f, sex: value }))
-                        }
-                      >
+                        }>
                         <SelectTrigger className="mt-1 w-full">
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
@@ -619,7 +635,9 @@ export default function AddCustomerForm({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="drivingLicense">Driver&apos;s License</Label>
+                      <Label htmlFor="drivingLicense">
+                        Driver&apos;s License
+                      </Label>
                       <Input
                         id="drivingLicense"
                         className="mt-1"
@@ -707,8 +725,7 @@ export default function AddCustomerForm({
                         {groups.map((g) => (
                           <label
                             key={g.id}
-                            className="flex items-center gap-2 text-sm"
-                          >
+                            className="flex items-center gap-2 text-sm">
                             <Checkbox
                               checked={customerGroupIds.includes(g.id)}
                               onCheckedChange={() => toggleGroup(g.id)}
@@ -723,13 +740,15 @@ export default function AddCustomerForm({
                       <Select
                         items={[
                           { value: "none", label: "None" },
-                          ...customerTypes.map((t) => ({ value: t.id, label: t.name })),
+                          ...customerTypes.map((t) => ({
+                            value: t.id,
+                            label: t.name,
+                          })),
                         ]}
                         value={form.customerTypeId}
                         onValueChange={(value) =>
                           setForm((f) => ({ ...f, customerTypeId: value }))
-                        }
-                      >
+                        }>
                         <SelectTrigger className="mt-1 w-full">
                           <SelectValue placeholder="Select customer type" />
                         </SelectTrigger>
@@ -975,13 +994,15 @@ export default function AddCustomerForm({
                   onClick={() => {
                     reset();
                     onClose?.();
-                  }}
-                >
+                  }}>
                   Cancel
                 </Button>
                 <div className="flex flex-wrap gap-2">
                   {isEditMode ? (
-                    <Button type="button" disabled={submitting} onClick={() => handleSubmit("save")}>
+                    <Button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleSubmit("save")}>
                       {submitting ? "Saving…" : "Save Changes"}
                     </Button>
                   ) : (
@@ -990,8 +1011,7 @@ export default function AddCustomerForm({
                         type="button"
                         variant="outline"
                         disabled={submitting}
-                        onClick={() => handleSubmit("queue")}
-                      >
+                        onClick={() => handleSubmit("queue")}>
                         {submitting && saveMode === "queue"
                           ? "Saving…"
                           : "Save & Add to Queue"}
@@ -1000,8 +1020,7 @@ export default function AddCustomerForm({
                         type="button"
                         variant="outline"
                         disabled={submitting}
-                        onClick={() => handleSubmit("order")}
-                      >
+                        onClick={() => handleSubmit("order")}>
                         {submitting && saveMode === "order"
                           ? "Saving…"
                           : "Save and Order"}
@@ -1009,8 +1028,7 @@ export default function AddCustomerForm({
                       <Button
                         type="button"
                         disabled={submitting}
-                        onClick={() => handleSubmit("save")}
-                      >
+                        onClick={() => handleSubmit("save")}>
                         {submitting && saveMode === "save"
                           ? "Saving…"
                           : "Save Customer"}
@@ -1024,7 +1042,12 @@ export default function AddCustomerForm({
         </div>
       </Drawer>
 
-      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400} zIndex={60}>
+      <Drawer
+        open={pinOpen}
+        onClose={() => setPinOpen(false)}
+        side="right"
+        size={400}
+        zIndex={zIndex + 10}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin

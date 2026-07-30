@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -30,7 +31,10 @@ import PaymentSidebar from "@/components/pos/PaymentSidebar";
 import PrintReceiptModal from "@/components/pos/PrintReceiptModal";
 import ReturnSummary from "@/components/pos/ReturnSummary";
 
-import { updateSalesDetail, resetSalesDetail } from "@/store/slices/salesDetailSlice";
+import {
+  updateSalesDetail,
+  resetSalesDetail,
+} from "@/store/slices/salesDetailSlice";
 import {
   getQuoteForSale,
   resetQuoteForSale,
@@ -54,28 +58,35 @@ import { createReturn } from "@/services/sales/createReturn";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
-
 export default function TotalCard({
   refreshOrders,
   onDraftSaved,
   deliverySubType,
   deliveryType,
+  statusRowContainer,
+  checkoutButtonContainer,
 }: any) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { shopId, shopDetails } = useShop();
 
-  const getOrderSummary = useSelector((state: any) => state?.quoteForSale?.lineItems);
+  const getOrderSummary = useSelector(
+    (state: any) => state?.quoteForSale?.lineItems,
+  );
   const quoteBody = useSelector((state: any) => state?.salesDetail);
   const selectedCustomer = useSelector(
-    (state: any) => state.customer?.selectedCustomer
+    (state: any) => state.customer?.selectedCustomer,
   );
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
-  const currentAction = useSelector((state: any) => state?.orderAction?.orderAction);
-  const lineItems = useSelector((state: any) => state?.lineItems?.lineItems) || [];
-  const bogoData = useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
+  const currentAction = useSelector(
+    (state: any) => state?.orderAction?.orderAction,
+  );
+  const lineItems =
+    useSelector((state: any) => state?.lineItems?.lineItems) || [];
+  const bogoData =
+    useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
   const currentMiscallenousCharges = useSelector(
-    (state: any) => state?.miscCharges?.miscCharges || []
+    (state: any) => state?.miscCharges?.miscCharges || [],
   );
 
   const { discountTypes } = useDiscountTypes();
@@ -171,7 +182,7 @@ export default function TotalCard({
 
         if (
           ["processReturns", "processRefunds", "processOrder"].includes(
-            currentAction
+            currentAction,
           )
         ) {
           if (!updated.some((s) => s.statusId === "CANCELLED")) {
@@ -226,7 +237,7 @@ export default function TotalCard({
     const res = await quoteApiManager.call(
       getQuoteForSales,
       updatedQuoteBody,
-      source
+      source,
     );
     if (res?.data) dispatch(getQuoteForSale(res.data));
     return res;
@@ -235,14 +246,14 @@ export default function TotalCard({
   // ---- Applied-discount removals -------------------------------------------
   const deleteMiscCharge = async (id) => {
     const updated = currentMiscallenousCharges.filter(
-      (item) => item?.taxProfileId !== id
+      (item) => item?.taxProfileId !== id,
     );
     dispatch(addMiscallenousCharges(updated));
     dispatch(updateSalesDetail({ miscCharges: updated }));
     try {
       await reQuote(
         { ...quoteBody, miscCharges: updated },
-        "totalCard-delete-misc-charge"
+        "totalCard-delete-misc-charge",
       );
     } catch (e) {
       console.error("delete misc charge", e);
@@ -254,7 +265,7 @@ export default function TotalCard({
     try {
       await reQuote(
         { ...quoteBody, miscDiscount: null },
-        "totalCard-delete-misc-discount"
+        "totalCard-delete-misc-discount",
       );
       toast.success("Miscellaneous discount removed");
     } catch (e) {
@@ -268,7 +279,7 @@ export default function TotalCard({
     try {
       await reQuote(
         { ...quoteBody, loyaltyPointsClaimed: 0 },
-        "totalCard-delete-loyalty"
+        "totalCard-delete-loyalty",
       );
       toast.success("Loyalty points removed");
     } catch (e) {
@@ -299,11 +310,13 @@ export default function TotalCard({
     const convertedLoyaltyPoints = points * conversionRate;
 
     setLoyaltyLoading(true);
-    dispatch(updateSalesDetail({ loyaltyPointsClaimed: convertedLoyaltyPoints }));
+    dispatch(
+      updateSalesDetail({ loyaltyPointsClaimed: convertedLoyaltyPoints }),
+    );
     try {
       const res = await reQuote(
         { ...quoteBody, loyaltyPointsClaimed: convertedLoyaltyPoints },
-        "totalCard-apply-loyalty"
+        "totalCard-apply-loyalty",
       );
       const loyaltyErrors = res?.data?.data?.errorMessages?.loyaltyPoints || [];
       if (loyaltyErrors.length > 0) {
@@ -327,13 +340,13 @@ export default function TotalCard({
           item.dealId === data.dealId &&
           item.packageId === data.packageId &&
           item.productId === data.productId
-        )
+        ),
     );
     dispatch(updateSalesDetail({ applicableRegularDeals: updated }));
     try {
       await reQuote(
         { ...quoteBody, applicableRegularDeals: updated },
-        "totalCard-remove-deal"
+        "totalCard-remove-deal",
       );
       toast.success("Deal removed");
     } catch (e) {
@@ -395,7 +408,7 @@ export default function TotalCard({
     paymentPayload,
     isPaymentCompleted = false,
     achData = null,
-    overrideProxyPin = undefined
+    overrideProxyPin = undefined,
   ) => {
     const currentTipPreference =
       paymentPayload?.tipPreference ||
@@ -418,7 +431,9 @@ export default function TotalCard({
           (paymentPayload.debitCardAmount || 0)
         : 0);
     const currentChangeAmount =
-      paymentPayload?.changeAmount || Number.parseFloat(String(changeValue)) || 0;
+      paymentPayload?.changeAmount ||
+      Number.parseFloat(String(changeValue)) ||
+      0;
     const currentChangeMethod =
       paymentPayload?.changeMethod || quoteBody?.changeMethod || "CASH";
     const currentTipAmount =
@@ -445,7 +460,10 @@ export default function TotalCard({
         deliveryMethod: "DELIVERY",
         deliveryAddress: quoteBody?.deliveryAddress || null,
         ...(quoteBody?.preferredDeliveryPriorityId
-          ? { preferredDeliveryPriorityId: quoteBody.preferredDeliveryPriorityId }
+          ? {
+              preferredDeliveryPriorityId:
+                quoteBody.preferredDeliveryPriorityId,
+            }
           : {}),
       }),
     };
@@ -476,7 +494,8 @@ export default function TotalCard({
       };
     }
 
-    if (overrideProxyPin !== undefined) body = { ...body, proxyPin: overrideProxyPin };
+    if (overrideProxyPin !== undefined)
+      body = { ...body, proxyPin: overrideProxyPin };
     return body;
   };
 
@@ -518,7 +537,7 @@ export default function TotalCard({
   // ---- Create order (checkout) ----------------------------------------------
   const createOrder = async (
     paymentPayload = null,
-    overrideProxyPin = undefined
+    overrideProxyPin = undefined,
   ) => {
     if (orderProcessing) return;
     setLoading(true);
@@ -526,7 +545,10 @@ export default function TotalCard({
 
     const effectiveProxyPin =
       overrideProxyPin !== undefined ? overrideProxyPin : quoteBody?.proxyPin;
-    if (isShareModeActive() && (effectiveProxyPin === null || effectiveProxyPin === undefined)) {
+    if (
+      isShareModeActive() &&
+      (effectiveProxyPin === null || effectiveProxyPin === undefined)
+    ) {
       pendingPinActionRef.current = (pin) => createOrder(paymentPayload, pin);
       setShareModePin(true);
       setLoading(false);
@@ -536,10 +558,13 @@ export default function TotalCard({
 
     const emptyCart =
       (!quoteBody.lineItems || quoteBody.lineItems.length === 0) &&
-      (!quoteBody?.bundledLineItems || quoteBody.bundledLineItems.length === 0) &&
+      (!quoteBody?.bundledLineItems ||
+        quoteBody.bundledLineItems.length === 0) &&
       (!lineItems || lineItems.length === 0);
     if (emptyCart) {
-      toast.error("Your cart is empty. Please add products before placing an order.");
+      toast.error(
+        "Your cart is empty. Please add products before placing an order.",
+      );
       setLoading(false);
       setOrderProcessing(false);
       return;
@@ -547,7 +572,9 @@ export default function TotalCard({
 
     if (hasQuoteErrors()) {
       setErrorModal(true);
-      setErrorList("Please resolve the highlighted loyalty/coupon/deal errors.");
+      setErrorList(
+        "Please resolve the highlighted loyalty/coupon/deal errors.",
+      );
       setLoading(false);
       setOrderProcessing(false);
       return;
@@ -559,7 +586,7 @@ export default function TotalCard({
         paymentPayload || originalPaymentPayload,
         false,
         null,
-        effectiveProxyPin
+        effectiveProxyPin,
       );
       const res = await createOrderService(body);
       if (res.data.success) {
@@ -589,7 +616,7 @@ export default function TotalCard({
       } else {
         const requestId = res.data?.data?.requestId;
         toast.error(
-          `Order could not be completed.${requestId ? ` (Request ID: ${requestId})` : ""}`
+          `Order could not be completed.${requestId ? ` (Request ID: ${requestId})` : ""}`,
         );
       }
     } catch (error) {
@@ -597,7 +624,9 @@ export default function TotalCard({
         dispatch(updateSalesDetail({ proxyPin: null }));
         setShareModePin(true);
       }
-      toast.error(error?.message || error?.error || "Unexpected error occurred");
+      toast.error(
+        error?.message || error?.error || "Unexpected error occurred",
+      );
     } finally {
       setLoading(false);
       setOrderProcessing(false);
@@ -605,25 +634,36 @@ export default function TotalCard({
   };
 
   // ---- Send to fulfillment (new orders, non-terminal statuses) --------------
-  const createOrderFullfilment = async (status, overrideProxyPin = undefined) => {
+  const createOrderFullfilment = async (
+    status,
+    overrideProxyPin = undefined,
+  ) => {
     const emptyCart =
       (!quoteBody.lineItems || quoteBody.lineItems.length === 0) &&
-      (!quoteBody?.bundledLineItems || quoteBody.bundledLineItems.length === 0) &&
+      (!quoteBody?.bundledLineItems ||
+        quoteBody.bundledLineItems.length === 0) &&
       (!lineItems || lineItems.length === 0);
     if (emptyCart) {
-      toast.error("Your cart is empty. Please add products before placing an order.");
+      toast.error(
+        "Your cart is empty. Please add products before placing an order.",
+      );
       return;
     }
 
-    if (isShareModeActive() && quoteBody?.proxyPin == null && overrideProxyPin === undefined) {
-      pendingPinActionRef.current = (pin) => createOrderFullfilment(status, pin);
+    if (
+      isShareModeActive() &&
+      quoteBody?.proxyPin == null &&
+      overrideProxyPin === undefined
+    ) {
+      pendingPinActionRef.current = (pin) =>
+        createOrderFullfilment(status, pin);
       setShareModePin(true);
       return;
     }
 
     setSendToFulfilmentLoading(true);
     const isTerminalState = orderStatus?.find(
-      (s) => s.statusId === status
+      (s) => s.statusId === status,
     )?.isTerminationState;
 
     let body = {
@@ -647,7 +687,12 @@ export default function TotalCard({
     if (isTerminalState) {
       const paid = getOrderSummary?.data?.finalPayable;
       if (paymentMethod === "CASH") {
-        body = { ...body, paymentMethod: "CASH", changeAmount: changeValue, cashPaid: paid };
+        body = {
+          ...body,
+          paymentMethod: "CASH",
+          changeAmount: changeValue,
+          cashPaid: paid,
+        };
       } else if (paymentMethod === "VIRTUAL") {
         body = {
           ...body,
@@ -671,7 +716,9 @@ export default function TotalCard({
         toast.error("Order could not be completed.");
       }
     } catch (error) {
-      toast.error(error?.message || error?.error || "Unexpected error occurred");
+      toast.error(
+        error?.message || error?.error || "Unexpected error occurred",
+      );
     } finally {
       setSendToFulfilmentLoading(false);
     }
@@ -683,7 +730,9 @@ export default function TotalCard({
       (!quoteBody.lineItems || quoteBody.lineItems.length === 0) &&
       (!quoteBody?.bundledLineItems || quoteBody.bundledLineItems.length === 0)
     ) {
-      toast.error("Your cart is empty. Please add products before saving a draft.");
+      toast.error(
+        "Your cart is empty. Please add products before saving a draft.",
+      );
       return;
     }
 
@@ -735,9 +784,14 @@ export default function TotalCard({
       // handleApiError throws { status, errors } (not .message) for 422s —
       // without this, validation failures silently fall through to the
       // generic string below and the real reason is lost.
-      const validationMessage = error?.errors?.length ? error.errors.join(" ") : null;
+      const validationMessage = error?.errors?.length
+        ? error.errors.join(" ")
+        : null;
       toast.error(
-        validationMessage || error?.message || error?.error || "Failed to save draft."
+        validationMessage ||
+          error?.message ||
+          error?.error ||
+          "Failed to save draft.",
       );
     } finally {
       setSaveDraftLoading(false);
@@ -759,7 +813,7 @@ export default function TotalCard({
       };
       const quoteResponse = await getQuoteForSales(updatedQuoteBody);
       setOnlineTransactionFee(
-        quoteResponse?.data?.data?.onlineTransactionFee?.amount || 0
+        quoteResponse?.data?.data?.onlineTransactionFee?.amount || 0,
       );
       if (!quoteResponse.data.success) {
         toast.error("Failed to get quote");
@@ -816,21 +870,24 @@ export default function TotalCard({
                   },
                 ]
               : [],
-        })
+        }),
       );
 
       if (paymentPayload.tipAmount !== (quoteBody?.tipGiven || 0)) {
         dispatch(updateSalesDetail({ tipGiven: paymentPayload.tipAmount }));
         reQuote(
           { ...quoteBody, tipGiven: paymentPayload.tipAmount },
-          "totalCard-tip-on-pay"
+          "totalCard-tip-on-pay",
         ).catch(() => {});
       }
 
       setPaymentSidebarVisible(false);
     } catch (error) {
       if (error?.error) {
-        setQuoteError({ message: error.error, requestId: error.requestId || null });
+        setQuoteError({
+          message: error.error,
+          requestId: error.requestId || null,
+        });
       }
       toast.error(error?.message || error?.error || "Something went wrong");
     } finally {
@@ -878,7 +935,12 @@ export default function TotalCard({
         changeMethod: quoteBody?.changeMethod || "CASH",
         storeCreditsUtilized:
           selectedStoreCredit && storeCreditAmount > 0
-            ? [{ shopId: selectedStoreCredit.shopId, utilized: Number(storeCreditAmount || 0) }]
+            ? [
+                {
+                  shopId: selectedStoreCredit.shopId,
+                  utilized: Number(storeCreditAmount || 0),
+                },
+              ]
             : [],
         registerId: quoteBody.registerId,
         drawerId: quoteBody.drawerId,
@@ -921,7 +983,8 @@ export default function TotalCard({
             getOrderSummary?.data?.finalPayable
           : 0,
       storeCreditsReturned:
-        returnedMethod === "storeCredits" || returnedMethod === "cashStoreCredits"
+        returnedMethod === "storeCredits" ||
+        returnedMethod === "cashStoreCredits"
           ? +storeCreditsReturned
           : 0,
       virtualReturned:
@@ -963,10 +1026,64 @@ export default function TotalCard({
   const paymentCompleted = finalPayable === 0 || totalPaid >= finalPayable;
   const remainingAmount = Math.max(0, finalPayable - totalPaid);
   const isPaymentConfigured = ["CASH", "VIRTUAL", "BOTH_CASH_VIRTUAL"].includes(
-    paymentMethod
+    paymentMethod,
   );
   const hasSale = Object.keys(saleDetail).length > 0;
   const cartEmpty = lineItems.length === 0 && bogoData.length === 0;
+
+  // Shared by the sticky "Complete Order" button below and, when this card
+  // is used in Tablet Mode, by the same action portaled into the always-
+  // visible status row up top (see statusRowContainer/checkoutOverride) —
+  // one behavior, two possible places to trigger it from.
+  const handleCheckoutClick = () => {
+    if (isPaymentConfigured) {
+      createOrder({
+        paymentMethod,
+        storeCreditAmount,
+        cashAmount,
+        cashlessATMAmount,
+        cardAmount: cardPaymentAmount,
+        bleaumACHAmount,
+        debitCardAmount,
+        cashPaid: cashAmount,
+        virtualPaid: cashlessATMAmount + cardPaymentAmount + bleaumACHAmount,
+        changeAmount: changeValue,
+        changeMethod: quoteBody?.changeMethod || "CASH",
+        tipAmount: tipAmountSidebar || quoteBody?.tipGiven || 0,
+        notes: paymentNotes,
+        miscCharges: currentMiscallenousCharges || [],
+        miscDiscount: quoteBody?.miscDiscount || 0,
+        totalAmount: finalPayable,
+        totalPaid,
+        splitMode,
+        storeCreditsUtilized:
+          selectedStoreCredit && storeCreditAmount > 0
+            ? [
+                {
+                  shopId: selectedStoreCredit.shopId,
+                  utilized: storeCreditAmount,
+                },
+              ]
+            : [],
+      });
+    } else {
+      handleOpenPaymentSidebar();
+    }
+  };
+  const checkoutButtonDisabled =
+    loading || orderProcessing || (isPaymentConfigured && !paymentCompleted);
+  const checkoutButtonLabel = (
+    <>
+      {loading
+        ? "Processing…"
+        : isPaymentConfigured
+          ? paymentCompleted
+            ? "Complete Order"
+            : `Pay Remaining $${remainingAmount.toFixed(2)}`
+          : "Checkout"}{" "}
+      (Total: ${(finalPayable + (onlineTransactionFee || 0)).toFixed(2)})
+    </>
+  );
 
   const runOrDeferForPin = (action) => {
     if (isShareModeActive() && quoteBody?.proxyPin == null) {
@@ -977,9 +1094,54 @@ export default function TotalCard({
     }
   };
 
+  // Rendered inline by default; when a host page passes statusRowContainer
+  // (e.g. Tablet Mode POS wants this always visible above its "Attach
+  // Customer" section rather than tucked inside this card) it's portaled
+  // there instead — same component, same handlers, just a different DOM spot.
+  const paymentStatusRowEl = (
+    <PaymentStatusRow
+      paymentStatusPaidInFull={saleDetail?.paymentStatus === "PAID_IN_FULL"}
+      cartEmpty={cartEmpty}
+      onOpenPaymentSidebar={handleOpenPaymentSidebar}
+      paymentMethod={paymentMethod}
+      finalPayable={finalPayable}
+      currentAction={currentAction}
+      hasSale={hasSale}
+      orderStatus={orderStatus}
+      selectedStatus={selectedStatus}
+      onStatusChange={handleChange}
+      saleDetailStatusId={saleDetail?.status?.statusId}
+      selectedStatusObj={selectedStatusObj}
+      onQuickStatusChange={setSelectedStatus}
+      sendToFulfilmentLoading={sendToFulfilmentLoading}
+      onSendToFulfillment={() =>
+        runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
+      }
+      selectPortalContainer={statusRowContainer}
+    />
+  );
+
+  // Same "Complete Order" button as the sticky one further down — rendered
+  // there by default, or portaled to checkoutButtonContainer when a host
+  // (Tablet Mode) wants it pinned at the end of its own layout instead
+  // (e.g. below the Subtotal/Tax/Total block) rather than inside this card.
+  const checkoutButtonEl = !cartEmpty && currentAction === null && (
+    <button
+      disabled={checkoutButtonDisabled}
+      onClick={handleCheckoutClick}
+      className="w-full rounded-lg bg-[#297473] px-4 py-3 font-bold text-white shadow-lg transition-all hover:bg-[#20605f] disabled:cursor-not-allowed disabled:opacity-50">
+      {checkoutButtonLabel}
+    </button>
+  );
+
   return (
     <>
-      <Card className="flex flex-col rounded-none p-4 ring-0">
+      {statusRowContainer &&
+        createPortal(paymentStatusRowEl, statusRowContainer)}
+      {checkoutButtonContainer &&
+        checkoutButtonEl &&
+        createPortal(checkoutButtonEl, checkoutButtonContainer)}
+      <Card className="flex max-h-[calc(100vh-120px)] flex-col overflow-y-auto p-4">
         {/* processOrder: back / refresh */}
         {currentAction === "processOrder" && (
           <div className="mb-3 flex gap-2">
@@ -994,34 +1156,15 @@ export default function TotalCard({
                 dispatch(addMiscallenousCharges([]));
                 dispatch(resetSaleDetail());
                 dispatch(resetQuoteForSale());
-              }}
-            >
+              }}>
               Refresh POS
             </Button>
           </div>
         )}
 
         {/* Action row: payment method + status + finalize buttons */}
-        <div className="mb-2 flex flex-col gap-2 px-4">
-          <PaymentStatusRow
-            paymentStatusPaidInFull={saleDetail?.paymentStatus === "PAID_IN_FULL"}
-            cartEmpty={cartEmpty}
-            onOpenPaymentSidebar={handleOpenPaymentSidebar}
-            paymentMethod={paymentMethod}
-            finalPayable={finalPayable}
-            currentAction={currentAction}
-            hasSale={hasSale}
-            orderStatus={orderStatus}
-            selectedStatus={selectedStatus}
-            onStatusChange={handleChange}
-            saleDetailStatusId={saleDetail?.status?.statusId}
-            selectedStatusObj={selectedStatusObj}
-            onQuickStatusChange={setSelectedStatus}
-            sendToFulfilmentLoading={sendToFulfilmentLoading}
-            onSendToFulfillment={() =>
-              runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
-            }
-          />
+        <div className="mb-2 flex flex-col gap-2">
+          {!statusRowContainer && paymentStatusRowEl}
 
           <QuickActionsRow
             hasSale={hasSale}
@@ -1034,7 +1177,8 @@ export default function TotalCard({
             onOpenNotes={() => setNotesOpen(true)}
             onOpenTip={() => setVisibleTip(true)}
             showCoupons={
-              currentAction === null && !!(selectedCustomer?.id || quoteBody?.customerId)
+              currentAction === null &&
+              !!(selectedCustomer?.id || quoteBody?.customerId)
             }
           />
         </div>
@@ -1052,7 +1196,9 @@ export default function TotalCard({
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Refund Method</span>
-                <Select value={returnedMethod ?? ""} onValueChange={setReturnedMethod}>
+                <Select
+                  value={returnedMethod ?? ""}
+                  onValueChange={setReturnedMethod}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Select">
                       {(value) => {
@@ -1068,21 +1214,27 @@ export default function TotalCard({
                   <SelectContent>
                     <SelectItem value="CASH">Cash</SelectItem>
                     <SelectItem value="storeCredits">Store Credits</SelectItem>
-                    <SelectItem value="cashStoreCredits">Cash + Store Credits</SelectItem>
+                    <SelectItem value="cashStoreCredits">
+                      Cash + Store Credits
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {(returnedMethod === "CASH" || returnedMethod === "cashStoreCredits") && (
+              {(returnedMethod === "CASH" ||
+                returnedMethod === "cashStoreCredits") && (
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Amount Returned</span>
                   <Input
                     className="w-48"
-                    value={cashReturned || getOrderSummary?.data?.finalPayable || ""}
+                    value={
+                      cashReturned || getOrderSummary?.data?.finalPayable || ""
+                    }
                     onChange={(e) => setCashReturned(e.target.value)}
                   />
                 </div>
               )}
-              {(returnedMethod === "storeCredits" || returnedMethod === "cashStoreCredits") && (
+              {(returnedMethod === "storeCredits" ||
+                returnedMethod === "cashStoreCredits") && (
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Return Store Credits</span>
                   <Input
@@ -1094,8 +1246,7 @@ export default function TotalCard({
               )}
               <Button
                 className="w-full"
-                onClick={() => runOrDeferForPin(processReturn)}
-              >
+                onClick={() => runOrDeferForPin(processReturn)}>
                 Process Return
               </Button>
             </div>
@@ -1124,7 +1275,10 @@ export default function TotalCard({
                   Coupon {quoteBody?.couponCode || quoteBody?.couponId || ""}
                 </span>
                 <span className="text-sm font-semibold text-green-700">
-                  - ${Number(getOrderSummary.data.couponDiscountApplied).toFixed(2)}
+                  - $
+                  {Number(getOrderSummary.data.couponDiscountApplied).toFixed(
+                    2,
+                  )}
                 </span>
               </div>
             )}
@@ -1132,76 +1286,37 @@ export default function TotalCard({
             {/* Loyalty Points */}
             {(selectedCustomer?.id || quoteBody?.customerId) && (
               <div className="px-4">
-              <LoyaltyPointsPanel
-                customerLoyaltyInfo={customerLoyaltyInfo}
-                appliedLoyaltyPoints={appliedLoyaltyPoints}
-                onAppliedLoyaltyPointsChange={setAppliedLoyaltyPoints}
-                loyaltyLoading={loyaltyLoading}
-                isDisabledLoyalty={isDisabledLoyalty}
-                loyaltyPointsUsed={getOrderSummary?.data?.loyaltyPointsUsed || 0}
-                loyaltyDiscountGiven={getOrderSummary?.data?.loyaltyDiscountGiven}
-                hasLoyaltyErrors={
-                  (getOrderSummary?.data?.errorMessages?.loyaltyPoints?.length || 0) > 0
-                }
-                finalPayable={getOrderSummary?.data?.finalPayable || 0}
-                onApply={applyLoyaltyPoints}
-                onRemove={deleteLoyaltyPoints}
-              />
+                <LoyaltyPointsPanel
+                  customerLoyaltyInfo={customerLoyaltyInfo}
+                  appliedLoyaltyPoints={appliedLoyaltyPoints}
+                  onAppliedLoyaltyPointsChange={setAppliedLoyaltyPoints}
+                  loyaltyLoading={loyaltyLoading}
+                  isDisabledLoyalty={isDisabledLoyalty}
+                  loyaltyPointsUsed={
+                    getOrderSummary?.data?.loyaltyPointsUsed || 0
+                  }
+                  loyaltyDiscountGiven={
+                    getOrderSummary?.data?.loyaltyDiscountGiven
+                  }
+                  hasLoyaltyErrors={
+                    (getOrderSummary?.data?.errorMessages?.loyaltyPoints
+                      ?.length || 0) > 0
+                  }
+                  finalPayable={getOrderSummary?.data?.finalPayable || 0}
+                  onApply={applyLoyaltyPoints}
+                  onRemove={deleteLoyaltyPoints}
+                />
               </div>
             )}
 
-            {/* Complete Order / Checkout */}
-            {!cartEmpty && (
-              <div className="sticky bottom-0 z-20 mt-2 bg-background py-2">
-              <button
-                disabled={
-                  loading ||
-                  orderProcessing ||
-                  (isPaymentConfigured && !paymentCompleted)
-                }
-                onClick={() => {
-                  if (isPaymentConfigured) {
-                    createOrder({
-                      paymentMethod,
-                      storeCreditAmount,
-                      cashAmount,
-                      cashlessATMAmount,
-                      cardAmount: cardPaymentAmount,
-                      bleaumACHAmount,
-                      debitCardAmount,
-                      cashPaid: cashAmount,
-                      virtualPaid:
-                        cashlessATMAmount + cardPaymentAmount + bleaumACHAmount,
-                      changeAmount: changeValue,
-                      changeMethod: quoteBody?.changeMethod || "CASH",
-                      tipAmount: tipAmountSidebar || quoteBody?.tipGiven || 0,
-                      notes: paymentNotes,
-                      miscCharges: currentMiscallenousCharges || [],
-                      miscDiscount: quoteBody?.miscDiscount || 0,
-                      totalAmount: finalPayable,
-                      totalPaid,
-                      splitMode,
-                      storeCreditsUtilized:
-                        selectedStoreCredit && storeCreditAmount > 0
-                          ? [{ shopId: selectedStoreCredit.shopId, utilized: storeCreditAmount }]
-                          : [],
-                    });
-                  } else {
-                    handleOpenPaymentSidebar();
-                  }
-                }}
-                className="w-full rounded-lg bg-[#297473] px-4 py-3 font-bold text-white shadow-lg transition-all hover:bg-[#20605f] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading
-                  ? "Processing…"
-                  : isPaymentConfigured
-                  ? paymentCompleted
-                    ? "Complete Order"
-                    : `Pay Remaining $${remainingAmount.toFixed(2)}`
-                  : "Checkout"}{" "}
-                (Total: ${(finalPayable + (onlineTransactionFee || 0)).toFixed(2)})
-              </button>
-            </div>
+            {/* Complete Order / Checkout — omitted here when this same
+                button is already portaled elsewhere (see
+                checkoutButtonContainer above), so there's just one place to
+                trigger it from instead of two. */}
+            {!cartEmpty && !checkoutButtonContainer && (
+              <div className="sticky bottom-0 z-20 mt-2 bg-background pb-1 pt-2">
+                {checkoutButtonEl}
+              </div>
             )}
           </>
         )}
@@ -1226,7 +1341,9 @@ export default function TotalCard({
                     selectedStatus === "COMPLETED") &&
                   saleDetail?.paymentStatus !== "PAID_IN_FULL";
                 if (requiresPayment && !paymentMethod) {
-                  toast.warning("Please set payment details before updating status");
+                  toast.warning(
+                    "Please set payment details before updating status",
+                  );
                   handleOpenPaymentSidebar();
                   return;
                 }
@@ -1247,13 +1364,17 @@ export default function TotalCard({
                       notes: paymentNotes,
                       storeCreditsUtilized:
                         selectedStoreCredit && storeCreditAmount > 0
-                          ? [{ shopId: selectedStoreCredit.shopId, utilized: storeCreditAmount }]
+                          ? [
+                              {
+                                shopId: selectedStoreCredit.shopId,
+                                utilized: storeCreditAmount,
+                              },
+                            ]
                           : [],
                     }
                   : null;
                 runOrDeferForPin(() => updateOrderStatus(payload));
-              }}
-            >
+              }}>
               Update Order Status
             </Button>
           </div>
@@ -1261,9 +1382,15 @@ export default function TotalCard({
       </Card>
 
       {/* -------------------- Drawers / modals -------------------- */}
-      <Drawer open={notes} onClose={() => setNotesOpen(false)} side="right" size={500}>
+      <Drawer
+        open={notes}
+        onClose={() => setNotesOpen(false)}
+        side="right"
+        size={500}>
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-6 py-4 text-base font-semibold">Notes</div>
+          <div className="border-b border-border px-6 py-4 text-base font-semibold">
+            Notes
+          </div>
           <div className="flex-1 overflow-auto">
             <Notes setNotes={setNotesOpen} />
           </div>
@@ -1274,8 +1401,7 @@ export default function TotalCard({
         open={visibleTip}
         onClose={() => setVisibleTip(false)}
         side="right"
-        size={600}
-      >
+        size={600}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Add Tip{" "}
@@ -1293,8 +1419,7 @@ export default function TotalCard({
         open={miscallenousCharge}
         onClose={() => setMiscallenousCharge(false)}
         side="right"
-        size={600}
-      >
+        size={600}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Miscellaneous Charge
@@ -1312,8 +1437,7 @@ export default function TotalCard({
         open={miscallenousDiscount}
         onClose={() => setMiscallenousDiscount(false)}
         side="right"
-        size={500}
-      >
+        size={500}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Miscellaneous Discount
@@ -1331,8 +1455,7 @@ export default function TotalCard({
         open={shareModePin}
         onClose={() => setShareModePin(false)}
         side="right"
-        size={400}
-      >
+        size={400}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin
@@ -1358,8 +1481,12 @@ export default function TotalCard({
         }}
         totalAmount={
           currentAction === "processOrder"
-            ? saleDetail?.finalPayable || getOrderSummary?.data?.finalPayable || 0
-            : getOrderSummary?.data?.finalPayable || saleDetail?.finalPayable || 0
+            ? saleDetail?.finalPayable ||
+              getOrderSummary?.data?.finalPayable ||
+              0
+            : getOrderSummary?.data?.finalPayable ||
+              saleDetail?.finalPayable ||
+              0
         }
         paymentMethod={paymentMethod}
         setPaymentMethod={setPaymentMethod}
@@ -1368,15 +1495,18 @@ export default function TotalCard({
         cashAmount={cashAmount}
         setCashAmount={setCashAmount}
         changeMethod={quoteBody?.changeMethod || "CASH"}
-        setChangeMethod={(m) => dispatch(updateSalesDetail({ changeMethod: m }))}
+        setChangeMethod={(m) =>
+          dispatch(updateSalesDetail({ changeMethod: m }))
+        }
         setChangeValue={setChangeValue}
         tipAmount={tipAmountSidebar || quoteBody?.tipGiven || 0}
         setTipAmount={(tip) => {
           setTipAmountSidebar(tip);
           dispatch(updateSalesDetail({ tipGiven: tip }));
-          reQuote({ ...quoteBody, tipGiven: tip }, "totalCard-payment-tip").catch(
-            () => {}
-          );
+          reQuote(
+            { ...quoteBody, tipGiven: tip },
+            "totalCard-payment-tip",
+          ).catch(() => {});
         }}
         tipPaymentMethod={tipPaymentMethod}
         setTipPaymentMethod={setTipPaymentMethod}
@@ -1440,8 +1570,7 @@ export default function TotalCard({
             deleteLoyaltyPoints();
           }}
           side="right"
-          size={420}
-        >
+          size={420}>
           <div className="flex h-full flex-col">
             <div className="border-b border-border px-6 py-4 text-base font-semibold">
               Error Messages
@@ -1455,8 +1584,7 @@ export default function TotalCard({
                 onClick={() => {
                   setErrorModal(false);
                   deleteLoyaltyPoints();
-                }}
-              >
+                }}>
                 OK
               </Button>
             </div>
