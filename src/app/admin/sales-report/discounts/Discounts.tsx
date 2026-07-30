@@ -87,7 +87,7 @@ export default function Discounts() {
     brandDiscountsData,
   };
 
-  const dateRangeLabel = `${format(new Date(startDate), "MMM dd, yyyy")} – ${format(new Date(endDate), "MMM dd, yyyy")}`;
+  const dateRangeLabel = `${format(new Date(startDate), "MMM dd, yyyy")} - ${format(new Date(endDate), "MMM dd, yyyy")}`;
   const exportMetadata = { dateRange: dateRangeLabel };
 
   const fetchItemDiscounts = async () => {
