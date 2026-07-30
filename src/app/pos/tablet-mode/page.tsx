@@ -81,7 +81,7 @@ import ReturnsPage from "@/components/pos/ReturnsPage";
 import CustomerUploads from "@/components/pos/CustomerUploads";
 import AddCustomerToQueue from "@/components/pos/AddCustomerToQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
-import AddCustomerForm from "@/components/pos/AddCustomerForm";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import TabletModeCartSummary from "@/components/pos-tablet/TabletModeCartSummary";
 
 const GreenDot = () => (

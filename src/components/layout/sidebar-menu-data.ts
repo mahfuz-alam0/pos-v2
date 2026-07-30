@@ -29,7 +29,7 @@ export const retailMenu = [
     label: "Fulfillment",
     icon: ShoppingCart,
     children: [
-      { key: "pos-tablet", label: "POS", href: "/pos/tablet" },
+      { key: "pos-tablet", label: "POS", href: "/pos" },
       { key: "tablet-mode-pos", label: "Tablet Mode POS", href: "/pos/tablet-mode" },
 
       { key: "order-ahead", label: "Order Ahead", href: "/admin/orderahead" },

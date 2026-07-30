@@ -104,25 +104,52 @@ export default function AddCustomerForm({
   open,
   onClose,
   onCreated,
+  // Two ways to edit an existing customer: pass the object directly
+  // (customer — no extra fetch), or just its id (customerId — this form
+  // fetches it itself). Both resolve to the same editSource/editTargetId
+  // below, so the rest of the component doesn't need to care which was used.
   customer = null,
+  customerId = null,
   onUpdated = undefined,
+  // Prefills a NEW customer's fields (e.g. from a DL/med-ID scan) — ignored
+  // once editing, since the edit-prefill effect below takes over.
+  initialValues = undefined,
+  zIndex = 60,
 }) {
   const quoteBody = useSelector((state: any) => state?.salesDetail);
-  const isEditMode = !!customer;
 
   const [form, setForm] = useState(EMPTY_FORM);
-
-  useEffect(() => {
-    if (open) {
-      reset(initialValues);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const [fetchedCustomer, setFetchedCustomer] = useState(null);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
   const [requireGroupForMJ, setRequireGroupForMJ] = useState(false);
   const [loadingCustomer, setLoadingCustomer] = useState(false);
+
+  const editTargetId = customerId || customer?.id || null;
+  const editSource = customer || fetchedCustomer;
+  const isEditMode = !!editTargetId;
+
+  // Fetch by id when only customerId was given (customer object skips this).
+  useEffect(() => {
+    if (!open || !customerId || customer) {
+      setFetchedCustomer(null);
+      return;
+    }
+    setLoadingCustomer(true);
+    getSingleCustomer(customerId)
+      .then((res) => setFetchedCustomer(res?.data?.data?.customer || null))
+      .catch(() => setFetchedCustomer(null))
+      .finally(() => setLoadingCustomer(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, customerId, customer]);
+
+  useEffect(() => {
+    if (open && !isEditMode) {
+      reset(initialValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const [accountActive, setAccountActive] = useState(true);
   const [shouldWarnUser, setShouldWarnUser] = useState(false);
@@ -171,47 +198,48 @@ export default function AddCustomerForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Prefill from the existing customer when editing.
+  // Prefill from the existing customer when editing — editSource is either
+  // the object passed in directly, or the one this form just fetched by id.
   useEffect(() => {
-    if (!open || !customer) return;
+    if (!open || !editSource) return;
     setForm({
-      firstName: customer.firstName || "",
-      lastName: customer.lastName || "",
-      email: customer.email || "",
-      phone: (customer.phone || "").replace(/^\+/, ""),
-      sex: customer.sex || "",
-      dob: customer.dob || "",
-      drivingLicense: customer.drivingLicense || "",
-      drivingLicenseExpiry: customer.drivingLicenseExpiry || "",
-      streetAddress: customer.locationDetails?.streetAddress || "",
-      city: customer.locationDetails?.city || "",
-      state: customer.locationDetails?.state || "",
-      zipCode: customer.locationDetails?.zipCode || "",
-      customerTypeId: customer.customerTypeId || "",
-      medicalLicense: customer.mjMedicalData?.medicalLicense || "",
+      firstName: editSource.firstName || "",
+      lastName: editSource.lastName || "",
+      email: editSource.email || "",
+      phone: (editSource.phone || "").replace(/^\+/, ""),
+      sex: editSource.sex || "",
+      dob: editSource.dob || "",
+      drivingLicense: editSource.drivingLicense || "",
+      drivingLicenseExpiry: editSource.drivingLicenseExpiry || "",
+      streetAddress: editSource.locationDetails?.streetAddress || "",
+      city: editSource.locationDetails?.city || "",
+      state: editSource.locationDetails?.state || "",
+      zipCode: editSource.locationDetails?.zipCode || "",
+      customerTypeId: editSource.customerTypeId || "",
+      medicalLicense: editSource.mjMedicalData?.medicalLicense || "",
       medicalLicenseExpiresAt:
-        customer.mjMedicalData?.medicalLicenseExpiresAt || "",
-      condition: customer.mjMedicalData?.condition || "",
-      physician: customer.mjMedicalData?.physician || "",
-      careGiverName: customer.mjMedicalData?.careGiverName || "",
-      careGiverLicense: customer.mjMedicalData?.careGiverLicense || "",
-      patientName: customer.mjMedicalData?.patientName || "",
-      patientLicense: customer.mjMedicalData?.patientLicense || "",
-      referralSource: customer.referralSource || "",
-      note: customer.note || "",
+        editSource.mjMedicalData?.medicalLicenseExpiresAt || "",
+      condition: editSource.mjMedicalData?.condition || "",
+      physician: editSource.mjMedicalData?.physician || "",
+      careGiverName: editSource.mjMedicalData?.careGiverName || "",
+      careGiverLicense: editSource.mjMedicalData?.careGiverLicense || "",
+      patientName: editSource.mjMedicalData?.patientName || "",
+      patientLicense: editSource.mjMedicalData?.patientLicense || "",
+      referralSource: editSource.referralSource || "",
+      note: editSource.note || "",
     });
     setCustomerGroupIds(
-      (customer.customerGroups || [])
+      (editSource.customerGroups || [])
         .map((g) => (typeof g === "string" ? g : g?.id))
         .filter(Boolean),
     );
-    setAccountActive(!customer.isLocked);
-    setShouldWarnUser(!!customer.shouldWarnUser);
-    setWarningMessage(customer.warningMessage || "");
-    setTemporaryPatient(!!customer.mjMedicalData?.isTemporaryPatient);
-    setHasCaregiver(!!customer.mjMedicalData?.hasCareGiver);
-    setIsCaregiver(!!customer.mjMedicalData?.isCareGiver);
-  }, [open, customer]);
+    setAccountActive(!editSource.isLocked);
+    setShouldWarnUser(!!editSource.shouldWarnUser);
+    setWarningMessage(editSource.warningMessage || "");
+    setTemporaryPatient(!!editSource.mjMedicalData?.isTemporaryPatient);
+    setHasCaregiver(!!editSource.mjMedicalData?.hasCareGiver);
+    setIsCaregiver(!!editSource.mjMedicalData?.isCareGiver);
+  }, [open, editSource]);
 
   const setField = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -355,9 +383,9 @@ export default function AddCustomerForm({
   const runUpdate = async (proxyPin) => {
     setSubmitting(true);
     try {
-      await updateCustomerInfo(customer.id, { ...buildPayload(), proxyPin });
+      await updateCustomerInfo(editTargetId, { ...buildPayload(), proxyPin });
       toast.success("Customer updated successfully");
-      onUpdated?.({ ...customer, ...buildPayload() });
+      onUpdated?.({ ...editSource, ...buildPayload() });
       onClose?.();
     } catch (error) {
       if (error?.message === "No user found for the pin") {
@@ -484,7 +512,7 @@ export default function AddCustomerForm({
         }}
         side="right"
         size={760}
-        zIndex={60}>
+        zIndex={zIndex}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             {isEditMode ? "Edit Customer" : "Add Customer"}
@@ -1038,7 +1066,7 @@ export default function AddCustomerForm({
         onClose={() => setPinOpen(false)}
         side="right"
         size={400}
-        zIndex={60}>
+        zIndex={zIndex + 10}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin

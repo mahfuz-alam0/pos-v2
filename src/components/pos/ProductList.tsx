@@ -60,7 +60,7 @@ export default function ProductList({
   autoOpenProduct,
   showFooterActions = true,
   onClose,
-  refreshSignal,
+  refreshSignal = 0,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
