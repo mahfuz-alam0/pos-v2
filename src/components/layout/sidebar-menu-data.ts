@@ -64,6 +64,7 @@ export const retailMenu = [
       { key: "inventory-pricing", label: "Inventory & Pricing", href: "/admin/inventory/manage-inventories" },
       { key: "inventory-adjustments", label: "Adjustments", href: "/admin/inventory/reconciliation" },
       { key: "inventory-levels", label: "Inventory Levels", href: "/admin/audit/insights/inventory-on-hand" },
+      { key: "inventory-reorder", label: "Inventory Reorder", href: "/admin/audit/inventory-reorder" },
       { key: "uom", label: "Unit of Measurements", href: "/admin/inventory/uom" },
       { key: "audit", label: "Audit", href: "/admin/inventory/audit" },
       { key: "transfers", label: "Transfers", href: "/admin/inventory/transfers" },
