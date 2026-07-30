@@ -88,7 +88,7 @@ function SummaryCard({
   value: string;
 }) {
   return (
-    <Card className="flex-1 basis-37.5 p-4">
+    <Card className="flex-1 basis-37.5 p-4 shadow-sm ring-0">
       <div className="flex items-center gap-3">
         <div
           className="flex size-9 shrink-0 items-center justify-center rounded-lg"
@@ -293,7 +293,7 @@ export default function ExecutiveSummary() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <Card className="p-4">
+      <Card className="p-4 shadow-sm ring-0">
         <div className="flex items-center gap-2">
           <FileText className="size-5 text-primary" />
           <div>
@@ -305,7 +305,7 @@ export default function ExecutiveSummary() {
         </div>
       </Card>
 
-      <Card className="p-4">
+      <Card className="p-4 shadow-sm ring-0">
         <div className="flex flex-wrap items-center gap-3">
           <DateRangeSelector
             setSelectedDate={setRange}
@@ -338,10 +338,10 @@ export default function ExecutiveSummary() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">
-          <Card className="relative p-4">
+          <Card className="relative p-4 shadow-sm ring-0">
             <LoadingOverlay show={!isInitialLoading && loading} />
             <h2 className="mb-3 text-sm font-semibold">Sales by Order Source</h2>
-            <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="overflow-hidden rounded-xl shadow-sm">
               <Table>
                 <TableHeader className="[&_tr]:border-b-0">
                   <TableRow className="bg-muted/60">
@@ -377,7 +377,7 @@ export default function ExecutiveSummary() {
             </div>
           </Card>
 
-          <Card className="relative p-4">
+          <Card className="relative p-4 shadow-sm ring-0">
             <LoadingOverlay show={!isInitialLoading && loading} />
             <h2 className="mb-3 text-sm font-semibold">Sales, Status &amp; AOV over Time</h2>
             {isInitialLoading ? (
@@ -404,10 +404,10 @@ export default function ExecutiveSummary() {
           </Card>
         </div>
 
-        <Card className="relative p-4">
+        <Card className="relative p-4 shadow-sm ring-0">
           <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Sales by Category</h2>
-          <div className="max-h-125 overflow-auto rounded-xl ring-1 ring-foreground/10">
+          <div className="max-h-125 overflow-auto rounded-xl shadow-sm">
             <Table>
               <TableHeader className="[&_tr]:border-b-0">
                 <TableRow className="bg-muted/60">
@@ -438,7 +438,7 @@ export default function ExecutiveSummary() {
         </Card>
       </div>
 
-      <Card className="relative p-4">
+      <Card className="relative p-4 shadow-sm ring-0">
         <LoadingOverlay show={!isInitialLoading && loading} />
         <h2 className="mb-3 text-sm font-semibold">Busy Times of Day</h2>
         {isInitialLoading ? (
@@ -449,7 +449,7 @@ export default function ExecutiveSummary() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="relative p-4">
+        <Card className="relative p-4 shadow-sm ring-0">
           <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Medical vs. Recreational</h2>
           {isInitialLoading ? (
@@ -492,10 +492,10 @@ export default function ExecutiveSummary() {
           )}
         </Card>
 
-        <Card className="relative p-4">
+        <Card className="relative p-4 shadow-sm ring-0">
           <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Sales by Store</h2>
-          <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+          <div className="overflow-hidden rounded-xl shadow-sm">
             <Table>
               <TableHeader className="[&_tr]:border-b-0">
                 <TableRow className="bg-muted/60">
@@ -525,7 +525,7 @@ export default function ExecutiveSummary() {
           </div>
         </Card>
 
-        <Card className="relative p-4">
+        <Card className="relative p-4 shadow-sm ring-0">
           <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Tax Summary</h2>
           {isInitialLoading ? (
@@ -535,7 +535,7 @@ export default function ExecutiveSummary() {
           )}
         </Card>
 
-        <Card className="relative p-4">
+        <Card className="relative p-4 shadow-sm ring-0">
           <LoadingOverlay show={!isInitialLoading && loading} />
           <h2 className="mb-3 text-sm font-semibold">Tax Breakdown by Classification</h2>
           {isInitialLoading ? (
