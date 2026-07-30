@@ -25,7 +25,7 @@ function TableHeader({
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
+      className={cn("[&_tr]:border-b-0 [&_tr]:shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]", className)}
       {...props} />
   );
 }

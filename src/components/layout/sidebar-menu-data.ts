@@ -95,6 +95,11 @@ export const retailMenu = [
         href: "/admin/audit/insights/inventory-on-hand",
       },
       {
+        key: "inventory-reorder",
+        label: "Inventory Reorder",
+        href: "/admin/audit/inventory-reorder",
+      },
+      {
         key: "uom",
         label: "Unit of Measurements",
         href: "/admin/inventory/uom",
@@ -408,8 +413,7 @@ export const retailMenu = [
         href: "/admin/hardware-clients",
       },
       { key: "labels", label: "Labels", href: "/admin/labels" },
-      { key: "print", label: "Print", href: "/admin/print" },
-      { key: "print-settings", label: "Print Settings", href: "/admin/print" },
+      { key: "print", label: "Print Settings", href: "/admin/print" },
       {
         key: "store-information",
         label: "Store Information",

@@ -25,7 +25,7 @@ export default function LoyaltySection({ customerId }) {
     Promise.all([getCustomerLoyaltyStatus(customerId), getCustomerLoyaltyHistory(customerId)])
       .then(([statusRes, historyRes]) => {
         setStatus(statusRes?.data?.info || statusRes?.data?.data?.info || null);
-        setHistory(historyRes?.data?.data || []);
+        setHistory(historyRes?.data?.data?.data || []);
       })
       .finally(() => setLoading(false));
   };
@@ -130,10 +130,14 @@ export default function LoyaltySection({ customerId }) {
                 <div>
                   <div>{h.reason || h.description || "Points adjustment"}</div>
                   <div className="text-xs text-muted-foreground">
-                    {h.createdAt ? new Date(h.createdAt).toLocaleString() : ""}
+                    {h.employeeName ? `${h.employeeName} · ` : ""}
+                    {h.date ? new Date(h.date).toLocaleString() : ""}
                   </div>
                 </div>
-                <span className="font-semibold">{h.points > 0 ? `+${h.points}` : h.points}</span>
+                <span className="font-semibold">
+                  {h.type === "subtract" ? "-" : "+"}
+                  {Math.abs(h.points)}
+                </span>
               </div>
             ))}
           </div>
