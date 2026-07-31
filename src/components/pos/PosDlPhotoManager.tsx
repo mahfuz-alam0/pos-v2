@@ -24,10 +24,10 @@ import { updateCustomerInfo } from "@/services/customers/updateCustomer";
 // from the old file (it needs the cropper's croppedAreaPixels).
 
 const TYPES = [
-  { key: "dl-front", label: "DL Front", description: "Front of driving license", Icon: FileImage },
-  { key: "dl-back", label: "DL Back", description: "Back of driving license", Icon: FileImage },
+  { key: "dl-front", label: "DL Front", description: "Front of driver's license", Icon: FileImage },
+  { key: "dl-back", label: "DL Back", description: "Back of driver's license", Icon: FileImage },
   { key: "med-id", label: "Med ID", description: "Medical identification card", Icon: IdCard },
-  { key: "scan-dl", label: "Scan DL", description: "Scan driving license barcode", Icon: ScanLine },
+  { key: "scan-dl", label: "Scan DL", description: "Scan driver's license barcode", Icon: ScanLine },
 ];
 
 const FIELD_MAP = {

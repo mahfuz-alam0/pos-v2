@@ -12,14 +12,14 @@ const CHECKIN_TYPES = [
   {
     key: "dl-front",
     label: "Driver's License Front",
-    description: "Scan front of driving license to identify customer",
+    description: "Scan front of driver's license to identify customer",
     Icon: FileImage,
     cta: "Scan / Upload",
   },
   {
     key: "dl-back",
     label: "Driver's License Back / Barcode",
-    description: "Scan barcode on back of driving license",
+    description: "Scan barcode on back of driver's license",
     Icon: ScanLine,
     cta: "Scan / Upload",
   },
@@ -33,7 +33,7 @@ const CHECKIN_TYPES = [
   {
     key: "scan-dl",
     label: "Scan ID",
-    description: "Directly scan driving license barcode",
+    description: "Directly scan driver's license barcode",
     Icon: ScanLine,
     cta: "Scan ID",
   },

@@ -12,7 +12,7 @@ const CHECKIN_TYPES = [
   {
     key: "dl-back",
     label: "Driver's License Back / Barcode",
-    description: "Scan barcode on back of driving license",
+    description: "Scan barcode on back of driver's license",
     icon: ScanBarcode,
   },
   {
@@ -30,7 +30,7 @@ const CHECKIN_TYPES = [
   {
     key: "scan-dl",
     label: "Scan ID",
-    description: "Directly scan driving license barcode",
+    description: "Directly scan driver's license barcode",
     icon: ScanLine,
   },
 ];
