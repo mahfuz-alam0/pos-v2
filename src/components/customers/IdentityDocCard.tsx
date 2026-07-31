@@ -114,85 +114,87 @@ export default function IdentityDocCard({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl bg-background shadow-sm ring-1 ring-border">
-      <div className="border-b border-border px-4 py-3">
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex gap-4">
-          <label className="flex items-center gap-1.5 text-sm">
-            <input
-              type="radio"
-              checked={mode === "device"}
-              onChange={() => setMode("device")}
-              className="size-3.5 accent-primary"
-            />
-            Upload from Device
-          </label>
-          <label className="flex items-center gap-1.5 text-sm">
-            <input
-              type="radio"
-              checked={mode === "camera"}
-              onChange={() => setMode("camera")}
-              className="size-3.5 accent-primary"
-            />
-            Camera
-          </label>
+    <div className="flex h-full flex-col gap-3 rounded-xl bg-background p-3.5 shadow-sm ring-1 ring-foreground/10">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-sm font-semibold text-foreground">{title}</div>
+          <p className="mt-0.5 min-h-8 text-xs text-muted-foreground">{description}</p>
         </div>
-
-        {busy ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 py-8">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Processing…</span>
-          </div>
-        ) : previewUrl ? (
-          <div className="group relative flex-1 overflow-hidden rounded-lg ring-1 ring-border">
-            <img src={previewUrl} alt={title} className="h-32 w-full object-cover" />
-            <button
-              type="button"
-              onClick={() => (mode === "device" ? fileInputRef.current?.click() : setMode("camera"))}
-              className="absolute inset-0 flex items-center justify-center bg-black/0 text-transparent transition-colors group-hover:bg-black/40 group-hover:text-white">
-              <span className="text-xs font-medium">Replace</span>
-            </button>
-          </div>
-        ) : mode === "device" ? (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-muted-foreground/25 py-8 text-center hover:bg-muted/30">
-            <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <CloudUpload className="size-4" />
-            </span>
-            <span className="text-sm font-medium">Click to Upload</span>
-            <span className="px-4 text-xs text-muted-foreground">{uploadHint}</span>
-          </div>
-        ) : (
-          <div className="flex flex-1 flex-col gap-2">
-            {cameraError ? (
-              <div className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">{cameraError}</div>
-            ) : (
-              <div className="overflow-hidden rounded-lg bg-black">
-                <video ref={videoRef} autoPlay playsInline muted className="h-32 w-full object-cover" />
-              </div>
-            )}
-            <button
-              type="button"
-              disabled={!cameraReady}
-              onClick={capturePhoto}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-40">
-              <Camera className="size-3.5" /> Capture
-            </button>
-          </div>
+        {previewUrl && !busy && (
+          <span className="mt-0.5 size-2 shrink-0 rounded-full bg-green-500" title="Uploaded" />
         )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handlePicked(e.target.files?.[0])}
-        />
       </div>
+
+      <div className="flex gap-0.5 rounded-lg bg-muted p-0.5 text-xs font-medium">
+        <button
+          type="button"
+          onClick={() => setMode("device")}
+          className={`flex-1 rounded-[7px] py-1.5 transition-colors ${
+            mode === "device" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
+          }`}>
+          Upload
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("camera")}
+          className={`flex-1 rounded-[7px] py-1.5 transition-colors ${
+            mode === "camera" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
+          }`}>
+          Camera
+        </button>
+      </div>
+
+      {busy ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg bg-muted/40 py-8">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Processing…</span>
+        </div>
+      ) : previewUrl ? (
+        <div className="group relative flex-1 overflow-hidden rounded-lg ring-1 ring-foreground/10">
+          <img src={previewUrl} alt={title} className="h-32 w-full object-cover" />
+          <button
+            type="button"
+            onClick={() => (mode === "device" ? fileInputRef.current?.click() : setMode("camera"))}
+            className="absolute inset-0 flex items-center justify-center bg-black/0 text-transparent opacity-0 transition-all group-hover:bg-black/50 group-hover:text-white group-hover:opacity-100">
+            <span className="text-xs font-semibold">Replace</span>
+          </button>
+        </div>
+      ) : mode === "device" ? (
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-muted/40 py-8 text-center transition-colors hover:bg-muted/70">
+          <span className="flex size-9 items-center justify-center rounded-full bg-background text-muted-foreground ring-1 ring-foreground/10">
+            <CloudUpload className="size-4" />
+          </span>
+          <span className="text-sm font-medium">Click to Upload</span>
+          <span className="px-4 text-xs text-muted-foreground">{uploadHint}</span>
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col gap-2">
+          {cameraError ? (
+            <div className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">{cameraError}</div>
+          ) : (
+            <div className="overflow-hidden rounded-lg bg-black">
+              <video ref={videoRef} autoPlay playsInline muted className="h-32 w-full object-cover" />
+            </div>
+          )}
+          <button
+            type="button"
+            disabled={!cameraReady}
+            onClick={capturePhoto}
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-40">
+            <Camera className="size-3.5" /> Capture
+          </button>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handlePicked(e.target.files?.[0])}
+      />
     </div>
   );
 }
