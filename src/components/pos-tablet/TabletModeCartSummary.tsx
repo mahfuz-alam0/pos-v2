@@ -10,6 +10,7 @@ import {
   FileText,
   TriangleAlert,
   Pencil,
+  UserPlus,
 } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
@@ -21,6 +22,7 @@ import {
 import ProductsCart from "@/components/pos/ProductsCart";
 import ProductPromoTaxes from "@/components/pos/ProductPromoTaxes";
 import TotalCard from "@/components/pos/TotalCard";
+import NewAvailableCoupons from "@/components/pos/NewAvailableCoupons";
 import NotesSection from "@/components/front-desk/NotesSection";
 
 import { addMiscallenousCharges } from "@/store/slices/miscChargesSlice";
@@ -67,9 +69,6 @@ export default function TabletModeCartSummary({
   onRemoveCustomer,
   onAddNewCustomer,
   onEditCustomer,
-  allowAnonymous,
-  anonymous,
-  onAnonymousChange,
   deliverySubType,
   deliveryType,
   refreshOrders,
@@ -99,6 +98,11 @@ export default function TabletModeCartSummary({
   // above (its label is long — "Complete Order (Total: $X.XX)" — and
   // doesn't fit next to the order-status controls there).
   const [checkoutButtonNode, setCheckoutButtonNode] =
+    useState<HTMLDivElement | null>(null);
+  // Portal target for TotalCard's Loyalty Points panel — surfaced inside
+  // the Discounts & Taxes drawer (alongside Coupons) instead of the hidden
+  // TotalCard body, so it's reachable from Tablet Mode at all.
+  const [loyaltyPointsNode, setLoyaltyPointsNode] =
     useState<HTMLDivElement | null>(null);
 
   const orderData = getOrderSummary?.data;
@@ -239,7 +243,7 @@ export default function TabletModeCartSummary({
         <div
           ref={setStatusRowNode}
           data-mode="dark"
-          className="empty:hidden **:data-[slot=select-trigger]:rounded-xl **:data-[slot=select-trigger]:text-base [&_button:not([data-slot=select-trigger])]:h-12 [&_button:not([data-slot=select-trigger])]:rounded-xl [&_button:not([data-slot=select-trigger])]:text-base"
+          className="empty:hidden **:data-[slot=select-trigger]:rounded-xl **:data-[slot=select-trigger]:text-base [&_button:not([data-slot=select-trigger]):not([data-slot=quick-status-trigger])]:h-12 [&_button:not([data-slot=select-trigger]):not([data-slot=quick-status-trigger])]:rounded-xl [&_button:not([data-slot=select-trigger]):not([data-slot=quick-status-trigger])]:text-base"
         />
 
         {/* Attach / attached customer */}
@@ -331,49 +335,48 @@ export default function TabletModeCartSummary({
           </div>
         ) : (
           <div className="space-y-2">
-            <button
-              type="button"
-              disabled={hasSale}
-              onClick={onAttachCustomer}
-              className="flex w-full items-center gap-2.5 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-              style={{
-                background: NAVY_CARD,
-                border: "1px dashed rgba(1,144,221,0.5)",
-                color: BLUE,
-              }}>
-              <span
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xl font-bold"
-                style={{ background: "rgba(1,144,221,0.2)" }}>
-                +
-              </span>
-              Attach Customer
-            </button>
-            {/* <div className="flex items-center justify-between px-1 text-sm text-white/60">
-              {onAddNewCustomer ? (
-                <button
-                  type="button"
-                  disabled={hasSale}
-                  onClick={onAddNewCustomer}
-                  className="py-1 font-semibold hover:text-white disabled:opacity-40"
-                >
-                  + New Customer
-                </button>
-              ) : (
-                <span />
-              )}
-              {allowAnonymous && (
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="size-5"
-                    checked={!!anonymous}
-                    disabled={hasSale}
-                    onChange={(e) => onAnonymousChange?.(e.target.checked)}
+            <div className="flex items-stretch gap-2">
+              <button
+                type="button"
+                disabled={hasSale}
+                onClick={onAttachCustomer}
+                className="flex flex-1 items-center gap-2.5 rounded-xl px-4 py-3.5 text-base font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                style={{
+                  background: NAVY_CARD,
+                  border: "1px dashed rgba(1,144,221,0.5)",
+                  color: BLUE,
+                }}>
+                <span
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xl font-bold"
+                  style={{ background: "rgba(1,144,221,0.2)" }}>
+                  +
+                </span>
+                Customer
+              </button>
+
+              {onAddNewCustomer && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        disabled={hasSale}
+                        onClick={onAddNewCustomer}
+                        className="flex w-14 flex-shrink-0 items-center justify-center rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                        style={{
+                          background: NAVY_CARD,
+                          border: "1px dashed rgba(1,144,221,0.5)",
+                          color: BLUE,
+                        }}
+                        aria-label="New customer">
+                        <UserPlus className="size-5" />
+                      </button>
+                    }
                   />
-                  Anonymous
-                </label>
+                  <TooltipContent>New Customer</TooltipContent>
+                </Tooltip>
               )}
-            </div> */}
+            </div>
           </div>
         )}
 
@@ -479,35 +482,52 @@ export default function TabletModeCartSummary({
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Discounts & Taxes
           </div>
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 space-y-4 overflow-auto p-4">
             {discountsDrawerOpen && (
-              <ProductPromoTaxes
-                currentAction={null}
-                getOrderSummary={getOrderSummary}
-                deleteMiscCharge={deleteMiscCharge}
-                setSubTotalValue={() => {}}
-                getMiscDiscountFromOrderData={getMiscDiscountFromOrderData}
-                deleteMiscallenousDiscount={deleteMiscallenousDiscount}
-                deleteLoyaltyPoints={deleteLoyaltyPoints}
-                removeDealFromSelectedProduct={removeDealFromSelectedProduct}
-              />
+              <>
+                <ProductPromoTaxes
+                  currentAction={null}
+                  getOrderSummary={getOrderSummary}
+                  deleteMiscCharge={deleteMiscCharge}
+                  setSubTotalValue={() => {}}
+                  getMiscDiscountFromOrderData={getMiscDiscountFromOrderData}
+                  deleteMiscallenousDiscount={deleteMiscallenousDiscount}
+                  deleteLoyaltyPoints={deleteLoyaltyPoints}
+                  removeDealFromSelectedProduct={removeDealFromSelectedProduct}
+                />
+                {(selectedCustomer?.id || quoteBody?.customerId) && (
+                  <div className="rounded-lg p-3 shadow-[0_0_6px_rgba(0,0,0,0.08)]">
+                    <div className="mb-2 font-semibold capitalize text-muted-foreground">
+                      Coupons
+                    </div>
+                    <NewAvailableCoupons />
+                  </div>
+                )}
+                <div
+                  ref={setLoyaltyPointsNode}
+                  className="empty:hidden rounded-lg p-3 shadow-[0_0_6px_rgba(0,0,0,0.08)] [&>div]:mt-0 [&>div]:rounded-none [&>div]:border-0 [&>div]:p-0"
+                />
+              </>
             )}
           </div>
         </div>
       </Drawer>
 
       {/* TotalCard stays mounted, just with no visible body of its own here —
-          its PaymentStatusRow and Complete Order button portal up into
-          statusRowNode/checkoutButtonNode above, and its PaymentSidebar
-          portals straight to <body> (see PaymentSidebar.tsx), so none of
-          that depends on this wrapper being visible. What's hidden along
-          with it: QuickActionsRow (Draft/Misc/Notes/Tip) and the discount/
-          tax line-item breakdown — the latter is still reachable via the
-          "Discounts applied" bar above. */}
+          its PaymentStatusRow, Complete Order button, and Loyalty Points
+          panel portal up into statusRowNode/checkoutButtonNode/
+          loyaltyPointsNode above, and its PaymentSidebar portals straight to
+          <body> (see PaymentSidebar.tsx), so none of that depends on this
+          wrapper being visible. What's hidden along with it: QuickActionsRow
+          (Draft/Misc/Notes/Tip) and the discount/tax line-item breakdown —
+          the latter is still reachable via the "Discounts applied" bar
+          above, and Coupons is rendered directly in that same drawer since
+          it's self-contained. */}
       <div className="hidden">
         <TotalCard
           statusRowContainer={statusRowNode}
           checkoutButtonContainer={checkoutButtonNode}
+          loyaltyPointsContainer={loyaltyPointsNode}
           deliverySubType={deliverySubType}
           deliveryType={deliveryType}
           refreshOrders={refreshOrders}

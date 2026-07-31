@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import Drawer from "@/components/ui/Drawer";
 import { searchCustomers } from "@/services/customers/search";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
+import { fetchCustomerQueueList } from "@/services/customerQueue/list";
+import { updateQueueStatus } from "@/services/customerQueue/updateStatus";
 
 export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueData, onCheckedIn }) {
   const [search, setSearch] = useState("");
@@ -30,8 +32,16 @@ export default function AddCustomerToQueue({ open, onOpenChange, shopId, queueDa
     setCheckingInId(customer.id);
     try {
       await addCustomerToQueue({ shopId, customerId: customer.id, isAnonymous: false });
+      // Same as QuickCheckIn — checking a customer in from this drawer means
+      // staff is about to serve them now, so land them in "Return to Queue"
+      // (serving) state instead of "Available" (waiting).
+      const updatedQueue = await fetchCustomerQueueList(shopId);
+      const newEntry = updatedQueue?.data?.find((q) => q.customerId === customer.id);
+      if (newEntry?.id) {
+        await updateQueueStatus({ shopId, id: newEntry.id, action: "MOVE_TO_SERVING" });
+      }
       toast.success("Customer is Added to Queue");
-      onCheckedIn?.();
+      onCheckedIn?.(newEntry);
     } catch (err) {
       toast.error(err?.message || "Failed to add customer to queue");
     } finally {
