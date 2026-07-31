@@ -135,7 +135,7 @@ function PackageCard({
         <p className="text-sm text-muted-foreground">{pkg.productName}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap justify-between gap-4 border-b pb-2 text-sm">
+        <div className="flex flex-wrap justify-between gap-4 border-b border-border pb-2 text-sm">
           <div>
             <p className="text-muted-foreground">Name</p>
             <p className="font-medium">{pkg.name}</p>

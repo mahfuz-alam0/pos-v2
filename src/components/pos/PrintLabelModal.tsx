@@ -211,11 +211,11 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="border-t-0">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={checkLabel}>
+            <Button variant="outline" onClick={printInBrowser} disabled={loading}>
               Check Label
             </Button>
             <Button disabled={loading || printing} onClick={handlePrint}>
