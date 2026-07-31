@@ -15,7 +15,13 @@ import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 // `onCustomerServed`: optional hook fired (in addition to the default
 // refetch) when a queue card is moved to serving — the Front Desk page uses
 // this to hand the customer off into POS; the Dashboard widget leaves it unset.
-export default function CustomerQueue({ sidepanel = false, onCustomerServed = null }) {
+// `sidepanel`: fills its container's height with no outer border/padding box
+// (for embedding in a Drawer/tab) instead of the bordered dashboard-widget
+// card. `wide`: keeps that same borderless fit but reverts QueueCard back to
+// the responsive 3-per-row width — for sidepanel hosts wide enough to fit
+// them (e.g. a 60vw POS drawer) as opposed to a narrow one (e.g. the 660px
+// Settings drawer), which stay single-column.
+export default function CustomerQueue({ sidepanel = false, wide = false, onCustomerServed = null }) {
   const { shopId } = useShop();
   const [queueData, setQueueData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +102,14 @@ export default function CustomerQueue({ sidepanel = false, onCustomerServed = nu
       </div>
 
       <div className="mt-3 border-b border-border pb-3">
-        <QuickCheckIn shopId={shopId} queueData={queueData} onCheckedIn={fetchQueue} />
+        <QuickCheckIn
+          shopId={shopId}
+          queueData={queueData}
+          onCheckedIn={(record) => {
+            fetchQueue();
+            if (record) onCustomerServed?.(record);
+          }}
+        />
       </div>
 
       <div
@@ -119,6 +132,7 @@ export default function CustomerQueue({ sidepanel = false, onCustomerServed = nu
               }}
               onOpenDetails={setDetailsRecord}
               sidepanel={sidepanel}
+              wide={wide}
             />
           ))
         )}
@@ -130,7 +144,10 @@ export default function CustomerQueue({ sidepanel = false, onCustomerServed = nu
         onOpenChange={setAddCustomerOpen}
         shopId={shopId}
         queueData={queueData}
-        onCheckedIn={fetchQueue}
+        onCheckedIn={(record) => {
+          fetchQueue();
+          if (record) onCustomerServed?.(record);
+        }}
       />
       <CustomerDetailDrawer
         open={!!detailsRecord}

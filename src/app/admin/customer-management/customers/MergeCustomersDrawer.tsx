@@ -549,7 +549,7 @@ export default function MergeCustomersDrawer({ open, onClose, selectedCustomerId
                 <span className="font-medium">{mergedCustomer.phone || "—"}</span>
               </div>
               <div className="flex justify-between border-b pb-1.5">
-                <span className="text-muted-foreground">Driving License</span>
+                <span className="text-muted-foreground">Driver&apos;s License</span>
                 <span className="font-medium">{mergedCustomer.drivingLicense || "—"}</span>
               </div>
             </div>

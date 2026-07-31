@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -61,8 +61,18 @@ export default function DiscountFinalPriceDrawer({
   );
 
   const [tab, setTab] = useState(defaultTab);
+
+  // The drawer itself never unmounts between opens (only its inner <Drawer>
+  // animates in/out), so the useState above only seeds `tab` once — without
+  // this, clicking "Apply Discount" then "Set Final Price" wouldn't switch
+  // the pre-selected tab on the second open.
+  useEffect(() => {
+    if (visible) setTab(defaultTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, defaultTab]);
   const [discountType, setDiscountType] = useState("PERCENTAGE");
-  const [discountRate, setDiscountRate] = useState(0);
+  const [discountRate, setDiscountRate] = useState<number | "">("");
+  const discountRateNum = Number(discountRate) || 0;
   const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   const [priceMode, setPriceMode] = useState("unit"); // 'unit' | 'total'
@@ -77,7 +87,7 @@ export default function DiscountFinalPriceDrawer({
 
   const handleClose = () => {
     setDiscountType("PERCENTAGE");
-    setDiscountRate(0);
+    setDiscountRate("");
     setPriceMode("unit");
     setFinalPrices({});
     setTotalPriceOverride("");
@@ -86,7 +96,7 @@ export default function DiscountFinalPriceDrawer({
   };
 
   const handleApplyDiscount = async () => {
-    if (!discountRate || discountRate <= 0) {
+    if (discountRateNum <= 0) {
       toast.error("Please enter a valid discount rate");
       return;
     }
@@ -101,7 +111,7 @@ export default function DiscountFinalPriceDrawer({
       const updatedLineItems = (quoteBody.lineItems || []).map((lineItem) => {
         const lineItemAMId = lineItem.appMaintainedId || lineItem.key;
         if (selectedAMIds.has(lineItemAMId)) {
-          const discountValue = Math.max(0, Number(discountRate) || 0);
+          const discountValue = Math.max(0, discountRateNum);
           return {
             ...lineItem,
             forcedManualDiscountType:
@@ -353,7 +363,9 @@ export default function DiscountFinalPriceDrawer({
                       max={discountType === "PERCENTAGE" ? 100 : undefined}
                       step="0.01"
                       onChange={(e) =>
-                        setDiscountRate(parseFloat(e.target.value) || 0)
+                        setDiscountRate(
+                          e.target.value === "" ? "" : parseFloat(e.target.value) || 0,
+                        )
                       }
                       placeholder={`Enter discount ${
                         discountType === "PERCENTAGE" ? "percentage" : "amount"
@@ -378,7 +390,7 @@ export default function DiscountFinalPriceDrawer({
                           </span>
                         </div>
 
-                        {discountRate > 0 && (
+                        {discountRateNum > 0 && (
                           <div className="flex items-center justify-between border-t border-border pt-2">
                             <span className="text-sm font-medium text-green-700">
                               New Item Total:
@@ -391,8 +403,8 @@ export default function DiscountFinalPriceDrawer({
                                     unitPriceOf(item) * item.purchaseQuantity;
                                   const discountAmount =
                                     discountType === "PERCENTAGE"
-                                      ? (totalPrice * discountRate) / 100
-                                      : discountRate;
+                                      ? (totalPrice * discountRateNum) / 100
+                                      : discountRateNum;
                                   return (
                                     sum +
                                     Math.max(0, totalPrice - discountAmount)
@@ -406,7 +418,7 @@ export default function DiscountFinalPriceDrawer({
                     )}
                   </div>
 
-                  {discountRate > 0 && (
+                  {discountRateNum > 0 && (
                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
                       <div className="mb-2 text-sm font-medium text-blue-800 dark:text-blue-300">
                         Discount Preview
@@ -416,8 +428,8 @@ export default function DiscountFinalPriceDrawer({
                           unitPriceOf(item) * item.purchaseQuantity;
                         const discountAmount =
                           discountType === "PERCENTAGE"
-                            ? (totalPrice * discountRate) / 100
-                            : discountRate;
+                            ? (totalPrice * discountRateNum) / 100
+                            : discountRateNum;
                         const finalPrice = totalPrice - discountAmount;
                         return (
                           <div
@@ -442,9 +454,7 @@ export default function DiscountFinalPriceDrawer({
               <Button
                 className="w-full"
                 onClick={handleApplyDiscount}
-                disabled={
-                  applyingDiscount || !discountRate || discountRate <= 0
-                }
+                disabled={applyingDiscount || discountRateNum <= 0}
               >
                 {applyingDiscount ? "Applying Discount..." : "Apply Discount"}
               </Button>

@@ -79,7 +79,7 @@ import InProgressOrders from "@/components/pos/InProgressOrders";
 import PosDrafts from "@/components/pos/PosDrafts";
 import ReturnsPage from "@/components/pos/ReturnsPage";
 import CustomerUploads from "@/components/pos/CustomerUploads";
-import AddCustomerToQueue from "@/components/pos/AddCustomerToQueue";
+import CustomerQueue from "@/components/dashboard/CustomerQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import TabletModeCartSummary from "@/components/pos-tablet/TabletModeCartSummary";
@@ -925,7 +925,20 @@ function TabletModePosInner() {
               </Button>
             </div>
             <div className="flex-1 overflow-auto p-4">
-              <AddCustomerToQueue data={customerQueue} />
+              <CustomerQueue
+                sidepanel
+                wide
+                onCustomerServed={(record) => {
+                  setQueueDrawerVisible(false);
+                  if (!record?.customerId) return;
+                  getSingleCustomer(record.customerId)
+                    .then((res) => {
+                      const customer = res?.data?.data?.customer;
+                      if (customer) handleSelectCustomer(customer);
+                    })
+                    .catch(() => {});
+                }}
+              />
             </div>
           </div>
         </Drawer>
@@ -983,19 +996,19 @@ function TabletModePosInner() {
           zIndex={60}>
           <div className="flex h-full flex-col">
             <div className="border-b border-border px-6 py-4 text-base font-semibold">
-              Front Driving License
+              Front Driver&apos;s License
             </div>
             <div className="flex-1 overflow-auto p-4">
               {fullSelectedCustomer?.drivingLicenseFrontImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={fullSelectedCustomer.drivingLicenseFrontImage}
-                  alt="Driving License"
+                  alt="Driver's License"
                   className="w-full rounded-lg"
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No driving license image on file.
+                  No driver&apos;s license image on file.
                 </p>
               )}
             </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Truck, Upload, X } from "lucide-react";
+import { Truck, X } from "lucide-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
@@ -11,14 +11,13 @@ import { updateSupplier } from "@/services/suppliers/update";
 import { fetchSingleSupplier } from "@/services/suppliers/getSingle";
 import { fetchSupplierTypes } from "@/services/supplierTypes/list";
 import { fetchCountryCodes } from "@/services/countries/list";
-import { uploadAnySingleFile } from "@/services/storage/uploadFile";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Field, SingleImageUpload } from "@/components/admin/form-fields";
+import { DocumentsUpload, Field, SingleImageUpload } from "@/components/admin/form-fields";
 import type { CountryOption, SupplierTypeOption } from "./types";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -59,63 +58,6 @@ interface SupplierFormDrawerProps {
   supplierId: string | number | null;
   onClose: () => void;
   onSaved: () => void;
-}
-
-function DocumentsUpload({ links, onChange }: { links: string[]; onChange: (links: string[]) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      const uploaded = await Promise.all(
-        Array.from(files).map(async (file) => {
-          const res = await uploadAnySingleFile(file);
-          return res?.downloadUrl || res?.url;
-        }),
-      );
-      onChange([...links, ...uploaded.filter(Boolean)]);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to upload document");
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-2">
-      {links.map((link, i) => (
-        <div key={i} className="flex items-center justify-between rounded-md ring-1 ring-foreground/10 px-3 py-2">
-          <a href={link} target="_blank" rel="noreferrer" className="truncate text-sm text-primary hover:underline">
-            Document {i + 1}
-          </a>
-          <button
-            type="button"
-            onClick={() => onChange(links.filter((_, idx) => idx !== i))}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-      ))}
-      <div
-        onClick={() => !uploading && inputRef.current?.click()}
-        className="flex h-16 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-2 border-dashed text-muted-foreground border-muted-foreground/25 hover:bg-muted/30"
-      >
-        <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
-        {uploading ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <>
-            <Upload className="size-4" />
-            <span className="text-sm">Upload documents</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export default function SupplierFormDrawer({ open, mode, supplierId, onClose, onSaved }: SupplierFormDrawerProps) {

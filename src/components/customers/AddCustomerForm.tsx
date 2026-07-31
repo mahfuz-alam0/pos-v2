@@ -3,15 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
-import {
-  User,
-  MapPin,
-  Users,
-  Stethoscope,
-  MessageSquare,
-  ShieldAlert,
-  X,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -25,7 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import EnterPin from "@/components/pos/EnterPin";
+import IdentityDocCard from "@/components/customers/IdentityDocCard";
+import { DocumentsUpload } from "@/components/admin/form-fields";
 
 import { createCustomer } from "@/services/customers/createCustomer";
 import { updateCustomerInfo } from "@/services/customers/updateCustomer";
@@ -36,6 +35,9 @@ import { findDuplicateCustomers } from "@/services/customers/findDuplicateCustom
 import { getSingleCustomer } from "@/services/customers/getSingleCustomer";
 import { getShopPreference } from "@/services/sales/getShopPreference";
 import { verifyOmmaLicense } from "@/services/metrc/verifyOmmaLicense";
+import { uploadAnySingleFile } from "@/services/storage/uploadFile";
+import { parseDLBarcode, formatDLDate } from "@/lib/aamva";
+import { decodeBarcodeFromImage, loadImageFromSrc } from "@/lib/dlBarcode";
 
 const REFERRAL_SOURCE_OPTIONS = [
   "YouTube",
@@ -74,6 +76,110 @@ const EMPTY_FORM = {
   note: "",
 };
 
+// Maps PixLab's docscan/medidscan response onto this form's own field names
+// directly (rather than the initialValues-prop indirection PhotoCheckinDialog
+// uses), since these results feed straight into setForm from inside the form.
+function normalizeOcrDoc(doc: any, isMedId: boolean) {
+  return {
+    firstName: (doc.first_name || "").trim(),
+    lastName: (doc.last_name || "").trim(),
+    dob: doc.dob ? formatDLDate(doc.dob) : "",
+    sex: doc.gender || "",
+    drivingLicense: isMedId ? "" : doc.license_no || "",
+    drivingLicenseExpiry:
+      !isMedId && doc.expiry_date ? formatDLDate(doc.expiry_date) : "",
+    medicalLicense: isMedId ? doc.medical_license || doc.license_no || "" : "",
+    medicalLicenseExpiresAt:
+      isMedId && doc.expiry_date ? formatDLDate(doc.expiry_date) : "",
+    streetAddress: doc.address || "",
+    city: doc.city || "",
+    state: doc.state || "",
+    zipCode: doc.postal_code || "",
+  };
+}
+
+function SectionHeader({
+  n,
+  label,
+  tone = "default",
+}: {
+  n: number | string;
+  label: string;
+  tone?: "default" | "destructive";
+}) {
+  const destructive = tone === "destructive";
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          destructive
+            ? "bg-destructive text-white"
+            : "bg-primary text-primary-foreground"
+        }`}>
+        {n}
+      </span>
+      <span
+        className={`text-xs font-semibold tracking-widest uppercase ${
+          destructive ? "text-destructive" : "text-muted-foreground"
+        }`}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// Dropdown twin of @/components/admin/form-fields's ShopMultiSelect —
+// same Popover + checkbox-list pattern, just over customer groups instead
+// of shops (no shared home for the two since their item shapes differ).
+function CustomerGroupMultiSelect({
+  groups,
+  value,
+  onToggle,
+}: {
+  groups: any[];
+  value: any[];
+  onToggle: (groupId: any) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedNames = groups
+    .filter((g) => value.includes(g.id))
+    .map((g) => g.name);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className="mt-1 flex h-9 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-3 text-sm outline-none dark:bg-input/30">
+        <span
+          className={`truncate text-left ${selectedNames.length === 0 ? "text-muted-foreground" : ""}`}>
+          {selectedNames.length > 0
+            ? selectedNames.join(", ")
+            : "Select customer groups"}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-1.5" align="start">
+        <div className="max-h-56 overflow-y-auto">
+          {groups.length === 0 && (
+            <div className="py-3 text-center text-sm text-muted-foreground">
+              No customer groups configured.
+            </div>
+          )}
+          {groups.map((g) => (
+            <label
+              key={g.id}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted">
+              <Checkbox
+                checked={value.includes(g.id)}
+                onCheckedChange={() => onToggle(g.id)}
+              />
+              <span className="truncate">{g.name}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const eighteenYearsAgoISO = () => {
   const d = new Date();
@@ -81,6 +187,36 @@ const eighteenYearsAgoISO = () => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * Full customer-creation form, ported field-for-field and check-for-check
+ * from the legacy Add Customer page (routes/Admin/Customer Management/Add
+ * Customer/index.js) — identity, address, customer groups/type, MJ-medical
+ * section, referral source, notes, account-status + cashier-warning toggles,
+ * the pre-create duplicate-license check with override/delete, the OMMA
+ * medical-license verification check, and the share-mode PIN gate.
+ *
+ * Identity Documents section (top) mirrors the legacy layout — inline
+ * upload-or-camera cards (IdentityDocCard) instead of a button-triggered
+ * modal: Profile Picture just uploads, Front Driver's License OCRs via the
+ * same /api/pixlab-docscan proxy PhotoCheckinDialog uses, Back Driver's
+ * License decodes the AAMVA PDF417 barcode (@/lib/dlBarcode,
+ * @/lib/aamva — same libs PhotoCheckinDialog's dl-back mode uses), and
+ * Medical ID OCRs via /api/pixlab-medidscan. All four autofill matching
+ * form fields and attach their photo as drivingLicenseFrontImage /
+ * drivingLicenseBackImage / medicalLicenseImage. General document upload
+ * reuses this app's existing DocumentsUpload widget
+ * (@/components/admin/form-fields) rather than the legacy antd Dragger +
+ * webcam-crop flow.
+ *
+ * Not ported (flagged, not silently dropped) — these depend on subsystems
+ * that don't exist in this app yet:
+ *  - Country picker (no country-list service here) — countryCode is fixed to
+ *    "US"
+ *  - ZIP → city/state autofill (legacy called Google Geocoding directly from
+ *    the browser with a hardcoded API key; that's not something to carry
+ *    forward as-is). City/state/zip remain plain editable fields, so no data
+ *    the old form captured is missing — just the autofill convenience.
+ */
 export default function AddCustomerForm({
   open,
   onClose,
@@ -102,6 +238,13 @@ export default function AddCustomerForm({
   const [form, setForm] = useState(EMPTY_FORM);
   const [fetchedCustomer, setFetchedCustomer] = useState(null);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
+  const [documentImages, setDocumentImages] = useState<{
+    drivingLicenseFrontImage?: string;
+    drivingLicenseBackImage?: string;
+    medicalLicenseImage?: string;
+  }>({});
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [documentLinks, setDocumentLinks] = useState<string[]>([]);
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
   const [requireGroupForMJ, setRequireGroupForMJ] = useState(false);
@@ -220,6 +363,14 @@ export default function AddCustomerForm({
     setTemporaryPatient(!!editSource.mjMedicalData?.isTemporaryPatient);
     setHasCaregiver(!!editSource.mjMedicalData?.hasCareGiver);
     setIsCaregiver(!!editSource.mjMedicalData?.isCareGiver);
+    setDocumentImages({
+      drivingLicenseFrontImage:
+        editSource.drivingLicenseFrontImage || undefined,
+      drivingLicenseBackImage: editSource.drivingLicenseBackImage || undefined,
+      medicalLicenseImage: editSource.medicalLicenseImage || undefined,
+    });
+    setAvatarUrl(editSource.avatarUrl || null);
+    setDocumentLinks(editSource.documentLinks || []);
   }, [open, editSource]);
 
   const setField = (field) => (e) =>
@@ -228,6 +379,9 @@ export default function AddCustomerForm({
   const reset = (nextInitialValues: Record<string, string> = {}) => {
     setForm({ ...EMPTY_FORM, ...nextInitialValues });
     setCustomerGroupIds([]);
+    setDocumentImages({});
+    setAvatarUrl(null);
+    setDocumentLinks([]);
     setAccountActive(true);
     setShouldWarnUser(false);
     setWarningMessage("");
@@ -236,6 +390,99 @@ export default function AddCustomerForm({
     setIsCaregiver(false);
     setSaveMode(null);
     setFoundCustomers([]);
+  };
+
+  const applyScannedFields = (fields: Record<string, string>) => {
+    setForm((f) => ({
+      ...f,
+      ...Object.fromEntries(
+        Object.entries(fields).filter(([, value]) => value),
+      ),
+    }));
+  };
+
+  const handleAvatarFile = async (file: File) => {
+    const uploaded = await uploadAnySingleFile(file);
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    setAvatarUrl(uploaded.downloadUrl);
+  };
+
+  const handleFrontDlFile = async (file: File) => {
+    const uploaded = await uploadAnySingleFile(file);
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    const res = await fetch("/api/pixlab-docscan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        img: uploaded.downloadUrl,
+        type: "driver_license",
+        country: "usa",
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok || !(json?.status === 200 || json?.doc)) {
+      throw new Error(json?.message || "Failed to extract information");
+    }
+    applyScannedFields(normalizeOcrDoc(json.doc || {}, false));
+    setDocumentImages((prev) => ({
+      ...prev,
+      drivingLicenseFrontImage: uploaded.downloadUrl,
+    }));
+    toast.success("License details extracted — review and save.");
+  };
+
+  const handleBackDlFile = async (file: File, dataUrl: string) => {
+    const [uploaded, img] = await Promise.all([
+      uploadAnySingleFile(file),
+      loadImageFromSrc(dataUrl),
+    ]);
+    const raw = await decodeBarcodeFromImage(img);
+    if (!raw)
+      throw new Error(
+        "No barcode found. Try a clearer, well-lit photo of the card back.",
+      );
+    const data = parseDLBarcode(raw);
+    if (!data)
+      throw new Error("Could not read DL data from the barcode. Try again.");
+    applyScannedFields({
+      firstName: data.firstName || "",
+      lastName: data.lastName || "",
+      drivingLicense: data.licenseId || "",
+      dob: data.dob || "",
+      drivingLicenseExpiry: data.expiry || "",
+      streetAddress: data.address || "",
+      city: data.city || "",
+      state: data.state || "",
+      zipCode: data.postal_code || "",
+      sex: data.sex || "",
+    });
+    if (uploaded?.downloadUrl) {
+      setDocumentImages((prev) => ({
+        ...prev,
+        drivingLicenseBackImage: uploaded.downloadUrl,
+      }));
+    }
+    toast.success("Barcode scanned — review and save.");
+  };
+
+  const handleMedIdFile = async (file: File) => {
+    const uploaded = await uploadAnySingleFile(file);
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    const res = await fetch("/api/pixlab-medidscan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ img: uploaded.downloadUrl }),
+    });
+    const json = await res.json();
+    if (!res.ok || !(json?.status === 200 || json?.doc)) {
+      throw new Error(json?.message || "Failed to extract information");
+    }
+    applyScannedFields(normalizeOcrDoc(json.doc || {}, true));
+    setDocumentImages((prev) => ({
+      ...prev,
+      medicalLicenseImage: uploaded.downloadUrl,
+    }));
+    toast.success("Medical ID details extracted — review and save.");
   };
 
   const toggleGroup = (groupId) => {
@@ -329,6 +576,26 @@ export default function AddCustomerForm({
       warningMessage: shouldWarnUser ? warningMessage : null,
       shopId,
       referralSource: form.referralSource || null,
+      ...(documentImages.drivingLicenseFrontImage
+        ? { drivingLicenseFrontImage: documentImages.drivingLicenseFrontImage }
+        : {}),
+      ...(documentImages.drivingLicenseBackImage
+        ? { drivingLicenseBackImage: documentImages.drivingLicenseBackImage }
+        : {}),
+      ...(documentImages.medicalLicenseImage
+        ? { medicalLicenseImage: documentImages.medicalLicenseImage }
+        : {}),
+      avatarUrl: avatarUrl || undefined,
+      documentLinks: Array.from(
+        new Set(
+          [
+            ...documentLinks,
+            documentImages.drivingLicenseFrontImage,
+            documentImages.drivingLicenseBackImage,
+            documentImages.medicalLicenseImage,
+          ].filter(Boolean),
+        ),
+      ),
     };
   };
 
@@ -492,7 +759,7 @@ export default function AddCustomerForm({
           onClose?.();
         }}
         side="right"
-        size={760}
+        size="70%"
         zIndex={zIndex}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
@@ -547,12 +814,53 @@ export default function AddCustomerForm({
               onSubmit={(e) => e.preventDefault()}
               className="flex flex-1 flex-col overflow-hidden">
               <div className="flex-1 space-y-6 overflow-auto p-6">
+                {/* Identity documents */}
+                <section className="space-y-3">
+                  <SectionHeader n={1} label="Identity Documents" />
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <IdentityDocCard
+                      title="Profile Picture"
+                      description="Upload or capture a photo of the customer"
+                      uploadHint="Profile photo (JPG, PNG)"
+                      previewUrl={avatarUrl}
+                      onFile={handleAvatarFile}
+                    />
+                    <IdentityDocCard
+                      title="Front Driver's License"
+                      description="Photo of the front of the driver's license"
+                      uploadHint="Front of driver's license — auto-fills form fields"
+                      previewUrl={documentImages.drivingLicenseFrontImage}
+                      onFile={handleFrontDlFile}
+                    />
+                    <IdentityDocCard
+                      title="Back Driver's License"
+                      description="Scan barcode to auto-fill the form"
+                      uploadHint="Upload / scan barcode — auto-fills form fields"
+                      previewUrl={documentImages.drivingLicenseBackImage}
+                      onFile={handleBackDlFile}
+                    />
+                    <IdentityDocCard
+                      title="Medical ID"
+                      description="Photo of the medical marijuana card"
+                      uploadHint="Medical ID — auto-fills form fields"
+                      previewUrl={documentImages.medicalLicenseImage}
+                      onFile={handleMedIdFile}
+                    />
+                  </div>
+                  <div>
+                    <Label>Additional Documents</Label>
+                    <div className="mt-1">
+                      <DocumentsUpload
+                        links={documentLinks}
+                        onChange={setDocumentLinks}
+                      />
+                    </div>
+                  </div>
+                </section>
+
                 {/* Basic information */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Basic Information
-                  </h4>
+                  <SectionHeader n={2} label="Basic Information" />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="firstName">First Name *</Label>
@@ -663,10 +971,7 @@ export default function AddCustomerForm({
 
                 {/* Address */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Address Information
-                  </h4>
+                  <SectionHeader n={3} label="Address Information" />
                   <div>
                     <Label htmlFor="streetAddress">Street Address</Label>
                     <Input
@@ -709,31 +1014,15 @@ export default function AddCustomerForm({
 
                 {/* Customer classification */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    Customer Classification
-                  </h4>
+                  <SectionHeader n={4} label="Customer Classification" />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Customer Groups</Label>
-                      <div className="mt-1 max-h-32 space-y-1 overflow-auto rounded-lg bg-background p-2 ring-1 ring-foreground/10">
-                        {groups.length === 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            No customer groups configured.
-                          </div>
-                        )}
-                        {groups.map((g) => (
-                          <label
-                            key={g.id}
-                            className="flex items-center gap-2 text-sm">
-                            <Checkbox
-                              checked={customerGroupIds.includes(g.id)}
-                              onCheckedChange={() => toggleGroup(g.id)}
-                            />
-                            {g.name}
-                          </label>
-                        ))}
-                      </div>
+                      <CustomerGroupMultiSelect
+                        groups={groups}
+                        value={customerGroupIds}
+                        onToggle={toggleGroup}
+                      />
                     </div>
                     <div>
                       <Label>Customer Type *</Label>
@@ -768,10 +1057,11 @@ export default function AddCustomerForm({
                 {/* MJ Medical */}
                 {isMjMedical && (
                   <section className="space-y-3 rounded-xl bg-destructive/5 p-4 ring-1 ring-destructive/30">
-                    <h4 className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                      <Stethoscope className="h-4 w-4" />
-                      Medical Information (required for medical patients)
-                    </h4>
+                    <SectionHeader
+                      n={5}
+                      label="Medical Information (required for medical patients)"
+                      tone="destructive"
+                    />
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="medicalLicense">
@@ -902,10 +1192,7 @@ export default function AddCustomerForm({
 
                 {/* Additional information */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    Notes &amp; Referral
-                  </h4>
+                  <SectionHeader n={6} label="Notes & Referral" />
                   <div>
                     <Label htmlFor="referralSource">Referral Source</Label>
                     <Input
@@ -936,10 +1223,7 @@ export default function AddCustomerForm({
 
                 {/* Account settings */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-                    Account Settings
-                  </h4>
+                  <SectionHeader n={7} label="Account Settings" />
                   <label className="flex items-center justify-between gap-2 rounded-lg bg-background p-3 text-sm ring-1 ring-foreground/10">
                     <div>
                       <div className="font-semibold">
