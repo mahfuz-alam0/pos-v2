@@ -295,12 +295,12 @@ export default function DealFormDrawer({
             </div>
           ) : (
             <Tabs value={tab} onValueChange={(v) => setTab(v as string)}>
-              <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="type">{dealType === "REGULAR" ? "Discount" : dealType === "BOGO" ? "BOGO" : "Tiers"}</TabsTrigger>
-                <TabsTrigger value="restrictions">Restrictions</TabsTrigger>
-                <TabsTrigger value="usage">Usage Rules</TabsTrigger>
-                <TabsTrigger value="validity">Validity</TabsTrigger>
+              <TabsList variant="line" className="w-full gap-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)]">
+                <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                <TabsTrigger value="type" className="flex-1">{dealType === "REGULAR" ? "Discount" : dealType === "BOGO" ? "BOGO" : "Tiers"}</TabsTrigger>
+                <TabsTrigger value="restrictions" className="flex-1">Restrictions</TabsTrigger>
+                <TabsTrigger value="usage" className="flex-1">Usage Rules</TabsTrigger>
+                <TabsTrigger value="validity" className="flex-1">Validity</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="mt-4">
