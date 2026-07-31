@@ -115,22 +115,33 @@ export default function OrderAheadBoard() {
   );
   const salesByStatus = (statusId) => sortedSales.filter((s) => s?.status?.statusId === statusId);
 
+  const SCROLL_DRAG_THRESHOLD_PX = 5;
+  const isInteractiveTarget = (target: EventTarget | null) =>
+    target instanceof Element && !!target.closest("button, a, input, select, textarea, [role='button']");
+
   const handleScrollPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    if (isInteractiveTarget(e.target)) return;
     const el = scrollRef.current;
     if (!el) return;
     dragRef.current = { down: true, moved: false, startX: e.clientX, startScroll: el.scrollLeft };
-    el.setPointerCapture(e.pointerId);
-    el.classList.add("select-none");
   };
 
   const handleScrollPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     const el = scrollRef.current;
     if (!drag.down || !el) return;
-    const delta = e.clientX - drag.startX;
-    if (Math.abs(delta) > 3) drag.moved = true;
-    el.scrollLeft = drag.startScroll - delta;
+    if (!drag.moved) {
+      if (Math.abs(e.clientX - drag.startX) <= SCROLL_DRAG_THRESHOLD_PX) return;
+      drag.moved = true;
+      drag.startX = e.clientX;
+      drag.startScroll = el.scrollLeft;
+      el.setPointerCapture(e.pointerId);
+      el.classList.add("select-none", "cursor-grabbing");
+      el.classList.remove("scroll-smooth");
+    }
+    e.preventDefault();
+    el.scrollLeft = drag.startScroll - (e.clientX - drag.startX);
   };
 
   const handleScrollPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -138,8 +149,9 @@ export default function OrderAheadBoard() {
     if (!drag.down) return;
     dragRef.current.down = false;
     const el = scrollRef.current;
-    el?.releasePointerCapture(e.pointerId);
-    el?.classList.remove("select-none");
+    if (drag.moved) el?.releasePointerCapture(e.pointerId);
+    el?.classList.remove("select-none", "cursor-grabbing");
+    el?.classList.add("scroll-smooth");
   };
 
   const cardHandlers = {
@@ -323,7 +335,7 @@ export default function OrderAheadBoard() {
             onPointerMove={handleScrollPointerMove}
             onPointerUp={handleScrollPointerUp}
             onPointerLeave={handleScrollPointerUp}
-            className="flex h-full flex-1 cursor-grab gap-3 overflow-x-auto scroll-smooth active:cursor-grabbing"
+            className="flex h-full flex-1 touch-pan-y gap-3 overflow-x-auto scroll-smooth"
           >
             {columns.map((col) => (
               <div key={col.key} className="w-85 shrink-0">
