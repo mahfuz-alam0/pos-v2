@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { LayoutGrid, List, ArrowUpDown, FilterX, Filter, ChevronLeft, Search, X } from "lucide-react";
+import { LayoutGrid, List, ArrowUpDown, FilterX, Filter, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,10 +13,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiApiSelect } from "@/components/ui/multi-api-select";
 import Drawer from "@/components/ui/Drawer";
 import SkeletonLoader from "@/components/pos/SkeletonLoader";
-import ProductGridView from "@/components/pos/ProductGridView";
+import ProductGridView, { ProductGridSkeleton } from "@/components/pos/ProductGridView";
 import ProductDetailPanel from "@/components/pos/ProductDetailPanel";
 import ScanInput from "@/components/pos/ScanInput";
 
@@ -61,6 +62,9 @@ export default function ProductList({
   showFooterActions = true,
   onClose,
   refreshSignal = 0,
+  cartPanel,
+  cartPanelOpen = false,
+  onToggleCartPanel,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
@@ -347,144 +351,175 @@ export default function ProductList({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Search + filters + type toggle — all in one row, matching the old POS toolbar */}
-      <div className="mb-3 flex flex-wrap items-center gap-2.5 rounded-lg bg-[#00152A] p-3.5 text-white">
-        <label className="flex shrink-0 items-center gap-2.5 rounded-lg border border-white/20 bg-[#00152B] px-3 h-12">
-          <Switch
-            checked={searchTerm === "product"}
-            onCheckedChange={(checked) => setSearchTerm(checked ? "product" : "package")}
-          />
-          <span className="whitespace-nowrap text-sm font-medium text-white/80">
-            {searchTerm === "product" ? "Product" : "Package"}
-          </span>
-        </label>
+      {/* Search + filters toolbar — carbon copy of the old POS InventoryFilter bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-[#00152A] p-3 text-white">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            items={[
+              { value: "product", label: "Product ID" },
+              { value: "package", label: "Package ID" },
+            ]}
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          >
+            <SelectTrigger className="h-10 border-white/20 bg-[#00152B] text-white [&_svg]:text-white/70">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="product">Product ID</SelectItem>
+              <SelectItem value="package">Package ID</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {searchTerm === "product" ? (
-          <div className="relative min-w-40 flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-white/50" />
-            <Input
-              value={searchQuery}
-              placeholder="Scan product id"
-              className="h-12 w-full border-white/20 bg-[#00152B] pl-11 text-base text-white placeholder:text-white/50"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSearch(e.currentTarget.value);
-              }}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (e.target.value === "") handleSearch("");
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => {
-                  setSearchQuery("");
-                  handleSearch("");
+          {searchTerm === "product" ? (
+            <div className="relative min-w-48">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/50" />
+              <Input
+                value={searchQuery}
+                placeholder="Search"
+                className="h-10 w-full border-white/20 bg-[#00152B] pl-9 text-white placeholder:text-white/50"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch(e.currentTarget.value);
                 }}
-                className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="min-w-40 flex-1">
-            <ScanInput
-              setAddSelected={setAddSelected}
-              placeholder="Scan package id"
-              className="h-12 border-white/20 bg-[#00152B] text-base text-white placeholder:text-white/50"
-            />
-          </div>
-        )}
-
-        {searchTerm === "product" && (
-          <div className="flex shrink-0 gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className={`h-12 w-12 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white [&_svg]:size-5 ${
-                selectedCategoryIds.length > 0 || selectedBrandIds.length > 0
-                  ? "border-primary text-primary"
-                  : ""
-              }`}
-              aria-label="Filter by category or brand"
-              onClick={() => setFilterDrawerOpen(true)}
-            >
-              <Filter />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-12 w-12 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white [&_svg]:size-5"
-                    aria-label="Sort"
-                  >
-                    <ArrowUpDown />
-                  </Button>
-                }
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value === "") handleSearch("");
+                }}
               />
-              <DropdownMenuContent>
-                {[
-                  { label: "Price: Low to High", name: "unitPrice", value: "asc" },
-                  { label: "Price: High to Low", name: "unitPrice", value: "desc" },
-                  { label: "Name: A-Z", name: "productName", value: "asc" },
-                  { label: "Name: Z-A", name: "productName", value: "desc" },
-                ].map((opt) => (
-                  <DropdownMenuItem
-                    key={opt.label}
-                    className="py-2.5 text-base"
-                    onClick={() => {
-                      const updated = {
-                        ...activeFiltersRef.current,
-                        sortParam: { name: "sort", value: `${opt.name}:${opt.value}` },
-                      };
-                      activeFiltersRef.current = updated;
-                      fetchProductsData(buildBaseParams(updated));
-                    }}
-                  >
-                    {opt.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-12 w-12 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white [&_svg]:size-5"
-              aria-label="Remove filters"
-              onClick={() => {
-                activeFiltersRef.current = { categoryIds: [], brandIds: [], sortParam: null };
-                setSelectedCategoryIds([]);
-                setSelectedBrandIds([]);
-                fetchProductsData();
-              }}
-            >
-              <FilterX />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-12 w-12 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white [&_svg]:size-5"
-              onClick={() => setView(view === "list" ? "grid" : "list")}
-              aria-label="Toggle view"
-            >
-              {view === "list" ? <LayoutGrid /> : <List />}
-            </Button>
-            {onClose && (
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchQuery("");
+                    handleSearch("");
+                  }}
+                  className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="min-w-48">
+              <ScanInput
+                setAddSelected={setAddSelected}
+                placeholder="Scan package"
+                className="h-10 border-white/20 bg-[#00152B] text-white placeholder:text-white/50"
+              />
+            </div>
+          )}
+
+          {searchTerm === "product" && (
+            <>
+              <MultiApiSelect
+                placeholder="Select Category"
+                value={selectedCategoryIds}
+                onChange={(ids) => {
+                  const updated = { ...activeFiltersRef.current, categoryIds: ids };
+                  activeFiltersRef.current = updated;
+                  setSelectedCategoryIds(ids);
+                  fetchProductsData(buildBaseParams(updated));
+                }}
+                items={allCategory.map((c: any) => ({ id: c.id, name: c.name }))}
+                triggerClassName="h-10 w-40 xl:w-48 border-white/20 bg-[#00152B] text-white [&_svg]:text-white/70"
+              />
+              <MultiApiSelect
+                placeholder="Select Brand"
+                value={selectedBrandIds}
+                onChange={(ids) => {
+                  const updated = { ...activeFiltersRef.current, brandIds: ids };
+                  activeFiltersRef.current = updated;
+                  setSelectedBrandIds(ids);
+                  fetchProductsData(buildBaseParams(updated));
+                }}
+                items={allBrands.map((b: any) => ({ id: b.id, name: b.name }))}
+                triggerClassName="h-10 w-40 xl:w-48 border-white/20 bg-[#00152B] text-white [&_svg]:text-white/70"
+              />
+
               <Button
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white [&_svg]:size-5"
-                aria-label="Close"
-                onClick={onClose}
+                className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                aria-label="Filter by category or brand"
+                onClick={() => setFilterDrawerOpen(true)}
               >
-                <ChevronLeft />
+                <Filter />
               </Button>
-            )}
-          </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                      aria-label="Sort"
+                    >
+                      <ArrowUpDown />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent>
+                  {[
+                    { label: "Price: Low to High", name: "unitPrice", value: "asc" },
+                    { label: "Price: High to Low", name: "unitPrice", value: "desc" },
+                    { label: "Name: A-Z", name: "productName", value: "asc" },
+                    { label: "Name: Z-A", name: "productName", value: "desc" },
+                  ].map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.label}
+                      className="py-2.5 text-base"
+                      onClick={() => {
+                        const updated = {
+                          ...activeFiltersRef.current,
+                          sortParam: { name: "sort", value: `${opt.name}:${opt.value}` },
+                        };
+                        activeFiltersRef.current = updated;
+                        fetchProductsData(buildBaseParams(updated));
+                      }}
+                    >
+                      {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                aria-label="Remove filters"
+                onClick={() => {
+                  activeFiltersRef.current = { categoryIds: [], brandIds: [], sortParam: null };
+                  setSelectedCategoryIds([]);
+                  setSelectedBrandIds([]);
+                  fetchProductsData();
+                }}
+              >
+                <FilterX />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                onClick={() => setView(view === "list" ? "grid" : "list")}
+                aria-label="Toggle view"
+              >
+                {view === "list" ? <LayoutGrid /> : <List />}
+              </Button>
+            </>
+          )}
+        </div>
+
+        {onClose && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0 border-white/20 bg-[#038FDE] text-white hover:bg-[#038FDE]/80"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <ChevronLeft />
+          </Button>
         )}
       </div>
 
@@ -625,62 +660,104 @@ export default function ProductList({
       </Drawer>
 
       {/* Listing */}
-      <div className="min-h-0 flex-1 overflow-auto">
-      {searchTerm === "product" &&
-        (loading ? (
-          <SkeletonLoader rows={6} />
-        ) : view === "list" ? (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="px-2 py-2">Product</th>
-                  <th className="px-2 py-2">Total QTY</th>
-                  <th className="px-2 py-2">Sellable QTY</th>
-                  <th className="px-2 py-2">Price</th>
-                  <th className="px-2 py-2 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productsData.map((record) => (
-                  <tr key={record.id} className="border-b">
-                    <td className="px-2 py-2">{record?.productName}</td>
-                    <td className="px-2 py-2">
-                      {record?.totalQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">
-                      {record?.totalActiveQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">${record?.unitPrice}</td>
-                    <td className="px-2 py-2 text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          fetchSellablePackages(record?.productId);
-                          setShowDetail(true);
-                          setFetchModalProductDetails(record);
-                          setSelectedRowKeys([]);
-                        }}
-                      >
-                        Packages
-                      </Button>
-                    </td>
+      <div className="flex min-h-0 flex-1">
+        <div className={`mt-3 min-w-0 flex-1 ${view === "grid" ? "overflow-hidden" : "overflow-auto"}`}>
+        {searchTerm === "product" &&
+          (loading ? (
+            view === "grid" ? <ProductGridSkeleton /> : <SkeletonLoader rows={6} />
+          ) : view === "list" ? (
+            <div className="w-full overflow-x-auto pl-4">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-muted text-left text-muted-foreground">
+                    <th className="px-2 py-2">Image</th>
+                    <th className="px-2 py-2">Product</th>
+                    <th className="px-2 py-2">Total QTY</th>
+                    <th className="px-2 py-2">Sellable QTY</th>
+                    <th className="px-2 py-2">Price</th>
+                    <th className="px-2 py-2 text-center">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <ProductGridView
-            data={productsData}
-            paginationData={paginationData}
-            onPageChange={fetchProductsDataForPagination}
-            setShowDetail={setShowDetail}
-            fetchSellablePackages={fetchSellablePackages}
-            setSelectedRowKeys={setSelectedRowKeys}
-            setFetchModalProductDetails={setFetchModalProductDetails}
-          />
-        ))}
+                </thead>
+                <tbody>
+                  {productsData.map((record, i) => {
+                    const imgUrl =
+                      record?.productInfo?.images?.[0]?.url ||
+                      (typeof record?.images?.[0] === "string"
+                        ? record.images[0]
+                        : record?.images?.[0]?.url);
+                    return (
+                    <tr
+                      key={record.id}
+                      className={i % 2 === 1 ? "bg-muted/40" : ""}
+                    >
+                      <td className="px-2 py-2">
+                        <div className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
+                          {imgUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imgUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2">{record?.productName}</td>
+                      <td className="px-2 py-2">
+                        {record?.totalQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">
+                        {record?.totalActiveQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">${record?.unitPrice}</td>
+                      <td className="px-2 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            fetchSellablePackages(record?.productId);
+                            setShowDetail(true);
+                            setFetchModalProductDetails(record);
+                            setSelectedRowKeys([]);
+                          }}
+                        >
+                          Packages
+                        </Button>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <ProductGridView
+              data={productsData}
+              paginationData={paginationData}
+              onPageChange={fetchProductsDataForPagination}
+              setShowDetail={setShowDetail}
+              fetchSellablePackages={fetchSellablePackages}
+              setSelectedRowKeys={setSelectedRowKeys}
+              setFetchModalProductDetails={setFetchModalProductDetails}
+            />
+          ))}
+        </div>
+
+        {onToggleCartPanel && (
+          <button
+            type="button"
+            onClick={onToggleCartPanel}
+            title={cartPanelOpen ? "Hide cart" : "Show cart"}
+            className="z-10 mx-1.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-[#038FDE] hover:text-white"
+          >
+            {cartPanelOpen ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </button>
+        )}
+
+        {cartPanelOpen && cartPanel}
       </div>
 
       {/* Product details — full-screen instead of replacing the grid in place */}

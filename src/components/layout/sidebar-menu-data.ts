@@ -65,12 +65,12 @@ export const retailMenu = [
     label: "Promotions",
     icon: Tag,
     children: [
-      { key: "coupons", label: "Coupons", href: "/admin/coupons" },
-      { key: "deals", label: "Deals", href: "/admin/deals" },
+      { key: "coupons", label: "Coupons", href: "/promotions/coupons" },
+      { key: "deals", label: "Deals", href: "/promotions/deals" },
       {
         key: "loyalty-reward-settings",
         label: "Loyalty Reward Settings",
-        href: "/admin/loyalty/reward-settings",
+        href: "/promotions/loyalty",
       },
     ],
   },
