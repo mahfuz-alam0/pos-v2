@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -196,10 +197,7 @@ export default function UserProfile({ collapsed }) {
     {
       icon: UserRound,
       label: "Profile",
-      onClick: () => {
-        setOpen(false);
-        router.push("/social-apps/profile");
-      },
+      href: "/social-apps/profile",
     },
     {
       icon: Repeat,
@@ -289,17 +287,14 @@ export default function UserProfile({ collapsed }) {
                 Chat page (/in-built-apps/chat) is not built yet — icon is
                 wired up ahead of the page landing. */}
             <div className="flex items-center justify-center gap-2 border-b border-primary/20 px-3 py-3">
-              <button
-                type="button"
+              <Link
+                href="/in-built-apps/chat"
                 title="Chat"
-                onClick={() => {
-                  setOpen(false);
-                  router.push("/in-built-apps/chat");
-                }}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
+                onClick={() => setOpen(false)}
+                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
               >
                 <MessageCircle className="size-4.5" />
-              </button>
+              </Link>
               <button
                 ref={notifyButtonRef}
                 type="button"
@@ -319,44 +314,56 @@ export default function UserProfile({ collapsed }) {
               >
                 <View className="size-4.5" />
               </a>
-              <button
-                type="button"
+              <Link
+                href="/admin/activity-log"
                 title="Activity Logs"
-                onClick={() => {
-                  setOpen(false);
-                  router.push("/admin/activity-log");
-                }}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
+                onClick={() => setOpen(false)}
+                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
               >
                 <History className="size-4.5" />
-              </button>
+              </Link>
             </div>
 
             {/* Account actions */}
             <ul className="py-2">
               {menuOptions.map((option) => (
-                <li
-                  key={option.label}
-                  className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover/50"
-                  onClick={option.onClick}
-                >
-                  <span
-                    className={cn(
-                      "flex items-center text-base",
-                      option.danger ? "text-red-500" : "text-sidebar-text"
-                    )}
+                option.href ? (
+                  <li key={option.label}>
+                    <Link
+                      href={option.href}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover/50"
+                    >
+                      <span className="flex items-center text-base text-sidebar-text">
+                        <option.icon className="size-4" />
+                      </span>
+                      <span className="text-sm font-medium text-sidebar-text">{option.label}</span>
+                    </Link>
+                  </li>
+                ) : (
+                  <li
+                    key={option.label}
+                    className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover/50"
+                    onClick={option.onClick}
                   >
-                    <option.icon className="size-4" />
-                  </span>
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      option.danger ? "text-red-500" : "text-sidebar-text"
-                    )}
-                  >
-                    {option.label}
-                  </span>
-                </li>
+                    <span
+                      className={cn(
+                        "flex items-center text-base",
+                        option.danger ? "text-red-500" : "text-sidebar-text"
+                      )}
+                    >
+                      <option.icon className="size-4" />
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm font-medium",
+                        option.danger ? "text-red-500" : "text-sidebar-text"
+                      )}
+                    >
+                      {option.label}
+                    </span>
+                  </li>
+                )
               ))}
             </ul>
           </div>,

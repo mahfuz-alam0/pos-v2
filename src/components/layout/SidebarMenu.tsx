@@ -70,6 +70,7 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }: MenuLeafProps) {
       href={item.href}
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
+      prefetch={true}
       className={cn(
         "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
         collapsed ? "mx-auto my-0.5 h-10 w-10 justify-center" : "px-3 py-2",
