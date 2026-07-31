@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Drawer from "@/components/ui/Drawer";
 import ReconciliationDetailPanel from "./ReconciliationDetailPanel";
 
 const PAGE_SIZE = 30;
@@ -152,7 +153,7 @@ export default function PackageReconciliationTab() {
 
   return (
     <div className="flex gap-4">
-      <div className={`flex flex-col gap-4 ${selectedId ? "w-3/5" : "w-full"}`}>
+      <div className="flex w-full flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-lg border border-input p-0.5">
             {(["all", "yesterday", "today", "custom"] as DateFilter[]).map((f) => (
@@ -276,11 +277,11 @@ export default function PackageReconciliationTab() {
         />
       </div>
 
-      {selectedId && (
-        <div className="w-2/5">
+      <Drawer open={!!selectedId} onClose={closeAdjustment} side="right" size="40%">
+        {selectedId && (
           <ReconciliationDetailPanel adjustmentId={selectedId} onClose={closeAdjustment} onChanged={() => loadAdjustments(page)} />
-        </div>
-      )}
+        )}
+      </Drawer>
     </div>
   );
 }
