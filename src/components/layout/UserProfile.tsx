@@ -296,7 +296,7 @@ export default function UserProfile({ collapsed }) {
                   setOpen(false);
                   router.push("/in-built-apps/chat");
                 }}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
               >
                 <MessageCircle className="size-4.5" />
               </button>
@@ -304,7 +304,7 @@ export default function UserProfile({ collapsed }) {
                 ref={notifyButtonRef}
                 type="button"
                 onClick={() => setNotifyOpen((v) => !v)}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
                 title="Notifications"
               >
                 <Bell className="size-4.5" />
@@ -314,7 +314,7 @@ export default function UserProfile({ collapsed }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
+                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
                 title="Support"
               >
                 <View className="size-4.5" />
@@ -326,7 +326,7 @@ export default function UserProfile({ collapsed }) {
                   setOpen(false);
                   router.push("/admin/activity-log");
                 }}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
               >
                 <History className="size-4.5" />
               </button>
@@ -337,10 +337,15 @@ export default function UserProfile({ collapsed }) {
               {menuOptions.map((option) => (
                 <li
                   key={option.label}
-                  className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover"
+                  className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover/50"
                   onClick={option.onClick}
                 >
-                  <span className="flex items-center text-base text-sidebar-text/70">
+                  <span
+                    className={cn(
+                      "flex items-center text-base",
+                      option.danger ? "text-red-500" : "text-sidebar-text"
+                    )}
+                  >
                     <option.icon className="size-4" />
                   </span>
                   <span
