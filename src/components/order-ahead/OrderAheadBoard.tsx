@@ -179,144 +179,146 @@ export default function OrderAheadBoard() {
 
   return (
     <div className={fullscreen ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-background p-4" : "flex flex-col gap-3 p-4"}>
-      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted/40 p-2.5">
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-950 dark:text-blue-300">
-          {preSales.length + sales.length} Orders
-        </span>
+      <div className="flex flex-col gap-2.5 rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 shrink-0 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:bg-blue-950 dark:text-blue-300">
+            {preSales.length + sales.length} Orders
+          </span>
 
-        <Select
-          items={[
-            { value: "OLDEST_FIRST", label: "Oldest" },
-            { value: "NEWEST_FIRST", label: "Newest" },
-          ]}
-          value={sortOrder}
-          onValueChange={setSortOrder}
-        >
-          <SelectTrigger size="sm" className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="OLDEST_FIRST">Oldest</SelectItem>
-            <SelectItem value="NEWEST_FIRST">Newest</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            items={[
+              { value: "OLDEST_FIRST", label: "Oldest" },
+              { value: "NEWEST_FIRST", label: "Newest" },
+            ]}
+            value={sortOrder}
+            onValueChange={setSortOrder}
+          >
+            <SelectTrigger size="sm" className="h-9 w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="OLDEST_FIRST">Oldest</SelectItem>
+              <SelectItem value="NEWEST_FIRST">Newest</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select
-          items={[{ value: "ALL", label: "All Sources" }, ...SOURCE_OPTIONS]}
-          value={filters.source ?? "ALL"}
-          onValueChange={(v) => setFilter("source", v)}
-        >
-          <SelectTrigger size="sm" className="w-36">
-            <SelectValue placeholder="Source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Sources</SelectItem>
-            {SOURCE_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select
+            items={[{ value: "ALL", label: "All Sources" }, ...SOURCE_OPTIONS]}
+            value={filters.source ?? "ALL"}
+            onValueChange={(v) => setFilter("source", v)}
+          >
+            <SelectTrigger size="sm" className="h-9 w-32">
+              <SelectValue placeholder="Source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Sources</SelectItem>
+              {SOURCE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select
-          items={[{ value: "ALL", label: "All Types" }, ...DELIVERY_METHOD_OPTIONS]}
-          value={filters.deliveryMethod ?? "ALL"}
-          onValueChange={(v) => setFilter("deliveryMethod", v)}
-        >
-          <SelectTrigger size="sm" className="w-36">
-            <SelectValue placeholder="Order Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Types</SelectItem>
-            {DELIVERY_METHOD_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select
+            items={[{ value: "ALL", label: "All Types" }, ...DELIVERY_METHOD_OPTIONS]}
+            value={filters.deliveryMethod ?? "ALL"}
+            onValueChange={(v) => setFilter("deliveryMethod", v)}
+          >
+            <SelectTrigger size="sm" className="h-9 w-32">
+              <SelectValue placeholder="Order Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Types</SelectItem>
+              {DELIVERY_METHOD_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select
-          items={[{ value: "ALL", label: "All Stages" }, ...LIFECYCLE_COLUMNS.map((o) => ({ value: o.key, label: o.label }))]}
-          value={filters.lifecycle ?? "ALL"}
-          onValueChange={(v) => setFilter("lifecycle", v)}
-        >
-          <SelectTrigger size="sm" className="w-40">
-            <SelectValue placeholder="Lifecycle" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Stages</SelectItem>
-            {LIFECYCLE_COLUMNS.map((o) => (
-              <SelectItem key={o.key} value={o.key}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select
+            items={[{ value: "ALL", label: "All Stages" }, ...LIFECYCLE_COLUMNS.map((o) => ({ value: o.key, label: o.label }))]}
+            value={filters.lifecycle ?? "ALL"}
+            onValueChange={(v) => setFilter("lifecycle", v)}
+          >
+            <SelectTrigger size="sm" className="h-9 w-36">
+              <SelectValue placeholder="Lifecycle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Stages</SelectItem>
+              {LIFECYCLE_COLUMNS.map((o) => (
+                <SelectItem key={o.key} value={o.key}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select
-          items={[{ value: "ALL", label: "All Payments" }, ...PAYMENT_STATUS_OPTIONS]}
-          value={filters.paymentStatus ?? "ALL"}
-          onValueChange={(v) => setFilter("paymentStatus", v)}
-        >
-          <SelectTrigger size="sm" className="w-36">
-            <SelectValue placeholder="Payment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Payments</SelectItem>
-            {PAYMENT_STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select
+            items={[{ value: "ALL", label: "All Payments" }, ...PAYMENT_STATUS_OPTIONS]}
+            value={filters.paymentStatus ?? "ALL"}
+            onValueChange={(v) => setFilter("paymentStatus", v)}
+          >
+            <SelectTrigger size="sm" className="h-9 w-32">
+              <SelectValue placeholder="Payment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Payments</SelectItem>
+              {PAYMENT_STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {hasFilters && (
-          <Button variant="outline" size="sm" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
-
-        <div className="relative w-56">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={customerSearch}
-            onChange={(e) => setCustomerSearch(e.target.value)}
-            placeholder="Search by customer..."
-            className="h-8 pl-8"
-          />
+          {hasFilters && (
+            <Button variant="ghost" size="sm" className="h-9 text-muted-foreground" onClick={clearFilters}>
+              Clear
+            </Button>
+          )}
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-            <Button
-              variant={viewMode === "KANBAN" ? "default" : "ghost"}
-              size="icon-sm"
-              className={viewMode === "KANBAN" ? "rounded-[7px]" : "rounded-[7px] text-muted-foreground hover:bg-background/60"}
-              onClick={() => setViewMode("KANBAN")}
-              aria-label="Card view"
-            >
-              <LayoutGrid />
-            </Button>
-            <Button
-              variant={viewMode === "TABLE" ? "default" : "ghost"}
-              size="icon-sm"
-              className={viewMode === "TABLE" ? "rounded-[7px]" : "rounded-[7px] text-muted-foreground hover:bg-background/60"}
-              onClick={() => setViewMode("TABLE")}
-              aria-label="Table view"
-            >
-              <TableIcon />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-64">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              placeholder="Search by customer..."
+              className="h-9 pl-8"
+            />
+          </div>
+
+          <div className="ml-auto flex items-center gap-1.5">
+            <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+              <Button
+                variant={viewMode === "KANBAN" ? "default" : "ghost"}
+                size="icon-sm"
+                className={viewMode === "KANBAN" ? "rounded-[7px]" : "rounded-[7px] text-muted-foreground hover:bg-background/60"}
+                onClick={() => setViewMode("KANBAN")}
+                aria-label="Card view"
+              >
+                <LayoutGrid />
+              </Button>
+              <Button
+                variant={viewMode === "TABLE" ? "default" : "ghost"}
+                size="icon-sm"
+                className={viewMode === "TABLE" ? "rounded-[7px]" : "rounded-[7px] text-muted-foreground hover:bg-background/60"}
+                onClick={() => setViewMode("TABLE")}
+                aria-label="Table view"
+              >
+                <TableIcon />
+              </Button>
+            </div>
+            <Button variant="outline" size="icon-sm" onClick={() => setFullscreen((f) => !f)} aria-label="Toggle fullscreen">
+              {fullscreen ? <Minimize /> : <Maximize />}
             </Button>
           </div>
-          <Button variant="outline" size="icon-sm" onClick={() => setFullscreen((f) => !f)} aria-label="Toggle fullscreen">
-            {fullscreen ? <Minimize /> : <Maximize />}
-          </Button>
         </div>
       </div>
-
-      <div className="shadow-[0_1px_0_rgba(0,0,0,0.06)]" />
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {viewMode === "TABLE" ? (

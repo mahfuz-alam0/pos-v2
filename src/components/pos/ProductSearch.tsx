@@ -84,8 +84,8 @@ export default function ProductSearch({
         side="right"
         size="100vw"
       >
-        <div className="flex h-full flex-col p-4">
-          <div className="flex flex-1 gap-4 overflow-hidden">
+        <div className="flex h-full flex-col">
+          <div className="flex flex-1 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-hidden">
               <ProductList
                 refreshSignal={manageCartOpenCount}
@@ -105,19 +105,19 @@ export default function ProductSearch({
               type="button"
               onClick={() => setCartPanelOpen((v) => !v)}
               title={cartPanelOpen ? "Hide cart" : "Show cart"}
-              className="flex w-6 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE]"
+              className="ml-2 flex w-6 shrink-0 items-center justify-center self-stretch rounded-lg bg-[#00152B] text-white hover:bg-[#038FDE]"
             >
               {cartPanelOpen ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
                 <ChevronLeft className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
               )}
             </button>
             {cartPanelOpen && (
               <div
                 data-mode="dark"
-                className="w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
-                style={{ background: "#00152A", border: "1px solid rgba(1,144,221,0.18)" }}
+                className="ml-2 w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
+                style={{ background: "#00152A" }}
               >
                 <CustomerCartSidebar />
               </div>
