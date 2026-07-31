@@ -67,12 +67,12 @@ function NotificationsPopover({ open, anchorRef, onClose }) {
         zIndex: 1060,
         boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.45)",
       }}
-      className="overflow-hidden rounded-2xl border border-blue-400/30 bg-linear-to-br from-blue-900/95 to-cyan-900/90 backdrop-blur-md"
+      className="overflow-hidden rounded-2xl border border-primary/30 bg-linear-to-br from-sidebar-bg/95 to-sidebar-bg/70 backdrop-blur-md"
     >
-      <div className="flex items-center justify-between border-b border-blue-400/20 px-4 py-3">
-        <span className="text-sm font-semibold text-blue-100">Notifications</span>
+      <div className="flex items-center justify-between border-b border-primary/20 px-4 py-3">
+        <span className="text-sm font-semibold text-sidebar-text">Notifications</span>
       </div>
-      <div className="flex h-40 items-center justify-center text-sm text-blue-300">
+      <div className="flex h-40 items-center justify-center text-sm text-sidebar-text/70">
         No Notifications Found
       </div>
     </div>,
@@ -226,7 +226,7 @@ export default function UserProfile({ collapsed }) {
         onClick={handleToggle}
         title={collapsed ? user?.name || "Account" : undefined}
         className={cn(
-          "inline-flex cursor-pointer items-center justify-center rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 backdrop-blur-sm",
+          "inline-flex cursor-pointer items-center justify-center rounded-full border border-primary/30 bg-primary/20 backdrop-blur-sm",
           collapsed ? "h-9 w-9" : "h-9 max-w-55 gap-2 px-3"
         )}
       >
@@ -237,10 +237,10 @@ export default function UserProfile({ collapsed }) {
         />
         {!collapsed && (
           <>
-            <span className="pointer-events-none min-w-0 flex-1 truncate text-sm font-medium text-blue-200">
+            <span className="pointer-events-none min-w-0 flex-1 truncate text-sm font-medium text-sidebar-text">
               {user?.name || "Account"}
             </span>
-            <ChevronDown className="pointer-events-none size-3 shrink-0 text-blue-400" />
+            <ChevronDown className="pointer-events-none size-3 shrink-0 text-sidebar-text/70" />
           </>
         )}
       </button>
@@ -250,7 +250,7 @@ export default function UserProfile({ collapsed }) {
         createPortal(
           <div
             ref={panelRef}
-            className="overflow-hidden rounded-2xl border border-blue-400/30 bg-linear-to-br from-blue-900/95 to-cyan-900/90 shadow-2xl backdrop-blur-md"
+            className="overflow-hidden rounded-2xl border border-primary/30 bg-linear-to-br from-sidebar-bg/95 to-sidebar-bg/70 shadow-2xl backdrop-blur-md"
             style={{
               position: "fixed",
               top: panelPos.top,
@@ -267,18 +267,18 @@ export default function UserProfile({ collapsed }) {
             }}
           >
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-blue-400/20 px-5 py-4">
+            <div className="flex items-center gap-3 border-b border-primary/20 px-5 py-4">
               <img
                 src={user?.avatarUrl || "/images/avatar.png"}
                 alt=""
                 className="size-10 shrink-0 rounded-full object-cover"
               />
               <div className="min-w-0">
-                <div className="truncate text-base font-bold text-blue-100">
+                <div className="truncate text-base font-bold text-sidebar-text">
                   {user?.name || "Account"}
                 </div>
                 {user?.type && (
-                  <div className="truncate text-xs text-blue-300">
+                  <div className="truncate text-xs text-sidebar-text/70">
                     {user.type.replaceAll("_", " ")}
                   </div>
                 )}
@@ -288,7 +288,7 @@ export default function UserProfile({ collapsed }) {
             {/* Quick actions row ported from old app's AppsNavigation.
                 Chat page (/in-built-apps/chat) is not built yet — icon is
                 wired up ahead of the page landing. */}
-            <div className="flex items-center justify-center gap-2 border-b border-blue-400/20 px-3 py-3">
+            <div className="flex items-center justify-center gap-2 border-b border-primary/20 px-3 py-3">
               <button
                 type="button"
                 title="Chat"
@@ -296,7 +296,7 @@ export default function UserProfile({ collapsed }) {
                   setOpen(false);
                   router.push("/in-built-apps/chat");
                 }}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
               >
                 <MessageCircle className="size-4.5" />
               </button>
@@ -304,7 +304,7 @@ export default function UserProfile({ collapsed }) {
                 ref={notifyButtonRef}
                 type="button"
                 onClick={() => setNotifyOpen((v) => !v)}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
                 title="Notifications"
               >
                 <Bell className="size-4.5" />
@@ -314,7 +314,7 @@ export default function UserProfile({ collapsed }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex size-9 items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
+                className="flex size-9 items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
                 title="Support"
               >
                 <View className="size-4.5" />
@@ -326,7 +326,7 @@ export default function UserProfile({ collapsed }) {
                   setOpen(false);
                   router.push("/admin/activity-log");
                 }}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-blue-300 transition-colors hover:bg-blue-800/60 hover:text-blue-100"
+                className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover hover:text-sidebar-text"
               >
                 <History className="size-4.5" />
               </button>
@@ -337,16 +337,16 @@ export default function UserProfile({ collapsed }) {
               {menuOptions.map((option) => (
                 <li
                   key={option.label}
-                  className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-blue-800/60"
+                  className="flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover"
                   onClick={option.onClick}
                 >
-                  <span className="flex items-center text-base text-blue-300">
+                  <span className="flex items-center text-base text-sidebar-text/70">
                     <option.icon className="size-4" />
                   </span>
                   <span
                     className={cn(
                       "text-sm font-medium",
-                      option.danger ? "text-red-500" : "text-blue-100"
+                      option.danger ? "text-red-500" : "text-sidebar-text"
                     )}
                   >
                     {option.label}
