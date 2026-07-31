@@ -26,9 +26,8 @@ function SidebarInner({
           icon pinned left, logo at 75% width; collapsed shows the icon only. */}
       <div
         className={cn(
-          "relative z-1 flex h-18 shrink-0 items-center py-2.5 pr-7.5 pl-17.5",
-          collapsed && "justify-center px-5",
-          onCloseMobile && "pl-7.5"
+          "relative z-1 flex h-18 shrink-0 items-center py-2.5 pr-7.5",
+          collapsed ? "justify-center px-5" : onCloseMobile ? "pl-7.5" : "pl-17.5"
         )}
       >
         {onCloseMobile ? (

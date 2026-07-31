@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 import AnimatedDrawer from "@/components/ui/AnimatedDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ function calculateAge(dob) {
 // the old app's front-desk drawer (customer info + notes/top-products/order
 // history/returns/loyalty/store-credits), rebuilt against this project's
 // existing services and shadcn primitives.
-export default function CustomerDetailDrawer({ open, onClose, customerId, checkedIn = false, onCheckedIn = undefined }) {
+export default function CustomerDetailDrawer({ open, onClose, customerId, checkedIn = false, onCheckedIn = undefined, mode = "drawer" }) {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
@@ -132,8 +133,8 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
     }
   };
 
-  return (
-    <AnimatedDrawer open={open} onClose={onClose} placement="right" width={720} title="Customer Details">
+  const body = (
+    <>
       {loading ? (
         <div className="py-16 text-center text-muted-foreground">Loading…</div>
       ) : !customer ? (
@@ -233,7 +234,7 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
           )}
 
           <Tabs defaultValue="notes">
-            <TabsList>
+            <TabsList variant="line" className="w-full justify-start gap-4 border-b border-border">
               <TabsTrigger value="notes">Notes</TabsTrigger>
               <TabsTrigger value="top-products">Top Products</TabsTrigger>
               <TabsTrigger value="orders">Order History</TabsTrigger>
@@ -242,22 +243,22 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
               <TabsTrigger value="store-credits">Store Credits</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="notes">
+            <TabsContent value="notes" className="pt-4">
               <NotesSection customerId={customerId} />
             </TabsContent>
-            <TabsContent value="top-products">
+            <TabsContent value="top-products" className="pt-4">
               <TopProductsSection customerId={customerId} />
             </TabsContent>
-            <TabsContent value="orders">
+            <TabsContent value="orders" className="pt-4">
               <OrderHistorySection customerId={customerId} />
             </TabsContent>
-            <TabsContent value="returns">
+            <TabsContent value="returns" className="pt-4">
               <ReturnsSection customerId={customerId} />
             </TabsContent>
-            <TabsContent value="loyalty">
+            <TabsContent value="loyalty" className="pt-4">
               <LoyaltySection customerId={customerId} />
             </TabsContent>
-            <TabsContent value="store-credits">
+            <TabsContent value="store-credits" className="pt-4">
               <StoreCreditsSection customerId={customerId} />
             </TabsContent>
           </Tabs>
@@ -270,6 +271,27 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
         domain="CUSTOMER"
         targetId={customerId}
       />
+    </>
+  );
+
+  if (mode === "inline") {
+    if (!open) return null;
+    return (
+      <div className="flex h-fit max-h-[calc(100vh-3rem)] w-full flex-col overflow-y-auto rounded-xl border border-border bg-component-bg shadow-sm">
+        <div className="sticky top-0 z-1 flex items-center justify-between border-b border-border bg-component-bg px-6 py-4">
+          <h3 className="m-0 text-base font-semibold text-text">Customer Details</h3>
+          <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <X />
+          </Button>
+        </div>
+        <div className="px-7.5 py-5">{body}</div>
+      </div>
+    );
+  }
+
+  return (
+    <AnimatedDrawer open={open} onClose={onClose} placement="right" width={720} title="Customer Details">
+      {body}
     </AnimatedDrawer>
   );
 }

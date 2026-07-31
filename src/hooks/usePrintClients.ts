@@ -24,7 +24,6 @@ export function usePrintClients(shopId, jobType) {
     setError(null);
     fetchPrintClients(shopId, jobType)
       .then((clients) => {
-        console.log("check print clients response: ", clients);
         if (!cancelled) setPrintClients(clients || []);
       })
       .catch((err) => {

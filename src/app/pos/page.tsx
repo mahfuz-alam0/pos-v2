@@ -666,9 +666,9 @@ function TabletPosInner() {
     <TooltipProvider>
       <div className={wrapperClass}>
         {/* ──── TOP BAR ──── */}
-        <div className="flex h-[70px] shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-gray-100 px-4 shadow-sm">
+        <div className="flex h-17.5 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-gray-100 px-4 shadow-sm">
           {shopDetails?.label && (
-            <span className="flex h-[33px] shrink-0 items-center gap-2 rounded-full bg-secondary px-[13px] text-xs font-bold text-white">
+            <span className="flex h-8.25 shrink-0 items-center gap-2 rounded-full bg-secondary px-3.25 text-xs font-bold text-white">
               <span className="inline-block h-2 w-2 rounded-full bg-green-600" />
               {shopDetails.label}
             </span>
@@ -681,7 +681,7 @@ function TabletPosInner() {
             onValueChange={handleDeliveryTypeChange}
             disabled={hasSale}
           >
-            <SelectTrigger className="!h-9 w-[105px] shrink-0 bg-white text-xs">
+            <SelectTrigger className="h-9! w-26.25 shrink-0 bg-white text-xs">
               <SelectValue placeholder="Order Type">
                 {(value) => (
                   <span className="flex items-center">
@@ -1042,7 +1042,7 @@ function TabletPosInner() {
                   <Button
                     disabled={hasSale}
                     onClick={() => setAddCustomerOpen(true)}
-                    className="!h-[39px] w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
+                    className="h-9.75! w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
                   >
                     Add
                   </Button>
