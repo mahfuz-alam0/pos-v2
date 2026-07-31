@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { searchCustomers } from "@/services/customers/search";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
+import { fetchCustomerQueueList } from "@/services/customerQueue/list";
+import { updateQueueStatus } from "@/services/customerQueue/updateStatus";
 
 function getAge(dob) {
   if (!dob) return null;
@@ -24,7 +26,11 @@ export default function QuickCheckIn({ shopId, queueData, onCheckedIn }) {
   const debounceRef = useRef(null);
 
   useEffect(() => {
-    if (!focused) return;
+    if (!focused || !query.trim()) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
     clearTimeout(debounceRef.current);
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
@@ -47,11 +53,20 @@ export default function QuickCheckIn({ shopId, queueData, onCheckedIn }) {
     setCheckingIn(true);
     try {
       await addCustomerToQueue({ shopId, customerId: selected.id, isAnonymous: false });
+      // Checking a customer in from the POS's own queue drawer means staff
+      // is about to serve them right now — land them straight in the
+      // "Return to Queue" (serving) state instead of "Available" (waiting),
+      // same as selecting a customer elsewhere in the POS auto-serves them.
+      const updatedQueue = await fetchCustomerQueueList(shopId);
+      const newEntry = updatedQueue?.data?.find((q) => q.customerId === selected.id);
+      if (newEntry?.id) {
+        await updateQueueStatus({ shopId, id: newEntry.id, action: "MOVE_TO_SERVING" });
+      }
       toast.success(`${selected.firstName} checked in!`);
       setSelected(null);
       setQuery("");
       setResults([]);
-      onCheckedIn?.();
+      onCheckedIn?.(newEntry);
     } catch (err) {
       toast.error(err?.message || "Failed to check in");
     } finally {
@@ -116,7 +131,7 @@ export default function QuickCheckIn({ shopId, queueData, onCheckedIn }) {
         className="w-full rounded-lg border border-border bg-component-bg px-3 py-2 text-sm outline-none focus:border-primary"
       />
 
-      {focused && (
+      {focused && query.trim() && (
         <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-md">
           {loading ? (
             <div className="p-3 text-center text-sm text-muted-foreground">Loading…</div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil, Play } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PaymentStatusRow({
   paymentStatusPaidInFull,
@@ -50,14 +52,19 @@ export default function PaymentStatusRow({
   // where the trigger itself renders.
   selectPortalContainer?: HTMLElement | null;
 }) {
-  const paymentLabel =
+  const [moveToOpen, setMoveToOpen] = useState(false);
+
+  const chosenPaymentMethod =
     paymentMethod === "CASH"
       ? "Cash"
       : paymentMethod === "VIRTUAL"
         ? "Card/Digital"
         : paymentMethod === "BOTH_CASH_VIRTUAL"
           ? "Cash + Card"
-          : "Payment Method";
+          : null;
+  const paymentLabel = chosenPaymentMethod
+    ? `Payment: ${chosenPaymentMethod}`
+    : "Payment";
 
   const mainStatusItems = (orderStatus || []).filter(
     (s) =>
@@ -74,15 +81,7 @@ export default function PaymentStatusRow({
         onClick={onOpenPaymentSidebar}
         className="flex-1 min-w-0 rounded-md bg-[#287372] px-3 py-2 font-semibold text-white transition-colors hover:bg-[#2A9D8F] disabled:cursor-not-allowed disabled:opacity-50">
         <div className="flex items-center justify-between gap-1">
-          <span className="truncate text-sm">
-            {paymentMethod === "CASH"
-              ? "Cash"
-              : paymentMethod === "VIRTUAL"
-                ? "Card/Digital"
-                : paymentMethod === "BOTH_CASH_VIRTUAL"
-                  ? "Cash + Card"
-                  : "Payment Method"}
-          </span>
+          <span className="truncate text-sm">{paymentLabel}</span>
           <span className="text-xs opacity-80">
             (${finalPayable.toFixed(2)}) ✏️
           </span>
@@ -130,47 +129,64 @@ export default function PaymentStatusRow({
 
       {!hasSale && currentAction === null && (
         <div className="flex flex-1 items-center min-w-0 overflow-hidden rounded-md bg-primary">
-          <Select
-            value={selectedStatus ?? ""}
-            onValueChange={onQuickStatusChange}>
-            <SelectTrigger
-              className="flex shrink-0 items-center justify-center gap-1 rounded-none border-0 border-r border-primary-foreground/20 bg-primary-foreground/10 px-2 text-primary-foreground hover:bg-primary-foreground/20 data-[size=sm]:rounded-none [&_svg]:text-white [&_svg]:opacity-90"
-              size="sm">
-              <Play
-                className="h-3.5 w-3.5 fill-current"
-                style={
-                  selectedStatusObj?.colorCode
-                    ? { color: selectedStatusObj.colorCode }
-                    : undefined
-                }
-              />
-            </SelectTrigger>
-            <SelectContent container={selectPortalContainer}>
-              {(orderStatus || [])
-                .filter((s) => !s.isTerminationState)
-                .map((s) => (
-                  <SelectItem key={s.statusId} value={s.statusId}>
-                    <span className="flex items-center gap-1">
-                      <span
-                        className="inline-block h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: s.colorCode }}
-                      />
-                      {s.displayName}
-                    </span>
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <button
+            type="button"
+            data-slot="quick-status-trigger"
+            onClick={() => setMoveToOpen(true)}
+            aria-label="Change target status"
+            className="flex shrink-0 items-center gap-1 rounded-none border-0 border-r border-primary-foreground/20 bg-primary-foreground/10 px-2 py-2 text-primary-foreground hover:bg-primary-foreground/20">
+            <span
+              className="inline-block h-2 w-2 shrink-0 rounded-full"
+              style={
+                selectedStatusObj?.colorCode
+                  ? { backgroundColor: selectedStatusObj.colorCode }
+                  : { backgroundColor: "currentColor" }
+              }
+            />
+            <ChevronDown className="h-3.5 w-3.5 opacity-90" />
+          </button>
           <Button
             variant="default"
             size="sm"
             disabled={cartEmpty || sendToFulfilmentLoading}
             onClick={onSendToFulfillment}
             className="flex-1 min-w-0 rounded-none">
-            {sendToFulfilmentLoading
-              ? "Sending…"
-              : selectedStatusObj?.displayName || "Send to Fulfillment"}
+            <span className="truncate">
+              {sendToFulfilmentLoading
+                ? "Sending…"
+                : `Move To (${selectedStatusObj?.displayName || "Select Status"})`}
+            </span>
           </Button>
+
+          <Dialog open={moveToOpen} onOpenChange={setMoveToOpen}>
+            <DialogContent className="sm:max-w-xs">
+              <DialogHeader>
+                <DialogTitle>Move To</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-1">
+                {(orderStatus || [])
+                  .filter((s) => !s.isTerminationState)
+                  .map((s) => (
+                    <button
+                      key={s.statusId}
+                      type="button"
+                      onClick={() => {
+                        onQuickStatusChange(s.statusId);
+                        setMoveToOpen(false);
+                      }}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted ${
+                        selectedStatus === s.statusId ? "bg-muted font-semibold" : ""
+                      }`}>
+                      <span
+                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: s.colorCode }}
+                      />
+                      {s.displayName}
+                    </button>
+                  ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>

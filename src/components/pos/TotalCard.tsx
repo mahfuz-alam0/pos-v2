@@ -65,6 +65,7 @@ export default function TotalCard({
   deliveryType,
   statusRowContainer,
   checkoutButtonContainer,
+  loyaltyPointsContainer,
 }: any) {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -1134,10 +1135,37 @@ export default function TotalCard({
     </button>
   );
 
+  // Same Loyalty Points panel as below — portaled to loyaltyPointsContainer
+  // when a host (Tablet Mode) wants it surfaced somewhere other than inside
+  // this card (e.g. the Discounts & Taxes drawer), same handlers either way.
+  const loyaltyPointsEl = (selectedCustomer?.id || quoteBody?.customerId) && (
+    <div className="px-4">
+      <LoyaltyPointsPanel
+        customerLoyaltyInfo={customerLoyaltyInfo}
+        appliedLoyaltyPoints={appliedLoyaltyPoints}
+        onAppliedLoyaltyPointsChange={setAppliedLoyaltyPoints}
+        loyaltyLoading={loyaltyLoading}
+        isDisabledLoyalty={isDisabledLoyalty}
+        loyaltyPointsUsed={getOrderSummary?.data?.loyaltyPointsUsed || 0}
+        loyaltyDiscountGiven={getOrderSummary?.data?.loyaltyDiscountGiven}
+        hasLoyaltyErrors={
+          (getOrderSummary?.data?.errorMessages?.loyaltyPoints?.length || 0) >
+          0
+        }
+        finalPayable={getOrderSummary?.data?.finalPayable || 0}
+        onApply={applyLoyaltyPoints}
+        onRemove={deleteLoyaltyPoints}
+      />
+    </div>
+  );
+
   return (
     <>
       {statusRowContainer &&
         createPortal(paymentStatusRowEl, statusRowContainer)}
+      {loyaltyPointsContainer &&
+        loyaltyPointsEl &&
+        createPortal(loyaltyPointsEl, loyaltyPointsContainer)}
       {checkoutButtonContainer &&
         checkoutButtonEl &&
         createPortal(checkoutButtonEl, checkoutButtonContainer)}
@@ -1284,30 +1312,7 @@ export default function TotalCard({
             )}
 
             {/* Loyalty Points */}
-            {(selectedCustomer?.id || quoteBody?.customerId) && (
-              <div className="px-4">
-                <LoyaltyPointsPanel
-                  customerLoyaltyInfo={customerLoyaltyInfo}
-                  appliedLoyaltyPoints={appliedLoyaltyPoints}
-                  onAppliedLoyaltyPointsChange={setAppliedLoyaltyPoints}
-                  loyaltyLoading={loyaltyLoading}
-                  isDisabledLoyalty={isDisabledLoyalty}
-                  loyaltyPointsUsed={
-                    getOrderSummary?.data?.loyaltyPointsUsed || 0
-                  }
-                  loyaltyDiscountGiven={
-                    getOrderSummary?.data?.loyaltyDiscountGiven
-                  }
-                  hasLoyaltyErrors={
-                    (getOrderSummary?.data?.errorMessages?.loyaltyPoints
-                      ?.length || 0) > 0
-                  }
-                  finalPayable={getOrderSummary?.data?.finalPayable || 0}
-                  onApply={applyLoyaltyPoints}
-                  onRemove={deleteLoyaltyPoints}
-                />
-              </div>
-            )}
+            {!loyaltyPointsContainer && loyaltyPointsEl}
 
             {/* Complete Order / Checkout — omitted here when this same
                 button is already portaled elsewhere (see

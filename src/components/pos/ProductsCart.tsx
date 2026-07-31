@@ -169,6 +169,10 @@ export default function ProductsCart() {
       .finally(() => setRowDealsLoading(false));
   };
 
+  const allSelected = cart.length > 0 && selectedKeys.length === cart.length;
+  const toggleSelectAll = () =>
+    setSelectedKeys(allSelected ? [] : cart.map((r) => r.key));
+
   const toggleSelected = (key) =>
     setSelectedKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
@@ -455,27 +459,28 @@ export default function ProductsCart() {
   return (
     <div className="w-full">
       {!isLocked && selectedKeys.length > 0 && (
-        <div className="mb-3 flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-3 ring-1 ring-primary/20">
-          <span className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+        <div className="mb-3 flex items-center gap-3 rounded-xl bg-primary px-4 py-3">
+          <span className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-foreground text-sm font-bold text-primary">
             {selectedKeys.length}
           </span>
-          <span className="text-base font-medium text-muted-foreground">
+          <span className="text-base font-medium text-primary-foreground">
             selected
           </span>
           <div className="ml-auto flex gap-2">
             <Button
+              variant="secondary"
               className="h-11 rounded-lg text-base"
               onClick={openBulkDeals}>
               Apply Deal
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               className="h-11 rounded-lg text-base"
               onClick={() => setDiscountTab("discount")}>
               Apply Discount
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               className="h-11 rounded-lg text-base"
               onClick={() => setDiscountTab("finalPrice")}>
               Set Final Price
@@ -489,7 +494,17 @@ export default function ProductsCart() {
           <thead>
             <tr className="bg-muted/50 text-left">
               {!isLocked && <th className="w-11 px-2 py-3.5" />}
-              {!isLocked && <th className="w-11 px-2 py-3.5" />}
+              {!isLocked && (
+                <th className="w-11 px-2 py-3.5">
+                  <Checkbox
+                    className="size-5"
+                    checked={allSelected}
+                    indeterminate={!allSelected && selectedKeys.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all items"
+                  />
+                </th>
+              )}
               <th className="px-3 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Product
               </th>

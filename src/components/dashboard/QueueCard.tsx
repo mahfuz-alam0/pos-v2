@@ -28,7 +28,7 @@ function isDobBefore(dateStr) {
   return new Date(dateStr) < new Date();
 }
 
-export default function QueueCard({ data, onRemove, onServe, onOpenDetails, sidepanel = false }) {
+export default function QueueCard({ data, onRemove, onServe, onOpenDetails, sidepanel = false, wide = false }) {
   const { shopId } = useShop();
   const { queueBorder15, queueBorder20, queueYellowTime, queueRedTime } = useSettings();
   const [waitTime, setWaitTime] = useState(calculateWaitTime(data?.updatedAt));
@@ -119,7 +119,7 @@ export default function QueueCard({ data, onRemove, onServe, onOpenDetails, side
   return (
     <div
       className={`relative flex ${
-        sidepanel ? "w-full" : "w-[calc((100%-16px)/3)] min-w-55"
+        sidepanel && !wide ? "w-full" : "w-[calc((100%-16px)/3)] min-w-55"
       } flex-col overflow-hidden rounded-xl border-2 bg-component-bg shadow-sm ${borderColorClass}`}
     >
       <button
