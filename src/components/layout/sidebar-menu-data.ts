@@ -13,11 +13,20 @@ import {
   UserCog,
   Truck,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
+
+export interface MenuItem {
+  key: string;
+  label: string;
+  href?: string;
+  icon?: LucideIcon;
+  children?: MenuItem[];
+}
 
 // Retail menu tree — ported from old app's SidebarContent.js (currentMenu === "retail").
 // Each item: { key, label, href } (leaf) or { key, label, icon, children } (section).
-export const retailMenu = [
+export const retailMenu: MenuItem[] = [
   {
     key: "dashboard",
     label: "Dashboard",
