@@ -77,7 +77,7 @@ export default function ProductDetailsPanel({ productId, productName, onClose, o
           <Tooltip>
             <TooltipTrigger
               className="inline-flex shrink-0"
-              onClick={() => router.push(`/admin/catalog/products/matrix?matrixId=${matrixId}`)}
+              onClick={() => router.push(`/catalog/products/matrix?matrixId=${matrixId}`)}
             >
               <Info className="size-3.5 animate-pulse text-blue-500" />
             </TooltipTrigger>

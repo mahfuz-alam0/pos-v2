@@ -124,13 +124,13 @@ export default function ProductsPage() {
   const openRow = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("id", id);
-    router.push(`/admin/catalog/products?${params.toString()}`, { scroll: false });
+    router.push(`/catalog/products?${params.toString()}`, { scroll: false });
   };
 
   const closeDetail = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
-    router.push(`/admin/catalog/products${params.toString() ? `?${params}` : ""}`, { scroll: false });
+    router.push(`/catalog/products${params.toString() ? `?${params}` : ""}`, { scroll: false });
   };
 
   const isRowSelected = (id: string) => selectedForMerge.some((p) => p.id === id);
@@ -317,7 +317,7 @@ export default function ProductsPage() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              router.push(`/admin/catalog/products/matrix?matrixId=${row.matrixId}`);
+                              router.push(`/catalog/products/matrix?matrixId=${row.matrixId}`);
                             }}
                           >
                             <Info className="size-3.5 animate-pulse text-blue-500" />
