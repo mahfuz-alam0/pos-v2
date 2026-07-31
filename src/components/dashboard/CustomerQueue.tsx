@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import QueueCard from "./QueueCard";
 import QuickCheckIn from "./QuickCheckIn";
 import QrCheckIn from "@/components/settings/QrCheckIn";
-import AddCustomerToQueue from "@/components/customers/AddCustomerToQueue";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 
 // `onCustomerServed`: optional hook fired (in addition to the default
@@ -139,14 +139,12 @@ export default function CustomerQueue({ sidepanel = false, wide = false, onCusto
       </div>
 
       <QrCheckIn open={qrOpen} onOpenChange={setQrOpen} shopId={shopId} onSuccess={fetchQueue} />
-      <AddCustomerToQueue
+      <AddCustomerForm
         open={addCustomerOpen}
-        onOpenChange={setAddCustomerOpen}
-        shopId={shopId}
-        queueData={queueData}
-        onCheckedIn={(record) => {
+        onClose={() => setAddCustomerOpen(false)}
+        onCreated={(record, mode) => {
           fetchQueue();
-          if (record) onCustomerServed?.(record);
+          if (mode === "queue" && record) onCustomerServed?.(record);
         }}
       />
       <CustomerDetailDrawer

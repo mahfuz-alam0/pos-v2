@@ -236,7 +236,7 @@ export default function ProductGridView({
           overflowX: "hidden",
         }}>
         <div
-          className="grid gap-2"
+          className="grid gap-2 pl-2"
           style={{
             gridTemplateColumns:
               "repeat(auto-fit, minmax(max(160px, calc((100% - 5 * 0.5rem) / 6)), 1fr))",
