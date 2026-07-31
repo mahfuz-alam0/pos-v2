@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { LayoutGrid, List, ArrowUpDown, FilterX, Filter, ChevronLeft, Search, X } from "lucide-react";
+import { LayoutGrid, List, ArrowUpDown, FilterX, Filter, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +62,9 @@ export default function ProductList({
   showFooterActions = true,
   onClose,
   refreshSignal = 0,
+  cartPanel,
+  cartPanelOpen = false,
+  onToggleCartPanel,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
@@ -349,7 +352,7 @@ export default function ProductList({
   return (
     <div className="flex h-full flex-col">
       {/* Search + filters toolbar — carbon copy of the old POS InventoryFilter bar */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 bg-[#00152A] p-3 text-white">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-[#00152A] p-3 text-white">
         <div className="flex flex-wrap items-center gap-2">
           <Select
             items={[
@@ -657,62 +660,104 @@ export default function ProductList({
       </Drawer>
 
       {/* Listing */}
-      <div className={`min-h-0 flex-1 ${view === "grid" ? "overflow-hidden" : "overflow-auto"}`}>
-      {searchTerm === "product" &&
-        (loading ? (
-          view === "grid" ? <ProductGridSkeleton /> : <SkeletonLoader rows={6} />
-        ) : view === "list" ? (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="px-2 py-2">Product</th>
-                  <th className="px-2 py-2">Total QTY</th>
-                  <th className="px-2 py-2">Sellable QTY</th>
-                  <th className="px-2 py-2">Price</th>
-                  <th className="px-2 py-2 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productsData.map((record) => (
-                  <tr key={record.id} className="border-b">
-                    <td className="px-2 py-2">{record?.productName}</td>
-                    <td className="px-2 py-2">
-                      {record?.totalQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">
-                      {record?.totalActiveQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">${record?.unitPrice}</td>
-                    <td className="px-2 py-2 text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          fetchSellablePackages(record?.productId);
-                          setShowDetail(true);
-                          setFetchModalProductDetails(record);
-                          setSelectedRowKeys([]);
-                        }}
-                      >
-                        Packages
-                      </Button>
-                    </td>
+      <div className="flex min-h-0 flex-1">
+        <div className={`mt-3 min-w-0 flex-1 ${view === "grid" ? "overflow-hidden" : "overflow-auto"}`}>
+        {searchTerm === "product" &&
+          (loading ? (
+            view === "grid" ? <ProductGridSkeleton /> : <SkeletonLoader rows={6} />
+          ) : view === "list" ? (
+            <div className="w-full overflow-x-auto pl-4">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-muted text-left text-muted-foreground">
+                    <th className="px-2 py-2">Image</th>
+                    <th className="px-2 py-2">Product</th>
+                    <th className="px-2 py-2">Total QTY</th>
+                    <th className="px-2 py-2">Sellable QTY</th>
+                    <th className="px-2 py-2">Price</th>
+                    <th className="px-2 py-2 text-center">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <ProductGridView
-            data={productsData}
-            paginationData={paginationData}
-            onPageChange={fetchProductsDataForPagination}
-            setShowDetail={setShowDetail}
-            fetchSellablePackages={fetchSellablePackages}
-            setSelectedRowKeys={setSelectedRowKeys}
-            setFetchModalProductDetails={setFetchModalProductDetails}
-          />
-        ))}
+                </thead>
+                <tbody>
+                  {productsData.map((record, i) => {
+                    const imgUrl =
+                      record?.productInfo?.images?.[0]?.url ||
+                      (typeof record?.images?.[0] === "string"
+                        ? record.images[0]
+                        : record?.images?.[0]?.url);
+                    return (
+                    <tr
+                      key={record.id}
+                      className={i % 2 === 1 ? "bg-muted/40" : ""}
+                    >
+                      <td className="px-2 py-2">
+                        <div className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
+                          {imgUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imgUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2">{record?.productName}</td>
+                      <td className="px-2 py-2">
+                        {record?.totalQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">
+                        {record?.totalActiveQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">${record?.unitPrice}</td>
+                      <td className="px-2 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            fetchSellablePackages(record?.productId);
+                            setShowDetail(true);
+                            setFetchModalProductDetails(record);
+                            setSelectedRowKeys([]);
+                          }}
+                        >
+                          Packages
+                        </Button>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <ProductGridView
+              data={productsData}
+              paginationData={paginationData}
+              onPageChange={fetchProductsDataForPagination}
+              setShowDetail={setShowDetail}
+              fetchSellablePackages={fetchSellablePackages}
+              setSelectedRowKeys={setSelectedRowKeys}
+              setFetchModalProductDetails={setFetchModalProductDetails}
+            />
+          ))}
+        </div>
+
+        {onToggleCartPanel && (
+          <button
+            type="button"
+            onClick={onToggleCartPanel}
+            title={cartPanelOpen ? "Hide cart" : "Show cart"}
+            className="z-10 mx-1.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-[#038FDE] hover:text-white"
+          >
+            {cartPanelOpen ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </button>
+        )}
+
+        {cartPanelOpen && cartPanel}
       </div>
 
       {/* Product details — full-screen instead of replacing the grid in place */}

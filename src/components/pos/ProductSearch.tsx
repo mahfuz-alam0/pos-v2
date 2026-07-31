@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import Drawer from "@/components/ui/Drawer";
@@ -85,44 +84,29 @@ export default function ProductSearch({
         size="100vw"
       >
         <div className="flex h-full flex-col">
-          <div className="flex flex-1 overflow-hidden">
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <ProductList
-                refreshSignal={manageCartOpenCount}
-                setAddSelected={setAddSelected}
-                setMiscallenousType={setMiscallenousType}
-                setNotes={setNotes}
-                notes={notes}
-                discountTypes={discountTypes}
-                initialView="grid"
-                autoOpenProduct={autoOpenProduct}
-                showFooterActions={false}
-                onClose={() => setManageCartOpen(false)}
-              />
-            </div>
-            {/* Cart, collapsed by default — same as the old "View Products" drawer's ProductsPopupSideBar toggle */}
-            <button
-              type="button"
-              onClick={() => setCartPanelOpen((v) => !v)}
-              title={cartPanelOpen ? "Hide cart" : "Show cart"}
-              className="ml-2 flex w-6 shrink-0 items-center justify-center self-stretch rounded-lg bg-[#00152B] text-white hover:bg-[#038FDE]"
-            >
-              {cartPanelOpen ? (
-                <ChevronLeft className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-            {cartPanelOpen && (
+          <ProductList
+            refreshSignal={manageCartOpenCount}
+            setAddSelected={setAddSelected}
+            setMiscallenousType={setMiscallenousType}
+            setNotes={setNotes}
+            notes={notes}
+            discountTypes={discountTypes}
+            initialView="grid"
+            autoOpenProduct={autoOpenProduct}
+            showFooterActions={false}
+            onClose={() => setManageCartOpen(false)}
+            cartPanelOpen={cartPanelOpen}
+            onToggleCartPanel={() => setCartPanelOpen((v) => !v)}
+            cartPanel={
               <div
                 data-mode="dark"
-                className="ml-2 w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
+                className="h-full w-[320px] shrink-0 overflow-auto p-3 text-white xl:w-105"
                 style={{ background: "#00152A" }}
               >
                 <CustomerCartSidebar />
               </div>
-            )}
-          </div>
+            }
+          />
         </div>
       </Drawer>
     </div>

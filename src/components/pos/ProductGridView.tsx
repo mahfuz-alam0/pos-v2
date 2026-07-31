@@ -18,10 +18,10 @@ function ProductCardSkeleton() {
     <div
       className="relative w-full overflow-hidden rounded-2xl bg-[#1a2238]"
       style={{ aspectRatio: "220 / 150" }}>
-      <Skeleton className="absolute left-1.5 top-1.5 h-4 w-16 rounded-full bg-white/10" />
+      <Skeleton className="absolute left-1.5 top-1.5 h-4 w-16 rounded-full bg-gray-400/20" />
       <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 px-2.5 pb-2">
-        <Skeleton className="h-3 w-3/4 rounded bg-white/10" />
-        <Skeleton className="h-3.5 w-1/3 rounded bg-white/10" />
+        <Skeleton className="h-3 w-3/4 rounded bg-gray-400/20" />
+        <Skeleton className="h-3.5 w-1/3 rounded bg-gray-400/20" />
       </div>
     </div>
   );
@@ -29,10 +29,18 @@ function ProductCardSkeleton() {
 
 export function ProductGridSkeleton({ count = 12 }) {
   return (
-    <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-      {Array.from({ length: count }).map((_, i) => (
-        <ProductCardSkeleton key={i} />
-      ))}
+    <div className="@container">
+      <div
+        className="grid gap-2"
+        style={{
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(max(160px, calc((100% - 5 * 0.5rem) / 6)), 1fr))",
+        }}
+      >
+        {Array.from({ length: count }).map((_, i) => (
+          <ProductCardSkeleton key={i} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -220,13 +228,20 @@ export default function ProductGridView({
   return (
     <div className="flex h-full flex-col">
       <div
+        className="@container"
         style={{
           flex: "1 1 auto",
           minHeight: 0,
           overflowY: noScroll ? "hidden" : "auto",
           overflowX: "hidden",
         }}>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div
+          className="grid gap-2"
+          style={{
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(max(160px, calc((100% - 5 * 0.5rem) / 6)), 1fr))",
+          }}
+        >
           {data.map((product) => (
             <ProductCard
               key={product.id}
