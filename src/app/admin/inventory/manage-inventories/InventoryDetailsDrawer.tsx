@@ -254,6 +254,7 @@ export default function InventoryDetailsDrawer({
   const deleteDisabled = (vmIntegrated && !!inventory?.weedmapProductId) || inventoryHasPackages;
 
   return (
+    <>
     <Drawer open={!!inventoryId} onClose={onClose} side="right" size="60%">
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between gap-2 border-b px-5 py-4">
@@ -481,36 +482,37 @@ export default function InventoryDetailsDrawer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </Drawer>
 
-      <ManageWeedmapsDrawer
-        open={wmDrawerOpen}
-        onClose={() => setWmDrawerOpen(false)}
-        inventory={inventory}
-        vmIntegrated={vmIntegrated}
-        onSyncSuccess={loadInventory}
-      />
+    <ManageWeedmapsDrawer
+      open={wmDrawerOpen}
+      onClose={() => setWmDrawerOpen(false)}
+      inventory={inventory}
+      vmIntegrated={vmIntegrated}
+      onSyncSuccess={loadInventory}
+    />
 
-      <ReconcilePackageDrawer
-        open={!!reconcilePackage}
-        packageDetail={reconcilePackage}
-        onClose={() => setReconcilePackage(null)}
-        onReconciled={() => {
-          setReconcilePackage(null);
-          checkInventoryPackages();
+    <ReconcilePackageDrawer
+      open={!!reconcilePackage}
+      packageDetail={reconcilePackage}
+      onClose={() => setReconcilePackage(null)}
+      onReconciled={() => {
+        setReconcilePackage(null);
+        checkInventoryPackages();
+      }}
+    />
+
+    {inventory?.productId && (
+      <AddEditProductDrawer
+        open={editProductOpen}
+        product={{ id: inventory.productId } as any}
+        onClose={() => setEditProductOpen(false)}
+        onDone={() => {
+          setEditProductOpen(false);
+          loadInventory();
         }}
       />
-
-      {editProductOpen && inventory?.productId && (
-        <AddEditProductDrawer
-          open={editProductOpen}
-          product={{ id: inventory.productId } as any}
-          onClose={() => setEditProductOpen(false)}
-          onDone={() => {
-            setEditProductOpen(false);
-            loadInventory();
-          }}
-        />
-      )}
-    </Drawer>
+    )}
+    </>
   );
 }

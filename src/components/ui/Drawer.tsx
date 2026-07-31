@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 // "100vw"/"100%" get their own wrapper branch (full-bleed via inset, no
 // `width` style) — `width: 100vw` on a `fixed right-0` element overshoots
@@ -89,17 +90,22 @@ export default function Drawer({
       };
     }
     setEntered(false);
-    const timeoutId = setTimeout(() => setShouldRender(false), 500);
+    const timeoutId = setTimeout(() => setShouldRender(false), 250);
     return () => clearTimeout(timeoutId);
   }, [open]);
 
   if (!shouldRender) return null;
 
-  return (
+  // Portal to <body>: without it, this drawer's `fixed` sizing would be
+  // relative to any ancestor drawer's `translate(0,0)` wrapper (a transform
+  // creates a new containing block for `fixed` children), shrinking nested
+  // drawers instead of sizing them off the real viewport.
+  return createPortal(
     <>
+
       {overlay && (
         <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-xs transition-opacity duration-500 ease-in-out"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xs transition-opacity duration-250 ease-in-out"
           style={{
             zIndex,
             opacity: entered ? 1 : 0,
@@ -112,7 +118,7 @@ export default function Drawer({
       <div
         role="dialog"
         aria-modal="true"
-        className={`fixed bg-component-bg text-text border-border shadow-xl transition-transform duration-500 ease-in-out ${isFull ? cfg.fullWrapper : cfg.wrapper} ${className}`}
+        className={`fixed bg-component-bg text-text border-border shadow-xl transition-transform duration-250 ease-in-out ${isFull ? cfg.fullWrapper : cfg.wrapper} ${className}`}
         style={{
           zIndex: zIndex + 1,
           ...(isFull ? {} : cfg.size(size)),
@@ -121,6 +127,7 @@ export default function Drawer({
       >
         {children}
       </div>
-    </>
+    </>,
+    document.body
   );
 }

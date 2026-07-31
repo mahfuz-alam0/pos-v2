@@ -213,7 +213,7 @@ function PackageCard({
 
       <PackageActivityDrawer open={activityOpen} packageId={pkg.id} onClose={() => setActivityOpen(false)} />
 
-      {editOpen && pkg.productId && (
+      {pkg.productId && (
         <AddEditProductDrawer
           open={editOpen}
           product={{ id: pkg.productId } as any}
