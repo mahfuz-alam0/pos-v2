@@ -33,23 +33,6 @@ import { addLineItemsAction } from "@/store/slices/lineItemsSlice";
 import { updateSalesDetail } from "@/store/slices/salesDetailSlice";
 import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 
-// Ported from productList.js — product listing with search, category/brand
-// filtering, pagination, and the sellable-packages -> add-to-cart flow.
-//
-// Preserved exactly: the activeFiltersRef single-source-of-truth filter model
-// (so no stale-closure filter bugs), buildBaseParams param assembly, the
-// customerGroupId-driven refetch, sellable-package mapping/display, the decimal
-// (0.25) vs integer quantity math, dedup vs cart, and the quote refresh through
-// the shared quoteApiManager.
-//
-// Simplified from the old file (out of the product/cart scope, and depended on
-// unported antd widgets): matrix product resolution (variant picker) and the
-// duplicate-in-cart Alert banner. Category/brand pickers are single-select
-// here (old APIDataSelect was multi-select); the filter handlers still
-// normalise to id arrays so the backend contract is unchanged. The full-screen
-// package detail panel (ProductDetailsPage, incl. per-location columns) and
-// the "search and select products" typeahead (ProductDropdown) are ported —
-// see ProductDetailPanel.jsx / ProductSearchDropdown.jsx.
 export default function ProductList({
   setAddSelected,
   setMiscallenousType,
@@ -518,7 +501,7 @@ export default function ProductList({
             aria-label="Close"
             onClick={onClose}
           >
-            <ChevronLeft />
+            <ChevronRight />
           </Button>
         )}
       </div>
@@ -757,7 +740,15 @@ export default function ProductList({
           </button>
         )}
 
-        {cartPanelOpen && cartPanel}
+        {cartPanel && (
+          <div
+            className={`h-full shrink-0 overflow-hidden transition-[max-width] duration-300 ease-in-out ${
+              cartPanelOpen ? "max-w-105" : "max-w-0"
+            }`}
+          >
+            {cartPanel}
+          </div>
+        )}
       </div>
 
       {/* Product details — full-screen instead of replacing the grid in place */}

@@ -217,7 +217,7 @@ export default function EditInventoryForm({ inventoryId }) {
             </CardHeader>
             <CardContent>
               <Link
-                href={`/admin/catalog/products/edit/${inventory.productId}`}
+                href={`/catalog/products?id=${inventory.productId}`}
                 className="flex items-center gap-2 text-primary hover:underline"
               >
                 {inventory.productName}

@@ -13,11 +13,20 @@ import {
   UserCog,
   Truck,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
+
+export interface MenuItem {
+  key: string;
+  label: string;
+  href?: string;
+  icon?: LucideIcon;
+  children?: MenuItem[];
+}
 
 // Retail menu tree — ported from old app's SidebarContent.js (currentMenu === "retail").
 // Each item: { key, label, href } (leaf) or { key, label, icon, children } (section).
-export const retailMenu = [
+export const retailMenu: MenuItem[] = [
   {
     key: "dashboard",
     label: "Dashboard",
@@ -128,24 +137,24 @@ export const retailMenu = [
     label: "Catalog",
     icon: BookOpen,
     children: [
-      { key: "products", label: "Products", href: "/admin/catalog/products" },
+      { key: "products", label: "Products", href: "/catalog/products" },
       {
         key: "classifications",
         label: "Classifications",
-        href: "/admin/catalog/classifications",
+        href: "/catalog/classifications",
       },
-      { key: "brands", label: "Brands", href: "/admin/catalog/manufacturers" },
+      { key: "brands", label: "Brands", href: "/catalog/manufacturers" },
       {
         key: "product-matrix",
         label: "Product Matrix",
-        href: "/admin/catalog/products/matrix",
+        href: "/catalog/products/matrix",
       },
-      { key: "tags", label: "Tags", href: "/admin/settings/tags" },
-      { key: "strains", label: "Strains", href: "/admin/settings/strains" },
+      { key: "tags", label: "Tags", href: "/catalog/tags" },
+      { key: "strains", label: "Strains", href: "/catalog/strains" },
       {
         key: "suppliers",
         label: "Suppliers",
-        href: "/admin/settings/suppliers",
+        href: "/catalog/suppliers",
       },
     ],
   },
