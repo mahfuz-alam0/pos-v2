@@ -4,10 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Send, MessageSquare, Menu, Image as ImageIcon, XCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useChatSocket } from "@/context/chat-socket-context";
 import { cn } from "@/lib/utils";
 import Conversation from "./Conversation";
+
+function MessagesSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className={cn("flex", i % 2 === 0 ? "justify-start" : "justify-end")}>
+          <Skeleton className={cn("h-12 rounded-2xl", i % 2 === 0 ? "w-2/5 rounded-bl-sm" : "w-1/3 rounded-br-sm")} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
@@ -25,7 +38,7 @@ function readImagesAsDataUrls(files) {
   );
 }
 
-export default function Communication({ selectedUser, onOpenDrawer }) {
+export default function Communication({ selectedUser, loading, onOpenDrawer }) {
   const { messages } = useSelector((state: any) => state.chat);
   const { sendMessage, isConnected } = useChatSocket();
 
@@ -127,7 +140,7 @@ export default function Communication({ selectedUser, onOpenDrawer }) {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted/40">
         <div className="px-4 py-5">
-          <Conversation chats={sessionMessages} />
+          {loading && sessionMessages.length === 0 ? <MessagesSkeleton /> : <Conversation chats={sessionMessages} />}
         </div>
       </div>
 

@@ -16,10 +16,9 @@ export const chatLogin = createAsyncThunk("chat/initialSetUp", async (props: any
 
   try {
     const storedToken = localStorage.getItem("chatToken");
-    const storedUser = localStorage.getItem("user");
-    if (storedToken && storedUser) {
+    if (storedToken) {
       dispatch(getChatSessions());
-      return { token: JSON.parse(storedToken), user: JSON.parse(storedUser), userRole: "admin" };
+      return { token: JSON.parse(storedToken), user, userRole: "admin" };
     }
   } catch {
     localStorage.removeItem("chatToken");

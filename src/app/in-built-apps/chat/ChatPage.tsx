@@ -92,7 +92,7 @@ export default function ChatPage() {
             <Skeleton className="size-10 rounded-full" />
           </div>
         ) : (
-          <Communication selectedUser={selectedUser} onOpenDrawer={() => setDrawerOpen(true)} />
+          <Communication selectedUser={selectedUser} loading={loading} onOpenDrawer={() => setDrawerOpen(true)} />
         )}
       </div>
     </div>
