@@ -225,17 +225,17 @@ export const retailMenu: MenuItem[] = [
       {
         key: "metrc-reconciliations",
         label: "METRC Reconciliations",
-        href: "/admin/inventory/metrc-reconciliation/packages",
+        href: "/metrc/reconciliations",
       },
       {
         key: "metrc-transfers",
         label: "METRC Transfers",
-        href: "/admin/inventory/transfers/metrc-transfer",
+        href: "/metrc/transfers",
       },
       {
         key: "metrc-configuration",
         label: "METRC Configuration",
-        href: "/admin/settings/metrc-configuration",
+        href: "/metrc/configuration",
       },
     ],
   },
