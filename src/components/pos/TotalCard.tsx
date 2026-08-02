@@ -712,7 +712,7 @@ export default function TotalCard({
         setCreateOrderRes(res.data.data);
         toast.success("Order placed successfully");
         resetSessionAfterOrder(false);
-        router.push("/admin/orderahead");
+        router.push("/fulfillment/orderahead");
       } else {
         toast.error("Order could not be completed.");
       }
