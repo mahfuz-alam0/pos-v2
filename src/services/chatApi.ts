@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const chatApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_SERVICE_URL,
+  baseURL: process.env.NEXT_PUBLIC_CHAT_SERVICE_URL,
   withCredentials: true,
 });
 
