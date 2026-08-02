@@ -91,7 +91,7 @@ export default function WelcomeBanner() {
       key: "tasks",
       count: taskCount,
       label: `Pending task${taskCount !== 1 ? "s" : ""}`,
-      href: "/admin/tasks/tasks-listings",
+      href: "/settings/tasks-listings",
       icon: <FileText className="size-4" />,
     });
   }

@@ -291,7 +291,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
         await updateLabel(body);
         toast.success("Label updated successfully.");
       }
-      router.push("/admin/labels");
+      router.push("/settings/labels");
     } catch (err: any) {
       toast.error(err?.message || "Failed to save label");
     } finally {
@@ -332,7 +332,7 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <Button variant="outline" onClick={() => router.push("/admin/labels")}>
+        <Button variant="outline" onClick={() => router.push("/settings/labels")}>
           Back to Labels
         </Button>
       </div>

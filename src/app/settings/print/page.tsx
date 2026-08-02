@@ -34,7 +34,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-import { LabelFieldMap } from "@/app/admin/labels/labelFieldMap";
+import { LabelFieldMap } from "@/app/settings/labels/labelFieldMap";
 
 // ─── constants ────────────────────────────────────────────────────────────
 
@@ -1092,7 +1092,7 @@ function PreviewPanel({
             No template assigned for this label type.
             <br />
             Configure one in{" "}
-            <a href="/admin/labels" className="text-blue-400 underline">
+            <a href="/settings/labels" className="text-blue-400 underline">
               Labels &amp; Receipts
             </a>
             .
@@ -1774,7 +1774,7 @@ function PrintSettingsPage() {
                     ) : (
                       <div className="px-6 py-4 text-sm text-muted-foreground">
                         No label template found. Configure one in{" "}
-                        <a href="/admin/labels" className="text-blue-500 underline">
+                        <a href="/settings/labels" className="text-blue-500 underline">
                           Labels &amp; Receipts
                         </a>
                         .

@@ -69,7 +69,7 @@ export default function LabelsTable() {
     <div className="flex flex-col gap-4 pt-4">
       <div className="flex items-center justify-between">
         <div />
-        <Button onClick={() => router.push("/admin/labels/add")}>
+        <Button onClick={() => router.push("/settings/labels/add")}>
           <Plus /> Create Custom Package Label
         </Button>
       </div>
@@ -108,7 +108,7 @@ export default function LabelsTable() {
                   <TableCell>{LabelFieldMap[label.templateType]?.label ?? label.templateType}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-1.5">
-                      <Button size="sm" onClick={() => router.push(`/admin/labels/edit/${label.id}`)}>
+                      <Button size="sm" onClick={() => router.push(`/settings/labels/edit/${label.id}`)}>
                         Config
                       </Button>
                       {label.preferredModelType && (
