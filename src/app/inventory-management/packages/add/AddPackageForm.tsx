@@ -251,7 +251,7 @@ export default function AddPackageForm() {
       await createPackage(body);
 
       toast.success("Package created successfully");
-      router.push("/admin/inventory/packages");
+      router.push("/inventory-management/packages");
     } catch (err: any) {
       toast.error(err?.error || err?.message || "Failed to submit your data");
     } finally {
@@ -266,11 +266,11 @@ export default function AddPackageForm() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory/packages">Packages</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management/packages">Packages</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -279,7 +279,7 @@ export default function AddPackageForm() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push("/admin/inventory/packages")}>
+            <Button variant="outline" onClick={() => router.push("/inventory-management/packages")}>
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={saving}>

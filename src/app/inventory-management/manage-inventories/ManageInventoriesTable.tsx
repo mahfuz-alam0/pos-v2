@@ -224,7 +224,7 @@ export default function ManageInventoriesTable() {
         });
         const pkg = res?.data?.[0];
         if (pkg?.inventoryId) {
-          router.push(`/admin/inventory/manage-inventories/edit/${pkg.inventoryId}`);
+          router.push(`/inventory-management/manage-inventories/edit/${pkg.inventoryId}`);
         } else if (pkg) {
           toast.error("Package is not associated with any inventory");
         } else {
@@ -747,7 +747,7 @@ export default function ManageInventoriesTable() {
                   >
                     <Button
                       size="sm"
-                      onClick={() => router.push(`/admin/inventory/manage-inventories/edit/${row.id}`)}
+                      onClick={() => router.push(`/inventory-management/manage-inventories/edit/${row.id}`)}
                     >
                       Edit Pricing
                     </Button>

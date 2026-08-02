@@ -242,13 +242,13 @@ export default function PackagesPage() {
   const openRow = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("id", id);
-    router.push(`/admin/inventory/packages?${params.toString()}`, { scroll: false });
+    router.push(`/inventory-management/packages?${params.toString()}`, { scroll: false });
   };
 
   const closeDetail = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
-    router.push(`/admin/inventory/packages${params.toString() ? `?${params}` : ""}`, { scroll: false });
+    router.push(`/inventory-management/packages${params.toString() ? `?${params}` : ""}`, { scroll: false });
   };
 
   const handleClearFilter = (key: keyof PackageFilters) => {
@@ -332,7 +332,7 @@ export default function PackagesPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -367,12 +367,12 @@ export default function PackagesPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger render={<Button><Plus className="size-4" /> Add</Button>} />
                 <DropdownMenuContent>
-                  <DropdownMenuItem render={<Link href="/admin/inventory/packages/add" />}>Create Regular Package</DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href="/admin/inventory/packages/import-metrc" />}>Import From METRC</DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/inventory-management/packages/add" />}>Create Regular Package</DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/inventory-management/packages/import-metrc" />}>Import From METRC</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button render={<Link href="/admin/inventory/packages/add" />}>
+              <Button render={<Link href="/inventory-management/packages/add" />}>
                 <Plus className="size-4" /> Add Package
               </Button>
             )}

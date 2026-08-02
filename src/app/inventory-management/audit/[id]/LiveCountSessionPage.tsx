@@ -328,7 +328,7 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
     try {
       await createCommittedAuditSession({ shopId: shopId as string, auditSessionId: sessionId, packagesCountData });
       toast.success("Audit session committed successfully.");
-      router.push("/admin/inventory/reconciliation");
+      router.push("/inventory-management/reconciliation");
     } catch (err: any) {
       toast.error(err?.message || "Failed to commit audit session.");
     } finally {
@@ -344,11 +344,11 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+                  <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/inventory/audit">Audit</BreadcrumbLink>
+                  <BreadcrumbLink href="/inventory-management/audit">Audit</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>

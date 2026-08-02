@@ -10,7 +10,7 @@ import { fetchSingleMetrcTransfer } from "@/services/metrcTransfers/getSingle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import PurchaseOrderAction from "@/app/admin/inventory/transfers/PurchaseOrderAction";
+import PurchaseOrderAction from "@/app/inventory-management/transfers/PurchaseOrderAction";
 
 function KeyValueItem({ label, value, alt }: { label: string; value?: React.ReactNode; alt?: boolean }) {
   return (

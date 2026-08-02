@@ -139,7 +139,7 @@ export default function ReconciliationDetailPanel({
                 <div className="flex items-center justify-between gap-4 py-1">
                   <span className="w-3/5 text-sm text-muted-foreground">Associated Session</span>
                   <Link
-                    href={`/admin/inventory/reconciliation/sessions/details/${detail.originSessionId}`}
+                    href={`/inventory-management/reconciliation/sessions/details/${detail.originSessionId}`}
                     className="w-2/5 truncate text-right text-sm font-medium text-primary hover:underline"
                   >
                     {detail.originSessionAdvertisedId}

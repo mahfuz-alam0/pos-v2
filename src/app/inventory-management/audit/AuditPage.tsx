@@ -569,7 +569,7 @@ export default function AuditPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -651,7 +651,7 @@ export default function AuditPage() {
               {mySession ? (
                 <Button
                   className="bg-green-500 hover:bg-green-600"
-                  onClick={() => router.push(`/admin/inventory/audit/${mySession.id}`)}
+                  onClick={() => router.push(`/inventory-management/audit/${mySession.id}`)}
                 >
                   Go to Live Count Session
                   {getSessionTimeRemaining() !== null && ` (${getSessionTimeRemaining()} min left)`}

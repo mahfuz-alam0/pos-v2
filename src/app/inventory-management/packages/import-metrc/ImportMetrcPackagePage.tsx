@@ -116,11 +116,11 @@ export default function ImportMetrcPackagePage() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+            <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/admin/inventory/packages">Packages</BreadcrumbLink>
+            <BreadcrumbLink href="/inventory-management/packages">Packages</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

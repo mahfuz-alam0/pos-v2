@@ -26,7 +26,7 @@ export default function ShopTransferDetailPanel({ transfer, onClose }: { transfe
           {transfer?.isIncoming && (transfer?.fromSupplier || transfer?.toSupplier) && (
             <PurchaseOrderAction transferId={transfer?.id} />
           )}
-          <Button size="sm" onClick={() => router.push(`/admin/inventory/transfers/details/${transfer?.id}`)}>
+          <Button size="sm" onClick={() => router.push(`/inventory-management/transfers/details/${transfer?.id}`)}>
             View
           </Button>
           <Button variant="outline" size="icon" onClick={onClose}>

@@ -142,7 +142,7 @@ export default function AuditSessionsTab() {
           </SelectContent>
         </Select>
 
-        <Button className="ml-auto" onClick={() => router.push("/admin/inventory/reconciliation/sessions/new")}>
+        <Button className="ml-auto" onClick={() => router.push("/inventory-management/reconciliation/sessions/new")}>
           <Plus /> Start Session
         </Button>
       </div>

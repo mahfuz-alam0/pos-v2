@@ -281,7 +281,7 @@ export default function InventoryDetailsDrawer({
               <Button
                 size="sm"
                 nativeButton={false}
-                render={<Link href={`/admin/inventory/manage-inventories/edit/${inventory.id}`} />}
+                render={<Link href={`/inventory-management/manage-inventories/edit/${inventory.id}`} />}
               >
                 Edit Pricing
               </Button>

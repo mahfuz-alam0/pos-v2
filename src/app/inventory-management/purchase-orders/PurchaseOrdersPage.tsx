@@ -136,13 +136,13 @@ export default function PurchaseOrdersPage() {
   const openRow = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("id", id);
-    router.push(`/admin/inventory/purchase-orders?${params.toString()}`, { scroll: false });
+    router.push(`/inventory-management/purchase-orders?${params.toString()}`, { scroll: false });
   };
 
   const closeDetail = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
-    router.push(`/admin/inventory/purchase-orders${params.toString() ? `?${params}` : ""}`, { scroll: false });
+    router.push(`/inventory-management/purchase-orders${params.toString() ? `?${params}` : ""}`, { scroll: false });
   };
 
   return (
@@ -151,7 +151,7 @@ export default function PurchaseOrdersPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>

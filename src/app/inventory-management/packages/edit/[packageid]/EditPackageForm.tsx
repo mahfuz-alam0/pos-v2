@@ -421,7 +421,7 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
       await (isMetrc ? updateCannabisPackage(body) : updatePackage(body));
 
       toast.success("Package updated successfully");
-      router.push("/admin/inventory/packages");
+      router.push("/inventory-management/packages");
     } catch (err: any) {
       const validationErrors = err?.childValidationErrors || err?.validationErrors || err?.error?.data?.errors || err?.data?.data?.errors;
       if (Array.isArray(validationErrors) && validationErrors.length > 0) {
@@ -458,11 +458,11 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory/packages">Packages</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management/packages">Packages</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -471,7 +471,7 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push("/admin/inventory/packages")}>
+            <Button variant="outline" onClick={() => router.push("/inventory-management/packages")}>
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={saving}>

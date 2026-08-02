@@ -41,7 +41,7 @@ export default function AddTransferPage() {
     : "within-storage-locations";
 
   const handleTypeChange = (value: string) => {
-    router.push(`/admin/inventory/transfers/add-transfer?transferType=${value}`);
+    router.push(`/inventory-management/transfers/add-transfer?transferType=${value}`);
   };
 
   return (
@@ -50,11 +50,11 @@ export default function AddTransferPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/admin/inventory">Inventory Management</BreadcrumbLink>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/admin/inventory/transfers" />}>Transfers</BreadcrumbLink>
+              <BreadcrumbLink render={<Link href="/inventory-management/transfers" />}>Transfers</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>

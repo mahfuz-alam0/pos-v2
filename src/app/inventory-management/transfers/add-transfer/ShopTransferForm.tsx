@@ -115,7 +115,7 @@ export default function ShopTransferForm() {
         })),
       });
       toast.success("Transfer created successfully");
-      router.push("/admin/inventory/transfers");
+      router.push("/inventory-management/transfers");
     } catch (err: any) {
       toast.error(err?.message || "Failed to create transfer, please try again!");
     } finally {

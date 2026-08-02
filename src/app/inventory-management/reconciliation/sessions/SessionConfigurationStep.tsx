@@ -290,7 +290,7 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
         toast.success("Session created successfully!");
       }
       setDrawerOpen(false);
-      router.push("/admin/inventory/reconciliation?tab=audit");
+      router.push("/inventory-management/reconciliation?tab=audit");
     } catch (err: any) {
       toast.error(err?.message || "An unexpected error occurred");
     } finally {

@@ -57,7 +57,7 @@ export default function StartLiveSessionDrawer({
 
       const createdSession = res?.data?.data?.session || res?.data?.data;
       if (createdSession?.id) {
-        router.push(`/admin/inventory/audit/${createdSession.id}`);
+        router.push(`/inventory-management/audit/${createdSession.id}`);
       }
     } catch (err: any) {
       toast.error(err?.message || "Failed to start session");

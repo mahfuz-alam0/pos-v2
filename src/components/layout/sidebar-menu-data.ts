@@ -91,17 +91,17 @@ export const retailMenu: MenuItem[] = [
       {
         key: "inventory-pricing",
         label: "Inventory & Pricing",
-        href: "/admin/inventory/manage-inventories",
+        href: "/inventory-management/manage-inventories",
       },
       {
         key: "inventory-adjustments",
         label: "Adjustments",
-        href: "/admin/inventory/reconciliation",
+        href: "/inventory-management/reconciliation",
       },
       {
         key: "inventory-levels",
         label: "Inventory Levels",
-        href: "/admin/audit/insights/inventory-on-hand",
+        href: "/inventory-management/inventory-on-hand",
       },
       {
         key: "inventory-reorder",
@@ -111,24 +111,24 @@ export const retailMenu: MenuItem[] = [
       {
         key: "uom",
         label: "Unit of Measurements",
-        href: "/admin/inventory/uom",
+        href: "/inventory-management/uom",
       },
-      { key: "audit", label: "Audit", href: "/admin/inventory/audit" },
+      { key: "audit", label: "Audit", href: "/inventory-management/audit" },
       {
         key: "transfers",
         label: "Transfers",
-        href: "/admin/inventory/transfers",
+        href: "/inventory-management/transfers",
       },
       {
         key: "purchase-orders",
         label: "Purchase Orders",
-        href: "/admin/inventory/purchase-orders",
+        href: "/inventory-management/purchase-orders",
       },
-      { key: "packages", label: "Packages", href: "/admin/inventory/packages" },
+      { key: "packages", label: "Packages", href: "/inventory-management/packages" },
       {
         key: "storage-locations",
         label: "Storage Locations",
-        href: "/admin/inventory/storage-locations",
+        href: "/inventory-management/storage-locations",
       },
     ],
   },

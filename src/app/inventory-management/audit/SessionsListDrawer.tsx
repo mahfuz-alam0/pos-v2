@@ -158,7 +158,7 @@ export default function SessionsListDrawer({
 
                     <div className="flex gap-2 border-t px-4 py-2.5">
                       {currentUserId === session.userId && (
-                        <Button size="sm" onClick={() => router.push(`/admin/inventory/audit/${session.id}`)}>
+                        <Button size="sm" onClick={() => router.push(`/inventory-management/audit/${session.id}`)}>
                           Go to Live Count Session
                         </Button>
                       )}

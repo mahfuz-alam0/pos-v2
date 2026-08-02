@@ -7,7 +7,7 @@ import { useShop } from "@/context/shop-context";
 import { fetchMetrcAdjustmentReasons } from "@/services/packageReconciliation/metrcAdjustmentReasons";
 import { fetchLatestMetrcAdjustmentReasons } from "@/services/packageReconciliation/latestMetrcAdjustmentReasons";
 import { reconcileMetrcPackages } from "@/services/packageReconciliation/reconcileMetrcPackages";
-import type { MetrcAdjustmentReason, PackageRow } from "@/app/admin/inventory/packages/types";
+import type { MetrcAdjustmentReason, PackageRow } from "@/app/inventory-management/packages/types";
 
 import {
   Dialog,

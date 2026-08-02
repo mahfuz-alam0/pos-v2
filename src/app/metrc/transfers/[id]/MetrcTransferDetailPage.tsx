@@ -208,7 +208,7 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
                       package only has once it's been imported — hide the link until then
                       rather than linking to an id that doesn't resolve. */}
                   {pkg?.packageId && (
-                    <Link href={`/admin/inventory/packages/edit/${pkg.packageId}`} target="_blank">
+                    <Link href={`/inventory-management/packages/edit/${pkg.packageId}`} target="_blank">
                       <Button variant="outline" size="sm">
                         Edit
                       </Button>

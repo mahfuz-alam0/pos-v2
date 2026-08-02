@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import SimpleFileUpload, { type UploadedDoc } from "@/app/admin/inventory/packages/SimpleFileUpload";
+import SimpleFileUpload, { type UploadedDoc } from "@/app/inventory-management/packages/SimpleFileUpload";
 
 import type { EntityOption } from "./types";
 

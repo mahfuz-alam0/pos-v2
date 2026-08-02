@@ -24,8 +24,8 @@ import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagi
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { X } from "lucide-react";
 
-import PackageDetailsPanel from "@/app/admin/inventory/packages/PackageDetailsPanel";
-import type { PackageRow, StorageLocationOption } from "@/app/admin/inventory/packages/types";
+import PackageDetailsPanel from "@/app/inventory-management/packages/PackageDetailsPanel";
+import type { PackageRow, StorageLocationOption } from "@/app/inventory-management/packages/types";
 import SyncPackagesButton from "./SyncPackagesButton";
 import MetrcActivityDrawer from "./MetrcActivityDrawer";
 import BulkReconcileDialog from "./BulkReconcileDialog";
@@ -223,7 +223,7 @@ export default function MetrcPackagesPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory">Metrc Reconcilliation</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Metrc Reconcilliation</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>

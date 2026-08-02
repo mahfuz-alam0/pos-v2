@@ -236,7 +236,7 @@ export default function SupplierTransferForm() {
         toast.error(poErr?.message || "Transfer completed, but failed to create the Purchase Order");
       }
 
-      router.push("/admin/inventory/transfers");
+      router.push("/inventory-management/transfers");
     } catch (err: any) {
       toast.error(err?.message || "Failed to create transfer. Please try again.");
     } finally {
@@ -266,7 +266,7 @@ export default function SupplierTransferForm() {
         documentLinks: [],
       });
       toast.success("Outgoing transfer created successfully!");
-      router.push("/admin/inventory/transfers");
+      router.push("/inventory-management/transfers");
     } catch (err: any) {
       toast.error(err?.message || "Failed to create outgoing transfer. Please try again.");
     } finally {

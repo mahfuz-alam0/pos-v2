@@ -112,7 +112,7 @@ export default function StorageLocationsTable() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory">Inventory</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>

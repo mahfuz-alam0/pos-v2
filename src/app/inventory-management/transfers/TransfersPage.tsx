@@ -289,13 +289,13 @@ export default function TransfersPage() {
   const openRow = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("id", id);
-    router.push(`/admin/inventory/transfers?${params.toString()}`, { scroll: false });
+    router.push(`/inventory-management/transfers?${params.toString()}`, { scroll: false });
   };
 
   const closeDetail = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
-    router.push(`/admin/inventory/transfers${params.toString() ? `?${params}` : ""}`, { scroll: false });
+    router.push(`/inventory-management/transfers${params.toString() ? `?${params}` : ""}`, { scroll: false });
   };
 
   const handleMarkInTransit = async (id: string) => {
@@ -321,7 +321,7 @@ export default function TransfersPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/admin/inventory">Inventory</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -332,7 +332,7 @@ export default function TransfersPage() {
 
           <Button
             render={
-              <Link href={{ pathname: "/admin/inventory/transfers/add-transfer", query: { transferType: activeTab } }} />
+              <Link href={{ pathname: "/inventory-management/transfers/add-transfer", query: { transferType: activeTab } }} />
             }
           >
             Add Transfer
@@ -596,7 +596,7 @@ export default function TransfersPage() {
                             </AlertDialogContent>
                           </AlertDialog>
                         ) : (
-                          <Button size="sm" render={<Link href={`/admin/inventory/transfers/details/${row.id}`} />}>
+                          <Button size="sm" render={<Link href={`/inventory-management/transfers/details/${row.id}`} />}>
                             {row.isCompleted ? "Completed" : "Manage"}
                           </Button>
                         )}
