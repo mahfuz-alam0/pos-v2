@@ -45,9 +45,9 @@ export default function ProductList({
   showFooterActions = true,
   onClose,
   refreshSignal = 0,
-  cartPanel,
+  cartPanel = null,
   cartPanelOpen = false,
-  onToggleCartPanel,
+  onToggleCartPanel = undefined,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
