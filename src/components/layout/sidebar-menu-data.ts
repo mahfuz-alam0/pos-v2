@@ -106,7 +106,7 @@ export const retailMenu: MenuItem[] = [
       {
         key: "inventory-reorder",
         label: "Inventory Reorder",
-        href: "/admin/audit/inventory-reorder",
+        href: "/reports-analytics/inventory-reorder",
       },
       {
         key: "uom",
@@ -247,12 +247,12 @@ export const retailMenu: MenuItem[] = [
       {
         key: "transactions",
         label: "Transactions",
-        href: "/admin/audit/transactions",
+        href: "/audit-logs/transactions",
       },
       {
         key: "ach-transactions",
         label: "ACH Transactions",
-        href: "/admin/audit/ach-transactions",
+        href: "/audit-logs/ach-transactions",
       },
     ],
   },
@@ -268,37 +268,37 @@ export const retailMenu: MenuItem[] = [
           {
             key: "command-center",
             label: "Command Center",
-            href: "/admin/sales-report/executive-summary",
+            href: "/reports-analytics/executive-summary",
           },
           {
             key: "performance-metrics",
             label: "Performance Metrics",
-            href: "/admin/sales-report/performance",
+            href: "/reports-analytics/performance",
           },
           {
             key: "sales-intelligence",
             label: "Sales Intelligence",
-            href: "/admin/sales-report/sales-intelligence",
+            href: "/reports-analytics/sales-intelligence",
           },
           {
             key: "promo-performance",
             label: "Promo Performance",
-            href: "/admin/sales-report/discounts",
+            href: "/reports-analytics/discounts",
           },
           {
             key: "sales-heatmap",
             label: "Sales Heatmap",
-            href: "/admin/audit/day-and-time",
+            href: "/reports-analytics/day-and-time",
           },
           {
             key: "supply-tracker",
             label: "Supply Tracker",
-            href: "/admin/audit/inventory-reorder",
+            href: "/reports-analytics/inventory-reorder",
           },
           {
             key: "referral-source",
             label: "Referral Source",
-            href: "/admin/sales-report/referral-source-report",
+            href: "/reports-analytics/referral-source-report",
           },
         ],
       },
@@ -309,27 +309,27 @@ export const retailMenu: MenuItem[] = [
           {
             key: "report-customer",
             label: "Customer",
-            href: "/admin/sales-report/customer-report",
+            href: "/reports-analytics/customer-report",
           },
           {
             key: "report-inventory",
             label: "Inventory",
-            href: "/admin/sales-report/inventory",
+            href: "/reports-analytics/inventory",
           },
           {
             key: "report-loyalty",
             label: "Loyalty",
-            href: "/admin/sales-report/loyalty",
+            href: "/reports-analytics/loyalty",
           },
           {
             key: "report-sales",
             label: "Sales",
-            href: "/admin/sales-report/sales",
+            href: "/reports-analytics/sales",
           },
           {
             key: "report-taxes",
             label: "Taxes",
-            href: "/admin/sales-report/taxes",
+            href: "/reports-analytics/taxes",
           },
         ],
       },
