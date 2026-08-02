@@ -222,7 +222,7 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
       </div>
 
       {packages.length > 0 && (
-        <div className="fixed bottom-4 left-0 z-40 flex w-full justify-center md:left-[var(--sidebar-width,0px)]">
+        <div className="fixed bottom-4 left-0 z-40 flex w-full justify-center md:left-(--sidebar-width,0px)">
           <div className="rounded-2xl bg-card p-4 shadow-xl ring-1 ring-foreground/10">
             <Button
               size="lg"

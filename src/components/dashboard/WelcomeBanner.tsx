@@ -114,7 +114,7 @@ export default function WelcomeBanner() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-[#0a1830] via-[#0d2038] to-[#0a1830] px-6 py-5 text-white">
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-linear-to-br from-[#0a1830] via-[#0d2038] to-[#0a1830] px-6 py-5 text-white">
       <div>
         <div className="text-[22px] font-medium">
           Welcome, <span className="font-semibold">{userDetails?.name || "-"}</span>
@@ -126,7 +126,7 @@ export default function WelcomeBanner() {
         <div className="flex flex-wrap justify-end gap-3">
           {chips.map((chip) => {
             const content = (
-              <div className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-blue-400/30 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 backdrop-blur-sm">
+              <div className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 backdrop-blur-sm">
                 <span className="inline-flex items-center text-[17px] leading-none text-blue-400">{chip.icon}</span>
                 <span className="text-[16px] font-bold text-white">{chip.count}</span>
                 <span className="text-sm text-blue-200">{chip.label}</span>
