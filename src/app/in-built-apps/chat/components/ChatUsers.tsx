@@ -59,43 +59,39 @@ export default function ChatUsers({ selectedUser, setSelectedUser }) {
         <h2 className="text-2xl font-semibold text-foreground">Messages</h2>
       </div>
 
-      <div className="px-4 pt-3 ring-1 ring-foreground/10 sm:px-6">
+      <div className="flex flex-col gap-3 px-4 py-3 ring-1 ring-foreground/10 sm:px-6">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="w-full">
-            <TabsTrigger value="users" className="flex-1">
+            <TabsTrigger value="users" className="flex-1 gap-1.5">
               My Users
             </TabsTrigger>
-            <TabsTrigger value="system" className="flex-1">
-              <Headset className="mr-1 size-4" />
+            <TabsTrigger value="system" className="flex-1 gap-1.5">
+              <Headset className="size-4" />
               Support
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        <div className="relative">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search conversations..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="rounded-xl bg-muted pl-9"
+          />
+        </div>
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-transparent px-4 py-3 ring-1 ring-foreground/10">
-          <div className="relative">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search conversations..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-xl bg-muted pl-9"
-            />
+      <div className="flex-1 overflow-y-auto">
+        {filteredUsers?.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-5 py-16">
+            <Search className="size-10 text-muted-foreground/40" />
+            <p className="mt-3 text-sm text-muted-foreground">No conversations found</p>
           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {filteredUsers?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-5 py-16">
-              <Search className="size-10 text-muted-foreground/40" />
-              <p className="mt-3 text-sm text-muted-foreground">No conversations found</p>
-            </div>
-          ) : (
-            <ChatUserList chatUsers={filteredUsers} selectedUser={selectedUser} onSelectUser={setSelectedUser} />
-          )}
-        </div>
+        ) : (
+          <ChatUserList chatUsers={filteredUsers} selectedUser={selectedUser} onSelectUser={setSelectedUser} />
+        )}
       </div>
     </div>
   );
