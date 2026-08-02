@@ -1052,7 +1052,7 @@ function TabletPosInner() {
                   <Button
                     disabled={hasSale}
                     onClick={() => setEditingCustomerId(selectedCustomer.id)}
-                    className="!h-[39px] w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
+                    className="h-9.75! w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
                   >
                     Edit
                   </Button>

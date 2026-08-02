@@ -14,7 +14,7 @@ import {
 } from "@/services/stats/dashboard/allStats";
 
 const TILES = [
-  { key: "products", href: "/admin/catalog/products", color: "#E76F51", icon: Gem, label: "Products" },
+  { key: "products", href: "/catalog/products", color: "#E76F51", icon: Gem, label: "Products" },
   { key: "tasks", href: "/admin/tasks/tasks-listings", color: "#F4A261", icon: ListChecks, label: "Tasks" },
   { key: "employees", href: "/admin/access-management/employee", color: "#E9C46A", icon: Users, label: "Employees" },
   { key: "orders", href: "/admin/orders", color: "#2A9D8F", icon: FileText, label: "Orders" },

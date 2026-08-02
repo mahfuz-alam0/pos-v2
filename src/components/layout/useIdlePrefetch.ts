@@ -2,11 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-
-interface MenuItem {
-  href?: string;
-  children?: MenuItem[];
-}
+import type { MenuItem } from "./sidebar-menu-data";
 
 function collectHrefs(items: MenuItem[], out: string[] = []) {
   for (const item of items) {

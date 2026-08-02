@@ -113,7 +113,7 @@ function CustomerLimits({ getOrderSummary }) {
   }
 
   return (
-    <div className="max-h-[400px] w-full overflow-y-auto">
+    <div className="max-h-100 w-full overflow-y-auto">
       {rulesTrace.map((category, index) => {
         const measured =
           category?.measurementType === "TOTAL_QUANTITIES"
@@ -133,7 +133,7 @@ function CustomerLimits({ getOrderSummary }) {
           <div key={index} className="mb-4 rounded-lg border border-border bg-muted/50 p-3">
             <div className="mb-2 flex justify-between">
               <h3 className="min-w-30 text-sm font-medium">Type</h3>
-              <span className="break-words text-right text-[13px]">{category?.name ?? "N/A"}</span>
+              <span className="wrap-break-word text-right text-[13px]">{category?.name ?? "N/A"}</span>
             </div>
             <div className="mb-2 flex justify-between">
               <h3 className="min-w-30 text-sm font-medium">Measurement Type</h3>
@@ -143,7 +143,7 @@ function CustomerLimits({ getOrderSummary }) {
             </div>
             <div className="mb-2 flex justify-between">
               <h3 className="min-w-30 text-sm font-medium">Strategy</h3>
-              <span className="break-words text-right text-[13px]">
+              <span className="wrap-break-word text-right text-[13px]">
                 {category?.orderConsiderationStrategy
                   ? category.orderConsiderationStrategy
                       .split("_")

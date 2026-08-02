@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronRight, Info, Loader2 } from "lucide-react";
@@ -49,6 +48,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import InventoryDetailsDrawer from "./InventoryDetailsDrawer";
 
 const PAGE_SIZE = 30;
 
@@ -128,6 +128,8 @@ export default function ManageInventoriesTable() {
 
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
+
+  const [selectedInventoryId, setSelectedInventoryId] = useState(null);
 
   const [optimizeOpen, setOptimizeOpen] = useState(false);
   const [optimizeTab, setOptimizeTab] = useState("pricing");
@@ -689,13 +691,14 @@ export default function ManageInventoriesTable() {
                           }}
                         />
                       )}
-                      <Link
-                        href={`/admin/inventory/manage-inventories/edit/${row.id}`}
-                        className="truncate hover:underline"
+                      <button
+                        type="button"
+                        onClick={() => setSelectedInventoryId(row.id)}
+                        className="truncate text-left hover:underline"
                         title={row.name}
                       >
                         {row.name}
-                      </Link>
+                      </button>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
@@ -898,6 +901,11 @@ export default function ManageInventoriesTable() {
           )}
         </div>
       </Drawer>
+
+      <InventoryDetailsDrawer
+        inventoryId={selectedInventoryId}
+        onClose={() => setSelectedInventoryId(null)}
+      />
     </div>
   );
 }
