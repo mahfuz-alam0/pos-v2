@@ -343,12 +343,12 @@ export const retailMenu: MenuItem[] = [
       {
         key: "main-vault",
         label: "Main Vault",
-        href: "/admin/audit/cash-management",
+        href: "/cash-management/main-vault",
       },
       {
         key: "registers",
         label: "Registers",
-        href: "/admin/inventory/registers",
+        href: "/cash-management/registers",
       },
       { key: "drawers", label: "Drawers", href: "/pos/drawers" },
     ],
@@ -358,12 +358,12 @@ export const retailMenu: MenuItem[] = [
     label: "Access Mgmt",
     icon: UserCog,
     children: [
-      { key: "team", label: "Team", href: "/admin/access-management/employee" },
-      { key: "roles", label: "Roles", href: "/admin/access-management/role" },
+      { key: "team", label: "Team", href: "/access-management/employee" },
+      { key: "roles", label: "Roles", href: "/access-management/role" },
       {
         key: "shifts",
         label: "Shifts",
-        href: "/admin/access-management/employee-shift",
+        href: "/access-management/employee-shift",
       },
     ],
   },

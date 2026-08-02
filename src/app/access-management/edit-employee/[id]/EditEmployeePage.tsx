@@ -17,7 +17,7 @@ export default function EditEmployeePage({ employeeId }: { employeeId: string })
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/admin/access-management/employee">Team</BreadcrumbLink>
+            <BreadcrumbLink href="/access-management/employee">Team</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -30,8 +30,8 @@ export default function EditEmployeePage({ employeeId }: { employeeId: string })
         open
         mode="edit"
         employeeId={employeeId}
-        onClose={() => router.push("/admin/access-management/employee")}
-        onSaved={() => router.push("/admin/access-management/employee")}
+        onClose={() => router.push("/access-management/employee")}
+        onSaved={() => router.push("/access-management/employee")}
       />
     </div>
   );

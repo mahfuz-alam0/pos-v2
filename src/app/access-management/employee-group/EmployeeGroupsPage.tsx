@@ -93,7 +93,7 @@ export default function EmployeeGroupsPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <Button onClick={() => router.push("/admin/access-management/add-employee-group")}>
+          <Button onClick={() => router.push("/access-management/add-employee-group")}>
             <Plus className="size-4" />
             Add Group
           </Button>
@@ -157,7 +157,7 @@ export default function EmployeeGroupsPage() {
                       <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuItem
                           className="gap-2 whitespace-nowrap"
-                          onClick={() => router.push(`/admin/access-management/edit-employee-group/${row.id}`)}
+                          onClick={() => router.push(`/access-management/edit-employee-group/${row.id}`)}
                         >
                           <Pencil className="size-4 text-sky-600" />
                           Edit

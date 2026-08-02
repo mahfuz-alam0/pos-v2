@@ -92,7 +92,7 @@ export default function GroupFormPage({ groupId }: { groupId?: string }) {
         await createEmployeeGroup(body);
         toast.success("Employee group created successfully");
       }
-      router.push("/admin/access-management/employee-group");
+      router.push("/access-management/employee-group");
     } catch (err: any) {
       toast.error(err?.message || "An unexpected error occurred");
     } finally {
@@ -109,7 +109,7 @@ export default function GroupFormPage({ groupId }: { groupId?: string }) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/admin/access-management/employee-group">Employee Groups</BreadcrumbLink>
+            <BreadcrumbLink href="/access-management/employee-group">Employee Groups</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -195,7 +195,7 @@ export default function GroupFormPage({ groupId }: { groupId?: string }) {
           </Tabs>
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => router.push("/admin/access-management/employee-group")} disabled={saving}>
+            <Button variant="outline" onClick={() => router.push("/access-management/employee-group")} disabled={saving}>
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={saving}>
