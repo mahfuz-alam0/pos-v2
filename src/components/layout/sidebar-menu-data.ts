@@ -55,17 +55,17 @@ export const retailMenu: MenuItem[] = [
       {
         key: "customers-list",
         label: "Customers",
-        href: "/admin/customer-management/customers",
+        href: "/customer-management/customers",
       },
       {
         key: "customer-groups",
         label: "Customer Groups",
-        href: "/admin/customers/groups",
+        href: "/customer-management/groups",
       },
       {
         key: "customer-rewards",
         label: "Rewards & Types",
-        href: "/admin/customer-management/customer-types-rewards",
+        href: "/customer-management/customer-types-rewards",
       },
     ],
   },

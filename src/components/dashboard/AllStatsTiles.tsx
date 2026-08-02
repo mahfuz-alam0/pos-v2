@@ -18,7 +18,7 @@ const TILES = [
   { key: "tasks", href: "/settings/tasks-listings", color: "#F4A261", icon: ListChecks, label: "Tasks" },
   { key: "employees", href: "/access-management/employee", color: "#E9C46A", icon: Users, label: "Employees" },
   { key: "orders", href: "/admin/orders", color: "#2A9D8F", icon: FileText, label: "Orders" },
-  { key: "customers", href: "/admin/customer-management/customers", color: "#287271", icon: UserRound, label: "Customers" },
+  { key: "customers", href: "/customer-management/customers", color: "#287271", icon: UserRound, label: "Customers" },
   { key: "deals", href: "/admin/deals", color: "#264653", icon: Tag, label: "Deals" },
 ];
 

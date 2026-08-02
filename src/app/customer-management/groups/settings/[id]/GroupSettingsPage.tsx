@@ -199,7 +199,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
       };
       await updateShopRule(body);
       toast.success("Customer group settings updated successfully");
-      router.push("/admin/customers/groups");
+      router.push("/customer-management/groups");
     } catch (err: any) {
       toast.error(err?.message || "Something went wrong");
     } finally {
@@ -218,7 +218,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/admin/customers/groups" />}>Customer Groups</BreadcrumbLink>
+            <BreadcrumbLink render={<Link href="/customer-management/groups" />}>Customer Groups</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -343,7 +343,7 @@ export default function GroupSettingsPage({ groupId }: { groupId: string }) {
             </DndContext>
 
             <div className="mt-6 flex justify-end gap-3 border-t pt-6">
-              <Button variant="outline" size="lg" onClick={() => router.push("/admin/customers/groups")} disabled={saving}>
+              <Button variant="outline" size="lg" onClick={() => router.push("/customer-management/groups")} disabled={saving}>
                 Cancel
               </Button>
               <Button size="lg" onClick={handleSave} disabled={saving}>

@@ -85,7 +85,7 @@ export default function CustomerGroupsTable() {
 
   const goToSettings = (row: CustomerGroupRow) => {
     const isIdentifier = row.systemGeneratedIdentifier === "MJ_MEDICAL";
-    router.push(`/admin/customers/groups/settings/${row.id}?isIdentifier=${isIdentifier}`);
+    router.push(`/customer-management/groups/settings/${row.id}?isIdentifier=${isIdentifier}`);
   };
 
   return (
