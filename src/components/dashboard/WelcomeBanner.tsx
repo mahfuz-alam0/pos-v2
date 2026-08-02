@@ -100,7 +100,7 @@ export default function WelcomeBanner() {
       key: "orders",
       count: orderCount,
       label: `Order${orderCount !== 1 ? "s" : ""}`,
-      href: "/admin/orderahead",
+      href: "/fulfillment/orderahead",
       icon: <ShoppingCart className="size-4" />,
     });
   }

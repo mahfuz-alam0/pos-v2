@@ -41,9 +41,9 @@ export const retailMenu: MenuItem[] = [
       { key: "pos-tablet", label: "POS", href: "/pos" },
       { key: "tablet-mode-pos", label: "Tablet Mode POS", href: "/pos/tablet-mode" },
 
-      { key: "order-ahead", label: "Order Ahead", href: "/admin/orderahead" },
-      { key: "front-desk", label: "Front Desk", href: "/admin/front-desk" },
-      { key: "sales", label: "Sales", href: "/admin/orders" },
+      { key: "order-ahead", label: "Order Ahead", href: "/fulfillment/orderahead" },
+      { key: "front-desk", label: "Front Desk", href: "/fulfillment/front-desk" },
+      { key: "sales", label: "Sales", href: "/fulfillment/orders" },
       { key: "returns", label: "Returns", href: "/pos/returns" },
     ],
   },

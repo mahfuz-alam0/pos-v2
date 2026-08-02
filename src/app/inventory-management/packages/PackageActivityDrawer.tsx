@@ -302,7 +302,7 @@ function PackageActivityLogCard({
               <div className="col-span-2">
                 <span className="font-medium">Order: </span>
                 <a
-                  href={`/admin/orders?id=${meta.saleId}`}
+                  href={`/fulfillment/orders?id=${meta.saleId}`}
                   target="_blank"
                   rel="noreferrer"
                   className="font-medium text-primary hover:underline"
