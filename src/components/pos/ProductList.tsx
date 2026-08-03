@@ -9,6 +9,7 @@ import {
   FilterX,
   Filter,
   ChevronLeft,
+  ChevronRight,
   Search,
   X,
   Camera,
@@ -72,6 +73,9 @@ export default function ProductList({
   showFooterActions = true,
   onClose,
   refreshSignal = 0,
+  cartPanel = null,
+  cartPanelOpen = false,
+  onToggleCartPanel = undefined,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
@@ -717,6 +721,7 @@ export default function ProductList({
       </Drawer>
 
       {/* Listing */}
+      <div className="flex min-h-0 flex-1">
       <div className="min-h-0 flex-1 overflow-auto">
         {loading ? (
           <SkeletonLoader rows={6} />
@@ -773,6 +778,30 @@ export default function ProductList({
             setFetchModalProductDetails={setFetchModalProductDetails}
           />
         )}
+      </div>
+
+      {onToggleCartPanel && (
+        <button
+          type="button"
+          onClick={onToggleCartPanel}
+          title={cartPanelOpen ? "Hide cart" : "Show cart"}
+          className="z-10 mx-1.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-[#038FDE] hover:text-white">
+          {cartPanelOpen ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
+        </button>
+      )}
+
+      {cartPanel && (
+        <div
+          className={`h-full shrink-0 overflow-hidden transition-[max-width] duration-300 ease-in-out ${
+            cartPanelOpen ? "max-w-105" : "max-w-0"
+          }`}>
+          {cartPanel}
+        </div>
+      )}
       </div>
 
       {/* Product details — full-screen instead of replacing the grid in place */}
