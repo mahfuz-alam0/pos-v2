@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Menu, Megaphone, Monitor, Leaf } from "lucide-react";
 import { useSidebar } from "@/context/sidebar-context";
 import { useShop } from "@/context/shop-context";
+import { usePermission } from "@/util/use-permission";
+import { chatLogin, getChatSessions } from "@/store/slices/chatSlice";
 import UserProfile from "./UserProfile";
 import AnnouncementDrawer from "./AnnouncementDrawer";
 import LeaflyOrdersDrawer from "./LeaflyOrdersDrawer";
@@ -108,6 +111,19 @@ export default function Topbar() {
   const { isMobile, toggleMobile } = useSidebar();
   const [isAnnouncementDrawerOpen, setIsAnnouncementDrawerOpen] = useState(false);
   const [isLeaflyDrawerOpen, setIsLeaflyDrawerOpen] = useState(false);
+  const { user, checkPermission } = usePermission();
+  const dispatch: any = useDispatch();
+  const { token: chatToken } = useSelector((state: any) => state.chat);
+  const canUseChat = checkPermission("ECOMM_CHAT");
+
+  useEffect(() => {
+    if (!canUseChat || !user) return;
+    if (chatToken) {
+      dispatch(getChatSessions());
+    } else {
+      dispatch(chatLogin({ user }));
+    }
+  }, [canUseChat, user, chatToken, dispatch]);
 
   return (
     <header className="flex h-18 shrink-0 items-center gap-3 bg-accent px-4">
