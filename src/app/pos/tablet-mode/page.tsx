@@ -626,9 +626,9 @@ function TabletModePosInner() {
               <button
                 key={key}
                 onClick={() => switchTab(key)}
-                className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-base transition-colors ${
+                className={`whitespace-nowrap rounded-full px-3.5 py-2 text-base transition-colors ${
                   activeTab === key
-                    ? "bg-white font-bold text-[#071529] shadow"
+                    ? "border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 font-bold text-blue-100 shadow backdrop-blur-sm"
                     : "font-medium text-blue-200/70 hover:bg-white/10 hover:text-white"
                 }`}>
                 {label}

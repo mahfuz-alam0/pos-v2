@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Info, Search } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
@@ -19,6 +19,9 @@ import { addBogoItemAction } from "@/store/slices/bogoLineItemsSlice";
 import { addLineItemsAction } from "@/store/slices/lineItemsSlice";
 import { addToCart } from "@/store/slices/cartSlice";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import Drawer from "@/components/ui/Drawer";
 import DealDetails from "./DealDetails";
 import BogoDealDrawer from "./BogoDealDrawer";
@@ -26,26 +29,29 @@ import BogoDealDrawer from "./BogoDealDrawer";
 const API_CALL_DEBOUNCE_MS = 1000;
 
 /**
- * Per-product BOGO deal carousel. Opens BogoDealDrawer to construct the deal,
- * then bundles the selected buy/get products into `bundledLineItems`
- * (parent=BUY / child=GET) and re-quotes. Also enforces mutual exclusivity:
- * a product can only carry one BOGO deal / no BOGO if another discount applies.
+ * Per-product BOGO deal table (Deal Name / Description / Action / Status),
+ * matching the DealCard/TieredDealCard list layout. Opens BogoDealDrawer to
+ * construct the deal, then bundles the selected buy/get products into
+ * `bundledLineItems` (parent=BUY / child=GET) and re-quotes. Also enforces
+ * mutual exclusivity: a product can only carry one BOGO deal / no BOGO if
+ * another discount applies.
  *
  * Props:
  *   bogoDeals     — array of applicable BOGO deal objects for the product.
  *   productRecord — the cart product this card is attached to (id, productId,
  *                   inventoryId, price, name, packageData fields...).
+ *   onDealApplied — optional callback fired after a successful apply.
  *
  * Self-contained: reads salesDetail / quoteForSale / lineItems from Redux.
  */
-function BogoDealCard({ bogoDeals, productRecord }) {
+function BogoDealCard({ bogoDeals, productRecord, onDealApplied }) {
   const [dealStates, setDealStates] = useState({});
   const [dealDetailsVisible, setDealDetailsVisible] = useState(false);
   const [deal, setDealDetails] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [bogoDrawerVisible, setBogoDrawerVisible] = useState(false);
   const [selectedBogoItem, setSelectedBogoItem] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const dispatch = useDispatch();
   const quoteBody = useSelector((state: any) => state?.salesDetail);
@@ -186,10 +192,13 @@ function BogoDealCard({ bogoDeals, productRecord }) {
     });
   }, [memoizedDealStates]);
 
-  const visibleDeals = useMemo(() => {
-    if (!bogoDeals || !Array.isArray(bogoDeals)) return [];
-    return bogoDeals.slice(currentIndex, currentIndex + 2);
-  }, [bogoDeals, currentIndex]);
+  const filteredBogoDeals = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return bogoDeals || [];
+    return (bogoDeals || []).filter((d) =>
+      (d.dealName || "").toLowerCase().includes(term)
+    );
+  }, [bogoDeals, searchTerm]);
 
   const handleCancelDealDetails = useCallback(() => {
     setDealDetailsVisible(false);
@@ -206,14 +215,6 @@ function BogoDealCard({ bogoDeals, productRecord }) {
     setDealDetails(item);
     setDealDetailsVisible(true);
   }, []);
-
-  const handleNext = useCallback(() => {
-    if (currentIndex + 2 < bogoDeals.length) setCurrentIndex((p) => p + 2);
-  }, [currentIndex, bogoDeals]);
-
-  const handlePrev = useCallback(() => {
-    if (currentIndex - 2 >= 0) setCurrentIndex((p) => p - 2);
-  }, [currentIndex]);
 
   const getBogoDescription = useCallback((item) => {
     if (!item?.bogoDealInfo) return "Limited time BOGO offer!";
@@ -690,6 +691,7 @@ function BogoDealCard({ bogoDeals, productRecord }) {
 
         toast.success("BOGO deal applied successfully!");
         handleBogoDrawerClose();
+        onDealApplied?.();
       } catch (error) {
         toast.error("Failed to apply BOGO deal");
       } finally {
@@ -698,7 +700,14 @@ function BogoDealCard({ bogoDeals, productRecord }) {
         apiCallInProgress.current = false;
       }
     },
-    [productRecord, dispatch, handleBogoDrawerClose, currentLineItems, drawerLoading]
+    [
+      productRecord,
+      dispatch,
+      handleBogoDrawerClose,
+      currentLineItems,
+      drawerLoading,
+      onDealApplied,
+    ]
   );
 
   if (!bogoDeals || !Array.isArray(bogoDeals) || bogoDeals.length === 0) {
@@ -711,125 +720,126 @@ function BogoDealCard({ bogoDeals, productRecord }) {
 
   return (
     <>
-      <div className="flex items-center justify-start">
-        <button
-          onClick={handlePrev}
-          disabled={currentIndex === 0}
-          aria-label="Previous BOGO deals"
-          className="flex items-center text-[#ff9f43] hover:text-[#ff6b35] disabled:cursor-not-allowed disabled:text-neutral-300"
-        >
-          <ChevronLeft className="size-5" />
-        </button>
-
-        <div className="flex gap-4">
-          {visibleDeals.map((item) => {
-            if (!item?.dealId) return null;
-            const dealState = dealStates[item.dealId] || {};
-            const {
-              loading,
-              applied,
-              removing,
-              timesApplied,
-              appliedInTrace,
-              disabled: dealDisabled,
-            } = dealState;
-            const isProcessing = loading || removing;
-            const isButtonDisabled =
-              isDisabled ||
-              isProcessing ||
-              appliedInTrace ||
-              (dealDisabled && !applied);
-            const tooltipMessage = getDisabledTooltipMessage(dealState);
-
-            return (
-              <div
-                key={item.dealId}
-                className={`relative flex min-w-45 max-w-55 flex-col overflow-hidden rounded-lg bg-[#ff9f434a] p-3 shadow-md ${
-                  dealDisabled && !applied ? "border-2 border-neutral-300 opacity-60" : ""
-                }`}
-              >
-                <span
-                  className={`absolute right-2 top-2 rounded-full px-1.5 py-[3px] text-[9px] font-semibold ${
-                    applied ? "bg-[#FF6B35] text-white" : "bg-[#ff9f43] text-black"
-                  }`}
-                >
-                  {applied
-                    ? appliedInTrace
-                      ? `Applied (${timesApplied}x)`
-                      : "Applied"
-                    : dealDisabled
-                      ? "Blocked"
-                      : "Not Applied"}
-                </span>
-
-                <div className="flex items-center">
-                  <h4
-                    className="ml-1 w-24 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-[#ff9f43]"
-                    title={item.dealName}
-                  >
-                    {item?.dealName || "BOGO Deal"}
-                  </h4>
-                </div>
-
-                <h5 className="text-[11px] font-normal text-[#555]">
-                  {getBogoDescription(item)}
-                  <span
-                    className="ml-2 cursor-pointer"
-                    title="Click here to get more info about this BOGO deal"
-                    onClick={() => handleShowDealDetails(item)}
-                  >
-                    <Info className="inline size-3" />
-                  </span>
-                </h5>
-
-                <button
-                  onClick={() => handleApplyBogoDeal(item)}
-                  disabled={isButtonDisabled}
-                  title={tooltipMessage || undefined}
-                  className={`mt-2.5 flex w-[52%] items-center justify-center rounded px-1 py-1 text-[10px] font-semibold ${
-                    isButtonDisabled
-                      ? "cursor-not-allowed bg-neutral-300 text-neutral-500"
-                      : "bg-[#ff9f43] text-black"
-                  }`}
-                >
-                  {isProcessing
-                    ? removing
-                      ? "Removing..."
-                      : "Applying..."
-                    : applied
-                      ? appliedInTrace
-                        ? "Applied in Cart"
-                        : "Remove Deal"
-                      : dealDisabled
-                        ? "Deal Blocked"
-                        : "Apply Deal"}
-                  {(isButtonDisabled || tooltipMessage) && (
-                    <Info
-                      className="ml-2 size-3"
-                      style={{
-                        color: appliedInTrace
-                          ? "green"
-                          : dealDisabled
-                            ? "orange"
-                            : "red",
-                      }}
-                    />
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={handleNext}
-          disabled={currentIndex + 2 >= bogoDeals.length}
-          aria-label="Next BOGO deals"
-          className="flex items-center text-[#ff9f43] hover:text-[#ff6b35] disabled:cursor-not-allowed disabled:text-neutral-300"
-        >
-          <ChevronRight className="size-5" />
-        </button>
+      <div className="relative mb-3 max-w-xs">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search BOGO deals..."
+          className="pl-8"
+        />
       </div>
+
+      {filteredBogoDeals.length === 0 ? (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          No BOGO deals match &quot;{searchTerm}&quot;
+        </div>
+      ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+              <th className="py-2 pr-2 font-medium">Deal Name</th>
+              <th className="px-2 py-2 font-medium">Description</th>
+              <th className="px-2 py-2 text-center font-medium">Action</th>
+              <th className="px-2 py-2 text-center font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBogoDeals.map((item) => {
+              if (!item?.dealId) return null;
+              const dealState = dealStates[item.dealId] || {};
+              const {
+                loading,
+                applied,
+                removing,
+                timesApplied,
+                appliedInTrace,
+                disabled: dealDisabled,
+              } = dealState;
+              const isProcessing = loading || removing;
+              const isButtonDisabled =
+                isDisabled ||
+                isProcessing ||
+                appliedInTrace ||
+                (dealDisabled && !applied);
+              const tooltipMessage = getDisabledTooltipMessage(dealState);
+
+              return (
+                <tr key={item.dealId} className="border-b border-border/50">
+                  <td className="py-2 pr-2 align-top">
+                    <span
+                      className="cursor-pointer font-semibold"
+                      title={item.dealName}
+                      onClick={() => handleShowDealDetails(item)}
+                    >
+                      {item?.dealName || "BOGO Deal"}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 align-top text-muted-foreground">
+                    {getBogoDescription(item)}
+                  </td>
+                  <td className="px-2 py-2 text-center align-top">
+                    <span title={tooltipMessage || undefined}>
+                      <Button
+                        size="sm"
+                        variant={applied ? "destructive" : "default"}
+                        disabled={isButtonDisabled}
+                        onClick={() => handleApplyBogoDeal(item)}
+                      >
+                        {isProcessing
+                          ? removing
+                            ? "Removing..."
+                            : "Applying..."
+                          : applied
+                            ? appliedInTrace
+                              ? "Applied in Cart"
+                              : "Remove Deal"
+                            : dealDisabled
+                              ? "Deal Blocked"
+                              : "Apply Deal"}
+                        {(isButtonDisabled || tooltipMessage) && (
+                          <Info
+                            className="ml-1 size-3"
+                            style={{
+                              color: appliedInTrace
+                                ? "green"
+                                : dealDisabled
+                                  ? "orange"
+                                  : "red",
+                            }}
+                          />
+                        )}
+                      </Button>
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-center align-top">
+                    <Badge
+                      variant={applied ? "default" : "secondary"}
+                      className={
+                        applied
+                          ? "bg-green-100 text-green-700"
+                          : dealDisabled
+                            ? "bg-neutral-200 text-neutral-600"
+                            : undefined
+                      }
+                    >
+                      {applied
+                        ? appliedInTrace
+                          ? `Applied (${timesApplied}x)`
+                          : "Applied"
+                        : dealDisabled
+                          ? "Blocked"
+                          : "Not Applied"}
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      )}
 
       {/* Deal Details Drawer */}
       <Drawer

@@ -1,49 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { TablePagination } from "@/components/ui/table-pagination";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const defaultImage = "/images/placeholders/product.svg";
-
-// Card-shaped placeholder matching ProductCard's layout (badge slot, name,
-// price) so the grid doesn't jump/reflow once real data lands.
-function ProductCardSkeleton() {
-  return (
-    <div
-      className="relative w-full overflow-hidden rounded-2xl bg-[#1a2238]"
-      style={{ aspectRatio: "220 / 150" }}>
-      <Skeleton className="absolute left-1.5 top-1.5 h-4 w-16 rounded-full bg-gray-400/20" />
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 px-2.5 pb-2">
-        <Skeleton className="h-3 w-3/4 rounded bg-gray-400/20" />
-        <Skeleton className="h-3.5 w-1/3 rounded bg-gray-400/20" />
-      </div>
-    </div>
-  );
-}
-
-export function ProductGridSkeleton({ count = 12 }) {
-  return (
-    <div className="@container">
-      <div
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(max(160px, calc((100% - 5 * 0.5rem) / 6)), 1fr))",
-        }}
-      >
-        {Array.from({ length: count }).map((_, i) => (
-          <ProductCardSkeleton key={i} />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ProductImage({ src, alt = "" }) {
   const [errored, setErrored] = useState(false);
@@ -144,8 +108,8 @@ function ProductCard({ product, onClick }) {
 
   return (
     <div
-      className="group relative w-full cursor-pointer overflow-hidden rounded-2xl bg-[#1a2238] shadow-md transition-all duration-200 active:scale-[0.98] hover:-translate-y-1 hover:shadow-xl"
-      style={{ border: `2px solid ${borderColor}`, aspectRatio: "220 / 150" }}
+      className="group relative h-56 cursor-pointer overflow-hidden rounded-2xl bg-[#1a2238] shadow-md transition-all duration-200 active:scale-[0.98] hover:-translate-y-1 hover:shadow-xl"
+      style={{ border: `2px solid ${borderColor}` }}
       onClick={onClick}>
       {imgUrl ? (
         <ProductImage src={imgUrl} alt={product?.productName} />
@@ -161,26 +125,26 @@ function ProductCard({ product, onClick }) {
       )}
 
       {/* Stock + THC/CBD — top left, stacked */}
-      <div className="absolute left-1.5 top-1.5 z-10 flex flex-col items-start gap-1">
+      <div className="absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1.5">
         {stockStatus && (
           <span
-            className="rounded-full px-2 py-0.5 text-[9px] font-bold text-white shadow"
+            className="rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow"
             style={{ background: stockBg, backdropFilter: "blur(6px)" }}>
             {stockStatus}
           </span>
         )}
         {(thc > 0 || cbd > 0) && (
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {thc > 0 && (
               <span
-                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
+                className="rounded-full px-2 py-1 text-[11px] font-bold text-white shadow"
                 style={{ background: "rgba(22,163,74,0.88)" }}>
                 THC: {thc}
               </span>
             )}
             {cbd > 0 && (
               <span
-                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
+                className="rounded-full px-2 py-1 text-[11px] font-bold text-white shadow"
                 style={{ background: "rgba(37,99,235,0.88)" }}>
                 CBD: {cbd}
               </span>
@@ -191,7 +155,7 @@ function ProductCard({ product, onClick }) {
 
       {/* Bottom gradient bar — name + price */}
       <div
-        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-0.5 px-2.5 pb-2 pt-8"
+        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 px-4 pb-3.5 pt-14"
         style={{
           background:
             "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)",
@@ -199,16 +163,17 @@ function ProductCard({ product, onClick }) {
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="line-clamp-2 text-xs font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
+              <div className="line-clamp-2 text-base font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
                 {product?.productName ?? "N/A"}
               </div>
             }
           />
           <TooltipContent>{product?.productName ?? "N/A"}</TooltipContent>
         </Tooltip>
-        <div className="flex items-baseline gap-1 text-sm font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
+        <div className="flex items-baseline gap-1 text-xl font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
+
           ${price}
-          <span className="text-[10px] font-normal opacity-70">/{unit}</span>
+          <span className="text-xs font-normal opacity-70">/{unit}</span>
         </div>
       </div>
     </div>
@@ -218,54 +183,62 @@ function ProductCard({ product, onClick }) {
 export default function ProductGridView({
   noScroll = false,
   data = [],
-  paginationData,
-  onPageChange,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
   setShowDetail,
   fetchSellablePackages,
   setFetchModalProductDetails,
   setSelectedRowKeys,
 }) {
+  const scrollRef = useRef(null);
+  const sentinelRef = useRef(null);
+
+  // Infinite scroll — swaps the old Prev/Next pager for an IntersectionObserver
+  // on a sentinel div after the grid; fires onLoadMore(next page, appended)
+  // once it's within 400px of the scroll container's bottom edge.
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onLoadMore();
+      },
+      { root: noScroll ? null : scrollRef.current, rootMargin: "400px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, noScroll]);
+
   return (
-    <div className="flex h-full flex-col">
-      <div
-        className="@container"
-        style={{
-          flex: "1 1 auto",
-          minHeight: 0,
-          overflowY: noScroll ? "hidden" : "auto",
-          overflowX: "hidden",
-        }}>
-        <div
-          className="grid gap-2 pl-2"
-          style={{
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(max(160px, calc((100% - 5 * 0.5rem) / 6)), 1fr))",
-          }}
-        >
-          {data.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onClick={() => {
-                setShowDetail?.(true);
-                setSelectedRowKeys?.([]);
-                setFetchModalProductDetails?.(product);
-                fetchSellablePackages?.(product.productId);
-              }}
-            />
-          ))}
-        </div>
+    <div
+      ref={scrollRef}
+      style={{
+        height: "100%",
+        overflowY: noScroll ? "hidden" : "auto",
+        overflowX: "hidden",
+      }}>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+        {data.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onClick={() => {
+              setShowDetail?.(true);
+              setSelectedRowKeys?.([]);
+              setFetchModalProductDetails?.(product);
+              fetchSellablePackages?.(product.productId);
+            }}
+          />
+        ))}
       </div>
 
-      {paginationData?.totalPages > 1 && (
-        <div className="shrink-0 border-t border-border px-1 pb-3 pt-2.5">
-          <TablePagination
-            page={paginationData?.page}
-            totalPages={paginationData?.totalPages}
-            totalEntries={paginationData?.totalEntries}
-            pageSize={paginationData?.limit}
-            onPageChange={onPageChange}
-          />
+      {hasMore && (
+        <div ref={sentinelRef} className="flex items-center justify-center py-6">
+          {loadingMore && (
+            <span className="text-sm text-muted-foreground">Loading more…</span>
+          )}
         </div>
       )}
     </div>
