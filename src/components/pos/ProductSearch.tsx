@@ -36,6 +36,7 @@ export default function ProductSearch({
     setManageCartOpen(true);
     setManageCartOpenCount((c) => c + 1);
   };
+
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
   const isLocked = Object.keys(saleDetail).length > 0;
 

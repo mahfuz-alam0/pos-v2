@@ -1068,6 +1068,11 @@ export default function TotalCard({
     (cardPaymentAmount || 0) +
     (bleaumACHAmount || 0) +
     (debitCardAmount || 0);
+  // paymentMethod defaults to "CASH" before the cashier has entered anything
+  // (see useState above) — this is the real signal for whether any amount
+  // has actually been entered across the payment methods, so the status
+  // button can say plain "Payment" until then instead of a premature "Cash".
+  const hasPaymentEntered = totalPaid > 0;
   const paymentCompleted = finalPayable === 0 || totalPaid >= finalPayable;
   const remainingAmount = Math.max(0, finalPayable - totalPaid);
   const isPaymentConfigured = ["CASH", "VIRTUAL", "BOTH_CASH_VIRTUAL"].includes(
@@ -1149,6 +1154,7 @@ export default function TotalCard({
       cartEmpty={cartEmpty}
       onOpenPaymentSidebar={handleOpenPaymentSidebar}
       paymentMethod={paymentMethod}
+      hasPaymentEntered={hasPaymentEntered}
       finalPayable={finalPayable}
       currentAction={currentAction}
       hasSale={hasSale}
@@ -1159,8 +1165,10 @@ export default function TotalCard({
       selectedStatusObj={selectedStatusObj}
       onQuickStatusChange={setSelectedStatus}
       sendToFulfilmentLoading={sendToFulfilmentLoading}
-      onSendToFulfillment={() =>
-        runOrDeferForPin(() => createOrderFullfilment(selectedStatus))
+      onSendToFulfillment={(statusOverride?: string) =>
+        runOrDeferForPin(() =>
+          createOrderFullfilment(statusOverride ?? selectedStatus),
+        )
       }
       selectPortalContainer={statusRowContainer}
     />

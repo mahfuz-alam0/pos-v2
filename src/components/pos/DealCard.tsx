@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Info } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Info, Search } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
@@ -11,6 +11,7 @@ import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import Drawer from "@/components/ui/Drawer";
 import DealDetails from "./DealDetails";
 
@@ -28,6 +29,13 @@ export default function DealCard({ deals = [], productRecord, onDealApplied }) {
   const [dealStates, setDealStates] = useState({});
   const [visible, setVisible] = useState(false);
   const [deal, setDealDetails] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredDeals = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return deals;
+    return deals.filter((d) => (d.dealName || "").toLowerCase().includes(term));
+  }, [deals, searchTerm]);
 
   const quoteBody = useSelector((state: any) => state?.salesDetail);
   const dispatch = useDispatch();
@@ -144,9 +152,25 @@ export default function DealCard({ deals = [], productRecord, onDealApplied }) {
 
   return (
     <>
+      {deals.length > 0 && (
+        <div className="relative mb-3 max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search deals..."
+            className="pl-8"
+          />
+        </div>
+      )}
+
       {deals.length === 0 ? (
         <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
           No deals available
+        </div>
+      ) : filteredDeals.length === 0 ? (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          No deals match &quot;{searchTerm}&quot;
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -160,7 +184,7 @@ export default function DealCard({ deals = [], productRecord, onDealApplied }) {
               </tr>
             </thead>
             <tbody>
-              {deals.map((item) => {
+              {filteredDeals.map((item) => {
                 const { loading, applied, removing } =
                   dealStates[item.dealId] || {};
                 return (

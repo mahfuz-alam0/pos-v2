@@ -23,6 +23,7 @@ import ProductsCart from "@/components/pos/ProductsCart";
 import ProductPromoTaxes from "@/components/pos/ProductPromoTaxes";
 import TotalCard from "@/components/pos/TotalCard";
 import NewAvailableCoupons from "@/components/pos/NewAvailableCoupons";
+import { CustomerLimits } from "@/components/pos/CustomerPanelPopovers";
 import NotesSection from "@/components/front-desk/NotesSection";
 
 import { addMiscallenousCharges } from "@/store/slices/miscChargesSlice";
@@ -243,7 +244,7 @@ export default function TabletModeCartSummary({
         <div
           ref={setStatusRowNode}
           data-mode="dark"
-          className="empty:hidden **:data-[slot=select-trigger]:rounded-xl **:data-[slot=select-trigger]:text-base [&_button:not([data-slot=select-trigger]):not([data-slot=quick-status-trigger])]:h-12 [&_button:not([data-slot=select-trigger]):not([data-slot=quick-status-trigger])]:rounded-xl [&_button:not([data-slot=select-trigger]):not([data-slot=quick-status-trigger])]:text-base"
+          className="empty:hidden **:data-[slot=select-trigger]:rounded-xl **:data-[slot=select-trigger]:text-base [&_button:not([data-slot=select-trigger])]:h-12 [&_button:not([data-slot=select-trigger])]:rounded-xl [&_button:not([data-slot=select-trigger])]:text-base"
         />
 
         {/* Attach / attached customer */}
@@ -456,18 +457,35 @@ export default function TabletModeCartSummary({
         </div>
       </Drawer>
 
-      {/* Manage Cart Items — the exact same cart table used on the desktop POS */}
+      {/* Manage Cart Items — the exact same cart table used on the desktop POS,
+          plus a Purchase Limits side panel (see CustomerPanelPopovers.tsx's
+          "Per Visit Limits" popover, which this mirrors for Tablet Mode). */}
       <Drawer
         open={cartDrawerOpen}
         onClose={() => setCartDrawerOpen(false)}
         side="right"
-        size="70vw">
+        size="85vw">
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Cart Items
           </div>
-          <div className="flex-1 overflow-auto p-4">
-            {cartDrawerOpen && <ProductsCart />}
+          <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
+            <div className="w-84 flex-shrink-0 overflow-y-auto rounded-xl border border-border bg-muted/20 p-4">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Purchase Limits
+              </h3>
+              {(fullSelectedCustomer || selectedCustomer)?.customerGroups
+                ?.length > 0 ? (
+                <CustomerLimits getOrderSummary={getOrderSummary} />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                  Attach a customer to view purchase limits.
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1 overflow-auto">
+              {cartDrawerOpen && <ProductsCart />}
+            </div>
           </div>
         </div>
       </Drawer>
