@@ -4,11 +4,10 @@ import { useState } from "react";
 import { IdCard, ScanBarcode, FileImage, ScanLine, UserPlus } from "lucide-react";
 import PhotoCheckinDialog from "@/components/settings/verify/PhotoCheckinDialog";
 import ScanIdDialog from "@/components/settings/verify/ScanIdDialog";
-import AddCustomerToQueue from "@/components/customers/AddCustomerToQueue";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 
-// Dark-themed reskin of settings/VerifyTab for the Front Desk screen — same
-// underlying dialogs (ScanIdDialog/PhotoCheckinDialog), old-app tile order and
-// look. Settings keeps the light-themed VerifyTab as-is.
+// Reskin of settings/VerifyTab for the Front Desk screen — same underlying
+// dialogs (ScanIdDialog/PhotoCheckinDialog), old-app tile order and look.
 const CHECKIN_TYPES = [
   {
     key: "dl-back",
@@ -42,14 +41,14 @@ function Tile({ type, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(type)}
-      className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-[#141a2e] p-5 text-center transition-colors hover:border-violet-400/40 hover:bg-[#1a2140]"
+      className="flex flex-col items-center gap-3 rounded-xl bg-muted p-5 text-center ring-1 ring-foreground/10 transition-colors hover:ring-violet-400/40 hover:bg-violet-500/10"
     >
       <div className="flex size-11 items-center justify-center rounded-lg bg-violet-500/15">
-        <Icon className="size-5 text-violet-300" />
+        <Icon className="size-5 text-violet-500 dark:text-violet-300" />
       </div>
       <div>
-        <div className="text-sm font-semibold text-white">{type.label}</div>
-        <div className="mt-0.5 text-xs text-white/50">{type.description}</div>
+        <div className="text-sm font-semibold text-foreground">{type.label}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{type.description}</div>
       </div>
     </button>
   );
@@ -66,18 +65,18 @@ export default function FrontDeskVerifyPanel({ shopId, onCheckedIn }) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0d1224] p-5">
+    <div className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <IdCard className="size-4.5 text-violet-300" />
-          <h2 className="text-base font-semibold text-white">Verify &amp; Check-In</h2>
+          <IdCard className="size-4.5 text-violet-500 dark:text-violet-300" />
+          <h2 className="text-base font-semibold text-foreground">Verify &amp; Check-In</h2>
         </div>
         <button
           type="button"
           onClick={() => setAddCustomerOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
         >
-          <UserPlus className="size-4" /> Add Customer to Queue
+          <UserPlus className="size-4" /> Add Customer
         </button>
       </div>
 
@@ -89,12 +88,12 @@ export default function FrontDeskVerifyPanel({ shopId, onCheckedIn }) {
 
       <PhotoCheckinDialog open={Boolean(photoMode)} onOpenChange={(v) => !v && setPhotoMode(null)} mode={photoMode || "dl-front"} />
       <ScanIdDialog open={scanIdOpen} onOpenChange={setScanIdOpen} />
-      <AddCustomerToQueue
+      <AddCustomerForm
         open={addCustomerOpen}
-        onOpenChange={setAddCustomerOpen}
-        shopId={shopId}
-        queueData={[]}
-        onCheckedIn={onCheckedIn}
+        onClose={() => setAddCustomerOpen(false)}
+        onCreated={(customer, mode) => {
+          if (mode === "queue") onCheckedIn?.();
+        }}
       />
     </div>
   );

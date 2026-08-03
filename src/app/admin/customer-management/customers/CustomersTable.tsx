@@ -130,7 +130,7 @@ export default function CustomersTable() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div className={detailId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+      <div className="flex w-full flex-col gap-4">
         <div className="flex items-center justify-between">
           <Breadcrumb>
             <BreadcrumbList>
