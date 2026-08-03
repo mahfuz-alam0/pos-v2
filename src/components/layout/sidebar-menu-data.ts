@@ -91,7 +91,7 @@ export const retailMenu: MenuItem[] = [
       {
         key: "inventory-pricing",
         label: "Inventory & Pricing",
-        href: "/inventory-management/manage-inventories",
+        href: "/inventory-management/inventory-and-pricing",
       },
       {
         key: "inventory-adjustments",
