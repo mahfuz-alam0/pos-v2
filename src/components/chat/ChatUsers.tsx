@@ -55,7 +55,7 @@ export default function ChatUsers({ selectedUser, setSelectedUser }) {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-component-bg">
-      <div className="flex h-[72px] items-center px-4 ring-1 ring-foreground/10 sm:px-6">
+      <div className="flex h-18 items-center px-4 ring-1 ring-foreground/10 sm:px-6">
         <h2 className="text-2xl font-semibold text-foreground">Messages</h2>
       </div>
 

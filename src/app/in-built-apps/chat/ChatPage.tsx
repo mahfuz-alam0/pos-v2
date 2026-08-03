@@ -8,8 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Drawer from "@/components/ui/Drawer";
 import { useChatSocket } from "@/context/chat-socket-context";
 import { getSessionMessages, setCurrentSession } from "@/store/slices/chatSlice";
-import ChatUsers from "./components/ChatUsers";
-import Communication from "./components/Communication";
+import ChatUsers from "@/components/chat/ChatUsers";
+import Communication from "@/components/chat/Communication";
 
 export default function ChatPage() {
   const { isConnected, socketError, isLoading } = useChatSocket();
