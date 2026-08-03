@@ -100,6 +100,7 @@ import PosDrafts from "@/components/pos/PosDrafts";
 import ReturnsPage from "@/components/pos/ReturnsPage";
 import CustomerUploads from "@/components/pos/CustomerUploads";
 import CustomerQueue from "@/components/dashboard/CustomerQueue";
+import CustomerQueue from "@/components/dashboard/CustomerQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
 
@@ -738,9 +739,9 @@ function TabletPosInner() {
     <TooltipProvider>
       <div className={wrapperClass}>
         {/* ──── TOP BAR ──── */}
-        <div className="flex h-[70px] shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-gray-100 px-4 shadow-sm">
+        <div className="flex h-17.5 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-gray-100 px-4 shadow-sm">
           {shopDetails?.label && (
-            <span className="flex h-[33px] shrink-0 items-center gap-2 rounded-full bg-secondary px-[13px] text-xs font-bold text-white">
+            <span className="flex h-8.25 shrink-0 items-center gap-2 rounded-full bg-secondary px-3.25 text-xs font-bold text-white">
               <span className="inline-block h-2 w-2 rounded-full bg-green-600" />
               {shopDetails.label}
             </span>
@@ -753,7 +754,7 @@ function TabletPosInner() {
             onValueChange={handleDeliveryTypeChange}
             disabled={hasSale}
           >
-            <SelectTrigger className="!h-9 w-[105px] shrink-0 bg-white text-xs">
+            <SelectTrigger className="h-9! w-26.25 shrink-0 bg-white text-xs">
               <SelectValue placeholder="Order Type">
                 {(value) => (
                   <span className="flex items-center">
@@ -1114,7 +1115,7 @@ function TabletPosInner() {
                   <Button
                     disabled={hasSale}
                     onClick={() => setAddCustomerOpen(true)}
-                    className="!h-[39px] w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
+                    className="h-9.75! w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
                   >
                     Add
                   </Button>
@@ -1124,7 +1125,7 @@ function TabletPosInner() {
                   <Button
                     disabled={hasSale}
                     onClick={() => setEditingCustomerId(selectedCustomer.id)}
-                    className="!h-[39px] w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
+                    className="h-9.75! w-15 bg-[#3390DE] hover:bg-[#3390DE]/90"
                   >
                     Edit
                   </Button>
@@ -1337,19 +1338,19 @@ function TabletPosInner() {
         >
           <div className="flex h-full flex-col">
             <div className="border-b border-border px-6 py-4 text-base font-semibold">
-              Front Driving License
+              Front Driver&apos;s License
             </div>
             <div className="flex-1 overflow-auto p-4">
               {fullSelectedCustomer?.drivingLicenseFrontImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={fullSelectedCustomer.drivingLicenseFrontImage}
-                  alt="Driving License"
+                  alt="Driver's License"
                   className="w-full rounded-lg"
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No driving license image on file.
+                  No driver&apos;s license image on file.
                 </p>
               )}
             </div>

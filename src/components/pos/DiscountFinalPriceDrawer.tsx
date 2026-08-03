@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 import { updateSalesDetail } from "@/store/slices/salesDetailSlice";
+import { buildLineItemAssignment } from "@/utils/lineItemMatching";
 
 /**
  * Manual line-item pricing override drawer. Two modes:
@@ -51,9 +52,27 @@ export default function DiscountFinalPriceDrawer({
   const dispatch = useDispatch();
   const quoteBody = useSelector((state: any) => state?.salesDetail);
 
+  // Disambiguates lines that share the same package (e.g. added twice at
+  // different quantities) so each resolves to its own quote result instead
+  // of the first packageId match — see lineItemMatching.ts.
+  const lineItemAssignment = useMemo(
+    () => buildLineItemAssignment(filteredLineItems, getOrderSummary?.data?.nonPackagedLineItems),
+    [filteredLineItems, getOrderSummary?.data?.nonPackagedLineItems]
+  );
+
   const [tab, setTab] = useState(defaultTab);
+
+  // The drawer itself never unmounts between opens (only its inner <Drawer>
+  // animates in/out), so the useState above only seeds `tab` once — without
+  // this, clicking "Apply Discount" then "Set Final Price" wouldn't switch
+  // the pre-selected tab on the second open.
+  useEffect(() => {
+    if (visible) setTab(defaultTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, defaultTab]);
   const [discountType, setDiscountType] = useState("PERCENTAGE");
-  const [discountRate, setDiscountRate] = useState(0);
+  const [discountRate, setDiscountRate] = useState<number | "">("");
+  const discountRateNum = Number(discountRate) || 0;
   const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   const [priceMode, setPriceMode] = useState("unit"); // 'unit' | 'total'
@@ -68,7 +87,7 @@ export default function DiscountFinalPriceDrawer({
 
   const handleClose = () => {
     setDiscountType("PERCENTAGE");
-    setDiscountRate(0);
+    setDiscountRate("");
     setPriceMode("unit");
     setFinalPrices({});
     setTotalPriceOverride("");
@@ -77,7 +96,7 @@ export default function DiscountFinalPriceDrawer({
   };
 
   const handleApplyDiscount = async () => {
-    if (!discountRate || discountRate <= 0) {
+    if (discountRateNum <= 0) {
       toast.error("Please enter a valid discount rate");
       return;
     }
@@ -92,7 +111,7 @@ export default function DiscountFinalPriceDrawer({
       const updatedLineItems = (quoteBody.lineItems || []).map((lineItem) => {
         const lineItemAMId = lineItem.appMaintainedId || lineItem.key;
         if (selectedAMIds.has(lineItemAMId)) {
-          const discountValue = Math.max(0, Number(discountRate) || 0);
+          const discountValue = Math.max(0, discountRateNum);
           return {
             ...lineItem,
             forcedManualDiscountType:
@@ -147,12 +166,9 @@ export default function DiscountFinalPriceDrawer({
         const newTotalPrice = parseFloat(totalPriceOverride);
 
         const totalBefore = selectedItemsData.reduce((sum, item) => {
-          const orderSummaryItem =
-            getOrderSummary?.data?.nonPackagedLineItems?.find(
-              (orderItem) =>
-                orderItem.createdLineItem.packageId ===
-                (item.packageId || item.id)
-            );
+          const orderSummaryItem = lineItemAssignment.get(
+            item.key ?? item.appMaintainedId ?? item.id
+          );
           const unitPrice =
             orderSummaryItem?.createdLineItem?.initialUnitPrice || item.price;
           return sum + unitPrice * item.purchaseQuantity;
@@ -164,12 +180,9 @@ export default function DiscountFinalPriceDrawer({
           const lineItemAMId = lineItem.appMaintainedId || lineItem.key;
           if (!selectedAMIds.has(lineItemAMId)) return lineItem;
 
-          const orderSummaryItem =
-            getOrderSummary?.data?.nonPackagedLineItems?.find(
-              (orderItem) =>
-                orderItem.createdLineItem.packageId ===
-                (lineItem.packageId || lineItem.id)
-            );
+          const orderSummaryItem = lineItemAssignment.get(
+            lineItem.key ?? lineItem.appMaintainedId ?? lineItem.id
+          );
           const unitPrice =
             orderSummaryItem?.createdLineItem?.initialUnitPrice ||
             lineItem.price;
@@ -249,16 +262,16 @@ export default function DiscountFinalPriceDrawer({
     setFinalPrices({ ...finalPrices, [itemId]: value });
   };
 
-  const hasFinalPrice = (itemId) => {
-    const orderSummaryItem = getOrderSummary?.data?.nonPackagedLineItems?.find(
-      (orderItem) => orderItem.createdLineItem.packageId === itemId
+  const hasFinalPrice = (item) => {
+    const orderSummaryItem = lineItemAssignment.get(
+      item.key ?? item.appMaintainedId ?? item.id
     );
     return orderSummaryItem?.createdLineItem?.isPriceManuallySet === true;
   };
 
   const unitPriceOf = (item) => {
-    const orderSummaryItem = getOrderSummary?.data?.nonPackagedLineItems?.find(
-      (orderItem) => orderItem.createdLineItem.packageId === item.id
+    const orderSummaryItem = lineItemAssignment.get(
+      item.key ?? item.appMaintainedId ?? item.id
     );
     return orderSummaryItem?.createdLineItem?.initialUnitPrice || item.price;
   };
@@ -350,7 +363,9 @@ export default function DiscountFinalPriceDrawer({
                       max={discountType === "PERCENTAGE" ? 100 : undefined}
                       step="0.01"
                       onChange={(e) =>
-                        setDiscountRate(parseFloat(e.target.value) || 0)
+                        setDiscountRate(
+                          e.target.value === "" ? "" : parseFloat(e.target.value) || 0,
+                        )
                       }
                       placeholder={`Enter discount ${
                         discountType === "PERCENTAGE" ? "percentage" : "amount"
@@ -375,7 +390,7 @@ export default function DiscountFinalPriceDrawer({
                           </span>
                         </div>
 
-                        {discountRate > 0 && (
+                        {discountRateNum > 0 && (
                           <div className="flex items-center justify-between border-t border-border pt-2">
                             <span className="text-sm font-medium text-green-700">
                               New Item Total:
@@ -388,8 +403,8 @@ export default function DiscountFinalPriceDrawer({
                                     unitPriceOf(item) * item.purchaseQuantity;
                                   const discountAmount =
                                     discountType === "PERCENTAGE"
-                                      ? (totalPrice * discountRate) / 100
-                                      : discountRate;
+                                      ? (totalPrice * discountRateNum) / 100
+                                      : discountRateNum;
                                   return (
                                     sum +
                                     Math.max(0, totalPrice - discountAmount)
@@ -403,7 +418,7 @@ export default function DiscountFinalPriceDrawer({
                     )}
                   </div>
 
-                  {discountRate > 0 && (
+                  {discountRateNum > 0 && (
                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
                       <div className="mb-2 text-sm font-medium text-blue-800 dark:text-blue-300">
                         Discount Preview
@@ -413,8 +428,8 @@ export default function DiscountFinalPriceDrawer({
                           unitPriceOf(item) * item.purchaseQuantity;
                         const discountAmount =
                           discountType === "PERCENTAGE"
-                            ? (totalPrice * discountRate) / 100
-                            : discountRate;
+                            ? (totalPrice * discountRateNum) / 100
+                            : discountRateNum;
                         const finalPrice = totalPrice - discountAmount;
                         return (
                           <div
@@ -439,9 +454,7 @@ export default function DiscountFinalPriceDrawer({
               <Button
                 className="w-full"
                 onClick={handleApplyDiscount}
-                disabled={
-                  applyingDiscount || !discountRate || discountRate <= 0
-                }
+                disabled={applyingDiscount || discountRateNum <= 0}
               >
                 {applyingDiscount ? "Applying Discount..." : "Apply Discount"}
               </Button>
@@ -498,26 +511,9 @@ export default function DiscountFinalPriceDrawer({
                         Selected Total: $
                         {selectedItemsData
                           .reduce((sum, item) => {
-                            const samePackageInCart = (
-                              filteredLineItems || []
-                            ).filter(
-                              (li) =>
-                                (li.packageId || li.id) ===
-                                (item.packageId || item.id)
+                            const summaryItem = lineItemAssignment.get(
+                              item.key ?? item.appMaintainedId ?? item.id
                             );
-                            const posInGroup = samePackageInCart.findIndex(
-                              (li) =>
-                                (li.appMaintainedId || li.key) ===
-                                (item.appMaintainedId || item.key)
-                            );
-                            const samePackageInSummary =
-                              getOrderSummary?.data?.nonPackagedLineItems?.filter(
-                                (o) => o.createdLineItem.packageId === item.id
-                              );
-                            const summaryItem =
-                              samePackageInSummary?.[
-                                posInGroup >= 0 ? posInGroup : 0
-                              ];
                             const unitPrice =
                               summaryItem?.createdLineItem?.finalUnitPrice ??
                               summaryItem?.createdLineItem?.initialUnitPrice ??
@@ -652,7 +648,7 @@ export default function DiscountFinalPriceDrawer({
                         {selectedItemsData.map((item) => {
                           const unitPrice = unitPriceOf(item);
                           const totalPrice = unitPrice * item.purchaseQuantity;
-                          const priceManuallySet = hasFinalPrice(item.id);
+                          const priceManuallySet = hasFinalPrice(item);
                           return (
                             <div
                               key={item.id}

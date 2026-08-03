@@ -35,7 +35,7 @@ import EventDetailsStep from "./EventDetailsStep";
 import DateShopStep from "./DateShopStep";
 import TimeSlotsStep from "./TimeSlotsStep";
 import type { EntityOption, ShopOption } from "./types";
-import type { UploadedDoc } from "@/app/admin/inventory/packages/SimpleFileUpload";
+import type { UploadedDoc } from "@/app/inventory-management/packages/SimpleFileUpload";
 
 export interface EventSlot {
   start: Date;

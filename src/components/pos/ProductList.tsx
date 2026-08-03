@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { LayoutGrid, List, ArrowUpDown, FilterX, ChevronLeft } from "lucide-react";
+import { LayoutGrid, List, ArrowUpDown, FilterX, Filter, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,15 +13,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiApiSelect } from "@/components/ui/multi-api-select";
+import Drawer from "@/components/ui/Drawer";
 import SkeletonLoader from "@/components/pos/SkeletonLoader";
-import ProductGridView from "@/components/pos/ProductGridView";
+import ProductGridView, { ProductGridSkeleton } from "@/components/pos/ProductGridView";
 import ProductDetailPanel from "@/components/pos/ProductDetailPanel";
 import ScanInput from "@/components/pos/ScanInput";
 
@@ -37,23 +33,6 @@ import { addLineItemsAction } from "@/store/slices/lineItemsSlice";
 import { updateSalesDetail } from "@/store/slices/salesDetailSlice";
 import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 
-// Ported from productList.js — product listing with search, category/brand
-// filtering, pagination, and the sellable-packages -> add-to-cart flow.
-//
-// Preserved exactly: the activeFiltersRef single-source-of-truth filter model
-// (so no stale-closure filter bugs), buildBaseParams param assembly, the
-// customerGroupId-driven refetch, sellable-package mapping/display, the decimal
-// (0.25) vs integer quantity math, dedup vs cart, and the quote refresh through
-// the shared quoteApiManager.
-//
-// Simplified from the old file (out of the product/cart scope, and depended on
-// unported antd widgets): matrix product resolution (variant picker) and the
-// duplicate-in-cart Alert banner. Category/brand pickers are single-select
-// here (old APIDataSelect was multi-select); the filter handlers still
-// normalise to id arrays so the backend contract is unchanged. The full-screen
-// package detail panel (ProductDetailsPage, incl. per-location columns) and
-// the "search and select products" typeahead (ProductDropdown) are ported —
-// see ProductDetailPanel.jsx / ProductSearchDropdown.jsx.
 export default function ProductList({
   setAddSelected,
   setMiscallenousType,
@@ -65,7 +44,10 @@ export default function ProductList({
   autoOpenProduct,
   showFooterActions = true,
   onClose,
-  refreshSignal,
+  refreshSignal = 0,
+  cartPanel = null,
+  cartPanelOpen = false,
+  onToggleCartPanel = undefined,
 }) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
@@ -83,9 +65,15 @@ export default function ProductList({
   });
   const [view, setView] = useState(initialView);
   const [searchTerm, setSearchTerm] = useState("product");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [allBrands, setAllBrands] = useState([]);
   const [allCategory, setAllCategory] = useState([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [brandSearchQuery, setBrandSearchQuery] = useState("");
 
   // Packages drawer state
   const [showDetail, setShowDetail] = useState(false);
@@ -185,17 +173,32 @@ export default function ProductList({
 
   const handleSearch = (value) => fetchProductsData(buildBaseParams(activeFiltersRef.current, value));
 
+  // Toggle behaviour: clicking an already-selected chip removes just that
+  // filter; clicking "all" clears the whole group; clicking any other chip
+  // adds it alongside whatever's already selected (multi-select).
   const handleCategoryFilter = (value) => {
-    const categoryIds = value && value !== "all" ? [value] : [];
+    const categoryIds =
+      value === "all"
+        ? []
+        : selectedCategoryIds.includes(value)
+        ? selectedCategoryIds.filter((id) => id !== value)
+        : [...selectedCategoryIds, value];
     const updated = { ...activeFiltersRef.current, categoryIds };
     activeFiltersRef.current = updated;
+    setSelectedCategoryIds(categoryIds);
     fetchProductsData(buildBaseParams(updated));
   };
 
   const handleBrandFilter = (value) => {
-    const brandIds = value && value !== "all" ? [value] : [];
+    const brandIds =
+      value === "all"
+        ? []
+        : selectedBrandIds.includes(value)
+        ? selectedBrandIds.filter((id) => id !== value)
+        : [...selectedBrandIds, value];
     const updated = { ...activeFiltersRef.current, brandIds };
     activeFiltersRef.current = updated;
+    setSelectedBrandIds(brandIds);
     fetchProductsData(buildBaseParams(updated));
   };
 
@@ -294,20 +297,19 @@ export default function ProductList({
 
   const handleAddToState = () => {
     const selectedPackagesData = packagesData.filter((p) => selectedRowKeys.includes(p.key));
-    const uniqueSelectedPackagesData = selectedPackagesData.filter(
-      (p) => !cart.some((item) => item.id === p.id)
-    );
 
-    if (uniqueSelectedPackagesData.length === 0) {
-      toast.error("The Selected Item Already Exists in Cart.");
-      return;
-    }
-
-    const packagesWithExtraFields = uniqueSelectedPackagesData.map((item) => {
+    // Adding the same package again always creates a new, independent cart
+    // line (e.g. Product A x2, then Product A x5 as a separate row) rather
+    // than being merged or blocked — each line's own quote data is kept
+    // distinct via a fresh appMaintainedId (see lineItemMatching.ts).
+    const packagesWithExtraFields = selectedPackagesData.map((item) => {
       const conversionRate = item?.projectQtyConversionRate || 1;
       const base = quantities[item.id] || 1;
+      const lineId = crypto.randomUUID();
       return {
         ...item,
+        key: lineId,
+        appMaintainedId: lineId,
         inventoryId: item.inventoryId,
         packageId: item.id,
         purchaseQuantity: conversionRate * base,
@@ -332,224 +334,444 @@ export default function ProductList({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Search + filters + type toggle — all in one row, matching the old POS toolbar */}
-      <div className="mb-3 flex flex-col gap-2 rounded-lg bg-[#00152A] p-3 text-white md:flex-row md:items-center md:flex-wrap">
-        <Select defaultValue="product" onValueChange={setSearchTerm}>
-          <SelectTrigger className="w-40 border-white/20 bg-[#00152B] text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="product">Product ID</SelectItem>
-            <SelectItem value="package">Package ID</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Search + filters toolbar — carbon copy of the old POS InventoryFilter bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-[#00152A] p-3 text-white">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            items={[
+              { value: "product", label: "Product ID" },
+              { value: "package", label: "Package ID" },
+            ]}
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          >
+            <SelectTrigger className="h-10 border-white/20 bg-[#00152B] text-white [&_svg]:text-white/70">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="product">Product ID</SelectItem>
+              <SelectItem value="package">Package ID</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {searchTerm === "product" ? (
-          <Input
-            placeholder="Search product"
-            className="border-white/20 bg-[#00152B] text-white placeholder:text-white/50 md:w-56"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSearch(e.currentTarget.value);
-            }}
-            onChange={(e) => {
-              if (e.target.value === "") handleSearch("");
-            }}
-          />
-        ) : (
-          <ScanInput setAddSelected={setAddSelected} />
-        )}
-
-        {searchTerm === "product" && (
-          <>
-            <Select onValueChange={handleCategoryFilter}>
-              <SelectTrigger className="w-48 border-white/20 bg-[#00152B] text-white">
-                <SelectValue placeholder="Select Category">
-                  {(value) => {
-                    if (value === "all") return "All Categories";
-                    const c = allCategory.find((item) => item.id === value);
-                    return c?.name || "Select Category";
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {allCategory.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select onValueChange={handleBrandFilter}>
-              <SelectTrigger className="w-48 border-white/20 bg-[#00152B] text-white">
-                <SelectValue placeholder="Select Brand">
-                  {(value) => {
-                    if (value === "all") return "All Brands";
-                    const b = allBrands.find((item) => item.id === value);
-                    return b?.name || "Select Brand";
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Brands</SelectItem>
-                {allBrands.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-
-        {searchTerm === "product" && (
-          <div className="ml-auto flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
-                    aria-label="Sort"
-                  >
-                    <ArrowUpDown />
-                  </Button>
-                }
+          {searchTerm === "product" ? (
+            <div className="relative min-w-48">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/50" />
+              <Input
+                value={searchQuery}
+                placeholder="Search"
+                className="h-10 w-full border-white/20 bg-[#00152B] pl-9 text-white placeholder:text-white/50"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch(e.currentTarget.value);
+                }}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value === "") handleSearch("");
+                }}
               />
-              <DropdownMenuContent>
-                {[
-                  { label: "Price: Low to High", name: "unitPrice", value: "asc" },
-                  { label: "Price: High to Low", name: "unitPrice", value: "desc" },
-                  { label: "Name: A-Z", name: "productName", value: "asc" },
-                  { label: "Name: Z-A", name: "productName", value: "desc" },
-                ].map((opt) => (
-                  <DropdownMenuItem
-                    key={opt.label}
-                    onClick={() => {
-                      const updated = {
-                        ...activeFiltersRef.current,
-                        sortParam: { name: "sort", value: `${opt.name}:${opt.value}` },
-                      };
-                      activeFiltersRef.current = updated;
-                      fetchProductsData(buildBaseParams(updated));
-                    }}
-                  >
-                    {opt.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="outline"
-              size="icon"
-              className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
-              aria-label="Remove filters"
-              onClick={() => {
-                activeFiltersRef.current = { categoryIds: [], brandIds: [], sortParam: null };
-                fetchProductsData();
-              }}
-            >
-              <FilterX />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
-              onClick={() => setView(view === "list" ? "grid" : "list")}
-              aria-label="Toggle view"
-            >
-              {view === "list" ? <LayoutGrid /> : <List />}
-            </Button>
-            {onClose && (
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchQuery("");
+                    handleSearch("");
+                  }}
+                  className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="min-w-48">
+              <ScanInput
+                setAddSelected={setAddSelected}
+                placeholder="Scan package"
+                className="h-10 border-white/20 bg-[#00152B] text-white placeholder:text-white/50"
+              />
+            </div>
+          )}
+
+          {searchTerm === "product" && (
+            <>
+              <MultiApiSelect
+                placeholder="Select Category"
+                value={selectedCategoryIds}
+                onChange={(ids) => {
+                  const updated = { ...activeFiltersRef.current, categoryIds: ids };
+                  activeFiltersRef.current = updated;
+                  setSelectedCategoryIds(ids);
+                  fetchProductsData(buildBaseParams(updated));
+                }}
+                items={allCategory.map((c: any) => ({ id: c.id, name: c.name }))}
+                triggerClassName="h-10 w-40 xl:w-48 border-white/20 bg-[#00152B] text-white [&_svg]:text-white/70"
+              />
+              <MultiApiSelect
+                placeholder="Select Brand"
+                value={selectedBrandIds}
+                onChange={(ids) => {
+                  const updated = { ...activeFiltersRef.current, brandIds: ids };
+                  activeFiltersRef.current = updated;
+                  setSelectedBrandIds(ids);
+                  fetchProductsData(buildBaseParams(updated));
+                }}
+                items={allBrands.map((b: any) => ({ id: b.id, name: b.name }))}
+                triggerClassName="h-10 w-40 xl:w-48 border-white/20 bg-[#00152B] text-white [&_svg]:text-white/70"
+              />
+
               <Button
                 variant="outline"
                 size="icon"
-                className="border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
-                aria-label="Close"
-                onClick={onClose}
+                className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                aria-label="Filter by category or brand"
+                onClick={() => setFilterDrawerOpen(true)}
               >
-                <ChevronLeft />
+                <Filter />
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                      aria-label="Sort"
+                    >
+                      <ArrowUpDown />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent>
+                  {[
+                    { label: "Price: Low to High", name: "unitPrice", value: "asc" },
+                    { label: "Price: High to Low", name: "unitPrice", value: "desc" },
+                    { label: "Name: A-Z", name: "productName", value: "asc" },
+                    { label: "Name: Z-A", name: "productName", value: "desc" },
+                  ].map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.label}
+                      className="py-2.5 text-base"
+                      onClick={() => {
+                        const updated = {
+                          ...activeFiltersRef.current,
+                          sortParam: { name: "sort", value: `${opt.name}:${opt.value}` },
+                        };
+                        activeFiltersRef.current = updated;
+                        fetchProductsData(buildBaseParams(updated));
+                      }}
+                    >
+                      {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                aria-label="Remove filters"
+                onClick={() => {
+                  activeFiltersRef.current = { categoryIds: [], brandIds: [], sortParam: null };
+                  setSelectedCategoryIds([]);
+                  setSelectedBrandIds([]);
+                  fetchProductsData();
+                }}
+              >
+                <FilterX />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white"
+                onClick={() => setView(view === "list" ? "grid" : "list")}
+                aria-label="Toggle view"
+              >
+                {view === "list" ? <LayoutGrid /> : <List />}
+              </Button>
+            </>
+          )}
+        </div>
+
+        {onClose && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0 border-white/20 bg-[#038FDE] text-white hover:bg-[#038FDE]/80"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <ChevronRight />
+          </Button>
+        )}
+      </div>
+
+      {/* Filter by category / brand */}
+      <Drawer
+        open={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        side="right"
+        size={440}
+      >
+        <div className="flex h-full flex-col">
+          <div className="border-b border-border px-6 py-4 text-base font-semibold">
+            Filter Products
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col border-b border-border p-4">
+              <div className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Categories
+              </div>
+              <div className="relative mb-3 shrink-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={categorySearchQuery}
+                  onChange={(e) => setCategorySearchQuery(e.target.value)}
+                  placeholder="Search categories"
+                  className="h-11 pl-9"
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <div className="flex flex-wrap gap-2 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryFilter("all")}
+                    className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+                      selectedCategoryIds.length === 0
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70"
+                    }`}
+                  >
+                    All Categories
+                  </button>
+                  {allCategory
+                    .filter((c) =>
+                      c.name?.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                    )
+                    .map((c) => {
+                      const active = selectedCategoryIds.includes(c.id);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleCategoryFilter(c.id)}
+                          className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/70"
+                          }`}
+                        >
+                          {c.name}
+                          {active && <X className="size-3.5" />}
+                        </button>
+                      );
+                    })}
+                  {categorySearchQuery &&
+                    allCategory.filter((c) =>
+                      c.name?.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <div className="text-sm text-muted-foreground">No categories match.</div>
+                    )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col p-4">
+              <div className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Brands
+              </div>
+              <div className="relative mb-3 shrink-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={brandSearchQuery}
+                  onChange={(e) => setBrandSearchQuery(e.target.value)}
+                  placeholder="Search brands"
+                  className="h-11 pl-9"
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <div className="flex flex-wrap gap-2 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => handleBrandFilter("all")}
+                    className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+                      selectedBrandIds.length === 0
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70"
+                    }`}
+                  >
+                    All Brands
+                  </button>
+                  {allBrands
+                    .filter((b) =>
+                      b.name?.toLowerCase().includes(brandSearchQuery.toLowerCase())
+                    )
+                    .map((b) => {
+                      const active = selectedBrandIds.includes(b.id);
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => handleBrandFilter(b.id)}
+                          className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/70"
+                          }`}
+                        >
+                          {b.name}
+                          {active && <X className="size-3.5" />}
+                        </button>
+                      );
+                    })}
+                  {brandSearchQuery &&
+                    allBrands.filter((b) =>
+                      b.name?.toLowerCase().includes(brandSearchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <div className="text-sm text-muted-foreground">No brands match.</div>
+                    )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-border p-4">
+            <Button className="h-12 w-full text-base" onClick={() => setFilterDrawerOpen(false)}>
+              Done
+            </Button>
+          </div>
+        </div>
+      </Drawer>
+
+      {/* Listing */}
+      <div className="flex min-h-0 flex-1">
+        <div className={`mt-3 min-w-0 flex-1 ${view === "grid" ? "overflow-hidden" : "overflow-auto"}`}>
+        {searchTerm === "product" &&
+          (loading ? (
+            view === "grid" ? <ProductGridSkeleton /> : <SkeletonLoader rows={6} />
+          ) : view === "list" ? (
+            <div className="w-full overflow-x-auto pl-4">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-muted text-left text-muted-foreground">
+                    <th className="px-2 py-2">Image</th>
+                    <th className="px-2 py-2">Product</th>
+                    <th className="px-2 py-2">Total QTY</th>
+                    <th className="px-2 py-2">Sellable QTY</th>
+                    <th className="px-2 py-2">Price</th>
+                    <th className="px-2 py-2 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productsData.map((record, i) => {
+                    const imgUrl =
+                      record?.productInfo?.images?.[0]?.url ||
+                      (typeof record?.images?.[0] === "string"
+                        ? record.images[0]
+                        : record?.images?.[0]?.url);
+                    return (
+                    <tr
+                      key={record.id}
+                      className={i % 2 === 1 ? "bg-muted/40" : ""}
+                    >
+                      <td className="px-2 py-2">
+                        <div className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
+                          {imgUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imgUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2">{record?.productName}</td>
+                      <td className="px-2 py-2">
+                        {record?.totalQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">
+                        {record?.totalActiveQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">${record?.unitPrice}</td>
+                      <td className="px-2 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            fetchSellablePackages(record?.productId);
+                            setShowDetail(true);
+                            setFetchModalProductDetails(record);
+                            setSelectedRowKeys([]);
+                          }}
+                        >
+                          Packages
+                        </Button>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <ProductGridView
+              data={productsData}
+              paginationData={paginationData}
+              onPageChange={fetchProductsDataForPagination}
+              setShowDetail={setShowDetail}
+              fetchSellablePackages={fetchSellablePackages}
+              setSelectedRowKeys={setSelectedRowKeys}
+              setFetchModalProductDetails={setFetchModalProductDetails}
+            />
+          ))}
+        </div>
+
+        {onToggleCartPanel && (
+          <button
+            type="button"
+            onClick={onToggleCartPanel}
+            title={cartPanelOpen ? "Hide cart" : "Show cart"}
+            className="z-10 mx-1.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-[#038FDE] hover:text-white"
+          >
+            {cartPanelOpen ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
             )}
+          </button>
+        )}
+
+        {cartPanel && (
+          <div
+            className={`h-full shrink-0 overflow-hidden transition-[max-width] duration-300 ease-in-out ${
+              cartPanelOpen ? "max-w-105" : "max-w-0"
+            }`}
+          >
+            {cartPanel}
           </div>
         )}
       </div>
 
-      {/* Listing */}
-      <div className="min-h-0 flex-1 overflow-auto">
-      {searchTerm === "product" &&
-        (showDetail ? (
-          <ProductDetailPanel
-            product={fetchModalProductDetails}
-            packagesData={packagesData}
-            locationColumns={locationColumns}
-            isLoading={isLoading}
-            selectedRowKeys={selectedRowKeys}
-            setSelectedRowKeys={setSelectedRowKeys}
-            quantities={quantities}
-            setQuantities={setQuantities}
-            onQuantityDelta={handleQuantityChange}
-            onQuantityInput={handleInputQuantity}
-            onBack={() => setShowDetail(false)}
-            onAddToCart={handleAddToState}
-          />
-        ) : loading ? (
-          <SkeletonLoader rows={6} />
-        ) : view === "list" ? (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="px-2 py-2">Product</th>
-                  <th className="px-2 py-2">Total QTY</th>
-                  <th className="px-2 py-2">Sellable QTY</th>
-                  <th className="px-2 py-2">Price</th>
-                  <th className="px-2 py-2 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productsData.map((record) => (
-                  <tr key={record.id} className="border-b">
-                    <td className="px-2 py-2">{record?.productName}</td>
-                    <td className="px-2 py-2">
-                      {record?.totalQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">
-                      {record?.totalActiveQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">${record?.unitPrice}</td>
-                    <td className="px-2 py-2 text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          fetchSellablePackages(record?.productId);
-                          setShowDetail(true);
-                          setFetchModalProductDetails(record);
-                          setSelectedRowKeys([]);
-                        }}
-                      >
-                        Packages
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <ProductGridView
-            data={productsData}
-            paginationData={paginationData}
-            onPageChange={fetchProductsDataForPagination}
-            setShowDetail={setShowDetail}
-            fetchSellablePackages={fetchSellablePackages}
-            setSelectedRowKeys={setSelectedRowKeys}
-            setFetchModalProductDetails={setFetchModalProductDetails}
-          />
-        ))}
-      </div>
+      {/* Product details — full-screen instead of replacing the grid in place */}
+      <Drawer open={showDetail} onClose={() => setShowDetail(false)} side="right" size="100vw">
+        <div className="h-full overflow-y-auto p-4">
+          {showDetail && (
+            <ProductDetailPanel
+              product={fetchModalProductDetails}
+              packagesData={packagesData}
+              locationColumns={locationColumns}
+              isLoading={isLoading}
+              selectedRowKeys={selectedRowKeys}
+              setSelectedRowKeys={setSelectedRowKeys}
+              quantities={quantities}
+              setQuantities={setQuantities}
+              onQuantityDelta={handleQuantityChange}
+              onQuantityInput={handleInputQuantity}
+              onBack={() => setShowDetail(false)}
+              onAddToCart={handleAddToState}
+            />
+          )}
+        </div>
+      </Drawer>
 
       {/* Misc charge / notes actions (gated exactly as old) */}
       {showFooterActions && (

@@ -22,9 +22,8 @@ function calculateAge(dob) {
   return age > 0 ? age : null;
 }
 
-// Dark reskin of dashboard/QueueCard for the Front Desk screen. Same
-// serve/remove/wait-time-threshold logic, restyled to match the old app's
-// dedicated dark front-desk theme (independent of the global light/dark toggle).
+// Reskin of dashboard/QueueCard for the Front Desk screen. Same
+// serve/remove/wait-time-threshold logic, restyled to match the old app's look.
 export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDetails }) {
   const { shopId } = useShop();
   const { queueYellowTime, queueRedTime } = useSettings();
@@ -42,7 +41,7 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
   }, [data?.updatedAt]);
 
   const age = calculateAge(data?.dob);
-  const borderColor = waitTime >= queueRedTime ? "#ef4444" : waitTime >= queueYellowTime ? "#f59e0b" : "rgba(255,255,255,0.1)";
+  const waitColor = waitTime >= queueRedTime ? "#ef4444" : waitTime >= queueYellowTime ? "#f59e0b" : null;
   const statusBg = isServing ? "#059669" : "#7c3aed";
   const statusLabel = actionLoading ? (isServing ? "Processing…" : "Moving…") : isServing ? "Return to Queue" : "Available";
 
@@ -83,13 +82,11 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
   }
 
   return (
-    <div
-      className="relative flex w-70 shrink-0 flex-col overflow-hidden rounded-xl border bg-[#141a2e] shadow-sm"
-      style={{ borderColor }}
-    >
+    <div className="relative flex w-70 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
+      {waitColor && <div className="absolute inset-x-0 top-0 h-1" style={{ background: waitColor }} />}
       <button
         onClick={handleRemove}
-        className="absolute top-2 right-2 z-10 flex size-5 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-red-500 hover:text-white"
+        className="absolute top-2 right-2 z-10 flex size-5 items-center justify-center rounded-full bg-foreground/10 text-muted-foreground hover:bg-red-500 hover:text-white"
       >
         <X className="size-3" />
       </button>
@@ -103,11 +100,11 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
           </div>
         )}
         <div className="min-w-0 flex-1 cursor-pointer">
-          <div className="truncate text-[13px] font-semibold text-white">
+          <div className="truncate text-[13px] font-semibold text-foreground">
             {data?.firstName} {data?.lastName || ""}
           </div>
           {age && (
-            <span className="mt-1 inline-block rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-medium text-violet-200">
+            <span className="mt-1 inline-block rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-200">
               {age} yrs{data?.dob ? `, ${new Date(data.dob).getFullYear()}` : ""}
             </span>
           )}
@@ -115,26 +112,28 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
       </div>
 
       {cartData && (
-        <div className="mx-3.5 mb-2.5 rounded-lg border border-white/10 bg-[#0d1224] px-2.5 py-2">
+        <div className="mx-3.5 mb-2.5 rounded-lg bg-card px-2.5 py-2 ring-1 ring-foreground/10">
           {cartItems.slice(0, 2).map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between gap-2 text-[11px] text-white/70">
+            <div key={idx} className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
               <span className="truncate">
                 {item.purchaseQuantity || 1}× {item.productName || item.name || "Unknown"}
               </span>
-              <span className="shrink-0 font-medium text-white">${((item.price || 0) * (item.purchaseQuantity || 1)).toFixed(2)}</span>
+              <span className="shrink-0 font-medium text-foreground">${((item.price || 0) * (item.purchaseQuantity || 1)).toFixed(2)}</span>
             </div>
           ))}
-          <div className="mt-1.5 flex items-center justify-between border-t border-white/10 pt-1.5">
-            <div className="flex items-center gap-1.5 text-[10px] text-white/50">
+          <div className="mt-1.5 flex items-center justify-between border-t border-foreground/10 pt-1.5">
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               {cartItems.length} item{cartItems.length !== 1 ? "s" : ""}
-              {hasDeals && <span className="rounded bg-emerald-500/20 px-1 text-emerald-300">Deal</span>}
+              {hasDeals && <span className="rounded bg-emerald-500/20 px-1 text-emerald-600 dark:text-emerald-300">Deal</span>}
             </div>
-            <span className="text-[12px] font-bold text-white">${cartSubtotal.toFixed(2)}</span>
+            <span className="text-[12px] font-bold text-foreground">${cartSubtotal.toFixed(2)}</span>
           </div>
         </div>
       )}
 
-      <div className="px-3.5 pb-3 text-[10px] text-white/40">{waitTime} min in queue</div>
+      <div className="px-3.5 pb-3 text-[10px] font-medium" style={{ color: waitColor || "var(--muted-foreground)" }}>
+        {waitTime} min in queue
+      </div>
 
       <button
         onClick={handleToggleServing}

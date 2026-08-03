@@ -121,6 +121,85 @@ export function SingleImageUpload({
   );
 }
 
+export function DocumentsUpload({
+  links,
+  onChange,
+  variant = "dropzone",
+}: {
+  links: string[];
+  onChange: (links: string[]) => void;
+  variant?: "dropzone" | "button";
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(
+        Array.from(files).map(async (file) => {
+          const res = await uploadAnySingleFile(file);
+          return res?.downloadUrl || res?.url;
+        }),
+      );
+      onChange([...links, ...uploaded.filter(Boolean)]);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to upload document");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {variant === "button" && (
+        <button
+          type="button"
+          onClick={() => !uploading && inputRef.current?.click()}
+          disabled={uploading}
+          className="flex w-fit items-center gap-1.5 rounded-lg border border-input px-3 py-1.5 text-sm text-foreground hover:bg-muted/40 disabled:opacity-50"
+        >
+          <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+          {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+          Upload
+        </button>
+      )}
+      {links.map((link, i) => (
+        <div key={i} className="flex items-center justify-between rounded-md ring-1 ring-foreground/10 px-3 py-2">
+          <a href={link} target="_blank" rel="noreferrer" className="truncate text-sm text-primary hover:underline">
+            Document {i + 1}
+          </a>
+          <button
+            type="button"
+            onClick={() => onChange(links.filter((_, idx) => idx !== i))}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      ))}
+      {variant === "dropzone" && (
+        <div
+          onClick={() => !uploading && inputRef.current?.click()}
+          className="flex h-16 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-2 border-dashed text-muted-foreground border-muted-foreground/25 hover:bg-muted/30"
+        >
+          <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+          {uploading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <>
+              <Upload className="size-4" />
+              <span className="text-sm">Upload documents</span>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Shop {
   id: string | number;
   name: string;

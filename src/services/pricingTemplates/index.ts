@@ -20,3 +20,30 @@ export async function fetchSinglePricingTemplate(id) {
     handleApiError(err);
   }
 }
+
+export async function createPricingTemplate(body: unknown) {
+  try {
+    const { data } = await api.post("/pricing-template/create", body);
+    return { data };
+  } catch (err) {
+    handleApiError(err);
+  }
+}
+
+export async function updatePricingTemplate(body: unknown) {
+  try {
+    const { data } = await api.put("/pricing-template/update", body);
+    return { data };
+  } catch (err) {
+    handleApiError(err);
+  }
+}
+
+export async function removePricingTemplate(id: string) {
+  try {
+    const { data } = await api.delete(`/pricing-template/delete/${id}`);
+    return { data };
+  } catch (err) {
+    handleApiError(err);
+  }
+}

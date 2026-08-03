@@ -109,7 +109,7 @@ export default function TaskList() {
 
       {tasks.length > 0 && (
         <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
-          <Link href="/admin/tasks/tasks-listings" className="text-sm font-medium text-primary hover:underline">
+          <Link href="/settings/tasks-listings" className="text-sm font-medium text-primary hover:underline">
             See all
           </Link>
           <div className="flex items-center gap-1">

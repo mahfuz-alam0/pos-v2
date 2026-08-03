@@ -1,6 +1,8 @@
 "use client";
 
-import { Pencil, Play } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -8,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function PaymentStatusRow({
   paymentStatusPaidInFull,
@@ -25,6 +28,7 @@ export default function PaymentStatusRow({
   onQuickStatusChange,
   sendToFulfilmentLoading,
   onSendToFulfillment,
+  selectPortalContainer,
 }: {
   paymentStatusPaidInFull: boolean;
   cartEmpty: boolean;
@@ -41,104 +45,74 @@ export default function PaymentStatusRow({
   onQuickStatusChange: (value: string) => void;
   sendToFulfilmentLoading: boolean;
   onSendToFulfillment: () => void;
+  // When this row is portaled somewhere with its own dark styling (Tablet
+  // Mode POS), its Select dropdowns need to portal into that same dark-
+  // scoped container too — otherwise they escape straight to <body> and
+  // fall back to this app's default light popup styling regardless of
+  // where the trigger itself renders.
+  selectPortalContainer?: HTMLElement | null;
 }) {
-  const paymentLabel =
+  const [moveToOpen, setMoveToOpen] = useState(false);
+
+  const chosenPaymentMethod =
     paymentMethod === "CASH"
       ? "Cash"
       : paymentMethod === "VIRTUAL"
-      ? "Card/Digital"
-      : paymentMethod === "BOTH_CASH_VIRTUAL"
-      ? "Cash + Card"
-      : "Payment Method";
+        ? "Card/Digital"
+        : paymentMethod === "BOTH_CASH_VIRTUAL"
+          ? "Cash + Card"
+          : null;
+  const paymentLabel = chosenPaymentMethod
+    ? `Payment: ${chosenPaymentMethod}`
+    : "Payment";
 
   const mainStatusItems = (orderStatus || []).filter(
-    (s) => s?.allowedSources?.includes(saleDetailStatusId) && !s?.isRollBackState
+    (s) =>
+      s?.allowedSources?.includes(saleDetailStatusId) && !s?.isRollBackState,
   );
-  const quickStatusItems = (orderStatus || []).filter((s) => !s.isTerminationState);
+  const quickStatusItems = (orderStatus || []).filter(
+    (s) => !s.isTerminationState,
+  );
 
   return (
     <div className="flex gap-1">
       <button
         disabled={paymentStatusPaidInFull || cartEmpty}
         onClick={onOpenPaymentSidebar}
-        className="group flex-1 min-w-0 h-11 rounded-[min(var(--radius-md),12px)] bg-[#287372] px-3 py-2 text-left text-white shadow-sm transition-colors hover:bg-[#2A9D8F] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-semibold">{paymentLabel}</span>
-          <span className="flex items-center gap-1 text-xs font-medium text-white/80">
-            ${finalPayable.toFixed(2)}
-            <Pencil className="h-3 w-3 shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
+        className="flex-1 min-w-0 rounded-md bg-[#287372] px-3 py-2 font-semibold text-white transition-colors hover:bg-[#2A9D8F] disabled:cursor-not-allowed disabled:opacity-50">
+        <div className="flex items-center justify-between gap-1">
+          <span className="truncate text-sm">{paymentLabel}</span>
+          <span className="text-xs opacity-80">
+            (${finalPayable.toFixed(2)}) ✏️
           </span>
         </div>
       </button>
 
       {(currentAction !== null || hasSale) && (
         <Select
-          items={mainStatusItems.map((s) => ({ value: s.statusId, label: s.displayName }))}
+          items={mainStatusItems.map((s) => ({
+            value: s.statusId,
+            label: s.displayName,
+          }))}
           value={selectedStatus ?? ""}
           onValueChange={onStatusChange}
-          disabled={currentAction === "processReturns"}
-        >
-          <SelectTrigger className="flex-1 min-w-0 !h-11 rounded-xl shadow-sm">
-            <span
-              className="inline-block h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: selectedStatusObj?.colorCode || "var(--muted-foreground)" }}
-            />
+          disabled={currentAction === "processReturns"}>
+          <SelectTrigger className="flex-1 min-w-0">
             <SelectValue placeholder="Select Status">
               {(value) =>
-                mainStatusItems.find((s) => s.statusId === value)?.displayName ||
-                "Select Status"
+                (orderStatus || []).find((s) => s.statusId === value)
+                  ?.displayName || "Select Status"
               }
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
-            {mainStatusItems.map((s) => (
-              <SelectItem key={s.statusId} value={s.statusId}>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: s.colorCode }}
-                  />
-                  {s.displayName}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      {/* Split button, mirrors the old app's Dropdown.Button: the colored
-          label area submits/advances the order to selectedStatus, the
-          docked play-icon segment just opens the status picker. */}
-      {!hasSale && currentAction === null && (
-        <div className="relative flex h-11 flex-1 min-w-0 gap-1">
-          <button
-            type="button"
-            disabled={cartEmpty || sendToFulfilmentLoading}
-            onClick={onSendToFulfillment}
-            style={{ backgroundColor: selectedStatusObj?.colorCode || "#FF8D49" }}
-            className="min-w-0 flex-1 truncate rounded-lg px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors hover:brightness-95 disabled:cursor-not-allowed"
-          >
-            {sendToFulfilmentLoading
-              ? "Sending…"
-              : selectedStatusObj?.displayName || "Select Status"}
-          </button>
-          <Select
-            items={quickStatusItems.map((s) => ({ value: s.statusId, label: s.displayName }))}
-            value={selectedStatus ?? ""}
-            onValueChange={onQuickStatusChange}
-          >
-            <SelectTrigger
-              className="!h-full w-[50px] shrink-0 items-center justify-center rounded-lg border-transparent p-0 shadow-sm [&_svg]:hidden"
-              style={{ backgroundColor: selectedStatusObj?.colorCode || "#FF8D49" }}
-            >
-              <SelectValue placeholder="" className="hidden" />
-            </SelectTrigger>
-            <span className="pointer-events-none absolute inset-y-0 right-0 flex w-[50px] shrink-0 items-center justify-center">
-              <Play className="h-4 w-4 fill-white text-white" />
-            </span>
-            <SelectContent>
-              {quickStatusItems.map((s) => (
+          <SelectContent container={selectPortalContainer}>
+            {(orderStatus || [])
+              .filter(
+                (s) =>
+                  s?.allowedSources?.includes(saleDetailStatusId) &&
+                  !s?.isRollBackState,
+              )
+              .map((s) => (
                 <SelectItem key={s.statusId} value={s.statusId}>
                   <span className="flex items-center gap-1.5">
                     <span
@@ -149,8 +123,70 @@ export default function PaymentStatusRow({
                   </span>
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
+          </SelectContent>
+        </Select>
+      )}
+
+      {!hasSale && currentAction === null && (
+        <div className="flex flex-1 items-center min-w-0 overflow-hidden rounded-md bg-primary">
+          <button
+            type="button"
+            data-slot="quick-status-trigger"
+            onClick={() => setMoveToOpen(true)}
+            aria-label="Change target status"
+            className="flex shrink-0 items-center gap-1 rounded-none border-0 border-r border-primary-foreground/20 bg-primary-foreground/10 px-2 py-2 text-primary-foreground hover:bg-primary-foreground/20">
+            <span
+              className="inline-block h-2 w-2 shrink-0 rounded-full"
+              style={
+                selectedStatusObj?.colorCode
+                  ? { backgroundColor: selectedStatusObj.colorCode }
+                  : { backgroundColor: "currentColor" }
+              }
+            />
+            <ChevronDown className="h-3.5 w-3.5 opacity-90" />
+          </button>
+          <Button
+            variant="default"
+            size="sm"
+            disabled={cartEmpty || sendToFulfilmentLoading}
+            onClick={onSendToFulfillment}
+            className="flex-1 min-w-0 rounded-none">
+            <span className="truncate">
+              {sendToFulfilmentLoading
+                ? "Sending…"
+                : `Move To (${selectedStatusObj?.displayName || "Select Status"})`}
+            </span>
+          </Button>
+
+          <Dialog open={moveToOpen} onOpenChange={setMoveToOpen}>
+            <DialogContent className="sm:max-w-xs">
+              <DialogHeader>
+                <DialogTitle>Move To</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-1">
+                {(orderStatus || [])
+                  .filter((s) => !s.isTerminationState)
+                  .map((s) => (
+                    <button
+                      key={s.statusId}
+                      type="button"
+                      onClick={() => {
+                        onQuickStatusChange(s.statusId);
+                        setMoveToOpen(false);
+                      }}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted ${
+                        selectedStatus === s.statusId ? "bg-muted font-semibold" : ""
+                      }`}>
+                      <span
+                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: s.colorCode }}
+                      />
+                      {s.displayName}
+                    </button>
+                  ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>

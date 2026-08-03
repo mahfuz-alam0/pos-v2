@@ -663,7 +663,7 @@ export default function PdfExportDrawer({
                 Select sections and columns to include in the PDF export
               </div>
 
-              <Accordion defaultValue={["sections"]}>
+              <Accordion multiple defaultValue={["sections", ...Object.keys(columnConfig).map((s) => `columns-${s}`)]}>
                 <AccordionItem value="sections">
                   <AccordionTrigger>
                     <div className="flex w-full items-center justify-between pr-2">

@@ -3,15 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
-import {
-  User,
-  MapPin,
-  Users,
-  Stethoscope,
-  MessageSquare,
-  ShieldAlert,
-  X,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -25,7 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import EnterPin from "@/components/pos/EnterPin";
+import IdentityDocCard from "@/components/customers/IdentityDocCard";
+import { DocumentsUpload } from "@/components/admin/form-fields";
 
 import { createCustomer } from "@/services/customers/createCustomer";
 import { updateCustomerInfo } from "@/services/customers/updateCustomer";
@@ -36,6 +35,9 @@ import { findDuplicateCustomers } from "@/services/customers/findDuplicateCustom
 import { getSingleCustomer } from "@/services/customers/getSingleCustomer";
 import { getShopPreference } from "@/services/sales/getShopPreference";
 import { verifyOmmaLicense } from "@/services/metrc/verifyOmmaLicense";
+import { uploadAnySingleFile } from "@/services/storage/uploadFile";
+import { parseDLBarcode, formatDLDate } from "@/lib/aamva";
+import { decodeBarcodeFromImage, loadImageFromSrc } from "@/lib/dlBarcode";
 
 const REFERRAL_SOURCE_OPTIONS = [
   "YouTube",
@@ -74,6 +76,110 @@ const EMPTY_FORM = {
   note: "",
 };
 
+// Maps PixLab's docscan/medidscan response onto this form's own field names
+// directly (rather than the initialValues-prop indirection PhotoCheckinDialog
+// uses), since these results feed straight into setForm from inside the form.
+function normalizeOcrDoc(doc: any, isMedId: boolean) {
+  return {
+    firstName: (doc.first_name || "").trim(),
+    lastName: (doc.last_name || "").trim(),
+    dob: doc.dob ? formatDLDate(doc.dob) : "",
+    sex: doc.gender || "",
+    drivingLicense: isMedId ? "" : doc.license_no || "",
+    drivingLicenseExpiry:
+      !isMedId && doc.expiry_date ? formatDLDate(doc.expiry_date) : "",
+    medicalLicense: isMedId ? doc.medical_license || doc.license_no || "" : "",
+    medicalLicenseExpiresAt:
+      isMedId && doc.expiry_date ? formatDLDate(doc.expiry_date) : "",
+    streetAddress: doc.address || "",
+    city: doc.city || "",
+    state: doc.state || "",
+    zipCode: doc.postal_code || "",
+  };
+}
+
+function SectionHeader({
+  n,
+  label,
+  tone = "default",
+}: {
+  n: number | string;
+  label: string;
+  tone?: "default" | "destructive";
+}) {
+  const destructive = tone === "destructive";
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          destructive
+            ? "bg-destructive text-white"
+            : "bg-primary text-primary-foreground"
+        }`}>
+        {n}
+      </span>
+      <span
+        className={`text-xs font-semibold tracking-widest uppercase ${
+          destructive ? "text-destructive" : "text-muted-foreground"
+        }`}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// Dropdown twin of @/components/admin/form-fields's ShopMultiSelect —
+// same Popover + checkbox-list pattern, just over customer groups instead
+// of shops (no shared home for the two since their item shapes differ).
+function CustomerGroupMultiSelect({
+  groups,
+  value,
+  onToggle,
+}: {
+  groups: any[];
+  value: any[];
+  onToggle: (groupId: any) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedNames = groups
+    .filter((g) => value.includes(g.id))
+    .map((g) => g.name);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className="mt-1 flex h-9 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-3 text-sm outline-none dark:bg-input/30">
+        <span
+          className={`truncate text-left ${selectedNames.length === 0 ? "text-muted-foreground" : ""}`}>
+          {selectedNames.length > 0
+            ? selectedNames.join(", ")
+            : "Select customer groups"}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-1.5" align="start">
+        <div className="max-h-56 overflow-y-auto">
+          {groups.length === 0 && (
+            <div className="py-3 text-center text-sm text-muted-foreground">
+              No customer groups configured.
+            </div>
+          )}
+          {groups.map((g) => (
+            <label
+              key={g.id}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted">
+              <Checkbox
+                checked={value.includes(g.id)}
+                onCheckedChange={() => onToggle(g.id)}
+              />
+              <span className="truncate">{g.name}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const eighteenYearsAgoISO = () => {
   const d = new Date();
@@ -89,10 +195,21 @@ const eighteenYearsAgoISO = () => {
  * the pre-create duplicate-license check with override/delete, the OMMA
  * medical-license verification check, and the share-mode PIN gate.
  *
+ * Identity Documents section (top) mirrors the legacy layout — inline
+ * upload-or-camera cards (IdentityDocCard) instead of a button-triggered
+ * modal: Profile Picture just uploads, Front Driver's License OCRs via the
+ * same /api/pixlab-docscan proxy PhotoCheckinDialog uses, Back Driver's
+ * License decodes the AAMVA PDF417 barcode (@/lib/dlBarcode,
+ * @/lib/aamva — same libs PhotoCheckinDialog's dl-back mode uses), and
+ * Medical ID OCRs via /api/pixlab-medidscan. All four autofill matching
+ * form fields and attach their photo as drivingLicenseFrontImage /
+ * drivingLicenseBackImage / medicalLicenseImage. General document upload
+ * reuses this app's existing DocumentsUpload widget
+ * (@/components/admin/form-fields) rather than the legacy antd Dragger +
+ * webcam-crop flow.
+ *
  * Not ported (flagged, not silently dropped) — these depend on subsystems
  * that don't exist in this app yet:
- *  - OCR / camera driving-license scan and the barcode DL scanner
- *  - Avatar photo + document upload (no uploadFile/uploadFiles pipeline here)
  *  - Country picker (no country-list service here) — countryCode is fixed to
  *    "US"
  *  - ZIP → city/state autofill (legacy called Google Geocoding directly from
@@ -104,35 +221,59 @@ export default function AddCustomerForm({
   open,
   onClose,
   onCreated,
-  onUpdated = undefined,
+  // Two ways to edit an existing customer: pass the object directly
+  // (customer — no extra fetch), or just its id (customerId — this form
+  // fetches it itself). Both resolve to the same editSource/editTargetId
+  // below, so the rest of the component doesn't need to care which was used.
+  customer = null,
   customerId = null,
+  onUpdated = undefined,
+  // Prefills a NEW customer's fields (e.g. from a DL/med-ID scan) — ignored
+  // once editing, since the edit-prefill effect below takes over.
+  initialValues = undefined,
   zIndex = 60,
-  initialValues = {},
-}: {
-  open: boolean;
-  onClose?: () => void;
-  onCreated?: (customer?: any, mode?: string) => void;
-  onUpdated?: (customer?: any) => void;
-  customerId?: string | null;
-  zIndex?: number;
-  initialValues?: Record<string, string>;
 }) {
-  const isEditMode = !!customerId;
   const quoteBody = useSelector((state: any) => state?.salesDetail);
 
   const [form, setForm] = useState(EMPTY_FORM);
-
-  useEffect(() => {
-    if (open) {
-      reset(initialValues);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const [fetchedCustomer, setFetchedCustomer] = useState(null);
   const [customerGroupIds, setCustomerGroupIds] = useState([]);
+  const [documentImages, setDocumentImages] = useState<{
+    drivingLicenseFrontImage?: string;
+    drivingLicenseBackImage?: string;
+    medicalLicenseImage?: string;
+  }>({});
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [documentLinks, setDocumentLinks] = useState<string[]>([]);
   const [groups, setGroups] = useState([]);
   const [customerTypes, setCustomerTypes] = useState([]);
   const [requireGroupForMJ, setRequireGroupForMJ] = useState(false);
   const [loadingCustomer, setLoadingCustomer] = useState(false);
+
+  const editTargetId = customerId || customer?.id || null;
+  const editSource = customer || fetchedCustomer;
+  const isEditMode = !!editTargetId;
+
+  // Fetch by id when only customerId was given (customer object skips this).
+  useEffect(() => {
+    if (!open || !customerId || customer) {
+      setFetchedCustomer(null);
+      return;
+    }
+    setLoadingCustomer(true);
+    getSingleCustomer(customerId)
+      .then((res) => setFetchedCustomer(res?.data?.data?.customer || null))
+      .catch(() => setFetchedCustomer(null))
+      .finally(() => setLoadingCustomer(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, customerId, customer]);
+
+  useEffect(() => {
+    if (open && !isEditMode) {
+      reset(initialValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const [accountActive, setAccountActive] = useState(true);
   const [shouldWarnUser, setShouldWarnUser] = useState(false);
@@ -159,68 +300,78 @@ export default function AddCustomerForm({
       .then((res) => {
         const list = res?.data?.data?.customerGroups || [];
         setGroups(list);
+        // Only pre-select the shop's default group when creating — editing
+        // prefills from the customer's actual groups instead (see below).
         if (!isEditMode) {
           const defaultGroup = list.find((g) => g.isDefaultForShop);
           if (defaultGroup) setCustomerGroupIds([defaultGroup.id]);
         }
       })
-      .catch(() => { });
+      .catch(() => {});
     listCustomerTypes()
       .then((res) => setCustomerTypes(res?.data?.data?.customerTypes || []))
-      .catch(() => { });
+      .catch(() => {});
     getShopPreference()
       .then((res) =>
         setRequireGroupForMJ(
-          !!res?.data?.preference?.isChoosingCustomerGroupMandatoryForMJProducts
-        )
+          !!res?.data?.preference
+            ?.isChoosingCustomerGroupMandatoryForMJProducts,
+        ),
       )
-      .catch(() => { });
-  }, [open, isEditMode]);
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
+  // Prefill from the existing customer when editing — editSource is either
+  // the object passed in directly, or the one this form just fetched by id.
   useEffect(() => {
-    if (!open || !customerId) return;
-    setLoadingCustomer(true);
-    getSingleCustomer(customerId)
-      .then((res) => {
-        const c = res?.data?.data?.customer;
-        if (!c) return;
-        setForm({
-          firstName: c.firstName || "",
-          lastName: c.lastName || "",
-          email: c.email || "",
-          phone: (c.phone || "").replace(/^\+/, ""),
-          sex: c.sex || "",
-          dob: c.dob ? c.dob.slice(0, 10) : "",
-          drivingLicense: c.drivingLicense || "",
-          drivingLicenseExpiry: c.drivingLicenseExpiry ? c.drivingLicenseExpiry.slice(0, 10) : "",
-          streetAddress: c.locationDetails?.streetAddress || "",
-          city: c.locationDetails?.city || "",
-          state: c.locationDetails?.state || "",
-          zipCode: c.locationDetails?.zipCode || "",
-          customerTypeId: c.customerTypeId || "none",
-          medicalLicense: c.mjMedicalData?.medicalLicense || "",
-          medicalLicenseExpiresAt: c.mjMedicalData?.medicalLicenseExpiresAt
-            ? c.mjMedicalData.medicalLicenseExpiresAt.slice(0, 10)
-            : "",
-          condition: c.mjMedicalData?.condition || "",
-          physician: c.mjMedicalData?.physician || "",
-          careGiverName: c.mjMedicalData?.careGiverName || "",
-          careGiverLicense: c.mjMedicalData?.careGiverLicense || "",
-          patientName: c.mjMedicalData?.patientName || "",
-          patientLicense: c.mjMedicalData?.patientLicense || "",
-          referralSource: c.referralSource || "",
-          note: c.note || "",
-        });
-        setCustomerGroupIds((c.customerGroups || []).map((g) => g.id));
-        setAccountActive(!c.isLocked);
-        setShouldWarnUser(!!c.shouldWarnUser);
-        setWarningMessage(c.warningMessage || "");
-        setTemporaryPatient(!!c.mjMedicalData?.isTemporaryPatient);
-        setHasCaregiver(!!c.mjMedicalData?.hasCareGiver);
-        setIsCaregiver(!!c.mjMedicalData?.isCareGiver);
-      })
-      .finally(() => setLoadingCustomer(false));
-  }, [open, customerId]);
+    if (!open || !editSource) return;
+    setForm({
+      firstName: editSource.firstName || "",
+      lastName: editSource.lastName || "",
+      email: editSource.email || "",
+      phone: (editSource.phone || "").replace(/^\+/, ""),
+      sex: editSource.sex || "",
+      dob: editSource.dob || "",
+      drivingLicense: editSource.drivingLicense || "",
+      drivingLicenseExpiry: editSource.drivingLicenseExpiry || "",
+      streetAddress: editSource.locationDetails?.streetAddress || "",
+      city: editSource.locationDetails?.city || "",
+      state: editSource.locationDetails?.state || "",
+      zipCode: editSource.locationDetails?.zipCode || "",
+      customerTypeId: editSource.customerTypeId || "",
+      medicalLicense: editSource.mjMedicalData?.medicalLicense || "",
+      medicalLicenseExpiresAt:
+        editSource.mjMedicalData?.medicalLicenseExpiresAt || "",
+      condition: editSource.mjMedicalData?.condition || "",
+      physician: editSource.mjMedicalData?.physician || "",
+      careGiverName: editSource.mjMedicalData?.careGiverName || "",
+      careGiverLicense: editSource.mjMedicalData?.careGiverLicense || "",
+      patientName: editSource.mjMedicalData?.patientName || "",
+      patientLicense: editSource.mjMedicalData?.patientLicense || "",
+      referralSource: editSource.referralSource || "",
+      note: editSource.note || "",
+    });
+    setCustomerGroupIds(
+      (editSource.customerGroups || [])
+        .map((g) => (typeof g === "string" ? g : g?.id))
+        .filter(Boolean),
+    );
+    setAccountActive(!editSource.isLocked);
+    setShouldWarnUser(!!editSource.shouldWarnUser);
+    setWarningMessage(editSource.warningMessage || "");
+    setTemporaryPatient(!!editSource.mjMedicalData?.isTemporaryPatient);
+    setHasCaregiver(!!editSource.mjMedicalData?.hasCareGiver);
+    setIsCaregiver(!!editSource.mjMedicalData?.isCareGiver);
+    setDocumentImages({
+      drivingLicenseFrontImage:
+        editSource.drivingLicenseFrontImage || undefined,
+      drivingLicenseBackImage: editSource.drivingLicenseBackImage || undefined,
+      medicalLicenseImage: editSource.medicalLicenseImage || undefined,
+    });
+    setAvatarUrl(editSource.avatarUrl || null);
+    setDocumentLinks(editSource.documentLinks || []);
+  }, [open, editSource]);
 
   const setField = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -228,6 +379,9 @@ export default function AddCustomerForm({
   const reset = (nextInitialValues: Record<string, string> = {}) => {
     setForm({ ...EMPTY_FORM, ...nextInitialValues });
     setCustomerGroupIds([]);
+    setDocumentImages({});
+    setAvatarUrl(null);
+    setDocumentLinks([]);
     setAccountActive(true);
     setShouldWarnUser(false);
     setWarningMessage("");
@@ -238,11 +392,104 @@ export default function AddCustomerForm({
     setFoundCustomers([]);
   };
 
+  const applyScannedFields = (fields: Record<string, string>) => {
+    setForm((f) => ({
+      ...f,
+      ...Object.fromEntries(
+        Object.entries(fields).filter(([, value]) => value),
+      ),
+    }));
+  };
+
+  const handleAvatarFile = async (file: File) => {
+    const uploaded = await uploadAnySingleFile(file);
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    setAvatarUrl(uploaded.downloadUrl);
+  };
+
+  const handleFrontDlFile = async (file: File) => {
+    const uploaded = await uploadAnySingleFile(file);
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    const res = await fetch("/api/pixlab-docscan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        img: uploaded.downloadUrl,
+        type: "driver_license",
+        country: "usa",
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok || !(json?.status === 200 || json?.doc)) {
+      throw new Error(json?.message || "Failed to extract information");
+    }
+    applyScannedFields(normalizeOcrDoc(json.doc || {}, false));
+    setDocumentImages((prev) => ({
+      ...prev,
+      drivingLicenseFrontImage: uploaded.downloadUrl,
+    }));
+    toast.success("License details extracted — review and save.");
+  };
+
+  const handleBackDlFile = async (file: File, dataUrl: string) => {
+    const [uploaded, img] = await Promise.all([
+      uploadAnySingleFile(file),
+      loadImageFromSrc(dataUrl),
+    ]);
+    const raw = await decodeBarcodeFromImage(img);
+    if (!raw)
+      throw new Error(
+        "No barcode found. Try a clearer, well-lit photo of the card back.",
+      );
+    const data = parseDLBarcode(raw);
+    if (!data)
+      throw new Error("Could not read DL data from the barcode. Try again.");
+    applyScannedFields({
+      firstName: data.firstName || "",
+      lastName: data.lastName || "",
+      drivingLicense: data.licenseId || "",
+      dob: data.dob || "",
+      drivingLicenseExpiry: data.expiry || "",
+      streetAddress: data.address || "",
+      city: data.city || "",
+      state: data.state || "",
+      zipCode: data.postal_code || "",
+      sex: data.sex || "",
+    });
+    if (uploaded?.downloadUrl) {
+      setDocumentImages((prev) => ({
+        ...prev,
+        drivingLicenseBackImage: uploaded.downloadUrl,
+      }));
+    }
+    toast.success("Barcode scanned — review and save.");
+  };
+
+  const handleMedIdFile = async (file: File) => {
+    const uploaded = await uploadAnySingleFile(file);
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    const res = await fetch("/api/pixlab-medidscan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ img: uploaded.downloadUrl }),
+    });
+    const json = await res.json();
+    if (!res.ok || !(json?.status === 200 || json?.doc)) {
+      throw new Error(json?.message || "Failed to extract information");
+    }
+    applyScannedFields(normalizeOcrDoc(json.doc || {}, true));
+    setDocumentImages((prev) => ({
+      ...prev,
+      medicalLicenseImage: uploaded.downloadUrl,
+    }));
+    toast.success("Medical ID details extracted — review and save.");
+  };
+
   const toggleGroup = (groupId) => {
     setCustomerGroupIds((prev) =>
       prev.includes(groupId)
         ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        : [...prev, groupId],
     );
   };
 
@@ -305,31 +552,50 @@ export default function AddCustomerForm({
       },
       mjMedicalData: isMjMedical
         ? {
-          medicalLicense: form.medicalLicense,
-          medicalLicenseExpiresAt: form.medicalLicenseExpiresAt || undefined,
-          isTemporaryPatient: temporaryPatient,
-          condition: form.condition || undefined,
-          physician: form.physician || undefined,
-          hasCareGiver: hasCaregiver,
-          isCareGiver: isCaregiver,
-          careGiverName: hasCaregiver ? form.careGiverName : undefined,
-          careGiverLicense: hasCaregiver ? form.careGiverLicense : undefined,
-          patientName: isCaregiver ? form.patientName : undefined,
-          patientLicense: isCaregiver ? form.patientLicense : undefined,
-        }
+            medicalLicense: form.medicalLicense,
+            medicalLicenseExpiresAt: form.medicalLicenseExpiresAt || undefined,
+            isTemporaryPatient: temporaryPatient,
+            condition: form.condition || undefined,
+            physician: form.physician || undefined,
+            hasCareGiver: hasCaregiver,
+            isCareGiver: isCaregiver,
+            careGiverName: hasCaregiver ? form.careGiverName : undefined,
+            careGiverLicense: hasCaregiver ? form.careGiverLicense : undefined,
+            patientName: isCaregiver ? form.patientName : undefined,
+            patientLicense: isCaregiver ? form.patientLicense : undefined,
+          }
         : undefined,
       customerGroupIds,
       note: form.note || undefined,
       dob: form.dob || undefined,
       drivingLicense: form.drivingLicense || undefined,
       drivingLicenseExpiry: form.drivingLicenseExpiry || undefined,
-      customerTypeId:
-        form.customerTypeId !== "none" ? form.customerTypeId : "",
+      customerTypeId: form.customerTypeId !== "none" ? form.customerTypeId : "",
       isLocked: !accountActive,
       shouldWarnUser,
       warningMessage: shouldWarnUser ? warningMessage : null,
       shopId,
       referralSource: form.referralSource || null,
+      ...(documentImages.drivingLicenseFrontImage
+        ? { drivingLicenseFrontImage: documentImages.drivingLicenseFrontImage }
+        : {}),
+      ...(documentImages.drivingLicenseBackImage
+        ? { drivingLicenseBackImage: documentImages.drivingLicenseBackImage }
+        : {}),
+      ...(documentImages.medicalLicenseImage
+        ? { medicalLicenseImage: documentImages.medicalLicenseImage }
+        : {}),
+      avatarUrl: avatarUrl || undefined,
+      documentLinks: Array.from(
+        new Set(
+          [
+            ...documentLinks,
+            documentImages.drivingLicenseFrontImage,
+            documentImages.drivingLicenseBackImage,
+            documentImages.medicalLicenseImage,
+          ].filter(Boolean),
+        ),
+      ),
     };
   };
 
@@ -352,23 +618,33 @@ export default function AddCustomerForm({
         setPinOpen(true);
         return;
       }
-      const msg = error?.errors?.join(", ") || error?.message || "Failed to create customer";
+      const msg =
+        error?.errors?.join(", ") ||
+        error?.message ||
+        "Failed to create customer";
       toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const runUpdate = async () => {
+  const runUpdate = async (proxyPin) => {
     setSubmitting(true);
     try {
-      const res = await updateCustomerInfo(customerId, buildPayload());
-      const customer = res?.data?.data?.customer || res?.data?.data;
+      await updateCustomerInfo(editTargetId, { ...buildPayload(), proxyPin });
       toast.success("Customer updated successfully");
-      onUpdated?.(customer);
+      onUpdated?.({ ...editSource, ...buildPayload() });
       onClose?.();
-    } catch (error: any) {
-      const msg = error?.errors?.join(", ") || error?.message || "Failed to update customer";
+    } catch (error) {
+      if (error?.message === "No user found for the pin") {
+        toast.error("Invalid PIN");
+        setPinOpen(true);
+        return;
+      }
+      const msg =
+        error?.errors?.join(", ") ||
+        error?.message ||
+        "Failed to update customer";
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -376,14 +652,22 @@ export default function AddCustomerForm({
   };
 
   const shareModeActive =
-    typeof window !== "undefined" && localStorage.getItem("shareMode") === "true";
+    typeof window !== "undefined" &&
+    localStorage.getItem("shareMode") === "true";
 
   const handleSubmit = async (mode) => {
     if (!validate()) return;
     setSaveMode(mode);
 
+    // Editing skips the duplicate-license lookup (that's a create-time
+    // safeguard) and the queue/order save modes — just save the changes.
     if (isEditMode) {
-      runUpdate();
+      if (shareModeActive && quoteBody?.proxyPin == null) {
+        pendingSubmitRef.current = () => runUpdate(quoteBody?.proxyPin);
+        setPinOpen(true);
+        return;
+      }
+      runUpdate(quoteBody?.proxyPin);
       return;
     }
 
@@ -438,7 +722,9 @@ export default function AddCustomerForm({
     try {
       await updateCustomerInfo(customerId, buildPayload());
       toast.success("Customer created successfully");
-      setFoundCustomers((prev) => prev.filter((c) => c.customer.id !== customerId));
+      setFoundCustomers((prev) =>
+        prev.filter((c) => c.customer.id !== customerId),
+      );
       reset();
       onCreated?.({ id: customerId, ...buildPayload() }, saveMode);
       onClose?.();
@@ -454,7 +740,9 @@ export default function AddCustomerForm({
     try {
       await deleteCustomer(customerId);
       toast.success("Customer deleted successfully");
-      setFoundCustomers((prev) => prev.filter((c) => c.customer.id !== customerId));
+      setFoundCustomers((prev) =>
+        prev.filter((c) => c.customer.id !== customerId),
+      );
     } catch (error) {
       toast.error(error?.message || "Failed to delete customer");
     } finally {
@@ -471,49 +759,29 @@ export default function AddCustomerForm({
           onClose?.();
         }}
         side="right"
-        size={760}
-        zIndex={60}
-      >
+        size="70%"
+        zIndex={zIndex}>
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between gap-3 px-6 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-            <div>
-              <div className="text-lg font-semibold tracking-tight">
-                {isEditMode ? "Edit Customer" : "Add New Customer"}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isEditMode
-                  ? "Update customer profile and account details"
-                  : "Create a customer profile for checkout and order history"}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                reset();
-                onClose?.();
-              }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div className="border-b border-border px-6 py-4 text-base font-semibold">
+            {isEditMode ? "Edit Customer" : "Add Customer"}
           </div>
 
           {loadingCustomer ? (
-            <div className="flex-1 p-6 text-sm text-muted-foreground">Loading customer…</div>
+            <div className="flex-1 p-6 text-sm text-muted-foreground">
+              Loading customer…
+            </div>
           ) : foundCustomers.length > 0 ? (
             <div className="flex-1 space-y-3 overflow-auto p-6">
               <p className="text-sm text-muted-foreground">
                 We found {foundCustomers.length} existing customer
                 {foundCustomers.length > 1 ? "s" : ""} with a matching
-                driving/medical license. Override an existing record, delete
-                it, or go back and change the license number.
+                driving/medical license. Override an existing record, delete it,
+                or go back and change the license number.
               </p>
               {foundCustomers.map((data) => (
                 <div
                   key={data.customer.id}
-                  className="rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10"
-                >
+                  className="rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/10">
                   <div className="font-semibold">
                     {data.customer.firstName} {data.customer.lastName}
                   </div>
@@ -524,16 +792,14 @@ export default function AddCustomerForm({
                     <Button
                       size="sm"
                       disabled={overridingId === data.customer.id}
-                      onClick={() => handleOverride(data.customer.id)}
-                    >
+                      onClick={() => handleOverride(data.customer.id)}>
                       Override
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
                       disabled={overridingId === data.customer.id}
-                      onClick={() => handleDeleteFound(data.customer.id)}
-                    >
+                      onClick={() => handleDeleteFound(data.customer.id)}>
                       Delete
                     </Button>
                   </div>
@@ -546,15 +812,55 @@ export default function AddCustomerForm({
           ) : (
             <form
               onSubmit={(e) => e.preventDefault()}
-              className="flex flex-1 flex-col overflow-hidden"
-            >
+              className="flex flex-1 flex-col overflow-hidden">
               <div className="flex-1 space-y-6 overflow-auto p-6">
+                {/* Identity documents */}
+                <section className="space-y-3">
+                  <SectionHeader n={1} label="Identity Documents" />
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <IdentityDocCard
+                      title="Profile Picture"
+                      description="Upload or capture a photo of the customer"
+                      uploadHint="Profile photo (JPG, PNG)"
+                      previewUrl={avatarUrl}
+                      onFile={handleAvatarFile}
+                    />
+                    <IdentityDocCard
+                      title="Front Driver's License"
+                      description="Photo of the front of the driver's license"
+                      uploadHint="Front of driver's license — auto-fills form fields"
+                      previewUrl={documentImages.drivingLicenseFrontImage}
+                      onFile={handleFrontDlFile}
+                    />
+                    <IdentityDocCard
+                      title="Back Driver's License"
+                      description="Scan barcode to auto-fill the form"
+                      uploadHint="Upload / scan barcode — auto-fills form fields"
+                      previewUrl={documentImages.drivingLicenseBackImage}
+                      onFile={handleBackDlFile}
+                    />
+                    <IdentityDocCard
+                      title="Medical ID"
+                      description="Photo of the medical marijuana card"
+                      uploadHint="Medical ID — auto-fills form fields"
+                      previewUrl={documentImages.medicalLicenseImage}
+                      onFile={handleMedIdFile}
+                    />
+                  </div>
+                  <div>
+                    <Label>Additional Documents</Label>
+                    <div className="mt-1">
+                      <DocumentsUpload
+                        links={documentLinks}
+                        onChange={setDocumentLinks}
+                      />
+                    </div>
+                  </div>
+                </section>
+
                 {/* Basic information */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Basic Information
-                  </h4>
+                  <SectionHeader n={2} label="Basic Information" />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="firstName">First Name *</Label>
@@ -599,8 +905,7 @@ export default function AddCustomerForm({
                         value={form.sex}
                         onValueChange={(value) =>
                           setForm((f) => ({ ...f, sex: value }))
-                        }
-                      >
+                        }>
                         <SelectTrigger className="mt-1 w-full">
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
@@ -638,7 +943,9 @@ export default function AddCustomerForm({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="drivingLicense">Driver&apos;s License</Label>
+                      <Label htmlFor="drivingLicense">
+                        Driver&apos;s License
+                      </Label>
                       <Input
                         id="drivingLicense"
                         className="mt-1"
@@ -664,10 +971,7 @@ export default function AddCustomerForm({
 
                 {/* Address */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Address Information
-                  </h4>
+                  <SectionHeader n={3} label="Address Information" />
                   <div>
                     <Label htmlFor="streetAddress">Street Address</Label>
                     <Input
@@ -710,45 +1014,30 @@ export default function AddCustomerForm({
 
                 {/* Customer classification */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    Customer Classification
-                  </h4>
+                  <SectionHeader n={4} label="Customer Classification" />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Customer Groups</Label>
-                      <div className="mt-1 max-h-32 space-y-1 overflow-auto rounded-lg bg-background p-2 ring-1 ring-foreground/10">
-                        {groups.length === 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            No customer groups configured.
-                          </div>
-                        )}
-                        {groups.map((g) => (
-                          <label
-                            key={g.id}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <Checkbox
-                              checked={customerGroupIds.includes(g.id)}
-                              onCheckedChange={() => toggleGroup(g.id)}
-                            />
-                            {g.name}
-                          </label>
-                        ))}
-                      </div>
+                      <CustomerGroupMultiSelect
+                        groups={groups}
+                        value={customerGroupIds}
+                        onToggle={toggleGroup}
+                      />
                     </div>
                     <div>
                       <Label>Customer Type *</Label>
                       <Select
                         items={[
                           { value: "none", label: "None" },
-                          ...customerTypes.map((t) => ({ value: t.id, label: t.name })),
+                          ...customerTypes.map((t) => ({
+                            value: t.id,
+                            label: t.name,
+                          })),
                         ]}
                         value={form.customerTypeId}
                         onValueChange={(value) =>
                           setForm((f) => ({ ...f, customerTypeId: value }))
-                        }
-                      >
+                        }>
                         <SelectTrigger className="mt-1 w-full">
                           <SelectValue placeholder="Select customer type" />
                         </SelectTrigger>
@@ -768,10 +1057,11 @@ export default function AddCustomerForm({
                 {/* MJ Medical */}
                 {isMjMedical && (
                   <section className="space-y-3 rounded-xl bg-destructive/5 p-4 ring-1 ring-destructive/30">
-                    <h4 className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                      <Stethoscope className="h-4 w-4" />
-                      Medical Information (required for medical patients)
-                    </h4>
+                    <SectionHeader
+                      n={5}
+                      label="Medical Information (required for medical patients)"
+                      tone="destructive"
+                    />
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="medicalLicense">
@@ -902,10 +1192,7 @@ export default function AddCustomerForm({
 
                 {/* Additional information */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    Notes &amp; Referral
-                  </h4>
+                  <SectionHeader n={6} label="Notes & Referral" />
                   <div>
                     <Label htmlFor="referralSource">Referral Source</Label>
                     <Input
@@ -936,10 +1223,7 @@ export default function AddCustomerForm({
 
                 {/* Account settings */}
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-                    Account Settings
-                  </h4>
+                  <SectionHeader n={7} label="Account Settings" />
                   <label className="flex items-center justify-between gap-2 rounded-lg bg-background p-3 text-sm ring-1 ring-foreground/10">
                     <div>
                       <div className="font-semibold">
@@ -994,13 +1278,15 @@ export default function AddCustomerForm({
                   onClick={() => {
                     reset();
                     onClose?.();
-                  }}
-                >
+                  }}>
                   Cancel
                 </Button>
                 <div className="flex flex-wrap gap-2">
                   {isEditMode ? (
-                    <Button type="button" disabled={submitting} onClick={() => handleSubmit("save")}>
+                    <Button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleSubmit("save")}>
                       {submitting ? "Saving…" : "Save Changes"}
                     </Button>
                   ) : (
@@ -1009,8 +1295,7 @@ export default function AddCustomerForm({
                         type="button"
                         variant="outline"
                         disabled={submitting}
-                        onClick={() => handleSubmit("queue")}
-                      >
+                        onClick={() => handleSubmit("queue")}>
                         {submitting && saveMode === "queue"
                           ? "Saving…"
                           : "Save & Add to Queue"}
@@ -1019,8 +1304,7 @@ export default function AddCustomerForm({
                         type="button"
                         variant="outline"
                         disabled={submitting}
-                        onClick={() => handleSubmit("order")}
-                      >
+                        onClick={() => handleSubmit("order")}>
                         {submitting && saveMode === "order"
                           ? "Saving…"
                           : "Save and Order"}
@@ -1028,8 +1312,7 @@ export default function AddCustomerForm({
                       <Button
                         type="button"
                         disabled={submitting}
-                        onClick={() => handleSubmit("save")}
-                      >
+                        onClick={() => handleSubmit("save")}>
                         {submitting && saveMode === "save"
                           ? "Saving…"
                           : "Save Customer"}
@@ -1043,7 +1326,12 @@ export default function AddCustomerForm({
         </div>
       </Drawer>
 
-      <Drawer open={pinOpen} onClose={() => setPinOpen(false)} side="right" size={400} zIndex={60}>
+      <Drawer
+        open={pinOpen}
+        onClose={() => setPinOpen(false)}
+        side="right"
+        size={400}
+        zIndex={zIndex + 10}>
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Enter Pin

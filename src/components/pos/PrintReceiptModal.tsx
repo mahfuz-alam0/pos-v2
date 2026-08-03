@@ -85,6 +85,12 @@ export default function PrintReceiptModal({
 
   if (!open) return null;
 
+  // Both the print area (below) and the modal itself portal straight to
+  // <body> — TotalCard stays mounted-but-hidden (display:none) in Tablet
+  // Mode, and display:none on an ancestor hides fixed-position descendants
+  // too, not just in-flow ones. Without portaling, this modal (and the
+  // "New Order" reset it gates) would silently never appear there.
+
   const handleNewOrder = () => {
     onClose?.();
     dispatch(resetSalesDetail());
@@ -159,28 +165,25 @@ export default function PrintReceiptModal({
     }
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <>
-      {/* Portaled straight to <body> — nesting this inside the modal's own
-          `fixed` overlay would make that overlay the containing block for
-          our `position: absolute` print rule, so top:0/left:0 would resolve
-          relative to the (centered) modal instead of the page. */}
-      {typeof document !== "undefined" &&
-        createPortal(
-          <div
-            id="pos-receipt-print-area"
-            ref={receiptRef}
-            style={{ position: "fixed", left: -9999, top: 0 }}
-          >
-            <Receipt
-              order={createOrderRes}
-              shopDetails={shopDetails}
-              customerName={customerName}
-              changeAmount={changeAmount}
-            />
-          </div>,
-          document.body
-        )}
+      {/* Off-screen print source, kept separate from the visible modal below
+          so its `position: absolute` print rule resolves top:0/left:0
+          against the page, not against the (centered) modal. */}
+      <div
+        id="pos-receipt-print-area"
+        ref={receiptRef}
+        style={{ position: "fixed", left: -9999, top: 0 }}
+      >
+        <Receipt
+          order={createOrderRes}
+          shopDetails={shopDetails}
+          customerName={customerName}
+          changeAmount={changeAmount}
+        />
+      </div>
 
       <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -249,6 +252,7 @@ export default function PrintReceiptModal({
         </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

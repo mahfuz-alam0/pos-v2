@@ -9,6 +9,7 @@ import miscCharges from "./slices/miscChargesSlice";
 import customer from "./slices/customerSlice";
 import customerQueue from "./slices/customerQueueSlice";
 import orderAction from "./slices/orderActionSlice";
+import chat from "./slices/chatSlice";
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     customer,
     customerQueue,
     orderAction,
+    chat,
   },
 });
 

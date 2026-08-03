@@ -14,6 +14,7 @@ const DRAWER_WIDTH = 660;
 const HIDDEN_PATHS = ["/signin"];
 const POSITION_STORAGE_KEY = "settingsFabTop";
 const DEFAULT_TOP_RATIO = 0.25;
+const DRAG_THRESHOLD_PX = 5;
 
 export default function SettingsPanel() {
   const [open, setOpen] = useState(false);
@@ -26,6 +27,7 @@ export default function SettingsPanel() {
   const draggingRef = useRef(false);
   const movedRef = useRef(false);
   const dragOffsetRef = useRef(0);
+  const startPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const stored = Number(localStorage.getItem(POSITION_STORAGE_KEY));
@@ -40,15 +42,22 @@ export default function SettingsPanel() {
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     draggingRef.current = true;
     movedRef.current = false;
-    setIsDragging(true);
+    startPosRef.current = { x: e.clientX, y: e.clientY };
     dragOffsetRef.current = e.clientY - (top ?? 0);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!draggingRef.current) return;
-    movedRef.current = true;
-    setTop(clampTop(e.clientY - dragOffsetRef.current));
+    const dx = e.clientX - startPosRef.current.x;
+    const dy = e.clientY - startPosRef.current.y;
+    if (!movedRef.current && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
+      movedRef.current = true;
+      setIsDragging(true);
+    }
+    if (movedRef.current) {
+      setTop(clampTop(e.clientY - dragOffsetRef.current));
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -56,10 +65,12 @@ export default function SettingsPanel() {
     draggingRef.current = false;
     setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
-    setTop((current) => {
-      if (current !== null) localStorage.setItem(POSITION_STORAGE_KEY, String(current));
-      return current;
-    });
+    if (movedRef.current) {
+      setTop((current) => {
+        if (current !== null) localStorage.setItem(POSITION_STORAGE_KEY, String(current));
+        return current;
+      });
+    }
   };
 
   const handleClick = () => {
@@ -82,7 +93,7 @@ export default function SettingsPanel() {
         onPointerUp={handlePointerUp}
         aria-label={open ? "Close settings" : "Open settings"}
         className={`fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
+          isDragging ? "cursor-grabbing" : "cursor-pointer"
         }`}
         style={{
           top: top ?? "25%",

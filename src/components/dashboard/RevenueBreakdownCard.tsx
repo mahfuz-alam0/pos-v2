@@ -24,9 +24,9 @@ const TIME_OPTIONS = [
 const TYPE_OPTIONS = ["Products", "Categories", "Brands"];
 
 const TYPE_HREF = {
-  Categories: "/admin/catalog/classifications",
-  Products: "/admin/catalog/products",
-  Brands: "/admin/catalog/manufacturers",
+  Categories: "/catalog/classifications",
+  Products: "/catalog/products",
+  Brands: "/catalog/manufacturers",
 };
 
 const PALETTE = ["#E9C46A", "#2A9D8F", "#F4A261", "#f56c6c", "#7265e6", "#ffbf00", "#5b8c00", "#ff7f0e"];

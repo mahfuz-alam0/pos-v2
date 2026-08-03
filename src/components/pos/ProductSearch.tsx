@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import Drawer from "@/components/ui/Drawer";
@@ -57,7 +56,7 @@ export default function ProductSearch({
           />
         </div>
         <Button
-          className="h-[39px] min-w-[170px] bg-[#3390DE] px-6 hover:bg-[#3390DE]/90"
+          className="h-9.75 min-w-42.5 bg-[#3390DE] px-6 hover:bg-[#3390DE]/90"
           disabled={isLocked}
           onClick={openManageCart}
         >
@@ -121,8 +120,8 @@ export default function ProductSearch({
               >
                 <CustomerCartSidebar />
               </div>
-            )}
-          </div>
+            }
+          />
         </div>
       </Drawer>
     </div>

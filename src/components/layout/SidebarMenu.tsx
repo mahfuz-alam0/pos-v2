@@ -7,18 +7,60 @@ import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIdlePrefetch } from "./useIdlePrefetch";
+import type { MenuItem } from "./sidebar-menu-data";
 
-function isActive(pathname, href) {
+type OpenKey = string | null;
+
+interface AccordionProps {
+  openKey?: OpenKey;
+  setOpenKey?: (key: OpenKey) => void;
+}
+
+interface MenuLeafProps {
+  item: MenuItem;
+  collapsed?: boolean;
+  depth: number;
+  onNavigate?: () => void;
+}
+
+interface CollapsedSectionProps {
+  item: MenuItem;
+  sectionActive: boolean;
+  onNavigate?: () => void;
+}
+
+interface MenuSectionProps extends AccordionProps {
+  item: MenuItem;
+  collapsed?: boolean;
+  depth: number;
+  onNavigate?: () => void;
+}
+
+interface SidebarMenuItemProps extends AccordionProps {
+  item: MenuItem;
+  collapsed?: boolean;
+  depth: number;
+  onNavigate?: () => void;
+  flyout?: boolean;
+}
+
+interface SidebarMenuProps {
+  items: MenuItem[];
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}
+
+function isActive(pathname: string, href?: string) {
   if (!href) return false;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function hasActiveDescendant(pathname, item) {
+function hasActiveDescendant(pathname: string, item: MenuItem): boolean {
   if (item.href) return isActive(pathname, item.href);
   return (item.children || []).some((child) => hasActiveDescendant(pathname, child));
 }
 
-function MenuLeaf({ item, collapsed, depth, onNavigate }) {
+function MenuLeaf({ item, collapsed, depth, onNavigate }: MenuLeafProps) {
   const pathname = usePathname();
   const active = isActive(pathname, item.href);
   const Icon = item.icon;
@@ -28,6 +70,7 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }) {
       href={item.href}
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
+      prefetch={true}
       className={cn(
         "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
         collapsed ? "mx-auto my-0.5 h-10 w-10 justify-center" : "px-3 py-2",
@@ -43,15 +86,15 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }) {
   );
 }
 
-function CollapsedSection({ item, sectionActive, onNavigate }) {
+function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionProps) {
   const Icon = item.icon;
-  const triggerRef = useRef(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   // Accordion within the flyout popup too — only one child section open at a time.
-  const [childOpenKey, setChildOpenKey] = useState(null);
+  const [childOpenKey, setChildOpenKey] = useState<OpenKey>(null);
 
-  const hideTimer = useRef(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = () => {
     if (hideTimer.current) {
@@ -96,7 +139,7 @@ function CollapsedSection({ item, sectionActive, onNavigate }) {
             >
               <div className="min-w-50 origin-left rounded-xl border border-primary/20 bg-accent p-1.5 shadow-2xl">
                 <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-text">{item.label}</div>
-                {item.children.map((child) => (
+                {item.children?.map((child) => (
                   <SidebarMenuItem
                     key={child.key}
                     item={child}
@@ -117,17 +160,17 @@ function CollapsedSection({ item, sectionActive, onNavigate }) {
   );
 }
 
-function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }) {
+function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }: MenuSectionProps) {
   const pathname = usePathname();
   const Icon = item.icon;
   const sectionActive = hasActiveDescendant(pathname, item);
   const isOpen = openKey === item.key;
   // Accordion among this section's own children (e.g. Analytics vs Reporting).
-  const [childOpenKey, setChildOpenKey] = useState(null);
+  const [childOpenKey, setChildOpenKey] = useState<OpenKey>(null);
 
   // Auto-open the section that contains the active route on first render / route change.
   useEffect(() => {
-    if (sectionActive) setOpenKey(item.key);
+    if (sectionActive) setOpenKey?.(item.key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -145,7 +188,7 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
     <div>
       <button
         type="button"
-        onClick={() => setOpenKey(isOpen ? null : item.key)}
+        onClick={() => setOpenKey?.(isOpen ? null : item.key)}
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
           depth > 0 && "pl-9",
@@ -164,7 +207,7 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
       >
         <div className="overflow-hidden">
           <div className="mt-0.5 ml-3 space-y-0.5 border-l border-white/10 pl-1">
-            {item.children.map((child) => (
+            {item.children?.map((child) => (
               <SidebarMenuItem
                 key={child.key}
                 item={child}
@@ -190,19 +233,11 @@ function SidebarMenuItem({
   flyout,
   openKey,
   setOpenKey,
-}: {
-  item: any
-  collapsed?: boolean
-  depth?: number
-  onNavigate?: () => void
-  flyout?: boolean
-  openKey?: any
-  setOpenKey?: any
-}) {
+}: SidebarMenuItemProps) {
   // Nested sections (depth > 0, e.g. Analytics/Reporting inside Reports & Analytics)
   // keep their own independent open state — only siblings at the same level
   // sharing `openKey`/`setOpenKey` collapse each other.
-  const [localOpenKey, setLocalOpenKey] = useState(null);
+  const [localOpenKey, setLocalOpenKey] = useState<OpenKey>(null);
   const effectiveOpenKey = openKey !== undefined ? openKey : localOpenKey;
   const effectiveSetOpenKey = setOpenKey ?? setLocalOpenKey;
 
@@ -221,9 +256,9 @@ function SidebarMenuItem({
   return <MenuLeaf item={item} collapsed={collapsed && !flyout} depth={depth} onNavigate={onNavigate} />;
 }
 
-export default function SidebarMenu({ items, collapsed, onNavigate }) {
+export default function SidebarMenu({ items, collapsed, onNavigate }: SidebarMenuProps) {
   // Accordion: only one top-level section open at a time.
-  const [openKey, setOpenKey] = useState(null);
+  const [openKey, setOpenKey] = useState<OpenKey>(null);
 
   // Warm every sidebar route in the background, one at a time on browser
   // idle, so switching pages feels instant even for links never scrolled

@@ -23,7 +23,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { MultiApiSelect } from "@/components/ui/multi-api-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import SimpleFileUpload, { type UploadedDoc } from "@/app/admin/inventory/packages/SimpleFileUpload";
+import SimpleFileUpload, { type UploadedDoc } from "@/app/inventory-management/packages/SimpleFileUpload";
 
 type Subject = "DEAL" | "COUPON" | "OTHER";
 
