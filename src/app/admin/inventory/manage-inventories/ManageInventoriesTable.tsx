@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronRight, Info, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronsUpDown, Info, Loader2 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 
 import { useShop } from "@/context/shop-context";
@@ -14,12 +14,14 @@ import { fetchBrandsList } from "@/services/brands/list";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchPackagesList } from "@/services/packages/list";
 import { fetchWeedmapsConfig } from "@/services/weedmaps/getConfigs";
+import { fetchStorageLocations } from "@/services/storageLocations/list";
 import { fetchLeaflyConfig } from "@/services/leafly/getConfig";
 import { refreshSaleCosts } from "@/services/sales/refreshSaleCosts";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Switch } from "@/components/ui/switch";
@@ -43,6 +45,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import Drawer from "@/components/ui/Drawer";
+import BulkEditDrawer from "@/app/admin/catalog/products/BulkEditDrawer";
+import MergeProductsDrawer from "@/app/admin/catalog/products/MergeProductsDrawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +54,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 100;
 
 function healthColor(totalQuantity, threshold) {
   if (totalQuantity > threshold) return "bg-green-500";
@@ -72,19 +76,19 @@ function mapInventory(inventory) {
     productId: inventory.productId,
     name: inventory.productName,
     status: inventory.isActive,
-    quantity: inventory.totalActiveQuantity,
     unitPrice: inventory.unitPrice,
-    sellableUoMShortForm: inventory.sellableUoMShortForm,
-    threshold: inventory.thresholdStock,
     totalQuantity: inventory.totalQuantity,
+    threshold: inventory.thresholdStock,
     category: inventory?.category?.name ?? "N/A",
     brand: inventory?.brand?.name ?? "N/A",
-    sellableOnStore: inventory.totalSellableQuantityOnPhysicalStore,
     weedmapProductId: inventory.weedmapProductId,
     isPushedToLeafly: inventory.isPushedToLeafly ?? false,
-    projectQtyConversionRate: inventory.projectQtyConversionRate,
-    projectQtyUomId: inventory.projectQtyUomId,
-    projectQtyUomShortForm: inventory.projectQtyUomShortForm,
+    storageLocations: (inventory.storageLocations ?? []).map((location) => ({
+      id: location.id,
+      name: location.name,
+      quantity: location.quantity,
+      value: location.value,
+    })),
   };
 }
 
@@ -121,13 +125,23 @@ export default function ManageInventoriesTable() {
 
   const [categoryId, setCategoryId] = useState(null);
   const [brandId, setBrandId] = useState(null);
+  const [storageLocationId, setStorageLocationId] = useState(null);
+  const [storageLocationOptions, setStorageLocationOptions] = useState([]);
   const [filters, setFilters] = useState(emptyFilters);
+
+  const [sortByAlpha, setSortByAlpha] = useState(0);
+  const [sortByPrice, setSortByPrice] = useState(0);
 
   const [vmIntegrated, setVmIntegrated] = useState(false);
   const [leaflyIntegrated, setLeaflyIntegrated] = useState(false);
 
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
+
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeList, setMergeList] = useState([]);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const [optimizeOpen, setOptimizeOpen] = useState(false);
   const [optimizeTab, setOptimizeTab] = useState("pricing");
@@ -144,10 +158,13 @@ export default function ManageInventoriesTable() {
         if (search) params.search = search;
         if (categoryId) params.categoryIds = [categoryId];
         if (brandId) params.brandIds = [brandId];
+        if (storageLocationId) params.filterByStorageLocationId = storageLocationId;
         if (filters.isActive !== "") params.isActive = filters.isActive;
         if (filters.productProfile) params.productProfile = filters.productProfile;
         if (filters.isAssociatedWithWM) params.isAssociatedWithWM = true;
         if (filters.isPushedToLeafly) params.isPushedToLeafly = true;
+        if (sortByAlpha) params.sortByAlpha = sortByAlpha;
+        if (sortByPrice) params.sortByPrice = sortByPrice;
 
         const res = await fetchInventoriesList(shopId, params);
         const inventories = res?.data?.data?.inventories ?? [];
@@ -159,18 +176,31 @@ export default function ManageInventoriesTable() {
           setTotalEntries(pagination.totalEntries ?? inventories.length);
         }
         setPage(targetPage);
+        setSelectedRows([]);
       } catch (err) {
         toast.error(err?.message || "Failed to load inventory list");
       } finally {
         setLoading(false);
       }
     },
-    [shopId, search, categoryId, brandId, filters]
+    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice]
   );
 
   useEffect(() => {
     loadInventories(1);
-  }, [shopId, search, categoryId, brandId, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!shopId) return;
+    (async () => {
+      try {
+        const res = await fetchStorageLocations(shopId);
+        setStorageLocationOptions(res?.data?.data?.locations ?? []);
+      } catch {
+        setStorageLocationOptions([]);
+      }
+    })();
+  }, [shopId]);
 
   useEffect(() => {
     if (!shopId) return;
@@ -260,11 +290,50 @@ export default function ManageInventoriesTable() {
     };
   }, []);
 
+  const toProductRow = (row: any) => ({
+    id: row.productId,
+    name: row.name,
+    brand: row.brand && row.brand !== "N/A" ? { id: row.brand, name: row.brand } : null,
+  });
+
+  const isRowSelected = (id: string) => selectedRows.some((r: any) => r.id === id);
+
+  const toggleRow = (row: any, checked: boolean) => {
+    setSelectedRows((prev: any) => {
+      const byId = new Map(prev.map((r: any) => [r.id, r]));
+      if (checked) byId.set(row.id, row);
+      else byId.delete(row.id);
+      return Array.from(byId.values());
+    });
+  };
+
+  const toggleAllRows = (checked: boolean) => {
+    setSelectedRows((prev: any) => {
+      const byId = new Map(prev.map((r: any) => [r.id, r]));
+      rows.forEach((row: any) => {
+        if (checked) byId.set(row.id, row);
+        else byId.delete(row.id);
+      });
+      return Array.from(byId.values());
+    });
+  };
+
+  const toggleSortByAlpha = () => {
+    setSortByPrice(0);
+    setSortByAlpha((prev) => (prev === 1 ? -1 : 1));
+  };
+
+  const toggleSortByPrice = () => {
+    setSortByAlpha(0);
+    setSortByPrice((prev) => (prev === 1 ? -1 : 1));
+  };
+
   const clearAllFilters = () => {
     setSearchInput("");
     setSearch("");
     setCategoryId(null);
     setBrandId(null);
+    setStorageLocationId(null);
     setFilters(emptyFilters);
   };
 
@@ -272,6 +341,7 @@ export default function ManageInventoriesTable() {
     searchInput ||
     categoryId ||
     brandId ||
+    storageLocationId ||
     filters.isActive !== "" ||
     filters.productProfile ||
     filters.isAssociatedWithWM ||
@@ -285,6 +355,7 @@ export default function ManageInventoriesTable() {
       if (search) params.search = search;
       if (categoryId) params.categoryIds = [categoryId];
       if (brandId) params.brandIds = [brandId];
+      if (storageLocationId) params.filterByStorageLocationId = storageLocationId;
       if (filters.isActive !== "") params.isActive = filters.isActive;
       if (filters.productProfile) params.productProfile = filters.productProfile;
       try {
@@ -306,28 +377,14 @@ export default function ManageInventoriesTable() {
       const allData = await fetchAllInventoryData();
       if (!allData.length) return toast.warning("No data found to export");
 
-      const headers = [
-        "Product Name",
-        "Category",
-        "Brand",
-        "Total Quantity",
-        "Unit Price",
-        "Sellable Qty",
-        "Sellable In Store",
-        "Status",
-        "Inventory Health",
-      ];
+      const headers = ["Product Name", "Category", "Brand", "Unit Price", "Storage Locations"];
       const csvRows = allData.map((item) =>
         [
           `"${item.name}"`,
           `"${item.category}"`,
           `"${item.brand}"`,
-          `${item.totalQuantity} ${item.sellableUoMShortForm}`,
           `$${item.unitPrice}`,
-          `${item.quantity} ${item.sellableUoMShortForm}`,
-          `${item.sellableOnStore} ${item.sellableUoMShortForm}`,
-          item.status ? "Active" : "Inactive",
-          healthLabel(item.totalQuantity, item.threshold),
+          `"${item.storageLocations.map((l) => `${l.name}: ${l.quantity} ($${l.value.toFixed(2)})`).join("; ")}"`,
         ].join(",")
       );
       const csvContent = [headers.join(","), ...csvRows].join("\n");
@@ -359,12 +416,8 @@ export default function ManageInventoriesTable() {
         "Product Name": item.name,
         Category: item.category,
         Brand: item.brand,
-        "Total Quantity": `${item.totalQuantity} ${item.sellableUoMShortForm}`,
         "Unit Price": `$${item.unitPrice}`,
-        "Sellable Qty": `${item.quantity} ${item.sellableUoMShortForm}`,
-        "Sellable In Store": `${item.sellableOnStore} ${item.sellableUoMShortForm}`,
-        Status: item.status ? "Active" : "Inactive",
-        "Inventory Health": healthLabel(item.totalQuantity, item.threshold),
+        "Storage Locations": item.storageLocations.map((l) => `${l.name}: ${l.quantity} ($${l.value.toFixed(2)})`).join("; "),
       }));
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
@@ -399,29 +452,13 @@ export default function ManageInventoriesTable() {
 
       autoTable(doc, {
         startY: 26,
-        head: [
-          [
-            "Product Name",
-            "Category",
-            "Brand",
-            "Total Qty",
-            "Unit Price",
-            "Sellable Qty",
-            "Sellable In Store",
-            "Status",
-            "Health",
-          ],
-        ],
+        head: [["Product Name", "Category", "Brand", "Unit Price", "Storage Locations"]],
         body: allData.map((item) => [
           item.name,
           item.category,
           item.brand,
-          `${item.totalQuantity} ${item.sellableUoMShortForm}`,
           `$${item.unitPrice}`,
-          `${item.quantity} ${item.sellableUoMShortForm}`,
-          `${item.sellableOnStore} ${item.sellableUoMShortForm}`,
-          item.status ? "Active" : "Inactive",
-          healthLabel(item.totalQuantity, item.threshold),
+          item.storageLocations.map((l) => `${l.name}: ${l.quantity} ($${l.value.toFixed(2)})`).join("; "),
         ]),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [30, 41, 59] },
@@ -496,16 +533,44 @@ export default function ManageInventoriesTable() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+    <div className="flex flex-col gap-4 rounded-xl bg-card p-6 shadow-md">
+      <div className="-mx-6 flex items-center justify-between border-b border-border/70 px-6 pb-4">
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <span>Inventory Management</span>
           <ChevronRight className="size-3.5" />
-          <span className="font-medium text-foreground">Manage Inventories</span>
+          <span className="font-normal text-primary">Manage Inventories</span>
         </div>
-        <Button onClick={() => setOptimizeOpen(true)} disabled={loading || rows.length === 0}>
-          Optimize
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            className="h-9! rounded-sm! px-3.5! text-[13px]!"
+            onClick={() => setOptimizeOpen(true)}
+            disabled={loading || rows.length === 0}
+          >
+            Optimize
+          </Button>
+          {selectedRows.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                className="h-9! rounded-sm! px-3.5! text-[13px]!"
+                onClick={() => {
+                  setMergeList(selectedRows.map(toProductRow));
+                  setMergeOpen(true);
+                }}
+              >
+                Merge ({selectedRows.length} product{selectedRows.length === 1 ? "" : "s"} selected)
+              </Button>
+              <Button
+                variant="outline"
+                className="h-9! rounded-sm! px-3.5! text-[13px]!"
+                onClick={() => setBulkEditOpen(true)}
+              >
+                Bulk Edit ({selectedRows.length} product{selectedRows.length === 1 ? "" : "s"} selected)
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {!isOpenForSellableStore && (
@@ -521,7 +586,7 @@ export default function ManageInventoriesTable() {
           placeholder="Search"
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="w-45"
+          className="h-9 w-45"
         />
 
         <div className="relative w-64">
@@ -529,7 +594,7 @@ export default function ManageInventoriesTable() {
             placeholder="Scan via barcode"
             value={barcodeInput}
             onChange={(e) => onBarcodeChange(e.target.value)}
-            className={barcodeSearching ? "pr-8" : ""}
+            className={`h-9 ${barcodeSearching ? "pr-8" : ""}`}
           />
           {barcodeSearching && (
             <Loader2 className="absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -542,7 +607,7 @@ export default function ManageInventoriesTable() {
             setFilters((f) => ({ ...f, isActive: v === "all" ? "" : v === "true" }))
           }
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="h-9! w-40">
             <SelectValue placeholder="Is Inventory Active" />
           </SelectTrigger>
           <SelectContent>
@@ -555,7 +620,7 @@ export default function ManageInventoriesTable() {
           value={filters.productProfile === "" ? null : filters.productProfile}
           onValueChange={(v) => setFilters((f) => ({ ...f, productProfile: v }))}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="h-9! w-40">
             <SelectValue placeholder="Package Type" />
           </SelectTrigger>
           <SelectContent>
@@ -569,6 +634,7 @@ export default function ManageInventoriesTable() {
           value={brandId}
           onChange={(v) => setBrandId(v)}
           fetchPage={fetchBrandPage}
+          triggerClassName="h-9"
         />
 
         <ApiSelect
@@ -576,7 +642,31 @@ export default function ManageInventoriesTable() {
           value={categoryId}
           onChange={(v) => setCategoryId(v)}
           fetchPage={fetchCategoryPage}
+          triggerClassName="h-9"
         />
+
+        <Select
+          value={storageLocationId ?? "all"}
+          onValueChange={(v) => setStorageLocationId(v === "all" ? null : v)}
+        >
+          <SelectTrigger className="h-9! w-45">
+            <SelectValue placeholder="Select Location">
+              {(value: string) =>
+                value === "all"
+                  ? "All Storage Locations"
+                  : storageLocationOptions.find((l: any) => l.id === value)?.name ?? "Select Location"
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Storage Locations</SelectItem>
+            {storageLocationOptions.map((location: any) => (
+              <SelectItem key={location.id} value={location.id}>
+                {location.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {vmIntegrated && (
           <div className="flex items-center gap-2 whitespace-nowrap" title="Show Weedmaps menu items only">
@@ -609,7 +699,7 @@ export default function ManageInventoriesTable() {
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button disabled={!rows.length || exporting}>
+                <Button className="h-9! rounded-sm! px-3.5! text-[13px]!" disabled={!rows.length || exporting}>
                   {exporting && <Loader2 className="animate-spin" />}
                   Export
                 </Button>
@@ -624,33 +714,44 @@ export default function ManageInventoriesTable() {
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+      <div className="relative -mx-6 overflow-hidden ring-1 ring-foreground/10">
         {loading && rows.length > 0 && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
         )}
-        <Table>
-          <TableHeader className="[&_tr]:border-b-0">
+        <Table className="table-fixed">
+          <TableHeader className="[&_tr]:border-b-0 [&_th]:h-14">
             <TableRow className="bg-muted/60">
-              <TableHead className="w-70">Product Name</TableHead>
-              <TableHead className="text-center">Health</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Brand</TableHead>
-              <TableHead className="text-center">Total Qty</TableHead>
-              <TableHead className="text-center">Unit Price</TableHead>
-              <TableHead className="text-center">Sellable Qty</TableHead>
-              <TableHead className="text-center">Sellable In Store</TableHead>
-              <TableHead className="w-28 text-center">Status</TableHead>
-              <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">
-                Action
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={rows.length > 0 && rows.every((row: any) => isRowSelected(row.id))}
+                  onCheckedChange={(checked) => toggleAllRows(!!checked)}
+                />
               </TableHead>
+              <TableHead className="w-70">
+                <button className="flex items-center gap-1 hover:text-foreground" onClick={toggleSortByAlpha}>
+                  Product Name <ChevronsUpDown className="size-3.5 text-muted-foreground" />
+                </button>
+              </TableHead>
+              <TableHead className="w-40">Category</TableHead>
+              <TableHead className="w-36">Brand</TableHead>
+              <TableHead className="w-28 text-center">
+                <button className="mx-auto flex items-center gap-1 hover:text-foreground" onClick={toggleSortByPrice}>
+                  Unit Price <ChevronsUpDown className="size-3.5 text-muted-foreground" />
+                </button>
+              </TableHead>
+              <TableHead className="w-32">Storage Locations</TableHead>
+              <TableHead className="w-28">Value</TableHead>
+              <TableHead className="w-28 text-center">Status</TableHead>
+              <TableHead className="w-24 text-center">Health</TableHead>
+              <TableHead className="w-40 text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="text-foreground/70 [&_td]:py-3.5">
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={`skeleton-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -668,9 +769,12 @@ export default function ManageInventoriesTable() {
             )}
 
             {rows.length > 0 &&
-              rows.map((row, i) => (
-                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
-                  <TableCell className="max-w-70 truncate font-medium">
+              rows.map((row: any, i) => (
+                <TableRow key={row.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                  <TableCell>
+                    <Checkbox checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
+                  </TableCell>
+                  <TableCell className="max-w-70 truncate font-normal">
                     <div className="flex min-w-0 items-center gap-1.5">
                       {row.weedmapProductId && (
                         <img
@@ -691,12 +795,44 @@ export default function ManageInventoriesTable() {
                       )}
                       <Link
                         href={`/admin/inventory/manage-inventories/edit/${row.id}`}
-                        className="truncate hover:underline"
+                        className="truncate text-primary hover:underline"
                         title={row.name}
                       >
                         {row.name}
                       </Link>
                     </div>
+                  </TableCell>
+                  <TableCell className="max-w-40 truncate" title={row.category}>{row.category}</TableCell>
+                  <TableCell>{row.brand}</TableCell>
+                  <TableCell className="text-center">${row.unitPrice}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.storageLocations.length > 0 ? (
+                      <div className="flex flex-col gap-0.5">
+                        {row.storageLocations.map((location: any) => (
+                          <span key={location.id}>
+                            {location.name}: {location.quantity}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.storageLocations.length > 0 ? (
+                      <div className="flex flex-col gap-0.5">
+                        {row.storageLocations.map((location: any) => (
+                          <span key={location.id}>${location.value.toFixed(2)}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="w-28 text-center">
+                    <Badge variant={row.status ? "default" : "destructive"}>
+                      {row.status ? "Active" : "Inactive"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     <span
@@ -704,46 +840,9 @@ export default function ManageInventoriesTable() {
                       title={healthLabel(row.totalQuantity, row.threshold)}
                     />
                   </TableCell>
-                  <TableCell className="max-w-40 truncate" title={row.category}>{row.category}</TableCell>
-                  <TableCell>{row.brand}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <span className="font-medium">
-                        {row.totalQuantity} {row.sellableUoMShortForm}
-                      </span>
-                      {row.projectQtyUomId &&
-                        Number(row.projectQtyConversionRate) > 0 &&
-                        row.projectQtyUomShortForm && (
-                          <div className="flex flex-col items-center text-xs">
-                            <span className="text-muted-foreground">↓</span>
-                            <span className="font-medium text-blue-600 dark:text-blue-400">
-                              {(row.totalQuantity / row.projectQtyConversionRate).toFixed(2)}{" "}
-                              {row.projectQtyUomShortForm}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              (Rate: {row.projectQtyConversionRate})
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">${row.unitPrice}</TableCell>
-                  <TableCell className="text-center">
-                    {row.quantity} {row.sellableUoMShortForm}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {row.sellableOnStore} {row.sellableUoMShortForm}
-                  </TableCell>
-                  <TableCell className="w-28 text-center">
-                    <Badge variant={row.status ? "default" : "destructive"}>
-                      {row.status ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell
-                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
-                  >
+                  <TableCell className="w-33 text-center">
                     <Button
-                      size="sm"
+                      className="h-9! rounded-sm! px-3.5! text-[13px]!"
                       onClick={() => router.push(`/admin/inventory/manage-inventories/edit/${row.id}`)}
                     >
                       Edit Pricing
@@ -763,6 +862,7 @@ export default function ManageInventoriesTable() {
         loading={loading}
         onPageChange={loadInventories}
       />
+    </div>
 
       <Drawer open={optimizeOpen} onClose={closeOptimizeDrawer} side="right" size={480}>
         <div className="flex h-full flex-col">
@@ -898,6 +998,33 @@ export default function ManageInventoriesTable() {
           )}
         </div>
       </Drawer>
+
+      <MergeProductsDrawer
+        open={mergeOpen}
+        onClose={() => setMergeOpen(false)}
+        mergeList={mergeList}
+        onRemove={(id) => {
+          setMergeList((prev: any) => prev.filter((p: any) => p.id !== id));
+          setSelectedRows((prev: any) => prev.filter((r: any) => r.productId !== id));
+        }}
+        onMerged={() => {
+          setMergeOpen(false);
+          setMergeList([]);
+          setSelectedRows([]);
+          loadInventories(page);
+        }}
+      />
+
+      <BulkEditDrawer
+        open={bulkEditOpen}
+        onClose={() => setBulkEditOpen(false)}
+        selectedProducts={selectedRows.map(toProductRow)}
+        onSaved={() => {
+          setBulkEditOpen(false);
+          setSelectedRows([]);
+          loadInventories(page);
+        }}
+      />
     </div>
   );
 }

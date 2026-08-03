@@ -48,6 +48,7 @@ import { getCustomerLoyaltyStatus } from "@/services/loyalty/getCustomerLoyaltyS
 import { getOrderStatuses } from "@/services/sales/getOrderStatuses";
 import { createOrder as createOrderService } from "@/services/sales/createOrder";
 import { getSingleSale } from "@/services/sales/getSingleSales";
+import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
@@ -73,6 +74,9 @@ export default function TotalCard({
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
   const currentAction = useSelector((state: any) => state?.orderAction?.orderAction);
   const lineItems = useSelector((state: any) => state?.lineItems?.lineItems) || [];
+  const customerInQueue = useSelector(
+    (state: any) => state?.customerQueue?.customerInQueue
+  );
   const bogoData = useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
   const currentMiscallenousCharges = useSelector(
     (state: any) => state?.miscCharges?.miscCharges || []
@@ -479,6 +483,50 @@ export default function TotalCard({
     if (overrideProxyPin !== undefined) body = { ...body, proxyPin: overrideProxyPin };
     return body;
   };
+
+  // Sync the in-progress cart onto the active customer's queue entry so it
+  // can be restored if they get picked up again later (e.g. moved to
+  // waiting and re-served, or served from a different register). Debounced
+  // to avoid a request per keystroke/qty-change. Mirrors the old app's
+  // equivalent effect in totalCard.js.
+  const cartMetaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const activeCustomerId = customerInQueue?.customerId || quoteBody?.customerId;
+    if (!activeCustomerId) return;
+    const hasItems =
+      (quoteBody.lineItems && quoteBody.lineItems.length > 0) ||
+      (lineItems && lineItems.length > 0);
+    if (!hasItems) return;
+
+    if (cartMetaDebounceRef.current) clearTimeout(cartMetaDebounceRef.current);
+    cartMetaDebounceRef.current = setTimeout(() => {
+      // Reuse the same enriched payload shape used to complete an order
+      // (discounts, coupons, deals, loyalty, tip, etc.) so the queued cart
+      // restores exactly as it would be checked out.
+      const orderBody = buildOrderBody(null, false, null, undefined);
+      const {
+        statusId: _statusId,
+        paymentMethod: _paymentMethod,
+        cashPaid: _cashPaid,
+        virtualPaid: _virtualPaid,
+        onlinePaymentMethod: _onlinePaymentMethod,
+        isAchPayment: _isAchPayment,
+        isPaymentProcessingCompleted: _isPaymentProcessingCompleted,
+        ...cartMetaBody
+      } = orderBody;
+
+      setCartMetaData({
+        shopId: JSON.parse(localStorage.getItem("shopId")),
+        customerId: activeCustomerId,
+        cartMetaDataJsonString: JSON.stringify(cartMetaBody),
+      }).catch((err) => console.error("Failed to sync cart meta data:", err));
+    }, 800);
+
+    return () => {
+      if (cartMetaDebounceRef.current) clearTimeout(cartMetaDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteBody, lineItems, customerInQueue?.customerId]);
 
   const hasQuoteErrors = () => {
     const em = getOrderSummary?.data?.errorMessages;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useShop } from "@/context/shop-context";
 import { fetchRegistersList } from "@/services/registers/list";
@@ -87,7 +88,9 @@ export default function RegistersPanel() {
                     </button>
                   </td>
                   <td className="py-2.5 text-center">
-                    <ChevronRight className="mx-auto size-4 cursor-pointer" style={{ color: register.isOpen ? "#2A9D8F" : "#E76F51" }} />
+                    <Link href={`/pos/drawers?registerId=${register.id}`}>
+                      <ChevronRight className="mx-auto size-4 cursor-pointer" style={{ color: register.isOpen ? "#2A9D8F" : "#E76F51" }} />
+                    </Link>
                   </td>
                 </tr>
               ))

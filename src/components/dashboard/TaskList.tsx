@@ -92,7 +92,6 @@ export default function TaskList() {
           <Button size="sm" onClick={() => fetchTasks(pagination.current)}>
             Refresh
           </Button>
-          {isAdmin && <Button size="sm">Add Task</Button>}
         </div>
       </div>
 

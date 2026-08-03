@@ -85,7 +85,7 @@ export default function ProductSearch({
         size="100vw"
       >
         <div className="flex h-full flex-col p-4">
-          <div className="flex flex-1 gap-4 overflow-hidden">
+          <div className="flex flex-1 gap-2 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-hidden">
               <ProductList
                 refreshSignal={manageCartOpenCount}
@@ -116,7 +116,7 @@ export default function ProductSearch({
             {cartPanelOpen && (
               <div
                 data-mode="dark"
-                className="w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
+                className="h-full w-[320px] shrink-0 overflow-auto rounded-lg p-3 text-white xl:w-105"
                 style={{ background: "#00152A", border: "1px solid rgba(1,144,221,0.18)" }}
               >
                 <CustomerCartSidebar />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, Settings, Pencil, ScrollText, Trash2, Plus } from "lucide-react";
 
@@ -39,6 +39,7 @@ interface DrawerRow {
 
 export default function DrawersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<DrawerRow[]>([]);
@@ -46,7 +47,7 @@ export default function DrawersPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
 
   const [registers, setRegisters] = useState<{ id: string; name: string }[]>([]);
-  const [registerFilter, setRegisterFilter] = useState("__all__");
+  const [registerFilter, setRegisterFilter] = useState(searchParams.get("registerId") || "__all__");
 
   const [selectedDrawer, setSelectedDrawer] = useState<any>(null);
 

@@ -13,6 +13,18 @@ function hourLabel(hour) {
   return `${h} ${ampm}`;
 }
 
+function CustomXAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+  const isCurrentTime = payload?.value === hourLabel(new Date().getHours());
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={15} textAnchor="middle" fill="var(--muted-foreground)" fontSize={10}>
+        {payload?.value}
+      </text>
+      {isCurrentTime && <circle cx={0} cy={20} r={3} fill="red" />}
+    </g>
+  );
+}
+
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
@@ -90,9 +102,9 @@ export default function PopularTimeCard() {
         ) : filteredStats.length !== 0 ? (
           <ResponsiveContainer width="90%" height="100%">
             <BarChart data={filteredStats} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <XAxis dataKey="time" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <XAxis dataKey="time" tick={<CustomXAxisTick />} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="sales" fill="#2A9D8F" radius={[8, 8, 0, 0]} background={{ fill: "#bdbbbb", radius: 8 }} />
+              <Bar dataKey="sales" fill="#2A9D8F" barSize={8} radius={8} background={{ fill: "#bdbbbb", radius: 8 }} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
