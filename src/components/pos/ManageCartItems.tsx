@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Trash2 } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useShop } from "@/context/shop-context";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 import { updateSalesDetail } from "@/store/slices/salesDetailSlice";
 import { addLineItemsAction } from "@/store/slices/lineItemsSlice";
 import { addToCart } from "@/store/slices/cartSlice";
+import PrintLabelModal from "@/components/pos/PrintLabelModal";
 
 /**
  * Cart line-item quantity / removal manager. Every change updates the cart +
@@ -19,9 +21,9 @@ import { addToCart } from "@/store/slices/cartSlice";
  * did. When a completed sale is loaded (saleData populated) the quantity
  * controls are read-only and a Package ID column is shown instead of actions.
  *
- * Not ported (flagged): the exit-label view/print and product-summary popups
- * relied on the unmigrated print-client subtree (usePrint / GetSinglePackage);
- * those buttons are omitted here.
+ * Exit-label view/print (old app's separate side-drawer) is replaced by
+ * PrintLabelModal — the same component ProductsCart.tsx uses — instead of
+ * re-porting the old drawer.
  *
  * Props:
  *   onBack() — old `setManageCartItems(false)`.
@@ -33,6 +35,8 @@ export default function ManageCartItems({ onBack }) {
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
   const quoteBody = useSelector((state: any) => state?.salesDetail);
   const [counters, setCounters] = useState({});
+  const [printLabelRecord, setPrintLabelRecord] = useState<any>(null);
+  const { shopId } = useShop();
   const dispatch = useDispatch();
 
   const saleLoaded = Object.keys(saleDetail).length > 0;
@@ -241,13 +245,22 @@ export default function ManageCartItems({ onBack }) {
                       </td>
                     ) : (
                       <td className="px-3 py-2">
-                        <button
-                          onClick={() => handleDelete(record)}
-                          className="rounded-lg bg-destructive/10 p-2 text-destructive hover:bg-destructive/20"
-                          title="Remove item"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => setPrintLabelRecord(record)}
+                            className="rounded-lg bg-sky-500/10 p-2 text-sky-600 hover:bg-sky-500/20 dark:bg-sky-500/15 dark:text-sky-400"
+                            title="Print Label"
+                          >
+                            <FileText className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(record)}
+                            className="rounded-lg bg-destructive/10 p-2 text-destructive hover:bg-destructive/20"
+                            title="Remove item"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -257,6 +270,13 @@ export default function ManageCartItems({ onBack }) {
           </table>
         </div>
       )}
+
+      <PrintLabelModal
+        open={printLabelRecord != null}
+        onClose={() => setPrintLabelRecord(null)}
+        packageId={printLabelRecord?.id}
+        shopId={shopId}
+      />
     </div>
   );
 }

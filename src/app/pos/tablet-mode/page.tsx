@@ -620,8 +620,8 @@ function TabletModePosInner() {
     <TooltipProvider>
       <div className="flex h-full flex-col overflow-hidden bg-surface">
         {/* ──── TAB NAV + TOP BAR (one row) ──── */}
-        <div className="flex h-20 flex-shrink-0 items-center gap-3 overflow-x-auto border-b border-blue-400/20 bg-[#071529] px-4 shadow-sm">
-          <div className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-white/5 p-1">
+        <div className="flex h-20 shrink-0 items-center gap-3 overflow-x-auto border-b border-blue-400/20 bg-[#071529] px-4 shadow-sm">
+          <div className="flex shrink-0 items-center gap-1 rounded-xl bg-white/5 p-1">
             {TAB_ITEMS.map(({ key, label }) => (
               <button
                 key={key}
@@ -636,13 +636,13 @@ function TabletModePosInner() {
             ))}
           </div>
 
-          <div className="h-8 w-px flex-shrink-0 bg-blue-400/20" />
+          <div className="h-8 w-px shrink-0 bg-blue-400/20" />
 
           <Select
             value={deliveryType}
             onValueChange={handleDeliveryTypeChange}
             disabled={hasSale}>
-            <SelectTrigger className="h-11 w-36 flex-shrink-0 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-base font-medium text-blue-100 backdrop-blur-sm hover:bg-blue-400/10 [&_svg]:text-blue-400">
+            <SelectTrigger className="h-11 w-36 shrink-0 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-base font-medium text-blue-100 backdrop-blur-sm hover:bg-blue-400/10 [&_svg]:text-blue-400">
               <SelectValue placeholder="Order Type">
                 {(value) =>
                   value === "IN_STORE"
@@ -681,7 +681,7 @@ function TabletModePosInner() {
             <Select
               value={quoteBody.customerGroupId || "__none__"}
               onValueChange={handleCustomerGroupChange}>
-              <SelectTrigger className="h-11 w-44 flex-shrink-0 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-base font-medium text-blue-100 backdrop-blur-sm hover:bg-blue-400/10 [&_svg]:text-blue-400">
+              <SelectTrigger className="h-11 w-44 shrink-0 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-base font-medium text-blue-100 backdrop-blur-sm hover:bg-blue-400/10 [&_svg]:text-blue-400">
                 <SelectValue placeholder="Cust. Group">
                   {(value) => {
                     if (value === "__none__" || !value) return "None";
@@ -714,7 +714,7 @@ function TabletModePosInner() {
               render={
                 <button
                   type="button"
-                  className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border backdrop-blur-sm transition-colors ${
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border backdrop-blur-sm transition-colors ${
                     registerReady
                       ? "border-green-400/50 bg-green-400/10 text-green-300"
                       : "border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-blue-100 hover:bg-blue-400/10"
@@ -732,7 +732,7 @@ function TabletModePosInner() {
               render={
                 <button
                   type="button"
-                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-blue-100 backdrop-blur-sm transition-colors hover:bg-blue-400/10"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-blue-100 backdrop-blur-sm transition-colors hover:bg-blue-400/10"
                   onClick={() => setDocManagerOpen(true)}>
                   <IdCard className="h-5 w-5" />
                 </button>
@@ -746,7 +746,7 @@ function TabletModePosInner() {
               render={
                 <button
                   type="button"
-                  className="relative flex-shrink-0"
+                  className="relative shrink-0"
                   onClick={() => setQueueDrawerVisible(true)}>
                   <span className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-blue-100 backdrop-blur-sm transition-colors hover:bg-blue-400/10">
                     <User className="h-5 w-5" />
@@ -767,7 +767,7 @@ function TabletModePosInner() {
               render={
                 <button
                   type="button"
-                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-red-400/40 bg-red-500/15 text-red-300 backdrop-blur-sm transition-colors hover:bg-red-500/25"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-red-400/40 bg-red-500/15 text-red-300 backdrop-blur-sm transition-colors hover:bg-red-500/25"
                   onClick={confirmResetPOS}>
                   <RotateCcw className="h-5 w-5" />
                 </button>
@@ -822,7 +822,7 @@ function TabletModePosInner() {
                     onClose={undefined}
                   />
                   {getOrderSummary?.data?.bogoDealUsageTrace?.length > 0 && (
-                    <div className="mt-3 flex-shrink-0">
+                    <div className="mt-3 shrink-0">
                       <BundledLineItems />
                     </div>
                   )}
@@ -831,7 +831,7 @@ function TabletModePosInner() {
             </div>
 
             {/* RIGHT: Attach customer / cart / discounts / checkout */}
-            <div className="w-[380px] flex-shrink-0 overflow-hidden xl:w-[440px]">
+            <div className="w-95 shrink-0 overflow-hidden xl:w-110">
               <TabletModeCartSummary
                 key={posResetKey}
                 selectedCustomer={selectedCustomer}

@@ -44,7 +44,7 @@ export default function TaskItem({ data, taskStatuses, onStatusUpdate }) {
     <div className="rounded-lg border border-border bg-component-bg p-3 shadow-sm transition-all hover:-translate-y-px hover:shadow-md">
       <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_auto]">
         <div className="min-w-0">
-          <Link href="/admin/tasks/tasks-listings" className="truncate text-sm font-medium text-text hover:text-primary" title={description || undefined}>
+          <Link href="/settings/tasks-listings" className="truncate text-sm font-medium text-text hover:text-primary" title={description || undefined}>
             {title}
           </Link>
         </div>

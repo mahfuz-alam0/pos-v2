@@ -231,62 +231,65 @@ export default function CustomerCartSidebar() {
 
   return (
     <div>
-      {selectedCustomer && (
-        <div className="mb-3">
-          <div className="flex items-center gap-2">
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-bold text-primary"
-              style={{ border: `2px solid ${BLUE}` }}
-            >
-              {selectedCustomer.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={selectedCustomer.avatarUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                (selectedCustomer.firstName || "?")[0].toUpperCase()
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-base font-semibold">
-                {customerName || "No customer selected"}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-1">
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-4.5 text-white" style={{ background: "#389e0d" }}>
-                  {selectedCustomer.customerType ?? "No Type"}
-                </span>
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-4.5 text-white" style={{ background: BLUE }}>
-                  {groupName}
-                </span>
-              </div>
+      <div className="mb-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-bold text-primary"
+            style={{ border: `2px solid ${BLUE}` }}
+          >
+            {selectedCustomer?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={selectedCustomer.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : selectedCustomer?.firstName ? (
+              selectedCustomer.firstName[0].toUpperCase()
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="opacity-60">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-base font-semibold">
+              {customerName || "No customer selected"}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-4.5 text-white" style={{ background: "#389e0d" }}>
+                {selectedCustomer?.customerType ?? "No Type"}
+              </span>
+              <span className="rounded px-1.5 py-0.5 text-[10px] font-medium leading-4.5 text-white" style={{ background: BLUE }}>
+                {groupName}
+              </span>
             </div>
           </div>
-
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            {[
-              ["Avg Spend", `$${avgSpend.toFixed(2)}`],
-              ["Points", loyalty?.userLoyaltyStatus?.currentLoyaltyPoints ?? 0],
-              ["Orders", orders],
-            ].map(([label, value]) => (
-              <div
-                key={label as string}
-                className="rounded-lg p-2"
-                style={{
-                  background: "rgba(1,144,221,0.08)",
-                  border: "1px solid rgba(1,144,221,0.25)",
-                }}
-              >
-                <div className="text-[10px] text-white/50">{label}</div>
-                <div className="text-[13px] font-bold">{value}</div>
-              </div>
-            ))}
-          </div>
-
-          <CustomerInsights customerId={selectedCustomer.id} />
         </div>
-      )}
+
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          {[
+            ["Avg Spend", `$${avgSpend.toFixed(2)}`],
+            ["Points", loyalty?.userLoyaltyStatus?.currentLoyaltyPoints ?? 0],
+            ["Orders", orders],
+          ].map(([label, value]) => (
+            <div
+              key={label as string}
+              className="rounded-lg p-2"
+              style={{
+                background: "rgba(1,144,221,0.08)",
+                border: "1px solid rgba(1,144,221,0.25)",
+              }}
+            >
+              <div className="text-[10px] text-white/50">{label}</div>
+              <div className="text-[13px] font-bold">{value}</div>
+            </div>
+          ))}
+        </div>
+
+        {selectedCustomer && <CustomerInsights customerId={selectedCustomer.id} />}
+      </div>
 
       <div className="mb-2 font-semibold">Cart Items</div>
       <ProductsCart />

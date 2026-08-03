@@ -13,11 +13,20 @@ import {
   UserCog,
   Truck,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
+
+export interface MenuItem {
+  key: string;
+  label: string;
+  href?: string;
+  icon?: LucideIcon;
+  children?: MenuItem[];
+}
 
 // Retail menu tree — ported from old app's SidebarContent.js (currentMenu === "retail").
 // Each item: { key, label, href } (leaf) or { key, label, icon, children } (section).
-export const retailMenu = [
+export const retailMenu: MenuItem[] = [
   {
     key: "dashboard",
     label: "Dashboard",
@@ -32,9 +41,9 @@ export const retailMenu = [
       { key: "pos-tablet", label: "POS", href: "/pos" },
       { key: "tablet-mode-pos", label: "Tablet Mode POS", href: "/pos/tablet-mode" },
 
-      { key: "order-ahead", label: "Order Ahead", href: "/admin/orderahead" },
-      { key: "front-desk", label: "Front Desk", href: "/admin/front-desk" },
-      { key: "sales", label: "Sales", href: "/admin/orders" },
+      { key: "order-ahead", label: "Order Ahead", href: "/fulfillment/orderahead" },
+      { key: "front-desk", label: "Front Desk", href: "/fulfillment/front-desk" },
+      { key: "sales", label: "Sales", href: "/fulfillment/orders" },
       { key: "returns", label: "Returns", href: "/pos/returns" },
     ],
   },
@@ -46,17 +55,17 @@ export const retailMenu = [
       {
         key: "customers-list",
         label: "Customers",
-        href: "/admin/customer-management/customers",
+        href: "/customer-management/customers",
       },
       {
         key: "customer-groups",
         label: "Customer Groups",
-        href: "/admin/customers/groups",
+        href: "/customer-management/groups",
       },
       {
         key: "customer-rewards",
         label: "Rewards & Types",
-        href: "/admin/customer-management/customer-types-rewards",
+        href: "/customer-management/customer-types-rewards",
       },
     ],
   },
@@ -65,12 +74,12 @@ export const retailMenu = [
     label: "Promotions",
     icon: Tag,
     children: [
-      { key: "coupons", label: "Coupons", href: "/admin/coupons" },
-      { key: "deals", label: "Deals", href: "/admin/deals" },
+      { key: "coupons", label: "Coupons", href: "/promotions/coupons" },
+      { key: "deals", label: "Deals", href: "/promotions/deals" },
       {
         key: "loyalty-reward-settings",
         label: "Loyalty Reward Settings",
-        href: "/admin/loyalty/reward-settings",
+        href: "/promotions/loyalty",
       },
     ],
   },
@@ -82,44 +91,44 @@ export const retailMenu = [
       {
         key: "inventory-pricing",
         label: "Inventory & Pricing",
-        href: "/admin/inventory/manage-inventories",
+        href: "/inventory-management/manage-inventories",
       },
       {
         key: "inventory-adjustments",
         label: "Adjustments",
-        href: "/admin/inventory/reconciliation",
+        href: "/inventory-management/reconciliation",
       },
       {
         key: "inventory-levels",
         label: "Inventory Levels",
-        href: "/admin/audit/insights/inventory-on-hand",
+        href: "/inventory-management/inventory-on-hand",
       },
       {
         key: "inventory-reorder",
         label: "Inventory Reorder",
-        href: "/admin/audit/inventory-reorder",
+        href: "/reports-analytics/inventory-reorder",
       },
       {
         key: "uom",
         label: "Unit of Measurements",
-        href: "/admin/inventory/uom",
+        href: "/inventory-management/uom",
       },
-      { key: "audit", label: "Audit", href: "/admin/inventory/audit" },
+      { key: "audit", label: "Audit", href: "/inventory-management/audit" },
       {
         key: "transfers",
         label: "Transfers",
-        href: "/admin/inventory/transfers",
+        href: "/inventory-management/transfers",
       },
       {
         key: "purchase-orders",
         label: "Purchase Orders",
-        href: "/admin/inventory/purchase-orders",
+        href: "/inventory-management/purchase-orders",
       },
-      { key: "packages", label: "Packages", href: "/admin/inventory/packages" },
+      { key: "packages", label: "Packages", href: "/inventory-management/packages" },
       {
         key: "storage-locations",
         label: "Storage Locations",
-        href: "/admin/inventory/storage-locations",
+        href: "/inventory-management/storage-locations",
       },
     ],
   },
@@ -128,24 +137,24 @@ export const retailMenu = [
     label: "Catalog",
     icon: BookOpen,
     children: [
-      { key: "products", label: "Products", href: "/admin/catalog/products" },
+      { key: "products", label: "Products", href: "/catalog/products" },
       {
         key: "classifications",
         label: "Classifications",
-        href: "/admin/catalog/classifications",
+        href: "/catalog/classifications",
       },
-      { key: "brands", label: "Brands", href: "/admin/catalog/manufacturers" },
+      { key: "brands", label: "Brands", href: "/catalog/manufacturers" },
       {
         key: "product-matrix",
         label: "Product Matrix",
-        href: "/admin/catalog/products/matrix",
+        href: "/catalog/products/matrix",
       },
-      { key: "tags", label: "Tags", href: "/admin/settings/tags" },
-      { key: "strains", label: "Strains", href: "/admin/settings/strains" },
+      { key: "tags", label: "Tags", href: "/catalog/tags" },
+      { key: "strains", label: "Strains", href: "/catalog/strains" },
       {
         key: "suppliers",
         label: "Suppliers",
-        href: "/admin/settings/suppliers",
+        href: "/catalog/suppliers",
       },
     ],
   },
@@ -216,17 +225,17 @@ export const retailMenu = [
       {
         key: "metrc-reconciliations",
         label: "METRC Reconciliations",
-        href: "/admin/inventory/metrc-reconciliation/packages",
+        href: "/metrc/reconciliations",
       },
       {
         key: "metrc-transfers",
         label: "METRC Transfers",
-        href: "/admin/inventory/transfers/metrc-transfer",
+        href: "/metrc/transfers",
       },
       {
         key: "metrc-configuration",
         label: "METRC Configuration",
-        href: "/admin/settings/metrc-configuration",
+        href: "/metrc/configuration",
       },
     ],
   },
@@ -238,12 +247,12 @@ export const retailMenu = [
       {
         key: "transactions",
         label: "Transactions",
-        href: "/admin/audit/transactions",
+        href: "/audit-logs/transactions",
       },
       {
         key: "ach-transactions",
         label: "ACH Transactions",
-        href: "/admin/audit/ach-transactions",
+        href: "/audit-logs/ach-transactions",
       },
     ],
   },
@@ -259,37 +268,37 @@ export const retailMenu = [
           {
             key: "command-center",
             label: "Command Center",
-            href: "/admin/sales-report/executive-summary",
+            href: "/reports-analytics/executive-summary",
           },
           {
             key: "performance-metrics",
             label: "Performance Metrics",
-            href: "/admin/sales-report/performance",
+            href: "/reports-analytics/performance",
           },
           {
             key: "sales-intelligence",
             label: "Sales Intelligence",
-            href: "/admin/sales-report/sales-intelligence",
+            href: "/reports-analytics/sales-intelligence",
           },
           {
             key: "promo-performance",
             label: "Promo Performance",
-            href: "/admin/sales-report/discounts",
+            href: "/reports-analytics/discounts",
           },
           {
             key: "sales-heatmap",
             label: "Sales Heatmap",
-            href: "/admin/audit/day-and-time",
+            href: "/reports-analytics/day-and-time",
           },
           {
             key: "supply-tracker",
             label: "Supply Tracker",
-            href: "/admin/audit/inventory-reorder",
+            href: "/reports-analytics/inventory-reorder",
           },
           {
             key: "referral-source",
             label: "Referral Source",
-            href: "/admin/sales-report/referral-source-report",
+            href: "/reports-analytics/referral-source-report",
           },
         ],
       },
@@ -300,27 +309,27 @@ export const retailMenu = [
           {
             key: "report-customer",
             label: "Customer",
-            href: "/admin/sales-report/customer-report",
+            href: "/reports-analytics/customer-report",
           },
           {
             key: "report-inventory",
             label: "Inventory",
-            href: "/admin/sales-report/inventory",
+            href: "/reports-analytics/inventory",
           },
           {
             key: "report-loyalty",
             label: "Loyalty",
-            href: "/admin/sales-report/loyalty",
+            href: "/reports-analytics/loyalty",
           },
           {
             key: "report-sales",
             label: "Sales",
-            href: "/admin/sales-report/sales",
+            href: "/reports-analytics/sales",
           },
           {
             key: "report-taxes",
             label: "Taxes",
-            href: "/admin/sales-report/taxes",
+            href: "/reports-analytics/taxes",
           },
         ],
       },
@@ -334,12 +343,12 @@ export const retailMenu = [
       {
         key: "main-vault",
         label: "Main Vault",
-        href: "/admin/audit/cash-management",
+        href: "/cash-management/main-vault",
       },
       {
         key: "registers",
         label: "Registers",
-        href: "/admin/inventory/registers",
+        href: "/cash-management/registers",
       },
       { key: "drawers", label: "Drawers", href: "/pos/drawers" },
     ],
@@ -349,12 +358,12 @@ export const retailMenu = [
     label: "Access Mgmt",
     icon: UserCog,
     children: [
-      { key: "team", label: "Team", href: "/admin/access-management/employee" },
-      { key: "roles", label: "Roles", href: "/admin/access-management/role" },
+      { key: "team", label: "Team", href: "/access-management/employee" },
+      { key: "roles", label: "Roles", href: "/access-management/role" },
       {
         key: "shifts",
         label: "Shifts",
-        href: "/admin/access-management/employee-shift",
+        href: "/access-management/employee-shift",
       },
     ],
   },
@@ -366,22 +375,22 @@ export const retailMenu = [
       {
         key: "delivery",
         label: "Delivery",
-        href: "/admin/delivery-management/delivery-profiles",
+        href: "/delivery-management/delivery-profiles",
       },
       {
         key: "drivers",
         label: "Drivers",
-        href: "/admin/delivery-management/persons",
+        href: "/delivery-management/persons",
       },
       {
         key: "vehicles",
         label: "Vehicles",
-        href: "/admin/delivery-management/vehicle",
+        href: "/delivery-management/vehicle",
       },
       {
         key: "delivery-jobs",
         label: "Delivery Jobs",
-        href: "/admin/delivery-management/jobs",
+        href: "/delivery-management/jobs",
       },
     ],
   },
@@ -393,36 +402,36 @@ export const retailMenu = [
       {
         key: "shop-preferences",
         label: "Shop Preferences",
-        href: "/admin/settings/cashier",
+        href: "/settings/cashier",
       },
       {
         key: "integrations",
         label: "Integrations",
-        href: "/admin/settings/integrations",
+        href: "/settings/integrations",
       },
-      { key: "tasks", label: "Tasks", href: "/admin/tasks/tasks-listings" },
+      { key: "tasks", label: "Tasks", href: "/settings/tasks-listings" },
       {
         key: "pricing-templates",
         label: "Pricing Templates",
-        href: "/admin/settings/pricing-templates",
+        href: "/settings/pricing-templates",
       },
-      { key: "tax", label: "Tax", href: "/admin/settings/tax" },
+      { key: "tax", label: "Tax", href: "/settings/tax" },
       {
         key: "hardware-clients",
         label: "Hardware Clients",
-        href: "/admin/hardware-clients",
+        href: "/settings/hardware-clients",
       },
-      { key: "labels", label: "Labels", href: "/admin/labels" },
-      { key: "print", label: "Print Settings", href: "/admin/print" },
+      { key: "labels", label: "Labels", href: "/settings/labels" },
+      { key: "print", label: "Print Settings", href: "/settings/print" },
       {
         key: "store-information",
         label: "Store Information",
-        href: "/admin/settings/stores-information",
+        href: "/settings/stores-information",
       },
       {
         key: "reset-password",
         label: "Reset Password",
-        href: "/admin/change-password",
+        href: "/settings/change-password",
       },
     ],
   },

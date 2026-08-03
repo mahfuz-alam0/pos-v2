@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Loader2,
   ArrowRight,
+  ArrowLeft,
   QrCode,
   Delete,
   ChevronDown,
@@ -106,6 +107,8 @@ export default function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [step, setStep] = useState("org"); // "org" | "credentials"
+
   const [orgUsername, setOrgUsername] = useState("");
   const [orgId, setOrgId] = useState(null);
   const [orgChecking, setOrgChecking] = useState(false);
@@ -146,6 +149,18 @@ export default function SignInForm() {
     setOrgId(null);
     setOrgError("");
     setOrgChecking(Boolean(value.trim()));
+  }
+
+  function handleContinue(e) {
+    e.preventDefault();
+    if (!orgId) return;
+    setFormError("");
+    setStep("credentials");
+  }
+
+  function handleBackToOrg() {
+    setFormError("");
+    setStep("org");
   }
 
   useEffect(() => {
@@ -326,80 +341,115 @@ export default function SignInForm() {
               "0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(3,143,221,0.08)",
           }}
         >
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-            <p className="mt-1 text-sm text-white/45">
-              Sign in to your organization to continue.
-            </p>
-          </div>
+          {step === "org" ? (
+            <>
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
+                <p className="mt-1 text-sm text-white/45">
+                  Sign in to your organization to continue.
+                </p>
+              </div>
 
-          <form
-            onSubmit={authMode === "pin" ? (e) => e.preventDefault() : handleSubmit}
-            className="space-y-4"
-            noValidate
-          >
-            <div>
-              <Label
-                htmlFor="orgUsername"
-                className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/55"
-              >
-                Organization username
-              </Label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
-                  <Input
-                    id="orgUsername"
-                    type="text"
-                    value={orgUsername}
-                    onChange={(e) => handleOrgUsernameChange(e.target.value)}
-                    className="h-11 rounded-lg border-white/10 bg-white/6 pl-9 pr-9 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
-                    placeholder="acme"
-                    autoComplete="organization"
-                    suppressHydrationWarning
-                  />
-                  {orgChecking && (
-                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-white/30" />
-                  )}
-                  {!orgChecking && orgSettled && orgId && (
-                    <CheckCircle2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-400" />
-                  )}
-                  {!orgChecking && orgSettled && orgError && (
-                    <AlertCircle className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-red-400" />
-                  )}
+              <form onSubmit={handleContinue} className="space-y-4" noValidate>
+                <div>
+                  <Label
+                    htmlFor="orgUsername"
+                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-white/55"
+                  >
+                    Organization username
+                  </Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                      <Input
+                        id="orgUsername"
+                        type="text"
+                        value={orgUsername}
+                        onChange={(e) => handleOrgUsernameChange(e.target.value)}
+                        className="h-11 rounded-lg border-white/10 bg-white/6 pl-9 pr-9 text-white placeholder:text-white/25 focus-visible:border-[#038fdd] focus-visible:ring-[#038fdd]/20"
+                        placeholder="acme"
+                        autoComplete="organization"
+                        autoFocus
+                        suppressHydrationWarning
+                      />
+                      {orgChecking && (
+                        <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-white/30" />
+                      )}
+                      {!orgChecking && orgSettled && orgId && (
+                        <CheckCircle2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-400" />
+                      )}
+                      {!orgChecking && orgSettled && orgError && (
+                        <AlertCircle className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-red-400" />
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setQrOpen(true)}
+                      disabled={qrSubmitting}
+                      title="Sign in with QR code"
+                      className="h-11 w-11 shrink-0 border-white/10 bg-white/6 p-0 text-white hover:bg-white/12"
+                    >
+                      {qrSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <QrCode className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="mt-1.5 min-h-4 text-xs">
+                    {orgChecking && <span className="text-white/35">Checking…</span>}
+                    {!orgChecking && orgError && (
+                      <span className="text-red-400">{orgError}</span>
+                    )}
+                    {!orgChecking && orgId && (
+                      <span className="text-emerald-400">Organization found</span>
+                    )}
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setQrOpen(true)}
-                  disabled={qrSubmitting}
-                  title="Sign in with QR code"
-                  className="h-11 w-11 shrink-0 border-white/10 bg-white/6 p-0 text-white hover:bg-white/12"
-                >
-                  {qrSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <QrCode className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <div className="mt-1.5 min-h-4 text-xs">
-                {orgChecking && <span className="text-white/35">Checking…</span>}
-                {!orgChecking && orgError && (
-                  <span className="text-red-400">{orgError}</span>
-                )}
-                {!orgChecking && orgId && (
-                  <span className="text-emerald-400">Organization found</span>
-                )}
-              </div>
-            </div>
 
-            <fieldset
-              disabled={!orgId}
-              className="space-y-4 transition-opacity duration-300 disabled:opacity-40"
-            >
-              {authMode === "password" ? (
-                <>
+                {formError && (
+                  <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={!orgId}
+                  className="group h-11 w-full rounded-lg bg-[#038fdd] text-white hover:bg-[#1f98e3] active:bg-[#0073c4] disabled:opacity-35"
+                >
+                  Continue
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={handleBackToOrg}
+                  className="mb-3 flex items-center gap-1 text-sm text-white/45 hover:text-white/70"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  {orgUsername}
+                </button>
+                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
+                <p className="mt-1 text-sm text-white/45">
+                  Sign in to your organization to continue.
+                </p>
+              </div>
+
+              <form
+                onSubmit={authMode === "pin" ? (e) => e.preventDefault() : handleSubmit}
+                className="space-y-4"
+                noValidate
+              >
+                <fieldset className="space-y-4">
+                  {authMode === "password" ? (
+                    <>
                   <div>
                     <Label
                       htmlFor="email"
@@ -532,56 +582,58 @@ export default function SignInForm() {
                   >
                     Use Email &amp; Password
                   </button>
-                </>
-              )}
-            </fieldset>
+                  </>
+                  )}
+                </fieldset>
 
-            {formError && (
-              <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{formError}</span>
-              </div>
-            )}
+                {formError && (
+                  <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
 
-            {authMode === "password" ? (
-              <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="group h-11 w-full rounded-lg bg-[#038fdd] text-white hover:bg-[#1f98e3] active:bg-[#0073c4] disabled:opacity-35"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in…
-                  </>
+                {authMode === "password" ? (
+                  <Button
+                    type="submit"
+                    disabled={!canSubmit}
+                    className="group h-11 w-full rounded-lg bg-[#038fdd] text-white hover:bg-[#1f98e3] active:bg-[#0073c4] disabled:opacity-35"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Signing in…
+                      </>
+                    ) : (
+                      <>
+                        Sign in
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </>
+                    )}
+                  </Button>
                 ) : (
-                  <>
-                    Sign in
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
+                  <Button
+                    type="button"
+                    onClick={handlePinSubmit}
+                    disabled={!orgId || !selectedEmployeeId || !pin || pinSubmitting}
+                    className="group h-11 w-full rounded-lg bg-[#038fdd] text-white hover:bg-[#1f98e3] active:bg-[#0073c4] disabled:opacity-35"
+                  >
+                    {pinSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Signing in…
+                      </>
+                    ) : (
+                      <>
+                        Sign in
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handlePinSubmit}
-                disabled={!orgId || !selectedEmployeeId || !pin || pinSubmitting}
-                className="group h-11 w-full rounded-lg bg-[#038fdd] text-white hover:bg-[#1f98e3] active:bg-[#0073c4] disabled:opacity-35"
-              >
-                {pinSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in…
-                  </>
-                ) : (
-                  <>
-                    Sign in
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
-              </Button>
-            )}
-          </form>
+              </form>
+            </>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs text-white/20">
