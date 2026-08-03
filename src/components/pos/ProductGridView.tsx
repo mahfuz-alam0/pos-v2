@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -8,33 +8,6 @@ import {
 } from "@/components/ui/tooltip";
 
 const defaultImage = "/images/placeholders/product.svg";
-
-// Minimal page control replacing antd <Pagination>. Preserves the same
-// page/limit/totalEntries contract and onChange(page) callback.
-function Pagination({ page, limit, totalEntries, onChange }) {
-  const totalPages = Math.max(1, Math.ceil((totalEntries || 0) / (limit || 1)));
-  const cur = page || 1;
-  if (totalPages <= 1) return null;
-  return (
-    <div className="mt-6 flex items-center justify-center gap-3 text-base">
-      <button
-        className="h-11 rounded-lg border px-4 disabled:opacity-40"
-        disabled={cur <= 1}
-        onClick={() => onChange(cur - 1)}>
-        Prev
-      </button>
-      <span>
-        Page {cur} / {totalPages}
-      </span>
-      <button
-        className="h-11 rounded-lg border px-4 disabled:opacity-40"
-        disabled={cur >= totalPages}
-        onClick={() => onChange(cur + 1)}>
-        Next
-      </button>
-    </div>
-  );
-}
 
 function ProductImage({ src, alt = "" }) {
   const [errored, setErrored] = useState(false);
@@ -210,21 +183,43 @@ function ProductCard({ product, onClick }) {
 export default function ProductGridView({
   noScroll = false,
   data = [],
-  paginationData,
-  onPageChange,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
   setShowDetail,
   fetchSellablePackages,
   setFetchModalProductDetails,
   setSelectedRowKeys,
 }) {
+  const scrollRef = useRef(null);
+  const sentinelRef = useRef(null);
+
+  // Infinite scroll — swaps the old Prev/Next pager for an IntersectionObserver
+  // on a sentinel div after the grid; fires onLoadMore(next page, appended)
+  // once it's within 400px of the scroll container's bottom edge.
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onLoadMore();
+      },
+      { root: noScroll ? null : scrollRef.current, rootMargin: "400px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, noScroll]);
+
   return (
     <div
+      ref={scrollRef}
       style={{
         height: "100%",
         overflowY: noScroll ? "hidden" : "auto",
         overflowX: "hidden",
       }}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
         {data.map((product) => (
           <ProductCard
             key={product.id}
@@ -239,12 +234,13 @@ export default function ProductGridView({
         ))}
       </div>
 
-      <Pagination
-        page={paginationData?.page}
-        limit={paginationData?.limit}
-        totalEntries={paginationData?.totalEntries}
-        onChange={onPageChange}
-      />
+      {hasMore && (
+        <div ref={sentinelRef} className="flex items-center justify-center py-6">
+          {loadingMore && (
+            <span className="text-sm text-muted-foreground">Loading more…</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

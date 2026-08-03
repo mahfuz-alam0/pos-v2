@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 
 const SIDE_CONFIG = {
   right: {
@@ -61,9 +62,16 @@ export default function Drawer({
     return () => clearTimeout(timeoutId);
   }, [open]);
 
-  if (!shouldRender) return null;
+  if (!shouldRender || typeof document === "undefined") return null;
 
-  return (
+  // Portaled straight to <body> — this panel's own `transform` (set even
+  // while open, to `translate(0,0)`) makes it a new containing block for any
+  // `position: fixed` descendant. Nesting a Drawer inside another open
+  // Drawer's content (e.g. a Filter drawer opened from a product list that's
+  // itself inside a "Manage Cart Items" drawer) would otherwise anchor the
+  // inner one to that transformed ancestor instead of the viewport, and get
+  // silently clipped by whatever `overflow-hidden` wrapper sits in between.
+  return createPortal(
     <>
       {overlay && (
         <div
@@ -89,6 +97,7 @@ export default function Drawer({
       >
         {children}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

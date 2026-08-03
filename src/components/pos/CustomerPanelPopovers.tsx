@@ -99,7 +99,7 @@ function TopCategories({ selectedCustomer }) {
   );
 }
 
-function CustomerLimits({ getOrderSummary }) {
+export function CustomerLimits({ getOrderSummary }) {
   const [uoms, setUoms] = useState([]);
   useEffect(() => {
     listUoms()
@@ -109,66 +109,69 @@ function CustomerLimits({ getOrderSummary }) {
 
   const rulesTrace = getOrderSummary?.data?.metaData?.rulesTrace;
   if (!rulesTrace?.length || getOrderSummary?.data?.customerGroupId === null) {
-    return <div>No customer limits data available.</div>;
+    return (
+      <div className="text-sm text-muted-foreground">
+        No customer limits data available.
+      </div>
+    );
   }
 
   return (
-    <div className="max-h-[400px] w-full overflow-y-auto">
+    <div className="w-full space-y-3">
       {rulesTrace.map((category, index) => {
         const measured =
           category?.measurementType === "TOTAL_QUANTITIES"
             ? category?.totalPurchasedQuantity || 0
             : category?.totalPurchasedWeight || 0;
-        const percent = Math.min(
-          100,
-          Math.max(0, (measured / (category?.targetLimit || 1)) * 100)
-        );
+        const limit = category?.targetLimit || 0;
+        const percent = Math.min(100, Math.max(0, (measured / (limit || 1)) * 100));
+        const barColor =
+          percent >= 100 ? "#dc2626" : percent >= 75 ? "#d97706" : category?.colorCode || "#1890ff";
         const uomName = (() => {
           const ref = category?.targetCategoryRefs?.[0];
           if (!ref) return "";
           const uom = uoms.find((item) => item.id === ref.split(":")[1]);
           return uom ? uom.name : "";
         })();
+        const strategyLabel = category?.orderConsiderationStrategy
+          ? category.orderConsiderationStrategy
+              .split("_")
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+              .join(" ")
+          : null;
         return (
-          <div key={index} className="mb-4 rounded-lg border border-border bg-muted/50 p-3">
-            <div className="mb-2 flex justify-between">
-              <h3 className="min-w-30 text-sm font-medium">Type</h3>
-              <span className="break-words text-right text-[13px]">{category?.name ?? "N/A"}</span>
-            </div>
-            <div className="mb-2 flex justify-between">
-              <h3 className="min-w-30 text-sm font-medium">Measurement Type</h3>
-              <span className="text-right text-[13px]">
-                {category?.measurementType === "TOTAL_QUANTITIES" ? "Total Quantity" : "Total Weight"}
+          <div
+            key={index}
+            className="rounded-xl border border-border bg-card p-4 shadow-sm"
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-semibold text-foreground">
+                {category?.name ?? "N/A"}
+              </span>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {category?.measurementType === "TOTAL_QUANTITIES" ? "Qty" : "Weight"}
               </span>
             </div>
-            <div className="mb-2 flex justify-between">
-              <h3 className="min-w-30 text-sm font-medium">Strategy</h3>
-              <span className="break-words text-right text-[13px]">
-                {category?.orderConsiderationStrategy
-                  ? category.orderConsiderationStrategy
-                      .split("_")
-                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                      .join(" ")
-                  : "N/A"}
+
+            <div className="mb-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${percent}%`, backgroundColor: barColor }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                {measured} / {limit} {uomName}
+              </span>
+              <span className="font-semibold" style={{ color: barColor }}>
+                {percent.toFixed(0)}%
               </span>
             </div>
-            <div className="mt-3">
-              <div className="mb-2 flex justify-between">
-                <h3 className="text-sm font-medium">Progress</h3>
-                <span className="text-xs text-muted-foreground">
-                  {measured} / {category?.targetLimit || 0}
-                </span>
-              </div>
-              <div className="mb-2 h-2 w-full overflow-hidden rounded bg-muted">
-                <div
-                  className="h-full rounded"
-                  style={{ width: `${percent}%`, backgroundColor: category?.colorCode || "#1890ff" }}
-                />
-              </div>
-              <div className="text-right text-[11px] text-muted-foreground">
-                Limit: {category?.targetLimit ?? "N/A"} {uomName}
-              </div>
-            </div>
+
+            {strategyLabel && (
+              <div className="mt-2 text-[11px] text-muted-foreground">{strategyLabel}</div>
+            )}
           </div>
         );
       })}
@@ -278,7 +281,9 @@ export default function CustomerPanelPopovers({
           />
           <PopoverContent className="w-96">
             <p className="mb-3 text-center text-sm font-semibold">Per Visit Limits</p>
-            <CustomerLimits getOrderSummary={getOrderSummary} />
+            <div className="max-h-[400px] overflow-y-auto">
+              <CustomerLimits getOrderSummary={getOrderSummary} />
+            </div>
           </PopoverContent>
         </Popover>
       )}

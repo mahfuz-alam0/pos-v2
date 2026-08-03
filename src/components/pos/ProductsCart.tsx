@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/tooltip";
 import DiscountFinalPriceDrawer from "@/components/pos/DiscountFinalPriceDrawer";
 import DealCard from "@/components/pos/DealCard";
+import BogoDealCard from "@/components/pos/BogoDealCard";
+import TieredDealCard from "@/components/pos/TieredDealCard";
 import PrintLabelModal from "@/components/pos/PrintLabelModal";
 
 // Discount breakdown "source" -> the enum the quote API accepts in a line
@@ -121,6 +123,8 @@ export default function ProductsCart() {
   // a plain toggle since we're not using antd).
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [rowDeals, setRowDeals] = useState([]);
+  const [rowBogoDeals, setRowBogoDeals] = useState([]);
+  const [rowTieredDeals, setRowTieredDeals] = useState([]);
   const [rowDealsLoading, setRowDealsLoading] = useState(false);
 
   // Split one cart line into two (e.g. 5 units -> 3 kept + 2 split off),
@@ -141,6 +145,8 @@ export default function ProductsCart() {
     }
     setExpandedKey(record.key);
     setRowDeals([]);
+    setRowBogoDeals([]);
+    setRowTieredDeals([]);
     setRowDealsLoading(true);
     const unitPriceToTarget =
       lineItemAssignment.get(record.key)?.createdLineItem?.initialUnitPrice ??
@@ -160,11 +166,12 @@ export default function ProductsCart() {
         },
       ],
     })
-      .then((res) =>
-        setRowDeals(
-          res?.data?.data?.deals?.applicableDeals?.regularDeals || [],
-        ),
-      )
+      .then((res) => {
+        const applicableDeals = res?.data?.data?.deals?.applicableDeals;
+        setRowDeals(applicableDeals?.regularDeals || []);
+        setRowBogoDeals(applicableDeals?.bogoDeals || []);
+        setRowTieredDeals(applicableDeals?.tieredDeals || []);
+      })
       .catch(() => toast.error("Failed to load available deals"))
       .finally(() => setRowDealsLoading(false));
   };
@@ -692,6 +699,34 @@ export default function ProductsCart() {
                               productRecord={null}
                               onDealApplied={() => setExpandedKey(null)}
                             />
+                          )}
+
+                          {!rowDealsLoading && rowBogoDeals.length > 0 && (
+                            <div className="mt-4">
+                              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <Tag className="size-4" />
+                                Available BOGO Deals
+                              </div>
+                              <BogoDealCard
+                                bogoDeals={rowBogoDeals}
+                                productRecord={record}
+                                onDealApplied={() => setExpandedKey(null)}
+                              />
+                            </div>
+                          )}
+
+                          {!rowDealsLoading && rowTieredDeals.length > 0 && (
+                            <div className="mt-4">
+                              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <Tag className="size-4" />
+                                Available Tiered Deals
+                              </div>
+                              <TieredDealCard
+                                tieredDeals={rowTieredDeals}
+                                productRecord={record}
+                                onDealApplied={() => setExpandedKey(null)}
+                              />
+                            </div>
                           )}
 
                           {discountBreakdownFor(record).length > 0 && (

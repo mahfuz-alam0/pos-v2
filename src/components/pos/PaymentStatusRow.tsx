@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,6 +15,7 @@ export default function PaymentStatusRow({
   cartEmpty,
   onOpenPaymentSidebar,
   paymentMethod,
+  hasPaymentEntered,
   finalPayable,
   currentAction,
   hasSale,
@@ -34,6 +33,7 @@ export default function PaymentStatusRow({
   cartEmpty: boolean;
   onOpenPaymentSidebar: () => void;
   paymentMethod: string;
+  hasPaymentEntered: boolean;
   finalPayable: number;
   currentAction: string | null;
   hasSale: boolean;
@@ -44,7 +44,7 @@ export default function PaymentStatusRow({
   selectedStatusObj: any;
   onQuickStatusChange: (value: string) => void;
   sendToFulfilmentLoading: boolean;
-  onSendToFulfillment: () => void;
+  onSendToFulfillment: (statusOverride?: string) => void;
   // When this row is portaled somewhere with its own dark styling (Tablet
   // Mode POS), its Select dropdowns need to portal into that same dark-
   // scoped container too — otherwise they escape straight to <body> and
@@ -62,9 +62,8 @@ export default function PaymentStatusRow({
         : paymentMethod === "BOTH_CASH_VIRTUAL"
           ? "Cash + Card"
           : null;
-  const paymentLabel = chosenPaymentMethod
-    ? `Payment: ${chosenPaymentMethod}`
-    : "Payment";
+  const paymentLabel =
+    hasPaymentEntered && chosenPaymentMethod ? chosenPaymentMethod : "Payment";
 
   const mainStatusItems = (orderStatus || []).filter(
     (s) =>
@@ -128,13 +127,12 @@ export default function PaymentStatusRow({
       )}
 
       {!hasSale && currentAction === null && (
-        <div className="flex flex-1 items-center min-w-0 overflow-hidden rounded-md bg-primary">
+        <>
           <button
             type="button"
-            data-slot="quick-status-trigger"
+            disabled={cartEmpty || sendToFulfilmentLoading}
             onClick={() => setMoveToOpen(true)}
-            aria-label="Change target status"
-            className="flex shrink-0 items-center gap-1 rounded-none border-0 border-r border-primary-foreground/20 bg-primary-foreground/10 px-2 py-2 text-primary-foreground hover:bg-primary-foreground/20">
+            className="flex flex-1 min-w-0 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
             <span
               className="inline-block h-2 w-2 shrink-0 rounded-full"
               style={
@@ -143,20 +141,12 @@ export default function PaymentStatusRow({
                   : { backgroundColor: "currentColor" }
               }
             />
-            <ChevronDown className="h-3.5 w-3.5 opacity-90" />
-          </button>
-          <Button
-            variant="default"
-            size="sm"
-            disabled={cartEmpty || sendToFulfilmentLoading}
-            onClick={onSendToFulfillment}
-            className="flex-1 min-w-0 rounded-none">
             <span className="truncate">
               {sendToFulfilmentLoading
                 ? "Sending…"
-                : `Move To (${selectedStatusObj?.displayName || "Select Status"})`}
+                : selectedStatusObj?.displayName || "Select Status"}
             </span>
-          </Button>
+          </button>
 
           <Dialog open={moveToOpen} onOpenChange={setMoveToOpen}>
             <DialogContent className="sm:max-w-xs">
@@ -172,6 +162,7 @@ export default function PaymentStatusRow({
                       type="button"
                       onClick={() => {
                         onQuickStatusChange(s.statusId);
+                        onSendToFulfillment(s.statusId);
                         setMoveToOpen(false);
                       }}
                       className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted ${
@@ -187,7 +178,7 @@ export default function PaymentStatusRow({
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+        </>
       )}
     </div>
   );

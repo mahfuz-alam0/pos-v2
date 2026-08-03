@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useShop } from "@/context/shop-context";
-import { fetchCustomerQueueList, clearCustomerQueue } from "@/services/customerQueue/list";
+import {
+  fetchCustomerQueueList,
+  clearCustomerQueue,
+} from "@/services/customerQueue/list";
 import { connectToSocket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import QueueCard from "./QueueCard";
@@ -21,7 +24,11 @@ import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 // the responsive 3-per-row width — for sidepanel hosts wide enough to fit
 // them (e.g. a 60vw POS drawer) as opposed to a narrow one (e.g. the 660px
 // Settings drawer), which stay single-column.
-export default function CustomerQueue({ sidepanel = false, wide = false, onCustomerServed = null }) {
+export default function CustomerQueue({
+  sidepanel = false,
+  wide = false,
+  onCustomerServed = null,
+}) {
   const { shopId } = useShop();
   const [queueData, setQueueData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,17 +92,17 @@ export default function CustomerQueue({ sidepanel = false, wide = false, onCusto
   };
 
   return (
-    <div className={sidepanel ? "flex h-full flex-col" : "rounded-xl border border-border bg-component-bg p-4"}>
+    <div
+      className={
+        sidepanel
+          ? "flex h-full flex-col"
+          : "rounded-xl border border-border bg-component-bg p-4"
+      }>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-lg font-semibold text-text capitalize">Customer queue</h2>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => setQrOpen(true)}>
-            Scan QR
-          </Button>
-          <Button size="sm" onClick={() => setAddCustomerOpen(true)}>
-            Add Customer
-          </Button>
-          <Button size="sm" onClick={handleClearQueue} disabled={clearing}>
+        <div className="flex justify-end w-full gap-2">
+          <Button onClick={() => setQrOpen(true)}>Scan QR</Button>
+
+          <Button onClick={handleClearQueue} disabled={clearing}>
             Clear Queue
           </Button>
         </div>
@@ -114,12 +121,15 @@ export default function CustomerQueue({ sidepanel = false, wide = false, onCusto
 
       <div
         className={`mt-3 flex flex-wrap gap-2 overflow-y-auto ${sidepanel ? "min-h-0" : "min-h-20 max-h-82.5"}`}
-        style={sidepanel ? { scrollbarWidth: "none" } : undefined}
-      >
+        style={sidepanel ? { scrollbarWidth: "none" } : undefined}>
         {loading ? (
-          <div className="flex w-full items-center justify-center py-6 text-muted-foreground">Loading…</div>
+          <div className="flex w-full items-center justify-center py-6 text-muted-foreground">
+            Loading…
+          </div>
         ) : queueData.length === 0 ? (
-          <div className="flex w-full items-center justify-center py-6 text-muted-foreground">No Data Found</div>
+          <div className="flex w-full items-center justify-center py-6 text-muted-foreground">
+            No Data Found
+          </div>
         ) : (
           queueData.map((ticket, index) => (
             <QueueCard
@@ -138,7 +148,12 @@ export default function CustomerQueue({ sidepanel = false, wide = false, onCusto
         )}
       </div>
 
-      <QrCheckIn open={qrOpen} onOpenChange={setQrOpen} shopId={shopId} onSuccess={fetchQueue} />
+      <QrCheckIn
+        open={qrOpen}
+        onOpenChange={setQrOpen}
+        shopId={shopId}
+        onSuccess={fetchQueue}
+      />
       <AddCustomerToQueue
         open={addCustomerOpen}
         onOpenChange={setAddCustomerOpen}
