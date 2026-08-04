@@ -1,17 +1,23 @@
 "use client";
 
 /**
- * Read-only detail panel for a deal. Handles both BOGO deals (deal.bogoDealInfo)
- * and regular deals (deal.regularDealInfo). Rendered inside the deal drawer
- * opened from DealCard / BogoDealCard.
+ * Read-only detail panel for a deal. Handles BOGO deals (deal.bogoDealInfo),
+ * tiered deals (deal.tieredDealInfo), and regular deals (deal.regularDealInfo).
+ * Rendered inside the deal drawer opened from DealCard / BogoDealCard /
+ * TieredDealCard.
  *
  * Props:
- *   deal — deal object (dealName, bogoDealInfo|regularDealInfo, usageRule,
- *          allowedStacks, expiryInfo, ...)
+ *   deal — deal object (dealName, bogoDealInfo|tieredDealInfo|regularDealInfo,
+ *          usageRule, allowedStacks, expiryInfo, ...)
  */
 export default function DealDetails({ deal }) {
   const isBogoDeal = Boolean(deal?.bogoDealInfo);
-  const dealInfo = isBogoDeal ? deal.bogoDealInfo : deal.regularDealInfo;
+  const isTieredDeal = Boolean(deal?.tieredDealInfo);
+  const dealInfo = isBogoDeal
+    ? deal.bogoDealInfo
+    : isTieredDeal
+      ? deal.tieredDealInfo
+      : deal.regularDealInfo;
 
   const Row = ({ label, value }) => (
     <div className="mb-2 flex justify-between">
@@ -66,6 +72,37 @@ export default function DealDetails({ deal }) {
               }
             />
           )}
+        </>
+      ) : isTieredDeal ? (
+        <>
+          <Row label="Deal Type:" value="Tiered Deal" />
+          <Row label="Target Entity:" value={dealInfo?.targetEntity || "Not specified"} />
+          <Row
+            label="Measurement Type:"
+            value={dealInfo?.measurementType || "QUANTITY"}
+          />
+          <Row
+            label="Mix & Match:"
+            value={dealInfo?.shouldAllowMixAndMatch ? "Allowed" : "Not Allowed"}
+          />
+          <Row
+            label="Auto Apply:"
+            value={dealInfo?.shouldAllowAutoApply ? "Yes" : "No"}
+          />
+          {(dealInfo?.tiers || []).map((tier, idx) => (
+            <Row
+              key={idx}
+              label={`Tier ${idx + 1}:`}
+              value={
+                tier.offType === "NEW_UNIT_PRICE"
+                  ? `Buy ${tier.buyMinimum}+ → $${tier.offAmount}/unit`
+                  : tier.offType === "PERCENTAGE_OFF" ||
+                      tier.offType === "UNIT_PERCENTAGE_OFF"
+                    ? `Buy ${tier.buyMinimum}+ → ${tier.offAmount}% off`
+                    : `Buy ${tier.buyMinimum}+ → $${tier.offAmount} off/unit`
+              }
+            />
+          ))}
         </>
       ) : (
         <>

@@ -405,11 +405,22 @@ export default function PaymentSidebar({
     initialSplitMode,
   ]);
 
+  // Suggests the next few real US bill denominations at or above the total
+  // (e.g. a $4 total suggests $5/$10/$20), instead of always jumping to
+  // multiples of $50 — those only make sense once the total itself is large.
+  const CASH_BILLS = [1, 5, 10, 20, 50, 100];
   const cashDenominations = (() => {
     const total = Number(totalAmount);
     if (!Number.isFinite(total) || total <= 0) return [];
-    const first = Math.ceil((total + 0.01) / 50) * 50;
-    return [first, first + 50, first + 100];
+    const covering = CASH_BILLS.filter((b) => b >= total);
+    if (covering.length >= 3) return covering.slice(0, 3);
+    // Total exceeds the largest standard bill — fall back to rounded-up
+    // hundreds above it.
+    const first = Math.ceil(total / 100) * 100;
+    const extra = [first, first + 100, first + 200].filter(
+      (v) => !covering.includes(v),
+    );
+    return [...covering, ...extra].slice(0, 3);
   })();
 
   useEffect(() => {
@@ -954,35 +965,58 @@ export default function PaymentSidebar({
 
           <div className="flex-1 overflow-y-auto">
             <div className="px-6 pb-2">
-              <div className="text-center">
-                <p className="my-2 text-4xl font-bold">
-                  ${(totalAmount + (totalProcessingFees || 0)).toFixed(2)}
-                </p>
-                <p className="text-sm opacity-75">Total Due</p>
-                {tipAmount > 0 && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Subtotal: ${(totalAmount - tipAmount).toFixed(2)} + Tip: $
-                    {tipAmount.toFixed(2)}
+              <div
+                className={
+                  getChangeAmount() > 0
+                    ? "flex items-stretch gap-3"
+                    : "text-center"
+                }
+              >
+                <div
+                  className={
+                    getChangeAmount() > 0 ? "flex-1 text-center" : undefined
+                  }
+                >
+                  <p className="my-2 text-4xl font-bold">
+                    ${(totalAmount + (totalProcessingFees || 0)).toFixed(2)}
+                  </p>
+                  <p className="text-sm opacity-75">Total Due</p>
+                  {tipAmount > 0 && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Subtotal: ${(totalAmount - tipAmount).toFixed(2)} + Tip: $
+                      {tipAmount.toFixed(2)}
+                    </div>
+                  )}
+                  {totalProcessingFees !== 0 && (
+                    <>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Order Total: ${totalAmount.toFixed(2)}
+                      </p>
+                      <p
+                        className={`mt-1 text-xs ${
+                          totalProcessingFees > 0
+                            ? "text-orange-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {totalProcessingFees > 0
+                          ? "Processing Fee: +"
+                          : "Discount Applied: -"}
+                        ${Math.abs(totalProcessingFees).toFixed(2)}
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {getChangeAmount() > 0 && (
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-green-300 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-950">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
+                      Change Due
+                    </p>
+                    <p className="text-3xl font-bold text-green-700 dark:text-green-400">
+                      ${getChangeAmount().toFixed(2)}
+                    </p>
                   </div>
-                )}
-                {totalProcessingFees !== 0 && (
-                  <>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Order Total: ${totalAmount.toFixed(2)}
-                    </p>
-                    <p
-                      className={`mt-1 text-xs ${
-                        totalProcessingFees > 0
-                          ? "text-orange-600"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {totalProcessingFees > 0
-                        ? "Processing Fee: +"
-                        : "Discount Applied: -"}
-                      ${Math.abs(totalProcessingFees).toFixed(2)}
-                    </p>
-                  </>
                 )}
               </div>
             </div>

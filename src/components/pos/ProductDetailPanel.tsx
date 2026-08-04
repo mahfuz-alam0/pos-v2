@@ -10,10 +10,10 @@ import SkeletonLoader from "@/components/pos/SkeletonLoader";
 import { getSingleProduct } from "@/services/products/getSingleProduct";
 
 const defaultImage = "/images/placeholders/product.svg";
-// 40x40 touch target, matching the reference tablet mode's stepper buttons
-// (the shadcn "icon" size defaults to a smaller ~32px, too small to reliably
-// hit on a tablet).
-const STEPPER_BTN = "size-10";
+// Big, unmissable touch targets — the shadcn "icon" size defaults to a
+// smaller ~32px, and even the previous 40px was called out as too small to
+// reliably hit on a tablet.
+const STEPPER_BTN = "size-16";
 
 function relativeTime(dateStr) {
   if (!dateStr) return "-";
@@ -34,38 +34,52 @@ function StatBlock({ label, value, color = undefined }: any) {
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="m-0 text-sm font-bold" style={color ? { color } : undefined}>
+      <p
+        className="m-0 text-sm font-bold"
+        style={color ? { color } : undefined}>
         {value}
       </p>
     </div>
   );
 }
 
-function QuantityStepper({ pkg, quantity, isDecimalAllowed, exceeds, onDelta, onInput }) {
+function QuantityStepper({
+  pkg,
+  quantity,
+  isDecimalAllowed,
+  exceeds,
+  onDelta,
+  onInput,
+  size = "default",
+}) {
+  const btnSize = size === "lg" ? "size-16" : STEPPER_BTN;
+  const iconSize = size === "lg" ? "size-6" : "size-5";
+  const inputClass =
+    size === "lg"
+      ? "h-16 w-24 text-center text-2xl font-bold"
+      : "h-16 w-20 text-center text-lg font-semibold";
   return (
-    <div className="flex items-center justify-end gap-1.5">
+    <div className="flex items-center justify-end gap-2">
       <Button
         size="icon"
         variant="secondary"
-        className={STEPPER_BTN}
-        onClick={() => onDelta(pkg.id, isDecimalAllowed ? -0.25 : -1)}
-      >
-        <Minus className="size-4" />
+        className={btnSize}
+        onClick={() => onDelta(pkg.id, isDecimalAllowed ? -0.25 : -1)}>
+        <Minus className={iconSize} />
       </Button>
       <Input
         value={quantity}
         onFocus={(e) => e.target.select()}
         onChange={(e) => onInput(pkg.id, e.target.value)}
         inputMode={isDecimalAllowed ? "decimal" : "numeric"}
-        className={`w-16 text-center ${exceeds ? "border-destructive" : ""}`}
+        className={`${inputClass} ${exceeds ? "border-destructive" : ""}`}
       />
       <Button
         size="icon"
         variant="secondary"
-        className={STEPPER_BTN}
-        onClick={() => onDelta(pkg.id, isDecimalAllowed ? 0.25 : 1)}
-      >
-        <Plus className="size-4" />
+        className={btnSize}
+        onClick={() => onDelta(pkg.id, isDecimalAllowed ? 0.25 : 1)}>
+        <Plus className={iconSize} />
       </Button>
     </div>
   );
@@ -126,14 +140,18 @@ export default function ProductDetailPanel({
     if (packagesData.length === 1) {
       const pkg = packagesData[0];
       setSelectedRowKeys([pkg.key]);
-      setQuantities((prev) => (prev[pkg.key] ? prev : { ...prev, [pkg.key]: 1 }));
+      setQuantities((prev) =>
+        prev[pkg.key] ? prev : { ...prev, [pkg.key]: 1 },
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packagesData]);
 
   const toggleSelect = (pkg) =>
     setSelectedRowKeys((keys) =>
-      keys.includes(pkg.key) ? keys.filter((k) => k !== pkg.key) : [...keys, pkg.key]
+      keys.includes(pkg.key)
+        ? keys.filter((k) => k !== pkg.key)
+        : [...keys, pkg.key],
     );
 
   const packageUnitPrice = Number(packagesData?.[0]?.price);
@@ -158,18 +176,24 @@ export default function ProductDetailPanel({
       ? (product.totalQuantity / conversionRate).toFixed(2)
       : Number(product?.totalActiveQuantity ?? 0).toFixed(2)) +
     " " +
-    (conversionRate > 0 ? product.projectQtyUomShortForm : product?.sellableUoMShortForm ?? "");
+    (conversionRate > 0
+      ? product.projectQtyUomShortForm
+      : (product?.sellableUoMShortForm ?? ""));
 
   const thcValue = product?.productInfo?.cannabisProductData?.thcData?.value;
   const cbdValue = product?.productInfo?.cannabisProductData?.cbdData?.value;
   const imgUrl =
     product?.productInfo?.images?.[0]?.url ||
-    (typeof product?.images?.[0] === "string" ? product.images[0] : product?.images?.[0]?.url);
+    (typeof product?.images?.[0] === "string"
+      ? product.images[0]
+      : product?.images?.[0]?.url);
 
   const strains = productDetails?.strains ?? [];
   const visibleStrains = showAllStrains ? strains : strains.slice(0, 6);
 
-  const selectedRecord = packagesData.find((item) => item.key === selectedRowKeys[0]);
+  const selectedRecord = packagesData.find(
+    (item) => item.key === selectedRowKeys[0],
+  );
   const isMultiPackage = packagesData.length >= 2;
 
   const calculateTotalPrice = () =>
@@ -180,7 +204,7 @@ export default function ProductDetailPanel({
     }, 0);
 
   const existingPackages = packagesData.filter((pkg) =>
-    cart.some((item) => item.id === pkg.id)
+    cart.some((item) => item.id === pkg.id),
   );
 
   const handleAddClick = () => {
@@ -195,7 +219,11 @@ export default function ProductDetailPanel({
   };
 
   const statBlocks = [
-    { label: "Price", value: `$${displayPrice.toFixed(2)}`, color: "var(--color-primary)" },
+    {
+      label: "Price",
+      value: `$${displayPrice.toFixed(2)}`,
+      color: "var(--color-primary)",
+    },
     { label: "Total QTY", value: totalQtyText },
     { label: "Sellable QTY", value: sellableQtyText },
     {
@@ -219,7 +247,8 @@ export default function ProductDetailPanel({
 
       {hasAddedPackages && existingPackages.length > 0 && (
         <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          Already in cart: {existingPackages.map((p) => p.name || p.advertisedId).join(", ")}
+          Already in cart:{" "}
+          {existingPackages.map((p) => p.name || p.advertisedId).join(", ")}
         </div>
       )}
 
@@ -249,35 +278,100 @@ export default function ProductDetailPanel({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+          <div
+            className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${strains.length > 0 ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
             {statBlocks.map((b) => (
               <StatBlock key={b.label} {...b} />
             ))}
+
+            {strains.length > 0 && (
+              <div className="rounded-xl border border-border bg-muted px-3 py-2.5">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Strains
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {visibleStrains.map((s, i) => (
+                    <Badge key={i} variant="secondary">
+                      {s.name}
+                    </Badge>
+                  ))}
+                </div>
+                {strains.length > 6 && (
+                  <button
+                    type="button"
+                    className="mt-1.5 text-xs font-semibold text-primary"
+                    onClick={() => setShowAllStrains((v) => !v)}>
+                    {showAllStrains
+                      ? "Show less"
+                      : `+${strains.length - 6} more — Show all`}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {strains.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted px-3 py-2.5">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Strains
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {visibleStrains.map((s, i) => (
-                  <Badge key={i} variant="secondary">
-                    {s.name}
-                  </Badge>
-                ))}
-              </div>
-              {strains.length > 6 && (
-                <button
-                  type="button"
-                  className="mt-1.5 text-xs font-semibold text-primary"
-                  onClick={() => setShowAllStrains((v) => !v)}
-                >
-                  {showAllStrains ? "Show less" : `+${strains.length - 6} more — Show all`}
-                </button>
-              )}
-            </div>
-          )}
+          {packagesData.length === 1 &&
+            selectedRecord &&
+            (() => {
+              const qty = quantities[selectedRecord.key] ?? 1;
+              const exceeds =
+                selectedRecord?.quantityLeft != null &&
+                qty > selectedRecord.quantityLeft;
+              const unitPrice = Number(selectedRecord.price) || 0;
+              const lineTotal = unitPrice * qty;
+              return (
+                <div className="rounded-xl border border-border bg-muted px-4 py-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Quantity
+                      </p>
+                      <p className="m-0 text-sm text-muted-foreground">
+                        ${unitPrice.toFixed(2)} each
+                      </p>
+                    </div>
+
+                    <QuantityStepper
+                      pkg={selectedRecord}
+                      quantity={qty}
+                      isDecimalAllowed={
+                        selectedRecord?.shouldAllowDecimalValue ?? false
+                      }
+                      exceeds={exceeds}
+                      onDelta={onQuantityDelta}
+                      onInput={onQuantityInput}
+                      size="lg"
+                    />
+
+                    <div className="text-right">
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Line Total
+                      </p>
+                      <p
+                        className="m-0 text-xl font-bold"
+                        style={{ color: "var(--color-primary)" }}>
+                        ${lineTotal.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  {exceeds && (
+                    <p className="mt-2 text-xs font-medium text-destructive">
+                      Exceeds available stock ({selectedRecord.quantityLeft}{" "}
+                      left)
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+          <Button
+            className="h-16 w-full text-lg font-bold"
+            size="lg"
+            disabled={selectedRowKeys.length === 0}
+            onClick={handleAddClick}>
+            <ShoppingCart className="mr-2 size-5" />
+            Add to Cart · ${calculateTotalPrice().toFixed(2)}
+          </Button>
         </div>
       </div>
 
@@ -292,7 +386,9 @@ export default function ProductDetailPanel({
               <tr>
                 <th className="w-8 px-2 py-2" />
                 <th className="px-2 py-2">Package ID</th>
-                {isMultiPackage && <th className="px-2 py-2 text-right">Quantity</th>}
+                {isMultiPackage && (
+                  <th className="px-2 py-2 text-right">Quantity</th>
+                )}
                 <th className="px-2 py-2">Expiry</th>
                 <th className="px-2 py-2">Created At</th>
                 {locationColumns.map((loc) => (
@@ -306,7 +402,8 @@ export default function ProductDetailPanel({
               {packagesData.map((pkg) => {
                 const selected = selectedRowKeys.includes(pkg.key);
                 const qty = quantities[pkg.key] ?? 1;
-                const exceeds = pkg?.quantityLeft != null && qty > pkg.quantityLeft;
+                const exceeds =
+                  pkg?.quantityLeft != null && qty > pkg.quantityLeft;
                 return (
                   <tr key={pkg.key} className="border-t border-border">
                     <td className="px-2 py-2">
@@ -324,7 +421,9 @@ export default function ProductDetailPanel({
                           <QuantityStepper
                             pkg={pkg}
                             quantity={qty}
-                            isDecimalAllowed={pkg?.shouldAllowDecimalValue ?? false}
+                            isDecimalAllowed={
+                              pkg?.shouldAllowDecimalValue ?? false
+                            }
                             exceeds={exceeds}
                             onDelta={onQuantityDelta}
                             onInput={onQuantityInput}
@@ -333,18 +432,24 @@ export default function ProductDetailPanel({
                       </td>
                     )}
                     <td className="px-2 py-2">
-                      {pkg.expiry ? new Date(pkg.expiry).toLocaleDateString() : "-"}
+                      {pkg.expiry
+                        ? new Date(pkg.expiry).toLocaleDateString()
+                        : "-"}
                     </td>
                     <td className="px-2 py-2">{relativeTime(pkg.createdAt)}</td>
                     {locationColumns.map((loc) => {
                       // Per-package breakdown is a plain { [locationId]: quantity }
                       // map (ListAllPackagesQuery), not an array like the
                       // inventory-level breakdown used for locationColumns' names.
-                      const locQty = (pkg.storageLocationBreakdown || {})[loc.id];
+                      const locQty = (pkg.storageLocationBreakdown || {})[
+                        loc.id
+                      ];
                       return (
                         <td key={loc.id} className="px-2 py-2">
                           {Number(locQty ?? 0).toFixed(2)}{" "}
-                          {pkg.sellableUomShortForm ?? pkg.sellableUoMShortForm ?? ""}
+                          {pkg.sellableUomShortForm ??
+                            pkg.sellableUoMShortForm ??
+                            ""}
                         </td>
                       );
                     })}
@@ -354,9 +459,10 @@ export default function ProductDetailPanel({
               {packagesData.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4 + (isMultiPackage ? 1 : 0) + locationColumns.length}
-                    className="px-2 py-4 text-center text-muted-foreground"
-                  >
+                    colSpan={
+                      4 + (isMultiPackage ? 1 : 0) + locationColumns.length
+                    }
+                    className="px-2 py-4 text-center text-muted-foreground">
                     No packages available
                   </td>
                 </tr>
@@ -365,36 +471,6 @@ export default function ProductDetailPanel({
           </table>
         </div>
       )}
-
-      {packagesData.length === 1 &&
-        selectedRecord &&
-        (() => {
-          const qty = quantities[selectedRecord.key] ?? 1;
-          const exceeds = selectedRecord?.quantityLeft != null && qty > selectedRecord.quantityLeft;
-          return (
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Quantity</span>
-              <QuantityStepper
-                pkg={selectedRecord}
-                quantity={qty}
-                isDecimalAllowed={selectedRecord?.shouldAllowDecimalValue ?? false}
-                exceeds={exceeds}
-                onDelta={onQuantityDelta}
-                onInput={onQuantityInput}
-              />
-            </div>
-          );
-        })()}
-
-      <Button
-        className="w-full"
-        size="lg"
-        disabled={selectedRowKeys.length === 0}
-        onClick={handleAddClick}
-      >
-        <ShoppingCart className="mr-2 size-4" />
-        Add to Cart · ${calculateTotalPrice().toFixed(2)}
-      </Button>
     </div>
   );
 }
