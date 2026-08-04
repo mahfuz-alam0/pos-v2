@@ -625,9 +625,26 @@ export default function TotalCard({
         dispatch(updateSalesDetail({ proxyPin: null }));
         setShareModePin(true);
       }
-      toast.error(
-        error?.message || error?.error || "Unexpected error occurred",
-      );
+      // handleApiError throws { status, errors } (not .message) for 422s —
+      // without this, validation failures (e.g. missing registerId) silently
+      // fall through to the generic string below and the real reason is lost.
+      const validationMessage = error?.errors?.length
+        ? error.errors.join(" ")
+        : null;
+      if (
+        !quoteBody?.registerId ||
+        error?.errors?.some((e) => e.includes("registerId"))
+      ) {
+        toast.warning("Please select a register before completing the sale");
+        window.dispatchEvent(new CustomEvent("openRegisterModal"));
+      } else {
+        toast.error(
+          validationMessage ||
+            error?.message ||
+            error?.error ||
+            "Unexpected error occurred",
+        );
+      }
     } finally {
       setLoading(false);
       setOrderProcessing(false);

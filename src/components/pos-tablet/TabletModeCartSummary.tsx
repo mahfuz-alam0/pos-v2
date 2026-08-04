@@ -11,6 +11,7 @@ import {
   TriangleAlert,
   Pencil,
   UserPlus,
+  MapPin,
 } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
@@ -72,6 +73,9 @@ export default function TabletModeCartSummary({
   onEditCustomer,
   deliverySubType,
   deliveryType,
+  customerDeliveryLocations,
+  deliverySummary,
+  onOpenDeliveryAddress,
   refreshOrders,
   onDraftSaved,
 }: any) {
@@ -379,6 +383,79 @@ export default function TabletModeCartSummary({
               )}
             </div>
           </div>
+        )}
+
+        {/* Delivery address banner */}
+        {quoteBody?.deliveryMethod === "DELIVERY" && selectedCustomer?.id && (
+          <button
+            type="button"
+            onClick={onOpenDeliveryAddress}
+            className="w-full rounded-xl px-3.5 py-3 text-left transition-colors"
+            style={{
+              border: deliverySummary
+                ? "1.5px solid rgba(1,144,221,0.6)"
+                : "1.5px dashed rgba(255,255,255,0.25)",
+              background: deliverySummary ? "rgba(1,144,221,0.12)" : NAVY_CARD,
+            }}>
+            {deliverySummary ? (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <MapPin className="size-4 flex-shrink-0" style={{ color: BLUE }} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 truncate text-sm font-bold">
+                        {deliverySummary.tag && (
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[11px] font-semibold"
+                            style={{ background: "rgba(1,144,221,0.25)", color: BLUE }}>
+                            {deliverySummary.tag}
+                          </span>
+                        )}
+                        <span className="truncate">{deliverySummary.address}</span>
+                      </div>
+                      {(deliverySummary.state || deliverySummary.zipCode) && (
+                        <div className="mt-0.5 text-xs text-white/60">
+                          {[deliverySummary.state, deliverySummary.zipCode]
+                            .filter(Boolean)
+                            .join("  ·  ")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="flex-shrink-0 rounded-md border border-white/20 bg-white/5 px-2 py-0.5 text-[11px] text-white/70">
+                    Edit
+                  </span>
+                </div>
+                {(deliverySummary.tierName || deliverySummary.slotLabel) && (
+                  <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/10 pt-2">
+                    {deliverySummary.tierName && (
+                      <span className="rounded-md border border-orange-400/40 bg-orange-400/10 px-2 py-0.5 text-xs font-semibold text-orange-300">
+                        🚚 {deliverySummary.tierName}
+                        {deliverySummary.tierCharge > 0 && ` · +$${deliverySummary.tierCharge}`}
+                      </span>
+                    )}
+                    {deliverySummary.slotLabel && (
+                      <span className="rounded-md border border-purple-400/40 bg-purple-400/10 px-2 py-0.5 text-xs font-semibold text-purple-300">
+                        🕐 {deliverySummary.slotLabel}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <MapPin className="size-4 flex-shrink-0 text-white/40" />
+                <span className="flex-1 truncate text-sm text-white/70">
+                  {customerDeliveryLocations?.length > 0
+                    ? customerDeliveryLocations[0]?.streetAddress1 ||
+                      customerDeliveryLocations[0]?.tag ||
+                      "Delivery Address"
+                    : "Set Delivery Address"}
+                </span>
+                <span className="flex-shrink-0 text-xs text-white/40">Edit</span>
+              </div>
+            )}
+          </button>
         )}
 
         {/* Items in cart */}

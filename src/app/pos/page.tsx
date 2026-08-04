@@ -618,7 +618,10 @@ function TabletPosInner() {
     const updatedQuoteBody = { ...quoteBody, deliveryMethod: value };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tablet-delivery-method")
-      .then((res) => dispatch(getQuoteForSale(res.data)));
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to update delivery method"),
+      );
   };
 
   const handleCustomerGroupChange = (value) => {

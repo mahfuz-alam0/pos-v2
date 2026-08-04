@@ -82,6 +82,7 @@ import CustomerUploads from "@/components/pos/CustomerUploads";
 import CustomerQueue from "@/components/dashboard/CustomerQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
+import DeliveryLocationsManager from "@/components/customers/DeliveryLocationsManager";
 import TabletModeCartSummary from "@/components/pos-tablet/TabletModeCartSummary";
 
 const GreenDot = () => (
@@ -146,6 +147,11 @@ function TabletModePosInner() {
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [fullSelectedCustomer, setFullSelectedCustomer] = useState(null);
+  const [customerDeliveryLocations, setCustomerDeliveryLocations] = useState<
+    any[]
+  >([]);
+  const [deliveryDrawerOpen, setDeliveryDrawerOpen] = useState(false);
+  const [deliverySummary, setDeliverySummary] = useState<any>(null);
   const [dlManagerOpen, setDlManagerOpen] = useState(false);
   const [scanIdOpen, setScanIdOpen] = useState(false);
   const [scanDlOpen, setScanDlOpen] = useState(false);
@@ -429,6 +435,7 @@ function TabletModePosInner() {
   useEffect(() => {
     if (!selectedCustomer?.id) {
       setFullSelectedCustomer(null);
+      setCustomerDeliveryLocations([]);
       return;
     }
     dispatch(updateSalesDetail({ customerGroupId: null }));
@@ -437,6 +444,7 @@ function TabletModePosInner() {
       .then((res) => {
         const customer = res?.data?.data?.customer || null;
         setFullSelectedCustomer(customer);
+        setCustomerDeliveryLocations(customer?.deliveryLocations || []);
         localStorage.setItem(
           "customerGroups",
           JSON.stringify(customer?.customerGroups || []),
@@ -448,7 +456,10 @@ function TabletModePosInner() {
           dispatch(updateSalesDetail({ customerGroupId: defaultGroup.id }));
         }
       })
-      .catch(() => setFullSelectedCustomer(null));
+      .catch(() => {
+        setFullSelectedCustomer(null);
+        setCustomerDeliveryLocations([]);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomer?.id]);
 
@@ -568,6 +579,8 @@ function TabletModePosInner() {
       }),
     );
     localStorage.removeItem("customerGroups");
+    setDeliverySummary(null);
+    setCustomerDeliveryLocations([]);
 
     const upd = {
       ...quoteBody,
@@ -589,10 +602,91 @@ function TabletModePosInner() {
     setDeliveryType(value);
     localStorage.setItem("deliveryType", value);
     dispatch(updateSalesDetail({ deliveryMethod: value }));
+    if (value !== "DELIVERY") setDeliverySummary(null);
     const updatedQuoteBody = { ...quoteBody, deliveryMethod: value };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tabletMode-delivery-method")
-      .then((res) => dispatch(getQuoteForSale(res.data)));
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to update delivery method"),
+      );
+  };
+
+  // --- Delivery locations saved from the drawer: mirror the first location
+  // into the banner summary, and push deliveryAddress/priority/slot onto the
+  // quote body so checkout (TotalCard) picks them up via ...quoteBody. ---
+  const handleSaveDeliveryLocations = (savedLocations) => {
+    const clean = savedLocations.map(
+      ({
+        _selectedTier,
+        _tierName,
+        _tierCharge,
+        _scheduleForLater,
+        _selectedSlot,
+        _slotLabel,
+        _slotDay,
+        _slotFromTime,
+        _slotToTime,
+        ...rest
+      }) => rest,
+    );
+    setCustomerDeliveryLocations(clean);
+    const first = savedLocations[0] || {};
+
+    setDeliverySummary({
+      address: first.streetAddress1 || first.tag || "",
+      tag: first.tag || "",
+      state: first.state || "",
+      zipCode: first.zipCode || "",
+      tierName: first._tierName || null,
+      tierCharge: first._tierCharge || 0,
+      slotLabel: first._slotLabel || null,
+    });
+
+    const {
+      _selectedTier,
+      _tierName,
+      _tierCharge,
+      _scheduleForLater,
+      _selectedSlot,
+      _slotLabel,
+      _slotDay,
+      _slotFromTime,
+      _slotToTime,
+      _key,
+      ...deliveryAddress
+    } = first;
+
+    dispatch(
+      updateSalesDetail({
+        deliveryMethod: "DELIVERY",
+        deliveryAddress,
+        preferredDeliveryPriorityId: _selectedTier || null,
+        selectedDeliverySlotLabel: _slotLabel || null,
+        deliverySlotDay: _slotDay || null,
+        deliverySlotFromTime: _slotFromTime || null,
+        deliverySlotToTime: _slotToTime || null,
+      }),
+    );
+
+    const updatedQuoteBody = {
+      ...quoteBody,
+      deliveryMethod: "DELIVERY",
+      deliveryAddress,
+      preferredDeliveryPriorityId: _selectedTier || null,
+      selectedDeliverySlotLabel: _slotLabel || null,
+      deliverySlotDay: _slotDay || null,
+      deliverySlotFromTime: _slotFromTime || null,
+      deliverySlotToTime: _slotToTime || null,
+    };
+    quoteApiManager
+      .call(getQuoteForSales, updatedQuoteBody, "tabletMode-deliveryAddress-save")
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to update delivery address"),
+      );
+
+    setDeliveryDrawerOpen(false);
   };
 
   const handleCustomerGroupChange = (value) => {
@@ -860,6 +954,9 @@ function TabletModePosInner() {
                 }}
                 deliverySubType={deliverySubType}
                 deliveryType={deliveryType}
+                customerDeliveryLocations={customerDeliveryLocations}
+                deliverySummary={deliverySummary}
+                onOpenDeliveryAddress={() => setDeliveryDrawerOpen(true)}
                 refreshOrders={refreshOrders}
                 onDraftSaved={confirmResetPOS}
               />
@@ -905,6 +1002,31 @@ function TabletModePosInner() {
             setEditingCustomer(null);
           }}
         />
+
+        {/* ──── Delivery address drawer ──── */}
+        <Drawer
+          open={deliveryDrawerOpen}
+          onClose={() => setDeliveryDrawerOpen(false)}
+          side="right"
+          size={620}
+          className="overflow-auto">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center gap-2 border-b border-border px-6 py-4 text-base font-semibold">
+              Delivery Address
+            </div>
+            <div className="flex-1 overflow-auto">
+              {deliveryDrawerOpen && (
+                <DeliveryLocationsManager
+                  customerId={selectedCustomer?.id}
+                  initialLocations={customerDeliveryLocations}
+                  fallbackAddress={fullSelectedCustomer?.locationDetails}
+                  standalone
+                  onSave={handleSaveDeliveryLocations}
+                />
+              )}
+            </div>
+          </div>
+        </Drawer>
 
         {/* ──── Customer Queue drawer ──── */}
         <Drawer
