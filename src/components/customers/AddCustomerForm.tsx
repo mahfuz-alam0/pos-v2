@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ScanLine } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -24,10 +26,13 @@ import {
 } from "@/components/ui/popover";
 import EnterPin from "@/components/pos/EnterPin";
 import IdentityDocCard from "@/components/customers/IdentityDocCard";
+import MedIdScanDrawer from "@/components/customers/MedIdScanDrawer";
+import DeliveryLocationsManager from "@/components/customers/DeliveryLocationsManager";
 import { DocumentsUpload } from "@/components/admin/form-fields";
 
 import { createCustomer } from "@/services/customers/createCustomer";
 import { updateCustomerInfo } from "@/services/customers/updateCustomer";
+import { setCustomerDeliveryLocations } from "@/services/customers/setDeliveryLocations";
 import { deleteCustomer } from "@/services/customers/deleteCustomer";
 import { listCustomerGroups } from "@/services/customers/listCustomerGroups";
 import { listCustomerTypes } from "@/services/customers/listCustomerTypes";
@@ -249,6 +254,8 @@ export default function AddCustomerForm({
   const [customerTypes, setCustomerTypes] = useState([]);
   const [requireGroupForMJ, setRequireGroupForMJ] = useState(false);
   const [loadingCustomer, setLoadingCustomer] = useState(false);
+  const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
+  const [deliveryLocationErrors, setDeliveryLocationErrors] = useState({});
 
   const editTargetId = customerId || customer?.id || null;
   const editSource = customer || fetchedCustomer;
@@ -288,6 +295,7 @@ export default function AddCustomerForm({
   const [overridingId, setOverridingId] = useState(null);
 
   const [pinOpen, setPinOpen] = useState(false);
+  const [medIdDrawerOpen, setMedIdDrawerOpen] = useState(false);
   const pendingSubmitRef = useRef(null);
 
   const isMjMedical = groups
@@ -371,6 +379,7 @@ export default function AddCustomerForm({
     });
     setAvatarUrl(editSource.avatarUrl || null);
     setDocumentLinks(editSource.documentLinks || []);
+    setDeliveryLocations(editSource.deliveryLocations || []);
   }, [open, editSource]);
 
   const setField = (field) => (e) =>
@@ -390,6 +399,8 @@ export default function AddCustomerForm({
     setIsCaregiver(false);
     setSaveMode(null);
     setFoundCustomers([]);
+    setDeliveryLocations([]);
+    setDeliveryLocationErrors({});
   };
 
   const applyScannedFields = (fields: Record<string, string>) => {
@@ -630,6 +641,26 @@ export default function AddCustomerForm({
 
   const runUpdate = async (proxyPin) => {
     setSubmitting(true);
+    // Save delivery locations first — matches the old Edit Customer page's
+    // order, and lets us surface a delivery-specific validation error
+    // without touching the rest of the (already-valid) customer fields.
+    if (deliveryLocations.length > 0) {
+      try {
+        await setCustomerDeliveryLocations(
+          editTargetId,
+          deliveryLocations.map(({ _key, ...rest }) => rest),
+        );
+        setDeliveryLocationErrors({});
+      } catch (error: any) {
+        toast.error(
+          error?.errors?.join(", ") ||
+            error?.message ||
+            "Please fix the errors in Delivery Locations",
+        );
+        setSubmitting(false);
+        return;
+      }
+    }
     try {
       await updateCustomerInfo(editTargetId, { ...buildPayload(), proxyPin });
       toast.success("Customer updated successfully");
@@ -817,7 +848,7 @@ export default function AddCustomerForm({
                 {/* Identity documents */}
                 <section className="space-y-3">
                   <SectionHeader n={1} label="Identity Documents" />
-                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                     <IdentityDocCard
                       title="Profile Picture"
                       description="Upload or capture a photo of the customer"
@@ -839,17 +870,10 @@ export default function AddCustomerForm({
                       previewUrl={documentImages.drivingLicenseBackImage}
                       onFile={handleBackDlFile}
                     />
-                    <IdentityDocCard
-                      title="Medical ID"
-                      description="Photo of the medical marijuana card"
-                      uploadHint="Medical ID — auto-fills form fields"
-                      previewUrl={documentImages.medicalLicenseImage}
-                      onFile={handleMedIdFile}
-                    />
                   </div>
-                  <div>
+                  <div className="mt-5">
                     <Label>Additional Documents</Label>
-                    <div className="mt-1">
+                    <div className="mt-2">
                       <DocumentsUpload
                         links={documentLinks}
                         onChange={setDocumentLinks}
@@ -931,14 +955,16 @@ export default function AddCustomerForm({
 
                   <div>
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      className="mt-1"
-                      placeholder="15551234567"
-                      value={form.phone}
-                      onChange={setField("phone")}
-                    />
+                    <div className="mt-1">
+                      <PhoneInput
+                        country="us"
+                        value={form.phone}
+                        onChange={(phone) =>
+                          setForm((f) => ({ ...f, phone }))
+                        }
+                        inputClass="!w-full !h-9"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1057,11 +1083,33 @@ export default function AddCustomerForm({
                 {/* MJ Medical */}
                 {isMjMedical && (
                   <section className="space-y-3 rounded-xl bg-destructive/5 p-4 ring-1 ring-destructive/30">
-                    <SectionHeader
-                      n={5}
-                      label="Medical Information (required for medical patients)"
-                      tone="destructive"
-                    />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <SectionHeader
+                        n={5}
+                        label="Medical Information (required for medical patients)"
+                        tone="destructive"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMedIdDrawerOpen(true)}
+                        className="flex items-center gap-1.5 rounded-lg bg-background px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-foreground/10 hover:bg-muted">
+                        {documentImages.medicalLicenseImage ? (
+                          <>
+                            <img
+                              src={documentImages.medicalLicenseImage}
+                              alt=""
+                              className="size-4 rounded object-cover"
+                            />
+                            Medical ID uploaded — Replace
+                          </>
+                        ) : (
+                          <>
+                            <ScanLine className="size-3.5" />
+                            Scan / Upload Medical ID
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="medicalLicense">
@@ -1269,6 +1317,23 @@ export default function AddCustomerForm({
                     </div>
                   )}
                 </section>
+
+                {/* Delivery Locations — edit-only, matches the old Edit
+                    Customer page (creating a customer has no id yet to
+                    persist delivery locations against). */}
+                {isEditMode && (
+                  <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
+                    <SectionHeader n={8} label="Delivery Locations" />
+                    <DeliveryLocationsManager
+                      key={editTargetId}
+                      customerId={editTargetId}
+                      initialLocations={deliveryLocations}
+                      onChange={setDeliveryLocations}
+                      fieldErrors={deliveryLocationErrors}
+                      standalone={false}
+                    />
+                  </section>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
@@ -1325,6 +1390,14 @@ export default function AddCustomerForm({
           )}
         </div>
       </Drawer>
+
+      <MedIdScanDrawer
+        open={medIdDrawerOpen}
+        onClose={() => setMedIdDrawerOpen(false)}
+        onFile={handleMedIdFile}
+        previewUrl={documentImages.medicalLicenseImage}
+        zIndex={zIndex + 10}
+      />
 
       <Drawer
         open={pinOpen}

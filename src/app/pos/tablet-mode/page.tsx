@@ -15,13 +15,19 @@ import {
   resetQuoteForSale,
 } from "@/store/slices/quoteForSaleSlice";
 import { resetSaleDetail } from "@/store/slices/saleDataSlice";
-import { resetAddedLineITems } from "@/store/slices/lineItemsSlice";
-import { resetCartForSale } from "@/store/slices/cartSlice";
+import {
+  addLineItemsAction,
+  resetAddedLineITems,
+} from "@/store/slices/lineItemsSlice";
+import { addToCart, resetCartForSale } from "@/store/slices/cartSlice";
 import {
   setSelectedCustomer,
   resetSelectedCustomer,
 } from "@/store/slices/customerSlice";
-import { addCustomerAhead } from "@/store/slices/customerQueueSlice";
+import {
+  addCustomerAhead,
+  addCustomerInQueue,
+} from "@/store/slices/customerQueueSlice";
 
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getAllPaginatedRegisterDrawer } from "@/services/registers/getRegisterDrawer";
@@ -82,6 +88,7 @@ import CustomerUploads from "@/components/pos/CustomerUploads";
 import CustomerQueue from "@/components/dashboard/CustomerQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
+import DeliveryLocationsManager from "@/components/customers/DeliveryLocationsManager";
 import TabletModeCartSummary from "@/components/pos-tablet/TabletModeCartSummary";
 
 const GreenDot = () => (
@@ -146,6 +153,11 @@ function TabletModePosInner() {
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [fullSelectedCustomer, setFullSelectedCustomer] = useState(null);
+  const [customerDeliveryLocations, setCustomerDeliveryLocations] = useState<
+    any[]
+  >([]);
+  const [deliveryDrawerOpen, setDeliveryDrawerOpen] = useState(false);
+  const [deliverySummary, setDeliverySummary] = useState<any>(null);
   const [dlManagerOpen, setDlManagerOpen] = useState(false);
   const [scanIdOpen, setScanIdOpen] = useState(false);
   const [scanDlOpen, setScanDlOpen] = useState(false);
@@ -429,6 +441,7 @@ function TabletModePosInner() {
   useEffect(() => {
     if (!selectedCustomer?.id) {
       setFullSelectedCustomer(null);
+      setCustomerDeliveryLocations([]);
       return;
     }
     dispatch(updateSalesDetail({ customerGroupId: null }));
@@ -437,6 +450,7 @@ function TabletModePosInner() {
       .then((res) => {
         const customer = res?.data?.data?.customer || null;
         setFullSelectedCustomer(customer);
+        setCustomerDeliveryLocations(customer?.deliveryLocations || []);
         localStorage.setItem(
           "customerGroups",
           JSON.stringify(customer?.customerGroups || []),
@@ -448,12 +462,21 @@ function TabletModePosInner() {
           dispatch(updateSalesDetail({ customerGroupId: defaultGroup.id }));
         }
       })
-      .catch(() => setFullSelectedCustomer(null));
+      .catch(() => {
+        setFullSelectedCustomer(null);
+        setCustomerDeliveryLocations([]);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomer?.id]);
 
-  // --- Select customer (from overlay): quote refresh + default group + auto-queue ---
-  const handleSelectCustomer = (customer) => {
+  // --- Select customer (from overlay, or resumed from the queue): quote
+  // refresh + default group + auto-queue. queueRecord is the raw queue
+  // entry (only passed when resuming from the queue drawer) — its
+  // cartMetaDataJsonString is whatever TotalCard's auto-save effect last
+  // synced for this customer, and gets restored into the cart here before
+  // re-quoting, so putting a customer back to waiting mid-cart and later
+  // pulling them back into serving brings their products back too. ---
+  const handleSelectCustomer = (customer, queueRecord: any = null) => {
     if (!customer) return;
 
     dispatch(setSelectedCustomer(customer));
@@ -470,11 +493,45 @@ function TabletModePosInner() {
       defaultCustomerGroupId = def ? def.id : customer.customerGroups[0].id;
     }
 
+    let cartLineItems: any[] = [];
+    let cartExtras: any = {};
+    if (queueRecord?.cartMetaDataJsonString) {
+      try {
+        const cartData = JSON.parse(queueRecord.cartMetaDataJsonString);
+        cartLineItems = Array.isArray(cartData.lineItems)
+          ? cartData.lineItems
+          : [];
+        cartExtras = {
+          miscCharges: cartData.miscCharges || [],
+          miscDiscount: cartData.miscDiscount || null,
+          applicableRegularDeals: cartData.applicableRegularDeals || [],
+          applicableBogoDeals: cartData.applicableBogoDeals || [],
+          couponId: cartData.couponId || null,
+          loyaltyPointsClaimed: cartData.loyaltyPointsClaimed || 0,
+          tipGiven: cartData.tipGiven || 0,
+        };
+      } catch (err) {
+        console.error("Failed to parse cart meta data:", err);
+      }
+
+      localStorage.setItem("customerInQueueId", JSON.stringify(queueRecord.id));
+      dispatch(addCustomerInQueue(queueRecord));
+
+      dispatch(resetAddedLineITems());
+      dispatch(resetCartForSale());
+      if (cartLineItems.length > 0) {
+        dispatch(addLineItemsAction(cartLineItems));
+        dispatch(addToCart(cartLineItems));
+      }
+    }
+
     dispatch(
       updateSalesDetail({
         customerId: customer?.id,
         customerTypeId: customer?.customerTypeId,
         customerGroupId: defaultCustomerGroupId,
+        ...(cartLineItems.length > 0 && { lineItems: cartLineItems }),
+        ...cartExtras,
       }),
     );
 
@@ -483,6 +540,8 @@ function TabletModePosInner() {
       customerTypeId: customer?.customerTypeId,
       customerId: customer?.id,
       customerGroupId: defaultCustomerGroupId,
+      ...(cartLineItems.length > 0 && { lineItems: cartLineItems }),
+      ...cartExtras,
     };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tabletMode-select-customer")
@@ -568,6 +627,8 @@ function TabletModePosInner() {
       }),
     );
     localStorage.removeItem("customerGroups");
+    setDeliverySummary(null);
+    setCustomerDeliveryLocations([]);
 
     const upd = {
       ...quoteBody,
@@ -589,10 +650,91 @@ function TabletModePosInner() {
     setDeliveryType(value);
     localStorage.setItem("deliveryType", value);
     dispatch(updateSalesDetail({ deliveryMethod: value }));
+    if (value !== "DELIVERY") setDeliverySummary(null);
     const updatedQuoteBody = { ...quoteBody, deliveryMethod: value };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tabletMode-delivery-method")
-      .then((res) => dispatch(getQuoteForSale(res.data)));
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to update delivery method"),
+      );
+  };
+
+  // --- Delivery locations saved from the drawer: mirror the first location
+  // into the banner summary, and push deliveryAddress/priority/slot onto the
+  // quote body so checkout (TotalCard) picks them up via ...quoteBody. ---
+  const handleSaveDeliveryLocations = (savedLocations) => {
+    const clean = savedLocations.map(
+      ({
+        _selectedTier,
+        _tierName,
+        _tierCharge,
+        _scheduleForLater,
+        _selectedSlot,
+        _slotLabel,
+        _slotDay,
+        _slotFromTime,
+        _slotToTime,
+        ...rest
+      }) => rest,
+    );
+    setCustomerDeliveryLocations(clean);
+    const first = savedLocations[0] || {};
+
+    setDeliverySummary({
+      address: first.streetAddress1 || first.tag || "",
+      tag: first.tag || "",
+      state: first.state || "",
+      zipCode: first.zipCode || "",
+      tierName: first._tierName || null,
+      tierCharge: first._tierCharge || 0,
+      slotLabel: first._slotLabel || null,
+    });
+
+    const {
+      _selectedTier,
+      _tierName,
+      _tierCharge,
+      _scheduleForLater,
+      _selectedSlot,
+      _slotLabel,
+      _slotDay,
+      _slotFromTime,
+      _slotToTime,
+      _key,
+      ...deliveryAddress
+    } = first;
+
+    dispatch(
+      updateSalesDetail({
+        deliveryMethod: "DELIVERY",
+        deliveryAddress,
+        preferredDeliveryPriorityId: _selectedTier || null,
+        selectedDeliverySlotLabel: _slotLabel || null,
+        deliverySlotDay: _slotDay || null,
+        deliverySlotFromTime: _slotFromTime || null,
+        deliverySlotToTime: _slotToTime || null,
+      }),
+    );
+
+    const updatedQuoteBody = {
+      ...quoteBody,
+      deliveryMethod: "DELIVERY",
+      deliveryAddress,
+      preferredDeliveryPriorityId: _selectedTier || null,
+      selectedDeliverySlotLabel: _slotLabel || null,
+      deliverySlotDay: _slotDay || null,
+      deliverySlotFromTime: _slotFromTime || null,
+      deliverySlotToTime: _slotToTime || null,
+    };
+    quoteApiManager
+      .call(getQuoteForSales, updatedQuoteBody, "tabletMode-deliveryAddress-save")
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to update delivery address"),
+      );
+
+    setDeliveryDrawerOpen(false);
   };
 
   const handleCustomerGroupChange = (value) => {
@@ -860,6 +1002,9 @@ function TabletModePosInner() {
                 }}
                 deliverySubType={deliverySubType}
                 deliveryType={deliveryType}
+                customerDeliveryLocations={customerDeliveryLocations}
+                deliverySummary={deliverySummary}
+                onOpenDeliveryAddress={() => setDeliveryDrawerOpen(true)}
                 refreshOrders={refreshOrders}
                 onDraftSaved={confirmResetPOS}
               />
@@ -906,6 +1051,31 @@ function TabletModePosInner() {
           }}
         />
 
+        {/* ──── Delivery address drawer ──── */}
+        <Drawer
+          open={deliveryDrawerOpen}
+          onClose={() => setDeliveryDrawerOpen(false)}
+          side="right"
+          size={620}
+          className="overflow-auto">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center gap-2 border-b border-border px-6 py-4 text-base font-semibold">
+              Delivery Address
+            </div>
+            <div className="flex-1 overflow-auto">
+              {deliveryDrawerOpen && (
+                <DeliveryLocationsManager
+                  customerId={selectedCustomer?.id}
+                  initialLocations={customerDeliveryLocations}
+                  fallbackAddress={fullSelectedCustomer?.locationDetails}
+                  standalone
+                  onSave={handleSaveDeliveryLocations}
+                />
+              )}
+            </div>
+          </div>
+        </Drawer>
+
         {/* ──── Customer Queue drawer ──── */}
         <Drawer
           open={queueDrawerVisible}
@@ -934,7 +1104,7 @@ function TabletModePosInner() {
                   getSingleCustomer(record.customerId)
                     .then((res) => {
                       const customer = res?.data?.data?.customer;
-                      if (customer) handleSelectCustomer(customer);
+                      if (customer) handleSelectCustomer(customer, record);
                     })
                     .catch(() => {});
                 }}
