@@ -64,7 +64,7 @@ export default function ConversionStats() {
   }, [shopId, timeframe]);
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg p-4">
+    <div className="h-full min-w-0 rounded-xl border border-border bg-component-bg p-4">
       <div className="flex flex-row items-center gap-3">
         <h2 className="m-0 text-lg font-semibold text-text">Conversions</h2>
         <div className="ml-auto truncate">

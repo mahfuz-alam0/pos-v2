@@ -13,6 +13,13 @@ function hourLabel(hour) {
   return `${h} ${ampm}`;
 }
 
+// backend sends "4:00 AM" (see BusyTimesChart.tsx's formatTime for the same pattern) — normalize to "4 AM" to match hourLabel()
+function normalizeTwelveHoursTime(twelveHoursTime) {
+  const [hour] = twelveHoursTime.split(":");
+  const ampm = twelveHoursTime.includes("PM") ? "PM" : "AM";
+  return `${parseInt(hour, 10)} ${ampm}`;
+}
+
 function CustomXAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
   const isCurrentTime = payload?.value === hourLabel(new Date().getHours());
   return (
@@ -58,7 +65,7 @@ export default function PopularTimeCard() {
         });
 
         breakdownData.forEach((item) => {
-          const timeLabel = item._id.twelveHoursTime;
+          const timeLabel = normalizeTwelveHoursTime(item._id.twelveHoursTime);
           const index = formattedData.findIndex((d) => d.time === timeLabel && d.dayOfWeek === item._id.dayOfWeek);
           if (index !== -1) formattedData[index].sales = item.totalNumberOfSales || 0;
         });
@@ -76,7 +83,7 @@ export default function PopularTimeCard() {
   const filteredStats = selectedDay !== null ? stats.filter((item) => item.dayOfWeek === selectedDay) : stats;
 
   return (
-    <div className="relative flex h-full flex-col rounded-xl border border-border bg-component-bg p-4">
+    <div className="relative flex h-full min-w-0 flex-col rounded-xl border border-border bg-component-bg p-4">
       <h2 className="m-0 text-lg font-semibold text-text">Popular Times</h2>
 
       <div className="mt-3 flex justify-center">
