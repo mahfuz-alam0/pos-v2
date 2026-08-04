@@ -404,19 +404,19 @@ export default function TransfersPage() {
 
             {activeTab === "within-storage-locations" && (
               <>
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-t-lg">
                   <TableLoadingOverlay show={withinLoading && withinRows.length > 0} />
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="font-semibold text-muted-foreground">Transfer ID</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Initiated By</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Source Location</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Destination Location</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Date Created</TableHead>
+                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Initiated By</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Source Location</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Destination Location</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Date Created</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_td]:py-3.5">
+                    <TableBody className="[&_td]:py-4.5">
                       {withinLoading && withinRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
                           <TableRow key={`sk-${i}`} className="border-b border-border">
@@ -461,21 +461,21 @@ export default function TransfersPage() {
 
             {activeTab === "with-in-shops" && (
               <>
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-t-lg">
                   <TableLoadingOverlay show={shopLoading && shopRows.length > 0} />
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="font-semibold text-muted-foreground">Transfer ID</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Created At</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Type</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Source Location</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Destination Location</TableHead>
-                        <TableHead className="text-center font-semibold text-muted-foreground">Action</TableHead>
+                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Created At</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Status</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Type</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Source Location</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Destination Location</TableHead>
+                        <TableHead className="h-12 text-center font-semibold text-muted-foreground">Action</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_td]:py-3.5">
+                    <TableBody className="[&_td]:py-4.5">
                       {shopLoading && shopRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
                           <TableRow key={`sk-${i}`} className="border-b border-border">
@@ -501,7 +501,15 @@ export default function TransfersPage() {
                           <TableCell>{fmtDate(row.createdAt)}</TableCell>
                           <TableCell>{row.isCompleted ? "Completed" : "In Route"}</TableCell>
                           <TableCell>
-                            <Badge variant={row.isIncoming ? "default" : "secondary"}>
+                            <Badge
+                              variant="secondary"
+                              className="rounded-md"
+                              style={
+                                row.isIncoming
+                                  ? { backgroundColor: "#F5FCED", color: "var(--color-emerald-400)", borderColor: "currentColor" }
+                                  : { backgroundColor: "#E6F7FF", color: "var(--color-sky-400)", borderColor: "currentColor" }
+                              }
+                            >
                               {row.isIncoming ? "Incoming" : "Outgoing"}
                             </Badge>
                           </TableCell>
@@ -509,8 +517,8 @@ export default function TransfersPage() {
                           <TableCell>{row.destinationStorageLocation ?? "-"}</TableCell>
                           <TableCell className="text-center">
                             <Button
-                              variant="outline"
                               size="icon-sm"
+                              className="rounded-full"
                               render={<Link href={`/inventory-management/transfers/details/${row.id}`} />}
                             >
                               <Pencil />
@@ -534,24 +542,24 @@ export default function TransfersPage() {
 
             {activeTab === "supplier-specific" && (
               <>
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-t-lg">
                   <TableLoadingOverlay show={supplierLoading && supplierRows.length > 0} />
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="font-semibold text-muted-foreground">Transfer ID</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Created At</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Supplier</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
-                        <TableHead className="font-semibold text-muted-foreground">Type</TableHead>
-                        <TableHead className="text-right font-semibold text-muted-foreground">Total Price</TableHead>
-                        <TableHead className="text-center font-semibold text-muted-foreground">Number of Packages</TableHead>
-                        <TableHead className="sticky right-0 z-10 w-40 bg-muted/50 text-center font-semibold text-muted-foreground">
+                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Created At</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Supplier</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Status</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Type</TableHead>
+                        <TableHead className="h-12 text-right font-semibold text-muted-foreground">Total Price</TableHead>
+                        <TableHead className="h-12 text-center font-semibold text-muted-foreground">Number of Packages</TableHead>
+                        <TableHead className="sticky right-0 z-10 h-12 w-40 bg-muted/50 text-center font-semibold text-muted-foreground">
                           Action
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_td]:py-3.5">
+                    <TableBody className="[&_td]:py-4.5">
                       {supplierLoading && supplierRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
                           <TableRow key={`sk-${i}`} className="border-b border-border">
@@ -578,7 +586,15 @@ export default function TransfersPage() {
                           <TableCell>{row.fromSupplier?.name || row.toSupplier?.name || "-"}</TableCell>
                           <TableCell>{row.isCompleted ? "Completed" : "In Route"}</TableCell>
                           <TableCell>
-                            <Badge variant={row.transferType === "incoming" ? "default" : "secondary"}>
+                            <Badge
+                              variant="secondary"
+                              className="rounded-md"
+                              style={
+                                row.transferType === "incoming"
+                                  ? { backgroundColor: "#F5FCED", color: "var(--color-emerald-400)", borderColor: "currentColor" }
+                                  : { backgroundColor: "#E6F7FF", color: "var(--color-sky-400)", borderColor: "currentColor" }
+                              }
+                            >
                               {row.transferType === "incoming" ? "Incoming" : "Outgoing"}
                             </Badge>
                           </TableCell>
