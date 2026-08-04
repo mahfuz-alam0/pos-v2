@@ -302,12 +302,7 @@ export default function SignInForm() {
   return (
     <div
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{
-        backgroundColor: "#001529",
-        backgroundImage:
-          "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)",
-        backgroundSize: "50px 50px",
-      }}
+      style={{ backgroundColor: "#001529" }}
     >
       {/* Center radial glow */}
       <div
@@ -320,18 +315,6 @@ export default function SignInForm() {
 
       {/* Card */}
       <div className="relative z-10 mx-4 w-full max-w-sm">
-        {/* Logo above card */}
-        <div className="mb-8 flex justify-center">
-          <Image
-            src="/logos/bleaum_logo.png"
-            alt="Bleaum"
-            width={898}
-            height={437}
-            className="h-12 w-auto"
-            priority
-          />
-        </div>
-
         <div
           className="rounded-2xl px-8 py-8"
           style={{
@@ -341,6 +324,18 @@ export default function SignInForm() {
               "0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(3,143,221,0.08)",
           }}
         >
+          {/* Logo inside card */}
+          <div className="mb-6 flex justify-center">
+            <Image
+              src="/logos/bleaum_logo.png"
+              alt="Bleaum"
+              width={898}
+              height={437}
+              className="h-12 w-auto"
+              priority
+            />
+          </div>
+
           {step === "org" ? (
             <>
               <div className="mb-6">

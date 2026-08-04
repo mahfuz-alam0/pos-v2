@@ -91,6 +91,7 @@ function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionP
   const triggerRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   // Accordion within the flyout popup too — only one child section open at a time.
   const [childOpenKey, setChildOpenKey] = useState<OpenKey>(null);
@@ -113,6 +114,17 @@ function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionP
   };
 
   useEffect(() => () => clearTimeout(hideTimer.current), []);
+
+  // Mount at the slid-out position first, then flip to visible on the next
+  // frame so the transition actually plays instead of snapping in.
+  useEffect(() => {
+    if (!open) {
+      setVisible(false);
+      return;
+    }
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
 
   // Clamp the flyout inside the viewport once its real height is known —
   // near the bottom of a tall menu, top-aligning to the trigger would
@@ -151,7 +163,12 @@ function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionP
               onMouseEnter={show}
               onMouseLeave={hide}
             >
-              <div className="min-w-50 origin-left rounded-xl border border-primary/20 bg-accent p-1.5 shadow-2xl max-h-[calc(100vh-1rem)] overflow-y-auto">
+              <div
+                className={cn(
+                  "min-w-50 origin-left rounded-xl border border-primary/20 bg-accent p-1.5 shadow-2xl max-h-[calc(100vh-1rem)] overflow-y-auto transition-all duration-150 ease-out",
+                  visible ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0"
+                )}
+              >
                 <div className="px-2 py-1.5 text-xs font-semibold text-sidebar-text">{item.label}</div>
                 {item.children?.map((child) => (
                   <SidebarMenuItem
