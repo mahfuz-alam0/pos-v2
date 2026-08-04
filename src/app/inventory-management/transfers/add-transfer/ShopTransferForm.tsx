@@ -176,55 +176,57 @@ export default function ShopTransferForm() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 border-b border-border pb-4">
-        <span className="text-base font-medium text-foreground">Transfer Information</span>
+      <div className="rounded-lg border border-border bg-muted/30 p-5">
+        <p className="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Transfer Information</p>
 
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm text-foreground">
-            Destination Shop <span className="text-destructive">*</span>
-          </span>
-          <Select
-            items={[
-              { value: "__none__", label: "Select shop" },
-              ...otherShops.map((s) => ({ value: s.id, label: s.name })),
-            ]}
-            value={destinationShopId ?? undefined}
-            onValueChange={(v) => setDestinationShopId(v as string)}
-          >
-            <SelectTrigger className="h-10! w-56 bg-white dark:bg-input/30">
-              <SelectValue placeholder="Select shop" />
-            </SelectTrigger>
-            <SelectContent>
-              {otherShops.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
-                  <Inbox className="size-8 text-muted-foreground/50" />
-                  <span className="text-sm text-muted-foreground">No data</span>
-                </div>
-              ) : (
-                otherShops.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-52">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">
+              Destination Shop <span className="text-destructive">*</span>
+            </p>
+            <Select
+              items={[
+                { value: "__none__", label: "Select shop" },
+                ...otherShops.map((s) => ({ value: s.id, label: s.name })),
+              ]}
+              value={destinationShopId ?? undefined}
+              onValueChange={(v) => setDestinationShopId(v as string)}
+            >
+              <SelectTrigger className="h-10! w-56 bg-background">
+                <SelectValue placeholder="Select shop" />
+              </SelectTrigger>
+              <SelectContent>
+                {otherShops.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+                    <Inbox className="size-8 text-muted-foreground/50" />
+                    <span className="text-sm text-muted-foreground">No data</span>
+                  </div>
+                ) : (
+                  otherShops.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="flex flex-col gap-1.5 pt-1">
-          <span className="text-sm text-foreground">Notes</span>
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes for your transfer"
-            rows={2}
-            className="bg-white dark:bg-input/30"
-          />
-        </div>
+          <div className="min-w-64 flex-1">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Notes</p>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add notes for your transfer"
+              rows={1}
+              className="h-10 min-h-0 resize-none bg-background py-2"
+            />
+          </div>
 
-        <div className="flex flex-col gap-2 pt-1">
-          <span className="text-sm text-foreground">Upload Documents</span>
-          <DocumentsUpload links={documentLinks} onChange={setDocumentLinks} variant="button" />
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Documents</p>
+            <DocumentsUpload links={documentLinks} onChange={setDocumentLinks} variant="button" />
+          </div>
         </div>
       </div>
 

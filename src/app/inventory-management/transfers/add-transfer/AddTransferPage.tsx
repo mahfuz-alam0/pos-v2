@@ -47,7 +47,7 @@ export default function AddTransferPage() {
   return (
     <div className="p-6">
       <div className="overflow-hidden rounded-xl bg-card shadow-md">
-        <div className="flex flex-col gap-2 border-b border-border/70 px-6 py-4">
+        <div className="flex items-center justify-between gap-2 border-b border-border/70 px-6 py-4">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
