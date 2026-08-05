@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Bell, Loader2, MessageSquare, Send, Tags, Users } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { listBusinessEntities } from "@/services/businessEntities/list";
 import { fetchShopsData } from "@/services/shops/list";
 import { listAllDeals } from "@/services/sales/listDeals";
@@ -70,6 +71,7 @@ export default function ComposeNotificationForm() {
 
   const [images, setImages] = useState<UploadedDoc[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   const availableTimeZones = useMemo(() => {
     const zones = shops.filter((s) => shopIds.includes(s.id)).map((s) => s.timeZone).filter(Boolean);
@@ -103,14 +105,21 @@ export default function ComposeNotificationForm() {
 
   const handleSubmit = async () => {
     if (submitting) return;
-    if (!title.trim()) return toast.error("Please input title!");
-    if (!description.trim()) return toast.error("Please input description!");
-    if (shopIds.length === 0) return toast.error("Please select at least one shop");
-    if (customerGroupIds.length === 0) return toast.error("Please select customer groups!");
-    if (subject === "DEAL" && !dealId) return toast.error("Please select a deal");
-    if (subject === "COUPON" && !couponId) return toast.error("Please select a coupon");
-    if (images.length === 0) return toast.error("Please upload an image!");
-    if (scheduleForLater && (!scheduledDate || !scheduledTime)) return toast.error("Please select date and time!");
+
+    const nextErrors: Record<string, boolean> = {
+      title: !title.trim(),
+      description: !description.trim(),
+      shopIds: shopIds.length === 0,
+      customerGroupIds: customerGroupIds.length === 0,
+      dealId: subject === "DEAL" && !dealId,
+      couponId: subject === "COUPON" && !couponId,
+      images: images.length === 0,
+      schedule: scheduleForLater && (!scheduledDate || !scheduledTime),
+    };
+    setErrors(nextErrors);
+    if (Object.values(nextErrors).some(Boolean)) {
+      return toast.error("Please fill in the highlighted fields");
+    }
 
     const selectedCoupon = coupons.find((c) => c.id === couponId);
 
@@ -192,15 +201,27 @@ export default function ComposeNotificationForm() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Notification Title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter notification title" />
+              <Input
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (errors.title) setErrors((p) => ({ ...p, title: false }));
+                }}
+                placeholder="Enter notification title"
+                aria-invalid={errors.title}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Description</Label>
               <Textarea
                 rows={4}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (errors.description) setErrors((p) => ({ ...p, description: false }));
+                }}
                 placeholder="Write your notification message here..."
+                aria-invalid={errors.description}
               />
             </div>
           </div>
@@ -211,7 +232,16 @@ export default function ComposeNotificationForm() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Select Shops</Label>
-              <MultiApiSelect placeholder="Select Shops" items={shopOptions} value={shopIds} onChange={setShopIds} triggerClassName="w-full" />
+              <MultiApiSelect
+                placeholder="Select Shops"
+                items={shopOptions}
+                value={shopIds}
+                onChange={(v) => {
+                  setShopIds(v);
+                  if (errors.shopIds) setErrors((p) => ({ ...p, shopIds: false }));
+                }}
+                triggerClassName={cn("w-full", errors.shopIds && "border-destructive ring-3 ring-destructive/20")}
+              />
             </div>
 
             {availableTimeZones.length > 1 && (
@@ -245,7 +275,16 @@ export default function ComposeNotificationForm() {
 
             <div className="flex flex-col gap-1.5">
               <Label>Customer Groups</Label>
-              <MultiApiSelect placeholder="Select Customer Groups" items={customerGroupOptions} value={customerGroupIds} onChange={setCustomerGroupIds} triggerClassName="w-full" />
+              <MultiApiSelect
+                placeholder="Select Customer Groups"
+                items={customerGroupOptions}
+                value={customerGroupIds}
+                onChange={(v) => {
+                  setCustomerGroupIds(v);
+                  if (errors.customerGroupIds) setErrors((p) => ({ ...p, customerGroupIds: false }));
+                }}
+                triggerClassName={cn("w-full", errors.customerGroupIds && "border-destructive ring-3 ring-destructive/20")}
+              />
             </div>
           </div>
         </Card>
@@ -281,9 +320,12 @@ export default function ComposeNotificationForm() {
                 <Select
                   items={[{ value: "__none__", label: "Select deal" }, ...deals.map((d) => ({ value: d.id, label: d.name }))]}
                   value={dealId ?? "__none__"}
-                  onValueChange={(v) => setDealId(v === "__none__" ? null : (v as string))}
+                  onValueChange={(v) => {
+                    setDealId(v === "__none__" ? null : (v as string));
+                    if (errors.dealId) setErrors((p) => ({ ...p, dealId: false }));
+                  }}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className={cn("w-full", errors.dealId && "border-destructive ring-3 ring-destructive/20")}>
                     <SelectValue placeholder="Select deal" />
                   </SelectTrigger>
                   <SelectContent>
@@ -303,9 +345,12 @@ export default function ComposeNotificationForm() {
                 <Select
                   items={[{ value: "__none__", label: "Select coupon" }, ...coupons.map((c) => ({ value: c.id, label: c.name }))]}
                   value={couponId ?? "__none__"}
-                  onValueChange={(v) => setCouponId(v === "__none__" ? null : (v as string))}
+                  onValueChange={(v) => {
+                    setCouponId(v === "__none__" ? null : (v as string));
+                    if (errors.couponId) setErrors((p) => ({ ...p, couponId: false }));
+                  }}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className={cn("w-full", errors.couponId && "border-destructive ring-3 ring-destructive/20")}>
                     <SelectValue placeholder="Select Coupon" />
                   </SelectTrigger>
                   <SelectContent>
@@ -348,11 +393,27 @@ export default function ComposeNotificationForm() {
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Label className="mb-1.5">Date</Label>
-                    <DatePicker value={scheduledDate} onChange={setScheduledDate} placeholder="Select date" />
+                    <DatePicker
+                      value={scheduledDate}
+                      onChange={(d) => {
+                        setScheduledDate(d);
+                        if (errors.schedule) setErrors((p) => ({ ...p, schedule: false }));
+                      }}
+                      placeholder="Select date"
+                      className={errors.schedule ? "border-destructive ring-3 ring-destructive/20" : undefined}
+                    />
                   </div>
                   <div className="flex-1">
                     <Label className="mb-1.5">Time</Label>
-                    <Input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} />
+                    <Input
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => {
+                        setScheduledTime(e.target.value);
+                        if (errors.schedule) setErrors((p) => ({ ...p, schedule: false }));
+                      }}
+                      aria-invalid={errors.schedule}
+                    />
                   </div>
                 </div>
               )}
@@ -361,9 +422,19 @@ export default function ComposeNotificationForm() {
         </Card>
       </div>
 
-      <Card className="p-5">
+      <Card className={cn("p-5", errors.images && "border-destructive")}>
         <SectionHeading icon={<Bell className="size-4" />} text="Notification Image" />
-        <SimpleFileUpload files={images} onChange={setImages} maxCount={1} accept="image/jpeg,image/jpg,image/png" hint="JPG or PNG · max 1 file" />
+        <SimpleFileUpload
+          files={images}
+          onChange={(files) => {
+            setImages(files);
+            if (errors.images) setErrors((p) => ({ ...p, images: false }));
+          }}
+          maxCount={1}
+          accept="image/jpeg,image/jpg,image/png"
+          hint="JPG or PNG · max 1 file"
+        />
+        {errors.images && <p className="mt-1.5 text-xs text-destructive">Please upload an image</p>}
       </Card>
 
       <div className="flex justify-end gap-2">
