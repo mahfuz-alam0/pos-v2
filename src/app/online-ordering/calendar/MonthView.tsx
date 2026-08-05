@@ -62,77 +62,163 @@ function isToday(date: Date) {
   return date.toDateString() === today.toDateString();
 }
 
+function dateKey(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MAX_LANES = 4;
+
+interface Bar {
+  event: CalendarEventOccurrence;
+  startCol: number; // 0-6, column within the week row
+  endCol: number; // 0-6, inclusive
+  lane: number;
+}
+
+// Groups occurrences sharing originalId into contiguous runs, clips each run to
+// the week row, and assigns non-overlapping lanes (greedy interval stacking,
+// same approach FullCalendar/Google Calendar use for multi-day event bars).
+function layoutWeekRow(weekDays: Date[], events: CalendarEventOccurrence[]): Bar[] {
+  const rowKeys = weekDays.map(dateKey);
+  const rowStart = rowKeys[0];
+  const rowEnd = rowKeys[6];
+
+  const byOriginal = new Map<string, CalendarEventOccurrence[]>();
+  for (const event of events) {
+    if (event.date < rowStart || event.date > rowEnd) continue;
+    const key = event.originalId || event.id;
+    if (!byOriginal.has(key)) byOriginal.set(key, []);
+    byOriginal.get(key)!.push(event);
+  }
+
+  const bars: Omit<Bar, "lane">[] = [];
+  for (const occurrences of byOriginal.values()) {
+    occurrences.sort((a, b) => a.date.localeCompare(b.date));
+    const dates = occurrences.map((o) => o.date);
+    bars.push({
+      event: occurrences[0],
+      startCol: rowKeys.indexOf(dates[0]),
+      endCol: rowKeys.indexOf(dates[dates.length - 1]),
+    });
+  }
+
+  bars.sort((a, b) => a.startCol - b.startCol || b.endCol - a.endCol);
+
+  const laneEnds: number[] = [];
+  const laid: Bar[] = [];
+  for (const bar of bars) {
+    let lane = laneEnds.findIndex((end) => end < bar.startCol);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(bar.endCol);
+    } else {
+      laneEnds[lane] = bar.endCol;
+    }
+    laid.push({ ...bar, lane });
+  }
+
+  return laid;
+}
 
 export default function MonthView({
   currentDate,
-  getEventsForDate,
+  events,
   openEventModal,
   setView,
   setCurrentDate,
 }: {
   currentDate: Date;
-  getEventsForDate: (date: Date) => CalendarEventOccurrence[];
+  events: CalendarEventOccurrence[];
   openEventModal: (date?: Date | null, event?: CalendarEventOccurrence | null) => void;
   setView: (v: "month" | "week" | "list") => void;
   setCurrentDate: (d: Date) => void;
 }) {
   const days = getDaysInMonth(currentDate);
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
 
   return (
-    <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg bg-border">
-      {WEEKDAYS.map((day) => (
-        <div key={day} className="bg-muted p-2 text-center text-sm font-medium text-muted-foreground">
-          {day}
-        </div>
-      ))}
-      {days.map((day, index) => {
-        const dayEvents = getEventsForDate(day);
-        const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+    <div className="overflow-hidden rounded-lg bg-border">
+      <div className="grid grid-cols-7 gap-px">
+        {WEEKDAYS.map((day) => (
+          <div key={day} className="bg-muted p-2 text-center text-sm font-medium text-muted-foreground">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {weeks.map((weekDays, weekIndex) => {
+        const bars = layoutWeekRow(weekDays, events);
+        const laneCount = bars.reduce((max, b) => Math.max(max, b.lane + 1), 0);
+        const visibleLanes = Math.min(laneCount, MAX_LANES);
+        const overflowByCol = weekDays.map(
+          (_, col) => bars.filter((b) => b.lane >= MAX_LANES && b.startCol <= col && b.endCol >= col).length
+        );
 
         return (
-          <div
-            key={index}
-            className={`min-h-36 cursor-pointer p-1 hover:bg-muted/60 ${isCurrentMonth ? "bg-background" : "bg-muted/30"}`}
-            onClick={() => openEventModal(day)}
-          >
-            <div
-              className={`mb-1 text-sm ${
-                isToday(day)
-                  ? "flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white"
-                  : isCurrentMonth
-                    ? "text-foreground"
-                    : "text-muted-foreground/60"
-              }`}
-            >
-              {day.getDate()}
+          <div key={weekIndex} className="relative grid grid-cols-7 gap-px bg-border">
+            {weekDays.map((day, col) => {
+              const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+              return (
+                <div
+                  key={col}
+                  className={`min-h-32 cursor-pointer p-1 hover:bg-muted/60 ${isCurrentMonth ? "bg-background" : "bg-muted/30"}`}
+                  onClick={() => openEventModal(day)}
+                >
+                  <div
+                    className={`mb-1 text-sm ${
+                      isToday(day)
+                        ? "flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white"
+                        : isCurrentMonth
+                          ? "text-foreground"
+                          : "text-muted-foreground/60"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </div>
+                  <div style={{ height: `${visibleLanes * 24}px` }} />
+                  {overflowByCol[col] > 0 && (
+                    <div
+                      className="flex items-center justify-center rounded bg-muted p-1 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentDate(new Date(day));
+                        setView("week");
+                      }}
+                      title={`Show all events for ${day.toDateString()}`}
+                    >
+                      +{overflowByCol[col]} more
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="pointer-events-none absolute inset-x-0 top-9 grid grid-cols-7 gap-px px-1">
+              {bars
+                .filter((bar) => bar.lane < MAX_LANES)
+                .map((bar) => (
+                  <div
+                    key={bar.event.originalId || bar.event.id}
+                    className={`${getEventColor(bar.event)} pointer-events-auto mb-1 truncate rounded p-1 text-xs text-white hover:opacity-80`}
+                    style={{
+                      gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`,
+                      gridRow: bar.lane + 1,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEventModal(null, bar.event);
+                    }}
+                    title={bar.event.title}
+                  >
+                    {bar.event.title}
+                  </div>
+                ))}
             </div>
-            {dayEvents.slice(0, dayEvents.length > 4 ? 3 : 4).map((event) => (
-              <div
-                key={event.id}
-                className={`${getEventColor(event)} mb-1 truncate rounded p-1 text-xs text-white hover:opacity-80`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openEventModal(null, event);
-                }}
-                title={event.title}
-              >
-                {event.title}
-              </div>
-            ))}
-            {dayEvents.length > 4 && (
-              <div
-                className="flex items-center justify-center rounded bg-muted p-1 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/20"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentDate(new Date(day));
-                  setView("week");
-                }}
-                title={`Show all ${dayEvents.length} events`}
-              >
-                +{dayEvents.length - 3} more
-              </div>
-            )}
           </div>
         );
       })}

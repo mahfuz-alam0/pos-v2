@@ -13,6 +13,7 @@ import { updateCalendar } from "@/services/calendar/update";
 import { removeCalendar } from "@/services/calendar/remove";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -308,8 +309,23 @@ export default function EventModal({
 
           <div className="min-h-100">
             {fetching ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
               </div>
             ) : (
               <>

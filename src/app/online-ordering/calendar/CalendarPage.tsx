@@ -204,7 +204,7 @@ export default function CalendarPage() {
       {view === "month" && (
         <MonthView
           currentDate={currentDate}
-          getEventsForDate={getEventsForDate}
+          events={events}
           openEventModal={openEventModal}
           setView={setView}
           setCurrentDate={setCurrentDate}
