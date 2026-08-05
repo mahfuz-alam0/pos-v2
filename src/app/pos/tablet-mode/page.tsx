@@ -3,7 +3,14 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Monitor, IdCard, RotateCcw, User } from "lucide-react";
+import {
+  Monitor,
+  IdCard,
+  RotateCcw,
+  User,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -147,6 +154,7 @@ function TabletModePosInner() {
   const [queueDrawerVisible, setQueueDrawerVisible] = useState(false);
   const [docManagerOpen, setDocManagerOpen] = useState(false);
   const [isRegisterDrawerOpen, setIsRegisterDrawerOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   // customer overlay + panel state
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -760,7 +768,12 @@ function TabletModePosInner() {
 
   return (
     <TooltipProvider>
-      <div className="flex h-full flex-col overflow-hidden bg-surface">
+      <div
+        className={
+          fullscreen
+            ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface"
+            : "flex h-full flex-col overflow-hidden bg-surface"
+        }>
         {/* ──── TAB NAV + TOP BAR (one row) ──── */}
         <div className="flex h-20 shrink-0 items-center gap-3 overflow-x-auto border-b border-blue-400/20 bg-[#071529] px-4 shadow-sm">
           <div className="flex shrink-0 items-center gap-1 rounded-xl bg-white/5 p-1">
@@ -902,6 +915,26 @@ function TabletModePosInner() {
               }
             />
             <TooltipContent>{queueCount} in queue</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-blue-100 backdrop-blur-sm transition-colors hover:bg-blue-400/10"
+                  onClick={() => setFullscreen((f) => !f)}>
+                  {fullscreen ? (
+                    <Minimize2 className="h-5 w-5" />
+                  ) : (
+                    <Maximize2 className="h-5 w-5" />
+                  )}
+                </button>
+              }
+            />
+            <TooltipContent>
+              {fullscreen ? "Exit fullscreen" : "Fullscreen"}
+            </TooltipContent>
           </Tooltip>
 
           <Tooltip>

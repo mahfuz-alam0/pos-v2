@@ -329,17 +329,32 @@ export default function ProductsCart() {
 
   const handleRemove = (record) => {
     const updatedLineItems = cart.filter((item) => item.key !== record.key);
-    // Deals are matched by productId/packageId, not by line-item key, so a
-    // stale entry would otherwise show as still "Applied" if this same
-    // product gets added back to the cart later.
+    // Deals are matched by productId/packageId (plus appMaintainedId, when
+    // present, to distinguish two cart lines for the same product/package)
+    // rather than by line-item key, so a stale entry would otherwise show
+    // as still "Applied" if this same product gets added back to the cart
+    // later.
     const stillInCart = updatedLineItems.some(
       (item) => item.productId === record.productId,
     );
-    const updatedApplicableDeals = stillInCart
-      ? quoteBody?.applicableRegularDeals
-      : quoteBody?.applicableRegularDeals?.filter(
-          (d) => d.productId !== record.productId,
-        );
+    const updatedApplicableDeals = quoteBody?.applicableRegularDeals?.filter(
+      (d) => {
+        // Entry tied to this exact line — always drop it, this line is gone.
+        if (
+          record.appMaintainedId &&
+          d.appMaintainedId === record.appMaintainedId
+        ) {
+          return false;
+        }
+        // Entry with no appMaintainedId (applied before this line-scoping
+        // existed, or via the bulk drawer) for this product — keep only if
+        // some line for this product still remains.
+        if (d.productId === record.productId && !d.appMaintainedId) {
+          return stillInCart;
+        }
+        return true;
+      },
+    );
     dispatch(addLineItemsAction(updatedLineItems));
     dispatch(addToCart(updatedLineItems));
     dispatch(
@@ -518,10 +533,10 @@ export default function ProductsCart() {
               <th className="px-3 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Price
               </th>
-              <th className="px-3 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="sticky right-44 z-10 w-52 bg-muted/50 px-3 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
                 Qty
               </th>
-              <th className="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="sticky right-0 z-10 w-44 bg-muted/50 px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Action
               </th>
             </tr>
@@ -597,7 +612,8 @@ export default function ProductsCart() {
                         ).toFixed(2)}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td
+                      className={`sticky right-44 z-10 w-52 px-3 py-3 shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${zebra}`}>
                       <div className="flex items-center justify-center gap-1.5 rounded-full bg-muted/60 p-1.5">
                         <Button
                           size="icon"
@@ -630,7 +646,8 @@ export default function ProductsCart() {
                         </Button>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-right">
+                    <td
+                      className={`sticky right-0 z-10 w-44 px-3 py-3 text-right ${zebra}`}>
                       {!isLocked && (
                         <div className="flex items-center justify-end gap-2">
                           <Tooltip>
@@ -696,7 +713,7 @@ export default function ProductsCart() {
                           ) : (
                             <DealCard
                               deals={rowDeals}
-                              productRecord={null}
+                              productRecord={record}
                               onDealApplied={() => setExpandedKey(null)}
                             />
                           )}
