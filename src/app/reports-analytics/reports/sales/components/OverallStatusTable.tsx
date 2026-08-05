@@ -3,7 +3,7 @@
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
-import TaxBreakdownCard from "../../executive-summary/TaxBreakdownCard";
+import TaxBreakdownCard from "../../../analytics/executive-summary/TaxBreakdownCard";
 import { money } from "../salesByShared";
 import type { SalesOverviewData, StatBlock } from "../types";
 

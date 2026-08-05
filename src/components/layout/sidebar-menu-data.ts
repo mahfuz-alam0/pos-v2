@@ -106,7 +106,7 @@ export const retailMenu: MenuItem[] = [
       {
         key: "inventory-reorder",
         label: "Inventory Reorder",
-        href: "/reports-analytics/inventory-reorder",
+        href: "/reports-analytics/analytics/inventory-reorder",
       },
       {
         key: "uom",
@@ -268,37 +268,37 @@ export const retailMenu: MenuItem[] = [
           {
             key: "command-center",
             label: "Command Center",
-            href: "/reports-analytics/executive-summary",
+            href: "/reports-analytics/analytics/executive-summary",
           },
           {
             key: "performance-metrics",
             label: "Performance Metrics",
-            href: "/reports-analytics/performance",
+            href: "/reports-analytics/analytics/performance",
           },
           {
             key: "sales-intelligence",
             label: "Sales Intelligence",
-            href: "/reports-analytics/sales-intelligence",
+            href: "/reports-analytics/analytics/sales-intelligence",
           },
           {
             key: "promo-performance",
             label: "Promo Performance",
-            href: "/reports-analytics/discounts",
+            href: "/reports-analytics/analytics/discounts",
           },
           {
             key: "sales-heatmap",
             label: "Sales Heatmap",
-            href: "/reports-analytics/day-and-time",
+            href: "/reports-analytics/analytics/day-and-time",
           },
           {
             key: "supply-tracker",
             label: "Supply Tracker",
-            href: "/reports-analytics/inventory-reorder",
+            href: "/reports-analytics/analytics/inventory-reorder",
           },
           {
             key: "referral-source",
             label: "Referral Source",
-            href: "/reports-analytics/referral-source-report",
+            href: "/reports-analytics/analytics/referral-source-report",
           },
         ],
       },
@@ -309,27 +309,27 @@ export const retailMenu: MenuItem[] = [
           {
             key: "report-customer",
             label: "Customer",
-            href: "/reports-analytics/customer-report",
+            href: "/reports-analytics/reports/customer-report",
           },
           {
             key: "report-inventory",
             label: "Inventory",
-            href: "/reports-analytics/inventory",
+            href: "/reports-analytics/reports/inventory",
           },
           {
             key: "report-loyalty",
             label: "Loyalty",
-            href: "/reports-analytics/loyalty",
+            href: "/reports-analytics/reports/loyalty",
           },
           {
             key: "report-sales",
             label: "Sales",
-            href: "/reports-analytics/sales",
+            href: "/reports-analytics/reports/sales",
           },
           {
             key: "report-taxes",
             label: "Taxes",
-            href: "/reports-analytics/taxes",
+            href: "/reports-analytics/reports/taxes",
           },
         ],
       },
