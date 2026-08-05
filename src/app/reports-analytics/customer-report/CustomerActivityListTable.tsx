@@ -118,6 +118,11 @@ export default function CustomerActivityListTable() {
     setRunReport(true);
   };
 
+  useEffect(() => {
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleExportCsv = () => {
     if (!rows.length) {
       toast.warning("No data to export");

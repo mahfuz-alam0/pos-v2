@@ -153,6 +153,11 @@ export default function ItemizedSalesReport() {
     setRunReport(true);
   };
 
+  useEffect(() => {
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, startDate, endDate, categoryId, brandId, deliveryMethod, source, discountSourceType, dealId, couponId]);
+
   const fetchAllForExport = async () => {
     const total = pagination.totalEntries || 0;
     const totalBatches = total > 0 ? Math.ceil(total / EXPORT_BATCH_SIZE) : 1;
@@ -208,17 +213,18 @@ export default function ItemizedSalesReport() {
             setSelectedDate={setSelectedDate}
             initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }}
             showAllOption={false}
+            className="w-62.5"
           />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Categories</div>
-          <ApiSelect placeholder="All Categories" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} />
+          <ApiSelect placeholder="All Categories" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Brands</div>
-          <ApiSelect placeholder="All Brands" value={brandId} onChange={setBrandId} fetchPage={fetchBrandPage} />
+          <ApiSelect placeholder="All Brands" value={brandId} onChange={setBrandId} fetchPage={fetchBrandPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
@@ -242,6 +248,7 @@ export default function ItemizedSalesReport() {
             placeholder="All Deals"
             value={dealId}
             onChange={setDealId}
+            triggerClassName="w-62.5"
             fetchPage={useCallback(
               async (_page: number, search: string) => ({
                 items: deals.filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
@@ -258,6 +265,7 @@ export default function ItemizedSalesReport() {
             placeholder="All Coupons"
             value={couponId}
             onChange={setCouponId}
+            triggerClassName="w-62.5"
             fetchPage={useCallback(
               async (_page: number, search: string) => ({
                 items: coupons.filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),

@@ -78,12 +78,6 @@ function TaxDetailsReport() {
   const dateRangeLabel = `${format(new Date(startDate), "MMM dd, yyyy")} - ${format(new Date(endDate), "MMM dd, yyyy")}`;
   const exportData = { data, summary };
 
-  useEffect(() => {
-    setPagination((p) => ({ ...p, page: 1 }));
-    setRanReport(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, categoryId, productId, brandId]);
-
   const fetchData = async (page: number) => {
     if (!shopId) return;
     setLoading(true);
@@ -113,6 +107,12 @@ function TaxDetailsReport() {
   const handleRunReport = () => fetchData(1);
   const handlePageChange = (page: number) => fetchData(page);
 
+  useEffect(() => {
+    if (!shopId) return;
+    fetchData(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, startDate, endDate, categoryId, productId, brandId]);
+
   const handleExportCsv = () => {
     exportTaxDetailsToCsv(exportData, dateRangeLabel, `tax_details_report_${format(new Date(), "yyyy-MM-dd")}.csv`);
   };
@@ -123,7 +123,7 @@ function TaxDetailsReport() {
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-4">
             <div className="w-40 shrink-0 text-sm text-muted-foreground">Date Range</div>
-            <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }} showAllOption={false} />
+            <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }} showAllOption={false} className="w-full sm:w-64" />
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <div className="w-40 shrink-0 text-sm text-muted-foreground">Category</div>
@@ -207,6 +207,7 @@ function ProductFilterSelect({ value, onChange }: { value: string | number | nul
       placeholder="All Products"
       value={value}
       onChange={(v) => onChange(v)}
+      triggerClassName="w-full sm:w-64"
       fetchPage={async (page, search) => {
         const res = await fetchProductsList({ page, limit: 20, search });
         return { items: (res?.data ?? []).map((p: any) => ({ id: p.id, name: p.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
@@ -221,6 +222,7 @@ function BrandFilterSelect({ value, onChange }: { value: string | number | null;
       placeholder="All Brands"
       value={value}
       onChange={(v) => onChange(v)}
+      triggerClassName="w-full sm:w-64"
       fetchPage={async (page, search) => {
         const res = await fetchBrandsList({ page, limit: 20, search });
         return { items: (res?.data ?? []).map((b: any) => ({ id: b.id, name: b.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
@@ -253,12 +255,6 @@ function TaxExemptionsReport() {
     listCustomerTypes().then((res) => setCustomerTypes(res?.data?.customerTypes || []));
   }, []);
 
-  useEffect(() => {
-    setPagination((p) => ({ ...p, page: 1 }));
-    setRanReport(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, customerTypeId, customerId]);
-
   const fetchData = async (page: number) => {
     setLoading(true);
     try {
@@ -284,6 +280,11 @@ function TaxExemptionsReport() {
   const handleRunReport = () => fetchData(1);
   const handlePageChange = (page: number) => fetchData(page);
 
+  useEffect(() => {
+    fetchData(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, customerTypeId, customerId]);
+
   const handleExportCsv = () => {
     exportTaxExemptionsToCsv(data, dateRangeLabel, `tax_exemptions_report_${format(new Date(), "yyyy-MM-dd")}.csv`);
   };
@@ -296,7 +297,7 @@ function TaxExemptionsReport() {
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-4">
             <div className="w-40 shrink-0 text-sm text-muted-foreground">Date Range</div>
-            <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }} showAllOption={false} />
+            <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }} showAllOption={false} className="w-full sm:w-64" />
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <div className="w-40 shrink-0 text-sm text-muted-foreground">Customer Type</div>
@@ -319,6 +320,7 @@ function TaxExemptionsReport() {
               placeholder="All Customers"
               value={customerId}
               onChange={(v) => setCustomerId(v)}
+              triggerClassName="w-full sm:w-64"
               fetchPage={async (page, search) => {
                 const res = await listCustomers({ page, ...(search ? { searchFieldName: "firstName", searchFiledValue: search } : {}) });
                 const customers = res?.data?.data?.customers || [];

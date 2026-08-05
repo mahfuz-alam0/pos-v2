@@ -22,39 +22,44 @@ export default function MetricCards({
     {
       title: "Gross Profit",
       value: formatCurrency(grossProfit),
-      icon: <DollarSign className="size-6" />,
-      color: "text-emerald-600",
-      bg: "bg-emerald-100",
+      icon: <DollarSign className="size-5" />,
+      tint: "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900",
+      text: "text-emerald-600",
     },
     {
       title: "Gross Margin",
       value: formatPercentage(grossMargin),
-      icon: <Percent className="size-6" />,
-      color: "text-blue-600",
-      bg: "bg-blue-100",
+      icon: <Percent className="size-5" />,
+      tint: "bg-blue-50 border-blue-100 dark:bg-blue-950/30 dark:border-blue-900",
+      text: "text-blue-600",
     },
     {
       title: "Net Sales",
       value: formatCurrency(netSales),
-      icon: <ShoppingCart className="size-6" />,
-      color: "text-indigo-600",
-      bg: "bg-indigo-100",
+      icon: <ShoppingCart className="size-5" />,
+      tint: "bg-indigo-50 border-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900",
+      text: "text-indigo-600",
     },
     {
       title: "Cost of Goods",
       value: formatCurrency(Math.abs(cogs || 0)),
-      icon: <DollarSign className="size-6" />,
-      color: "text-rose-600",
-      bg: "bg-rose-100",
+      icon: <DollarSign className="size-5" />,
+      tint: "bg-rose-50 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900",
+      text: "text-rose-600",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
-        <Card key={card.title} className="p-6 shadow-sm ring-0">
-          <div className={`mb-4 inline-flex rounded-xl p-3 ${card.bg} ${card.color}`}>{card.icon}</div>
-          <h3 className="mb-1 text-sm font-medium text-muted-foreground">{card.title}</h3>
+        <Card
+          key={card.title}
+          className={`flex flex-col justify-center rounded-xl border p-5 shadow-sm ring-0 transition-all hover:-translate-y-0.5 hover:shadow-md ${card.tint}`}
+        >
+          <div className={`mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${card.text}`}>
+            {card.icon}
+            {card.title}
+          </div>
           <div className="text-2xl font-bold tracking-tight lg:text-3xl">{card.value}</div>
         </Card>
       ))}

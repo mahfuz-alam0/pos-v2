@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -121,6 +121,11 @@ export default function SalesByCategoryReport() {
     setRunReport(true);
   };
 
+  useEffect(() => {
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, startDate, endDate, categoryIds, brandIds, deliveryMethod, source]);
+
   const fetchAllForExport = async () => {
     const total = pagination.totalEntries || 0;
     const totalBatches = total > 0 ? Math.ceil(total / EXPORT_BATCH_SIZE) : 1;
@@ -176,17 +181,18 @@ export default function SalesByCategoryReport() {
             setSelectedDate={setSelectedDate}
             initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }}
             showAllOption={false}
+            className="w-62.5"
           />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Category</div>
-          <MultiApiSelect placeholder="All Categories" value={categoryIds} onChange={setCategoryIds} fetchPage={fetchCategoryPage} />
+          <MultiApiSelect placeholder="All Categories" value={categoryIds} onChange={setCategoryIds} fetchPage={fetchCategoryPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Brands</div>
-          <MultiApiSelect placeholder="All Brands" value={brandIds} onChange={setBrandIds} fetchPage={fetchBrandPage} />
+          <MultiApiSelect placeholder="All Brands" value={brandIds} onChange={setBrandIds} fetchPage={fetchBrandPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">

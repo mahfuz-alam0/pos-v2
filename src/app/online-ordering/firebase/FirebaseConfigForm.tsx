@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, CheckCircle2 } from "lucide-react";
 
 import { getFirebaseConfig } from "@/services/firebase/getFirebaseConfig";
 import { updateFirebaseConfig } from "@/services/firebase/updateFirebaseConfig";
@@ -12,13 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Field } from "@/components/admin/form-fields";
 import {
   AlertDialog,
@@ -40,6 +34,7 @@ export default function FirebaseConfigForm() {
   const [firebaseAppId, setFirebaseAppId] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [adminSDKJSON, setAdminSDKJSON] = useState<Record<string, any> | null>(null);
+  const [isSavedFile, setIsSavedFile] = useState(false);
   const [hasExistingConfig, setHasExistingConfig] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,6 +52,7 @@ export default function FirebaseConfigForm() {
     setFirebaseAppId("");
     setFileName(null);
     setAdminSDKJSON(null);
+    setIsSavedFile(false);
     setHasExistingConfig(false);
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -71,6 +67,11 @@ export default function FirebaseConfigForm() {
         setHasExistingConfig(true);
         setBucketName((config.bucketName ?? "").replace(/^gs:\/\//, ""));
         setFirebaseAppId(config.firebaseAppId ?? "");
+        if (config.adminSDKJson) {
+          setAdminSDKJSON(config.adminSDKJson);
+          setFileName(`${config.adminSDKJson.project_id ?? "firebase-admin-sdk"}.json`);
+          setIsSavedFile(true);
+        }
       }
     } catch (err: any) {
       toast.error(err?.message || "Failed to load existing configuration");
@@ -85,11 +86,13 @@ export default function FirebaseConfigForm() {
       toast.error("You can only upload a JSON file!");
       return;
     }
-    setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         setAdminSDKJSON(JSON.parse(e.target?.result as string));
+        setFileName(file.name);
+        setIsSavedFile(false);
+        toast.success(`"${file.name}" uploaded`);
       } catch {
         toast.error("Invalid JSON file");
         setAdminSDKJSON(null);
@@ -120,6 +123,7 @@ export default function FirebaseConfigForm() {
       });
       toast.success("Firebase configuration updated successfully!");
       setHasExistingConfig(true);
+      setIsSavedFile(true);
     } catch (err: any) {
       toast.error(err?.message || "An error occurred");
     } finally {
@@ -178,9 +182,12 @@ export default function FirebaseConfigForm() {
                   }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
-                  className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-                    dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:bg-muted/30"
-                  }`}
+                  className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${dragOver
+                      ? "border-primary bg-primary/5"
+                      : fileName
+                        ? "border-green-600/40 bg-green-600/5"
+                        : "border-muted-foreground/25 hover:bg-muted/30"
+                    }`}
                 >
                   <input
                     ref={inputRef}
@@ -189,12 +196,24 @@ export default function FirebaseConfigForm() {
                     className="hidden"
                     onChange={(e) => handleFile(e.target.files?.[0])}
                   />
-                  <Upload className="size-6 text-muted-foreground" />
+                  {fileName ? (
+                    <CheckCircle2 className="size-6 text-green-600" />
+                  ) : (
+                    <Upload className="size-6 text-muted-foreground" />
+                  )}
                   <p className="text-sm font-medium">
-                    {fileName ?? "Click to upload or drag and drop"}
+                    {fileName ? "Click to replace file" : "Click to upload or drag and drop"}
                   </p>
                   <p className="text-xs text-muted-foreground">JSON file only.</p>
                 </div>
+                {fileName && (
+                  <div className="mt-1.5 flex items-center justify-between gap-2 rounded-md border border-green-600/30 bg-green-600/5 px-3 py-1.5">
+                    <span className="truncate text-xs font-medium text-foreground">📄 {fileName}</span>
+                    <span className="shrink-0 text-xs text-green-700 dark:text-green-500">
+                      {isSavedFile ? "Saved" : "Ready to save"}
+                    </span>
+                  </div>
+                )}
                 {!adminSDKJSON && (
                   <p className="mt-1.5 text-xs text-destructive">
                     Firebase Admin SDK Credentials JSON is required

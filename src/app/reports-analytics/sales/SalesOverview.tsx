@@ -130,6 +130,12 @@ export default function SalesOverview() {
     }
   };
 
+  useEffect(() => {
+    if (!shopId) return;
+    handleSubmit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, startDate, endDate, customerTypeId]);
+
   const categoryData = overview?.categoryWiseBreakdown ?? [];
   const exportMetadata = { storeName: storeInfo?.name || "Store", dateRange: dateRangeLabel };
 
@@ -148,6 +154,7 @@ export default function SalesOverview() {
             initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }}
             showTimeSwitch
             showAllOption={false}
+            className="w-62.5"
           />
         </div>
 

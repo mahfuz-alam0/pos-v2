@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +60,11 @@ export default function SalesDiscountProgressReport() {
     }
   };
 
+  useEffect(() => {
+    handleSubmit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedShopId, startDate, endDate, discountGoalLimitPercent, employeeSalesGoal, locationSalesGoal]);
+
   const rows = progress
     ? [
         { label: "High Discount Warnings", value: progress.highDiscountWarningCount ?? 0 },
@@ -79,6 +84,7 @@ export default function SalesDiscountProgressReport() {
             setSelectedDate={setSelectedDate}
             initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }}
             showAllOption={false}
+            className="w-62.5"
           />
         </div>
 

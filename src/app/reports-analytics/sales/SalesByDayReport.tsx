@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -99,6 +99,11 @@ export default function SalesByDayReport() {
     await fetchDetail(1);
     setRunReport(true);
   };
+
+  useEffect(() => {
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, startDate, endDate]);
 
   const fetchAllForExport = async () => {
     const total = pagination.totalEntries || 0;

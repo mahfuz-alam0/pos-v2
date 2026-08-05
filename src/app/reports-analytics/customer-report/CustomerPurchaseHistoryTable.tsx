@@ -165,6 +165,12 @@ export default function CustomerPurchaseHistoryTable() {
     setRunReport(true);
   };
 
+  useEffect(() => {
+    if (!shopId) return;
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId]);
+
   const fetchCategoryPage = useCallback(async (page: number, search: string) => {
     const res = await fetchCategoriesList({ page, limit: 20, search });
     return {
@@ -214,7 +220,7 @@ export default function CustomerPurchaseHistoryTable() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Date Range</div>
-          <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={selectedDate} showAllOption={false} />
+          <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={selectedDate} showAllOption={false} className="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
@@ -240,17 +246,17 @@ export default function CustomerPurchaseHistoryTable() {
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Classifications</div>
-          <ApiSelect placeholder="All Classifications" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} />
+          <ApiSelect placeholder="All Classifications" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Products</div>
-          <ApiSelect placeholder="All Products" value={productId} onChange={setProductId} fetchPage={fetchProductPage} />
+          <ApiSelect placeholder="All Products" value={productId} onChange={setProductId} fetchPage={fetchProductPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Brands</div>
-          <ApiSelect placeholder="All Brands" value={brandId} onChange={setBrandId} fetchPage={fetchBrandPage} />
+          <ApiSelect placeholder="All Brands" value={brandId} onChange={setBrandId} fetchPage={fetchBrandPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">

@@ -108,6 +108,12 @@ export default function CustomerQueueTable() {
     setRunReport(true);
   };
 
+  useEffect(() => {
+    if (!shopId) return;
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId]);
+
   const handleExportCsv = () => {
     if (!rows.length) {
       toast.warning("No data to export");
@@ -133,7 +139,7 @@ export default function CustomerQueueTable() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Date Range</div>
-          <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={selectedDate} showAllOption={false} />
+          <DateRangeSelector setSelectedDate={setSelectedDate} initialDate={selectedDate} showAllOption={false} className="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">

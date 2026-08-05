@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -125,6 +125,11 @@ export default function SalesByEmployeeReport() {
     setRunReport(true);
   };
 
+  useEffect(() => {
+    handleRunReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedShopId, startDate, endDate, categoryId, productId, deliveryMethod, source]);
+
   const fetchAllForExport = async () => {
     const total = pagination.totalEntries || 0;
     const totalBatches = total > 0 ? Math.ceil(total / EXPORT_BATCH_SIZE) : 1;
@@ -180,6 +185,7 @@ export default function SalesByEmployeeReport() {
             setSelectedDate={setSelectedDate}
             initialDate={{ startDate: selectedDate.startDate, endDate: selectedDate.endDate }}
             showAllOption={false}
+            className="w-62.5"
           />
         </div>
 
@@ -206,12 +212,12 @@ export default function SalesByEmployeeReport() {
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Category</div>
-          <ApiSelect placeholder="All Categories" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} />
+          <ApiSelect placeholder="All Categories" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Products</div>
-          <ApiSelect placeholder="All Products" value={productId} onChange={setProductId} fetchPage={fetchProductPage} />
+          <ApiSelect placeholder="All Products" value={productId} onChange={setProductId} fetchPage={fetchProductPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
