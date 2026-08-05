@@ -18,6 +18,13 @@ function isSameRange(a: DateRange | undefined, b: DateRange) {
   return format(a.from, "yyyy-MM-dd") === format(b.from!, "yyyy-MM-dd") && format(a.to, "yyyy-MM-dd") === format(b.to!, "yyyy-MM-dd");
 }
 
+// start -> end -> reset+start -> end -> ... A complete range means the next click starts over.
+export function nextRange(current: DateRange | undefined, picked: Date): DateRange {
+  if (!current?.from || current.to) return { from: picked, to: undefined };
+  const [from, to] = picked < current.from ? [picked, current.from] : [current.from, picked];
+  return { from, to };
+}
+
 export default function DayRangePicker({
   value,
   onChange,
@@ -27,6 +34,12 @@ export default function DayRangePicker({
 }) {
   const today = new Date();
   const nights = value?.from && value?.to ? differenceInCalendarDays(value.to, value.from) + 1 : 0;
+
+  function handleDayClick(day: Date | undefined) {
+    // mode="single" passes undefined when re-clicking the selected day; treat it as picking that day again.
+    const picked = day ?? value?.from;
+    if (picked) onChange(nextRange(value, picked));
+  }
 
   return (
     <div className="overflow-hidden rounded-xl bg-muted/40 ring-1 ring-foreground/10">
@@ -59,8 +72,21 @@ export default function DayRangePicker({
         )}
       </div>
 
-      <div className="overflow-x-auto">
-        <Calendar mode="range" selected={value} onSelect={onChange} numberOfMonths={2} className="bg-transparent" />
+      <div className="overflow-x-auto p-3">
+        <Calendar
+          mode="single"
+          selected={value?.from}
+          onSelect={handleDayClick}
+          modifiers={{
+            range_start: value?.from ?? [],
+            range_end: value?.to ?? [],
+            range_middle: value?.from && value?.to ? { after: value.from, before: value.to } : [],
+          }}
+          numberOfMonths={2}
+          className="mx-auto w-fit [--cell-size:--spacing(6)]"
+          classNames={{ months: "relative flex flex-nowrap justify-center gap-3" }}
+          modifiersClassNames={{ range_middle: "[&_button]:bg-primary/15! [&_button]:text-foreground" }}
+        />
       </div>
 
       {value?.from && value?.to && (

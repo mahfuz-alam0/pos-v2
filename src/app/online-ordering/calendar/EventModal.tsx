@@ -289,7 +289,7 @@ export default function EventModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between pr-6">
               <span>{isUpdate ? "Update Event" : "Create New Event"} — {stepTitle}</span>
