@@ -161,6 +161,7 @@ function TabletModePosInner() {
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [fullSelectedCustomer, setFullSelectedCustomer] = useState(null);
+  const [customerLocked, setCustomerLocked] = useState(false);
   const [customerDeliveryLocations, setCustomerDeliveryLocations] = useState<
     any[]
   >([]);
@@ -408,7 +409,7 @@ function TabletModePosInner() {
               "tabletMode-default-group",
             )
             .then((res) => dispatch(getQuoteForSale(res.data)))
-            .catch((error) => toast.error(error.error || "Error"));
+            .catch((error) => toast.error(error?.message || error?.error || "Error"));
         }
       }
     }
@@ -487,6 +488,7 @@ function TabletModePosInner() {
   const handleSelectCustomer = (customer, queueRecord: any = null) => {
     if (!customer) return;
 
+    setCustomerLocked(false);
     dispatch(setSelectedCustomer(customer));
     localStorage.setItem(
       "customerGroups",
@@ -554,7 +556,10 @@ function TabletModePosInner() {
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tabletMode-select-customer")
       .then((res) => dispatch(getQuoteForSale(res.data)))
-      .catch((error) => toast.error(error?.error || "Failed to get quote"));
+      .catch((error) => {
+        toast.error(error?.message || error?.error || "Failed to get quote");
+        if (/locked/i.test(error?.message || "")) setCustomerLocked(true);
+      });
 
     // Auto-add customer to queue and immediately move to serving state.
     if (customer?.id) {
@@ -598,6 +603,7 @@ function TabletModePosInner() {
   // --- Remove customer: queue removal + quote reset ---
   const removeSelectedCustomer = async () => {
     quoteApiManager.reset();
+    setCustomerLocked(false);
 
     const customerIdToRemove = quoteBody?.customerId || selectedCustomer?.id;
     if (customerIdToRemove) {
@@ -752,7 +758,7 @@ function TabletModePosInner() {
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tabletMode-customer-group")
       .then((res) => dispatch(getQuoteForSale(res.data)))
-      .catch((error) => toast.error(error.error || "Error"));
+      .catch((error) => toast.error(error?.message || error?.error || "Error"));
   };
 
   const persistedDeliveryType =
@@ -1011,6 +1017,7 @@ function TabletModePosInner() {
                 key={posResetKey}
                 selectedCustomer={selectedCustomer}
                 fullSelectedCustomer={fullSelectedCustomer}
+                customerLocked={customerLocked}
                 hasSale={hasSale}
                 onAttachCustomer={() => setCustomerSearchOpen(true)}
                 onRemoveCustomer={removeSelectedCustomer}

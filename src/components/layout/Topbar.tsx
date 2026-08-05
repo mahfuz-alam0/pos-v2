@@ -85,9 +85,35 @@ function ShopSwitcher() {
 }
 
 function RegisterSwitcher() {
-  // Register/drawer selection isn't wired to hardware yet — visual placeholder only.
-  const registerName = "";
-  const drawerName = "";
+  // Mirrors whatever RegisterDrawerModal (POS pages) last selected — it
+  // persists to localStorage and broadcasts registerDrawerSelected /
+  // registerDrawerClosed CustomEvents on window, same contract the POS
+  // pages themselves listen to for their own register-ready state.
+  const [registerName, setRegisterName] = useState("");
+  const [drawerName, setDrawerName] = useState("");
+
+  useEffect(() => {
+    setRegisterName(localStorage.getItem("registerName") || "");
+    setDrawerName(localStorage.getItem("drawerName") || "");
+
+    const handleSelected = (e: any) => {
+      const { registerName: rn, drawerName: dn } = e.detail || {};
+      if (rn !== undefined) setRegisterName(rn || "");
+      if (dn !== undefined) setDrawerName(dn || "");
+    };
+    // RegisterDrawerModal only dispatches this when the closed drawer was
+    // the active one, and it has already cleared drawerId/drawerName from
+    // localStorage by the time it does — just re-sync from there.
+    const handleClosed = () => {
+      setDrawerName(localStorage.getItem("drawerName") || "");
+    };
+    window.addEventListener("registerDrawerSelected", handleSelected);
+    window.addEventListener("registerDrawerClosed", handleClosed);
+    return () => {
+      window.removeEventListener("registerDrawerSelected", handleSelected);
+      window.removeEventListener("registerDrawerClosed", handleClosed);
+    };
+  }, []);
 
   return (
     <button

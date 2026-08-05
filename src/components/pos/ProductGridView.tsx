@@ -108,8 +108,8 @@ function ProductCard({ product, onClick }) {
 
   return (
     <div
-      className="group relative h-56 cursor-pointer overflow-hidden rounded-2xl bg-[#1a2238] shadow-md transition-all duration-200 active:scale-[0.98] hover:-translate-y-1 hover:shadow-xl"
-      style={{ border: `2px solid ${borderColor}` }}
+      className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-[#1a2238] shadow-md transition-all duration-200 active:scale-[0.98] hover:-translate-y-1 hover:shadow-xl"
+      style={{ border: `1.5px solid ${borderColor}` }}
       onClick={onClick}>
       {imgUrl ? (
         <ProductImage src={imgUrl} alt={product?.productName} />
@@ -125,26 +125,26 @@ function ProductCard({ product, onClick }) {
       )}
 
       {/* Stock + THC/CBD — top left, stacked */}
-      <div className="absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1.5">
+      <div className="absolute left-1.5 top-1.5 z-10 flex flex-col items-start gap-0.5">
         {stockStatus && (
           <span
-            className="rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow"
+            className="rounded-full px-2 py-0.5 text-[9px] font-bold text-white shadow"
             style={{ background: stockBg, backdropFilter: "blur(6px)" }}>
             {stockStatus}
           </span>
         )}
         {(thc > 0 || cbd > 0) && (
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             {thc > 0 && (
               <span
-                className="rounded-full px-2 py-1 text-[11px] font-bold text-white shadow"
+                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
                 style={{ background: "rgba(22,163,74,0.88)" }}>
                 THC: {thc}
               </span>
             )}
             {cbd > 0 && (
               <span
-                className="rounded-full px-2 py-1 text-[11px] font-bold text-white shadow"
+                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
                 style={{ background: "rgba(37,99,235,0.88)" }}>
                 CBD: {cbd}
               </span>
@@ -155,7 +155,7 @@ function ProductCard({ product, onClick }) {
 
       {/* Bottom gradient bar — name + price */}
       <div
-        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-1 px-4 pb-3.5 pt-14"
+        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-0.5 px-2 pb-1.5 pt-6"
         style={{
           background:
             "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)",
@@ -163,17 +163,16 @@ function ProductCard({ product, onClick }) {
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="line-clamp-2 text-base font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
+              <div className="line-clamp-1 text-xs font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
                 {product?.productName ?? "N/A"}
               </div>
             }
           />
           <TooltipContent>{product?.productName ?? "N/A"}</TooltipContent>
         </Tooltip>
-        <div className="flex items-baseline gap-1 text-xl font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
-
+        <div className="flex items-baseline gap-1 text-sm font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
           ${price}
-          <span className="text-xs font-normal opacity-70">/{unit}</span>
+          <span className="text-[9px] font-normal opacity-70">/{unit}</span>
         </div>
       </div>
     </div>
@@ -214,12 +213,17 @@ export default function ProductGridView({
   return (
     <div
       ref={scrollRef}
+      className="@container"
       style={{
         height: "100%",
         overflowY: noScroll ? "hidden" : "auto",
         overflowX: "hidden",
       }}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+      {/* Container-query columns, not viewport ones — this grid's own
+          rendered width is what matters (e.g. Tablet Mode squeezes it next
+          to the cart sidebar, so it never reached the xl: viewport
+          breakpoint even on a wide screen and got stuck at 3 columns). */}
+      <div className="grid grid-cols-3 gap-1.5 @lg:grid-cols-5 @3xl:grid-cols-7">
         {data.map((product) => (
           <ProductCard
             key={product.id}

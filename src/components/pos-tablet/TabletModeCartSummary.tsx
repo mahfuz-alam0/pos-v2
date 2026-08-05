@@ -67,6 +67,7 @@ function flattenLineItems(orderData) {
 export default function TabletModeCartSummary({
   selectedCustomer,
   fullSelectedCustomer,
+  customerLocked,
   hasSale,
   onAttachCustomer,
   onRemoveCustomer,
@@ -256,23 +257,40 @@ export default function TabletModeCartSummary({
         {selectedCustomer ? (
           <div
             className="flex items-center gap-2 rounded-xl px-4 py-3.5"
-            style={{
-              background: NAVY_CARD,
-              border: "1px solid rgba(1,144,221,0.3)",
-            }}>
+            style={
+              customerLocked
+                ? {
+                    background: "rgba(239,68,68,0.12)",
+                    border: "1px solid rgba(239,68,68,0.6)",
+                  }
+                : {
+                    background: NAVY_CARD,
+                    border: "1px solid rgba(1,144,221,0.3)",
+                  }
+            }>
             <span
               className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-lg font-bold"
-              style={{ background: "rgba(1,144,221,0.2)", color: BLUE }}>
+              style={
+                customerLocked
+                  ? { background: "rgba(239,68,68,0.2)", color: "#f87171" }
+                  : { background: "rgba(1,144,221,0.2)", color: BLUE }
+              }>
               {(selectedCustomer.firstName || "?")[0].toUpperCase()}
             </span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-base font-semibold">
                 {customerName || "Customer"}
               </div>
-              {selectedCustomer.customerType && (
-                <div className="truncate text-sm text-white/60">
-                  {selectedCustomer.customerType}
+              {customerLocked ? (
+                <div className="truncate text-sm font-semibold text-red-400">
+                  Customer is locked
                 </div>
+              ) : (
+                selectedCustomer.customerType && (
+                  <div className="truncate text-sm text-white/60">
+                    {selectedCustomer.customerType}
+                  </div>
+                )
               )}
             </div>
 
