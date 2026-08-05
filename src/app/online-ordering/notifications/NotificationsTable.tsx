@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Bell, Clock, Loader2, Plus, Trash2 } from "lucide-react";
 
@@ -32,6 +31,7 @@ import {
 
 import NotificationDetailsPanel from "./NotificationDetailsPanel";
 import NotificationSettingsTable from "./NotificationSettingsTable";
+import ComposeNotificationDrawer from "./ComposeNotificationDrawer";
 import type { EntityOption, NotificationRow, PendingNotification } from "./types";
 
 const PAGE_SIZE = 30;
@@ -64,6 +64,8 @@ export default function NotificationsTable() {
   const [pendingLoading, setPendingLoading] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<PendingNotification | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const loadNotifications = useCallback(async (page = 1, entity = entityId) => {
     setLoading(true);
@@ -252,7 +254,7 @@ export default function NotificationsTable() {
             </PopoverContent>
           </Popover>
 
-          <Button render={<Link href="/bleaum/notification/add" />}>
+          <Button onClick={() => setComposeOpen(true)}>
             <Plus /> Compose Notification
           </Button>
         </div>
@@ -400,6 +402,15 @@ export default function NotificationsTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ComposeNotificationDrawer
+        open={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onCreated={() => {
+          setComposeOpen(false);
+          loadNotifications(1);
+        }}
+      />
     </div>
   );
 }
