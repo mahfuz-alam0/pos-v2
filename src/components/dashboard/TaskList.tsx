@@ -82,14 +82,14 @@ export default function TaskList() {
   const totalPages = Math.max(1, Math.ceil(pagination.total / PAGE_SIZE));
 
   return (
-    <div className="rounded-xl border border-border bg-component-bg p-4">
+    <div className="rounded-xl bg-component-bg shadow-md p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-lg font-semibold text-text">Task List</h2>
+        <h2 className="m-0 text-lg font-normal text-text">Task List</h2>
         <div className="flex gap-2">
-          <Button size="sm" variant={showArchived ? "default" : "outline"} onClick={() => setShowArchived((v) => !v)}>
+          <Button className="h-10 px-3.5 text-sm" variant={showArchived ? "default" : "outline"} onClick={() => setShowArchived((v) => !v)}>
             {showArchived ? "Active Tasks" : "Archived"}
           </Button>
-          <Button size="sm" onClick={() => fetchTasks(pagination.current)}>
+          <Button className="h-10 px-3.5 text-sm" onClick={() => fetchTasks(pagination.current)}>
             Refresh
           </Button>
         </div>

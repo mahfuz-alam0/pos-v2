@@ -39,6 +39,7 @@ export default function AddTransferPage() {
   const transferType: TransferTab = VALID_TYPES.includes(rawType as TransferTab)
     ? (rawType as TransferTab)
     : "within-storage-locations";
+  const preSelectedPackageIds = searchParams.get("packageIds")?.split(",").filter(Boolean);
 
   const handleTypeChange = (value: string) => {
     router.push(`/inventory-management/transfers/add-transfer?transferType=${value}`);
@@ -87,7 +88,9 @@ export default function AddTransferPage() {
         </div>
 
         <div className="flex flex-col gap-4 p-6">
-          {transferType === "within-storage-locations" && <WithinLocationTransferForm />}
+          {transferType === "within-storage-locations" && (
+            <WithinLocationTransferForm preSelectedPackageIds={preSelectedPackageIds} />
+          )}
           {transferType === "with-in-shops" && <ShopTransferForm />}
           {transferType === "supplier-specific" && <SupplierTransferForm />}
         </div>

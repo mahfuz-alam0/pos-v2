@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 import { ArrowRight, Calendar, Link2, Loader2, Network, User } from "lucide-react";
@@ -12,7 +12,7 @@ import { fetchSingleActivityLog } from "@/services/activityLogs/getSingle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay } from "@/components/ui/table-pagination";
 import {
   Dialog,
   DialogContent,
@@ -20,9 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 15;
 
-type DateMode = "today" | "yesterday" | "custom";
+type DateMode = "all" | "today" | "yesterday" | "custom";
 
 interface ActivityLogEntry {
   id: string;
@@ -435,11 +435,14 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
   const [page, setPage] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
 
-  const [dateMode, setDateMode] = useState<DateMode>("today");
+  const [dateMode, setDateMode] = useState<DateMode>("all");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const buildDateParams = useCallback((): Record<string, string> => {
     if (dateMode === "today") return getTodayRange();
@@ -454,9 +457,10 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
   }, [dateMode, customRange]);
 
   const fetchLogs = useCallback(
-    async (pageToLoad: number) => {
+    async (pageToLoad: number, append = false) => {
       if (!shopId) return;
-      setLoading(true);
+      if (append) setLoadingMore(true);
+      else setLoading(true);
       try {
         const params: Record<string, any> = {
           page: pageToLoad,
@@ -468,14 +472,16 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
         };
         const res = await fetchOverallActivityLogs(params);
         const body = res?.data?.data;
-        setLogs(body?.activityLogs ?? []);
+        const newLogs = body?.activityLogs ?? [];
+        setLogs((prev) => (append ? [...prev, ...newLogs] : newLogs));
         setTotalEntries(body?.paginationData?.totalEntries ?? 0);
         setPage(pageToLoad);
       } catch (err: any) {
         toast.error(err?.message || "Failed to load activity logs");
-        setLogs([]);
+        if (!append) setLogs([]);
       } finally {
-        setLoading(false);
+        if (append) setLoadingMore(false);
+        else setLoading(false);
       }
     },
     [shopId, domain, targetId, buildDateParams]
@@ -486,18 +492,35 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, domain, targetId, dateMode, customRange]);
 
+  const hasMore = logs.length < totalEntries;
+
+  // Infinite scroll: load the next page once the sentinel below the list
+  // scrolls into view, instead of numbered pagination.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !loading && !loadingMore) {
+          fetchLogs(page + 1, true);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, page, fetchLogs]);
+
   const handleOpenDetail = (id: string) => {
     setSelectedLogId(id);
     setDetailOpen(true);
   };
 
-  const totalPages = Math.max(1, Math.ceil(totalEntries / PAGE_SIZE));
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-3">
         <Calendar className="size-4 shrink-0 text-muted-foreground" />
-        {(["today", "yesterday", "custom"] as DateMode[]).map((mode) => (
+        {(["all", "today", "yesterday", "custom"] as DateMode[]).map((mode) => (
           <button
             key={mode}
             type="button"
@@ -527,20 +550,18 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
             No activity logs found.
           </div>
         ) : (
-          logs.map((log) => <LogCard key={log.id} log={log} onDetails={handleOpenDetail} />)
+          <>
+            {logs.map((log) => (
+              <LogCard key={log.id} log={log} onDetails={handleOpenDetail} />
+            ))}
+            {hasMore && (
+              <div ref={sentinelRef} className="flex items-center justify-center py-4">
+                {loadingMore && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {totalEntries > 0 && (
-        <TablePagination
-          page={page}
-          totalPages={totalPages}
-          totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
-          loading={loading}
-          onPageChange={(p) => fetchLogs(p)}
-        />
-      )}
 
       <DetailDialog
         open={detailOpen}

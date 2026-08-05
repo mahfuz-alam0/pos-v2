@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import PrintLabelModal from "@/components/pos/PrintLabelModal";
 import PackageActivityDrawer from "../packages/PackageActivityDrawer";
+import PackageOrderHistoryDrawer from "../packages/PackageOrderHistoryDrawer";
 import AddEditProductDrawer from "@/app/catalog/products/AddEditProductDrawer";
 
 function isMetrcPackage(pkg: any) {
@@ -51,6 +52,7 @@ function PackageCard({
   const [detaching, setDetaching] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -197,6 +199,9 @@ function PackageCard({
             <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setActivityOpen(true)}>
               Activity
             </Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" variant="outline" onClick={() => setOrderHistoryOpen(true)}>
+              Order History
+            </Button>
             {pkg.productId && pkg.inventoryId && (
               <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" variant="destructive" onClick={handleDetach} disabled={detaching}>
                 Detach
@@ -212,6 +217,8 @@ function PackageCard({
       <PrintLabelModal open={printOpen} onClose={() => setPrintOpen(false)} packageId={pkg.id} shopId={shopId} />
 
       <PackageActivityDrawer open={activityOpen} packageId={pkg.id} onClose={() => setActivityOpen(false)} />
+
+      <PackageOrderHistoryDrawer open={orderHistoryOpen} packageId={pkg.id} onClose={() => setOrderHistoryOpen(false)} />
 
       {pkg.productId && (
         <AddEditProductDrawer

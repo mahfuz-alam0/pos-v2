@@ -9,7 +9,7 @@ import { nowInShopTimezone, formatCurrency } from "@/util/dateUtil";
 function StatBlock({ label, value, isCurrency = true, borderRight = true, borderBottom = false }) {
   return (
     <div
-      className="flex min-w-0 flex-col items-center justify-center px-2 py-5.5"
+      className="flex min-w-0 flex-col items-center justify-center px-2 py-3.5"
       style={{
         borderRight: borderRight ? "1px solid var(--border)" : "none",
         borderBottom: borderBottom ? "1px solid var(--border)" : "none",
@@ -83,9 +83,9 @@ export default function ShopDashboardStats() {
   });
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-component-bg">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl bg-component-bg shadow-md">
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
-        <span className="text-base font-semibold text-text">
+        <span className="text-base font-normal text-text">
           Dashboard &mdash; <span className="text-[#2A9D8F]">{dateLabel}</span>
         </span>
         <div className="flex flex-wrap items-center gap-2">

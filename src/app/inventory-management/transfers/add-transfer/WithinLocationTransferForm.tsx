@@ -27,7 +27,15 @@ import PackagePickerTable, { type PackagePickerRow } from "./PackagePickerTable"
 
 const PAGE_SIZE = 30;
 
-export default function WithinLocationTransferForm() {
+export default function WithinLocationTransferForm({
+  preSelectedPackageIds,
+}: {
+  /** Packages picked in bulk from the Packages list before landing here (old
+   * app: index.js's "Transfer (N)" bulk button). Auto-checked as soon as a
+   * matching row shows up under whichever source location the user picks —
+   * the picker's own location-scoped search stays the source of truth. */
+  preSelectedPackageIds?: string[];
+} = {}) {
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -113,6 +121,18 @@ export default function WithinLocationTransferForm() {
               selectedRows.find((r) => r.id === pkg.id)?.displayQuantityToShift ?? 1,
           }))
         );
+
+        if (preSelectedPackageIds?.length) {
+          setSelectedRows((prev) => {
+            const merged = [...prev];
+            packages.forEach((pkg: any) => {
+              if (preSelectedPackageIds.includes(pkg.id) && !merged.find((m) => m.id === pkg.id)) {
+                merged.push({ ...pkg, displayQuantityToShift: pkg.storageLocationBreakdown?.[sourceId] ?? 1 });
+              }
+            });
+            return merged.length > 10 ? merged.slice(0, 10) : merged;
+          });
+        }
         const pag = res?.data?.paginationData ?? {};
         setTotalPages(pag.totalPages ?? 1);
         setTotalEntries(pag.totalEntries ?? packages.length);

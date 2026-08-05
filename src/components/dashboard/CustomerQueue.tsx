@@ -94,15 +94,20 @@ export default function CustomerQueue({
   return (
     <div
       className={
+
         sidepanel
           ? "flex h-full flex-col"
-          : "rounded-xl border border-border bg-component-bg p-4"
+          : "rounded-xl bg-component-bg shadow-md p-3"
       }>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex justify-end w-full gap-2">
-          <Button onClick={() => setQrOpen(true)}>Scan QR</Button>
+      <div className="flex flex-wrap items-center justify-between gap-3  py-2 ">
 
-          <Button onClick={handleClearQueue} disabled={clearing}>
+        <span className="text-lg font-normal text-text">Customer queue</span>
+        <div className="flex gap-2">
+          <Button className="h-10 px-3.5 text-sm" onClick={() => setQrOpen(true)}>Scan QR</Button>
+
+          <Button className="h-10 px-3.5 text-sm" onClick={() => setAddCustomerOpen(true)}>Add Customer</Button>
+
+          <Button className="h-10 px-3.5 text-sm" onClick={handleClearQueue} disabled={clearing}>
             Clear Queue
           </Button>
         </div>
@@ -120,7 +125,7 @@ export default function CustomerQueue({
       </div>
 
       <div
-        className={`mt-3 flex flex-wrap gap-2 overflow-y-auto ${sidepanel ? "min-h-0" : "min-h-20 max-h-82.5"}`}
+        className={`mt-3 flex flex-wrap pb-3 gap-2 overflow-y-auto ${sidepanel ? "min-h-0" : "min-h-20 max-h-82.5"}`}
         style={sidepanel ? { scrollbarWidth: "none" } : undefined}>
         {loading ? (
           <div className="flex w-full items-center justify-center py-6 text-muted-foreground">

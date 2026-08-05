@@ -36,15 +36,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-5 p-6">
+    <div className="flex flex-col gap-3 p-4">
       <WelcomeBanner />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         <RevenueBreakdownCard />
         {canViewDashboardStats && <ShopDashboardStats />}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {canViewDashboardStats && <TotalRevenueCard />}
         <PopularTimeCard />
         <ConversionStats />
@@ -54,8 +54,8 @@ export default function Home() {
 
       <CustomerQueue />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[2fr_1fr]">
-        <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
+        <div className="flex flex-col gap-3">
           {canViewDashboardStats && (
             <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
           )}

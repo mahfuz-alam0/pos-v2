@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Trash2, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchSuppliersList } from "@/services/suppliers/list";
@@ -13,13 +13,12 @@ import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExt
 import { fetchUomList } from "@/services/uom/list";
 import { generateExternalPackageId } from "@/services/packages/generateExternalId";
 import { createIncomingSupplierTransfer } from "@/services/transfers/createIncomingSupplier";
-import { completeIncomingSupplierTransfer } from "@/services/transfers/completeIncomingSupplier";
 import { createOutgoingSupplierTransfer } from "@/services/transfers/createOutgoingSupplier";
-import { createPurchaseOrderFromTransfer } from "@/services/purchaseOrders/createFromTransfer";
 import { fetchSingleInventoryByProductId } from "@/services/inventories/getSingleByProductId";
 
 import AddEditProductDrawer from "@/app/catalog/products/AddEditProductDrawer";
 import DrawerPricingDetails from "./DrawerPricingDetails";
+
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -143,8 +142,6 @@ export default function SupplierTransferForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [paymentTerms, setPaymentTerms] = useState("");
-  const [expectedDate, setExpectedDate] = useState("");
 
   useEffect(() => {
     fetchUomList({ page: 1, limit: 300 }).then((res) => {
@@ -244,6 +241,9 @@ export default function SupplierTransferForm() {
       const res = await fetchSingleInventoryByProductId(productId, shopId);
       const inventory = (res as any)?.data?.data?.inventory ?? null;
       setInventoryDetails(inventory);
+      if (inventory?.pricingInfo?.unitPrice != null) {
+        setAssignDraft((prev) => ({ ...prev, unitPrice: prev.unitPrice || String(inventory.pricingInfo.unitPrice) }));
+      }
       if (inventory?.projectQtyUomId && inventory?.projectQtyConversionRate) {
         setConversionUomId(inventory.projectQtyUomId);
         setConversionRate(String(inventory.projectQtyConversionRate));
@@ -387,7 +387,7 @@ export default function SupplierTransferForm() {
     return true;
   };
 
-  const handleCreateIncoming = async (terms: string) => {
+  const handleCreateIncoming = async () => {
     if (!shopId || !supplierId) {
       toast.error("Please select a supplier.");
       return;
@@ -396,7 +396,7 @@ export default function SupplierTransferForm() {
 
     setSubmitting(true);
     try {
-      const res = await createIncomingSupplierTransfer(shopId, {
+      await createIncomingSupplierTransfer(shopId, {
         supplierId,
         packages: filledEntries.map((e) => ({
           quantity: parseFloat(e.quantity) || 0,
@@ -410,24 +410,7 @@ export default function SupplierTransferForm() {
         notes: notes || null,
         documentLinks,
       });
-      const jobId = res?.data?.jobId;
-      if (!jobId) throw new Error("Job ID not received from API");
-
-      await completeIncomingSupplierTransfer(shopId, {
-        transferId: jobId,
-        productPriceRecommendations: filledEntries.map((e) => ({
-          productId: e.productId,
-          price: parseFloat(e.unitPrice) || 0,
-        })),
-      });
-
-      try {
-        await createPurchaseOrderFromTransfer(jobId, shopId, { paymentTerms: terms });
-        toast.success("Transfer created and Purchase Order generated successfully!");
-      } catch (poErr: any) {
-        toast.error(poErr?.message || "Transfer completed, but failed to create the Purchase Order");
-      }
-
+      toast.success("Transfer created successfully! Complete it from the transfer's Manage page to generate a Purchase Order.");
       router.push("/inventory-management/transfers");
     } catch (err: any) {
       toast.error(err?.message || "Failed to create transfer. Please try again.");
@@ -674,11 +657,7 @@ export default function SupplierTransferForm() {
             <Button
               variant="outline"
               disabled={filledEntries.length === 0 || !supplierId}
-              onClick={() => {
-                setPaymentTerms("");
-                setExpectedDate("");
-                setShowPaymentDialog(true);
-              }}
+              onClick={() => setShowPaymentDialog(true)}
             >
               Review
             </Button>
@@ -805,32 +784,8 @@ export default function SupplierTransferForm() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Creating this transfer will automatically create a Purchase Order for this supplier.
+              The transfer will be created as &quot;In Route&quot;. Complete it from the transfer&apos;s Manage page to set final prices and generate a Purchase Order.
             </p>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Payment Terms <span className="text-destructive">*</span>
-                </label>
-                <Select value={paymentTerms || undefined} onValueChange={(v) => setPaymentTerms(v as string)}>
-                  <SelectTrigger className="h-10! w-full">
-                    <SelectValue placeholder="Select payment terms" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["Due on Receipt", "Net 15", "Net 30", "Net 45", "Net 60", "50% Upfront"].map((term) => (
-                      <SelectItem key={term} value={term}>
-                        {term}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Expected Date</label>
-                <Input type="date" className="h-10!" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
-              </div>
-            </div>
           </div>
 
           <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
@@ -839,14 +794,14 @@ export default function SupplierTransferForm() {
             </Button>
             <Button
               className="h-10! text-sm!"
-              disabled={!paymentTerms || submitting}
+              disabled={submitting}
               onClick={() => {
                 setShowPaymentDialog(false);
-                handleCreateIncoming(paymentTerms);
+                handleCreateIncoming();
               }}
             >
               {submitting && <Loader2 className="size-3.5 animate-spin" />}
-              Create
+              Create Transfer
             </Button>
           </div>
         </div>

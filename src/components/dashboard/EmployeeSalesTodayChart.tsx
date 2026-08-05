@@ -109,9 +109,9 @@ export default function EmployeeSalesTodayChart({
   const dateShort = new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
-        <span className="text-base font-semibold text-text">
+    <div className="h-full rounded-xl bg-component-bg shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-5">
+        <span className="text-lg font-normal text-text">
           Today&apos;s Sales by Employee &mdash; <span className="text-[#2A9D8F]">{dateLabel}</span>
         </span>
         <div className="flex flex-wrap items-center gap-2">

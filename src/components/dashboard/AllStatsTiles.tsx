@@ -67,14 +67,14 @@ export default function AllStatsTiles() {
   }, [shopId]);
 
   return (
-    <div className="flex w-full flex-wrap justify-center gap-4 md:flex-nowrap">
+    <div className="flex w-full flex-wrap justify-center gap-3 md:flex-nowrap">
       {TILES.map((tile) => {
         const Icon = tile.icon;
         const value = loading ? "-" : stats[tile.key];
         return (
           <Link href={tile.href} key={tile.key} className="w-[calc(50%-0.5rem)] md:w-1/6">
             <div
-              className="flex h-full min-h-23 items-center gap-3 rounded-xl p-4 text-white shadow-sm transition-opacity hover:opacity-90"
+              className="flex h-full min-h-22 items-center gap-3 rounded-xl p-3 text-white shadow-sm transition-opacity hover:opacity-90"
               style={{ backgroundColor: tile.color, opacity: loading ? 0.6 : 1 }}
             >
               <Icon className="size-8 shrink-0 opacity-90 xl:size-9" />

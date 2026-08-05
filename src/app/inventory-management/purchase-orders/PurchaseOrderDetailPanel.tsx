@@ -19,11 +19,12 @@ import { fetchPurchaseOrder } from "@/services/purchaseOrders/get";
 import { addPaymentToPurchaseOrder } from "@/services/purchaseOrders/addPayment";
 import { closePurchaseOrder } from "@/services/purchaseOrders/close";
 
+import Drawer from "@/components/ui/Drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress, ProgressTrack, ProgressIndicator } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -51,11 +52,20 @@ import type { PurchaseOrderDetailData, PurchaseOrderLineItem, PaymentMethod } fr
 
 const PAYMENT_STATUS_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PAID: "default",
-  PARTIAL: "secondary",
+  PARTIAL: "outline",
   UNPAID: "destructive",
 };
 
+const PAYMENT_STATUS_BADGE_CLASS: Record<string, string> = {
+  PARTIAL: "border-amber-400 text-amber-600 dark:border-amber-500 dark:text-amber-400",
+};
+
 const PAYMENT_METHODS: PaymentMethod[] = ["CASH", "CHECK", "BANK_TRANSFER", "CREDIT"];
+
+const METHOD_BADGE_CLASS: Record<string, string> = {
+  CASH: "border-green-400 text-green-600 dark:border-green-500 dark:text-green-400",
+  CHECK: "border-amber-400 text-amber-600 dark:border-amber-500 dark:text-amber-400",
+};
 
 function fmtDate(value?: string, withTime = false) {
   if (!value) return "-";
@@ -95,10 +105,12 @@ function SummaryCard({ label, value, className }: { label: string; value: string
 
 export default function PurchaseOrderDetailPanel({
   id,
+  open,
   onClose,
   onChanged,
 }: {
   id: string;
+  open: boolean;
   onClose: () => void;
   onChanged?: () => void;
 }) {
@@ -175,25 +187,25 @@ export default function PurchaseOrderDetailPanel({
     }
   };
 
-  if (loading) {
+  if (loading || !po) {
     return (
-      <div className="flex w-1/3 flex-col gap-4 rounded-xl p-5 ring-1 ring-foreground/10">
-        <Skeleton className="h-6 w-2/3" />
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-40 w-full" />
-      </div>
-    );
-  }
-
-  if (!po) {
-    return (
-      <div className="flex w-1/3 flex-col items-center justify-center gap-3 rounded-xl p-10 ring-1 ring-foreground/10">
-        <FileText className="size-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Purchase order not found.</p>
-        <Button variant="outline" size="sm" onClick={onClose}>
-          Close
-        </Button>
-      </div>
+      <Drawer open={open} onClose={onClose} side="right" size="70%">
+        {loading ? (
+          <div className="flex flex-col gap-4 p-5">
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-10">
+            <FileText className="size-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Purchase order not found.</p>
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        )}
+      </Drawer>
     );
   }
 
@@ -205,14 +217,25 @@ export default function PurchaseOrderDetailPanel({
   const isOpen = po.status === "OPEN";
 
   return (
-    <div className="flex w-1/3 flex-col gap-4 rounded-xl ring-1 ring-foreground/10">
-      <div className="flex items-start justify-between gap-3 p-5 pb-0">
+    <Drawer open={open} onClose={onClose} side="right" size="70%">
+    <div className="flex h-full flex-col gap-4 bg-component-bg">
+      <div className="flex items-start justify-between gap-3 border-b border-border p-6 pb-5">
         <div className="min-w-0">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <h2 className="text-base font-bold">Purchase Order</h2>
             {po.externalInvoiceNumber && <span className="text-sm text-muted-foreground">#{po.externalInvoiceNumber}</span>}
-            <Badge variant={po.status === "OPEN" ? "default" : "secondary"}>{po.status}</Badge>
-            <Badge variant={PAYMENT_STATUS_BADGE[po.paymentStatus] ?? "outline"}>{po.paymentStatus}</Badge>
+            <Badge
+              variant={po.status === "OPEN" ? "default" : "outline"}
+              className={`rounded-md font-normal ${po.status === "OPEN" ? "bg-[#E6F7FF] text-primary" : ""}`}
+            >
+              {po.status}
+            </Badge>
+            <Badge
+              variant={PAYMENT_STATUS_BADGE[po.paymentStatus] ?? "outline"}
+              className={`rounded-md font-normal ${PAYMENT_STATUS_BADGE_CLASS[po.paymentStatus] ?? ""}`}
+            >
+              {po.paymentStatus}
+            </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             {po.createdAt && (
@@ -243,7 +266,7 @@ export default function PurchaseOrderDetailPanel({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-5">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         <Tabs defaultValue="order-details">
           <TabsList>
             <TabsTrigger value="order-details">
@@ -322,7 +345,7 @@ export default function PurchaseOrderDetailPanel({
                 </div>
 
                 <Table>
-                  <TableHeader className="[&_tr]:border-b-0">
+                  <TableHeader className="[&_tr]:border-b-0 [&_th]:px-4 [&_th]:h-12">
                     <TableRow className="bg-muted/60">
                       <TableHead>Product</TableHead>
                       <TableHead className="text-center">Ordered</TableHead>
@@ -331,7 +354,7 @@ export default function PurchaseOrderDetailPanel({
                       <TableHead className="text-right">Line Total</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="[&_td]:px-4 [&_td]:py-3">
                     {(po.lineItems ?? []).length === 0 && (
                       <TableRow className="border-b-0">
                         <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
@@ -339,10 +362,10 @@ export default function PurchaseOrderDetailPanel({
                         </TableCell>
                       </TableRow>
                     )}
-                    {(po.lineItems ?? []).map((item, i) => {
+                    {(po.lineItems ?? []).map((item) => {
                       const receivedCount = (po.receptions ?? []).filter((r) => r.lineItemId === item.id).length;
                       return (
-                        <TableRow key={item.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                        <TableRow key={item.id} className="border-b-0 bg-component-bg shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
                           <TableCell>
                             {item.productNameSnapshot ? (
                               <div>
@@ -429,13 +452,16 @@ export default function PurchaseOrderDetailPanel({
                       {paidPct.toFixed(0)}%
                     </span>
                   </div>
-                  <Progress value={paidPct}>
-                    <ProgressTrack>
-                      <ProgressIndicator
-                        className={paidPct >= 100 ? "bg-green-600" : paidPct > 0 ? "bg-blue-600" : "bg-red-500"}
-                      />
-                    </ProgressTrack>
-                  </Progress>
+                  <Progress
+                    value={paidPct}
+                    className={
+                      paidPct >= 100
+                        ? "[&_[data-slot=progress-indicator]]:bg-green-600"
+                        : paidPct > 0
+                        ? "[&_[data-slot=progress-indicator]]:bg-blue-600"
+                        : "[&_[data-slot=progress-indicator]]:bg-red-500"
+                    }
+                  />
                 </div>
               )}
 
@@ -443,23 +469,28 @@ export default function PurchaseOrderDetailPanel({
                 <div>
                   <p className="mb-2 text-sm font-semibold">Payment History</p>
                   <div className="overflow-hidden rounded-xl border border-border">
-                    <Table>
-                      <TableHeader className="[&_tr]:border-b-0">
+                    <Table className="table-fixed">
+                      <TableHeader className="[&_tr]:border-b-0 [&_th]:px-4">
                         <TableRow className="bg-muted/60">
-                          <TableHead>Date</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead>Notes</TableHead>
+                          <TableHead className="w-1/4">Date</TableHead>
+                          <TableHead className="w-1/4">Method</TableHead>
+                          <TableHead className="w-1/4">Amount</TableHead>
+                          <TableHead className="w-1/4">Notes</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
-                        {po.payments!.map((payment, i) => (
-                          <TableRow key={payment.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                      <TableBody className="[&_td]:px-4">
+                        {po.payments!.map((payment) => (
+                          <TableRow key={payment.id} className="border-b-0 bg-component-bg shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
                             <TableCell className="text-xs text-muted-foreground">{fmtDate(payment.paidAt)}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{payment.method?.replace("_", " ")}</Badge>
+                              <Badge
+                                variant="outline"
+                                className={`rounded-md font-normal ${METHOD_BADGE_CLASS[payment.method] ?? ""}`}
+                              >
+                                {payment.method?.replace("_", " ")}
+                              </Badge>
                             </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">${(payment.amount ?? 0).toFixed(2)}</TableCell>
+                            <TableCell className="font-mono font-semibold">${(payment.amount ?? 0).toFixed(2)}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{payment.notes || "—"}</TableCell>
                           </TableRow>
                         ))}
@@ -530,7 +561,11 @@ export default function PurchaseOrderDetailPanel({
                         {addingPayment ? "Recording..." : "Record Payment"}
                       </Button>
                       {outstanding > 0 && (
-                        <Button variant="outline" size="sm" onClick={() => setPaymentAmount(String(Math.max(outstanding, 0)))}>
+                        <Button
+                          variant="outline"
+                          className="border-primary/30 text-primary hover:bg-primary/10"
+                          onClick={() => setPaymentAmount(String(Math.max(outstanding, 0)))}
+                        >
                           Autofill outstanding amount
                         </Button>
                       )}
@@ -544,7 +579,11 @@ export default function PurchaseOrderDetailPanel({
                   <div className="flex flex-col items-start gap-1.5 px-4 py-3">
                     <AlertDialog>
                       <AlertDialogTrigger>
-                        <Button variant="destructive" disabled={closingPo}>
+                        <Button
+                          variant="destructive"
+                          className="bg-destructive text-white hover:bg-destructive/90"
+                          disabled={closingPo}
+                        >
                           {closingPo ? "Finalizing..." : "Finalize PO"}
                         </Button>
                       </AlertDialogTrigger>
@@ -590,5 +629,6 @@ export default function PurchaseOrderDetailPanel({
         onClose={() => setHistoryTarget(null)}
       />
     </div>
+    </Drawer>
   );
 }

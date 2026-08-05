@@ -39,13 +39,21 @@ const PAGE_SIZE = 20;
 
 const STATUS_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   OPEN: "default",
-  CLOSED: "secondary",
+  CLOSED: "outline",
+};
+
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  OPEN: "bg-[#E6F7FF] text-primary",
 };
 
 const PAYMENT_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   PAID: "default",
-  PARTIAL: "secondary",
+  PARTIAL: "outline",
   UNPAID: "destructive",
+};
+
+const PAYMENT_BADGE_CLASS: Record<string, string> = {
+  PARTIAL: "border-amber-400 text-amber-600 dark:border-amber-500 dark:text-amber-400",
 };
 
 function fmtDate(value?: string) {
@@ -58,6 +66,12 @@ export default function PurchaseOrdersPage() {
   const searchParams = useSearchParams();
   const { shopId } = useShop();
   const openId = searchParams.get("id");
+  // Keep the last-opened id around while the drawer plays its close animation
+  // (the URL param, and thus openId, clears immediately on close).
+  const [activeId, setActiveId] = useState<string | null>(null);
+  useEffect(() => {
+    if (openId) setActiveId(openId);
+  }, [openId]);
 
   const [rows, setRows] = useState<PurchaseOrderRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -146,116 +160,125 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="flex gap-4 p-6">
-      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Purchase Orders</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex overflow-hidden rounded-lg bg-muted p-0.5">
-              {(["all", "today", "yesterday", "custom"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setDateFilter(opt)}
-                  className={`rounded-[7px] px-3 py-1 text-sm capitalize transition-colors ${
-                    dateFilter === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-            {dateFilter === "custom" && <DateRangePicker value={customRange} onChange={setCustomRange} />}
-          </div>
-
-          <Input
-            placeholder="Transfer ID"
-            value={metrcIdInput}
-            onChange={(e) => setMetrcIdInput(e.target.value)}
-            className="w-40"
-          />
-
-          <Input
-            placeholder="Product name"
-            value={productNameInput}
-            onChange={(e) => setProductNameInput(e.target.value)}
-            className="w-40"
-          />
-
-          <Select
-            items={[{ value: "__all__", label: "All Suppliers" }, ...suppliers.map((s) => ({ value: s.id, label: s.name || s.licenseNumber || s.id }))]}
-            value={supplierId ?? "__all__"}
-            onValueChange={(v) => setSupplierId(v === "__all__" ? null : (v as string))}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Supplier" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All Suppliers</SelectItem>
-              {suppliers.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name || s.licenseNumber}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            items={[
-              { value: "__all__", label: "All Status" },
-              { value: "OPEN", label: "Open" },
-              { value: "CLOSED", label: "Closed" },
-            ]}
-            value={status ?? "__all__"}
-            onValueChange={(v) => setStatus(v === "__all__" ? null : (v as string))}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All Status</SelectItem>
-              <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="CLOSED">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            items={[
-              { value: "__all__", label: "All Payment" },
-              { value: "UNPAID", label: "Unpaid" },
-              { value: "PARTIAL", label: "Partial" },
-              { value: "PAID", label: "Paid" },
-            ]}
-            value={paymentStatus ?? "__all__"}
-            onValueChange={(v) => setPaymentStatus(v === "__all__" ? null : (v as string))}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Payment" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All Payment</SelectItem>
-              <SelectItem value="UNPAID">Unpaid</SelectItem>
-              <SelectItem value="PARTIAL">Partial</SelectItem>
-              <SelectItem value="PAID">Paid</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="p-6">
+      <div className="flex w-full flex-col gap-4">
+        <div>
+          <h1 className="mb-1 text-2xl font-normal text-text">Purchase Orders</h1>
+          <Breadcrumb>
+            <BreadcrumbList className="text-sm">
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Purchase Orders</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
-        <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="flex flex-col gap-5 rounded-xl bg-card p-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              items={[
+                { value: "all", label: "All" },
+                { value: "today", label: "Today" },
+                { value: "yesterday", label: "Yesterday" },
+                { value: "custom", label: "Custom" },
+              ]}
+              value={dateFilter}
+              onValueChange={(v) => setDateFilter(v as typeof dateFilter)}
+            >
+              <SelectTrigger className="h-10! w-48">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Input
+              placeholder="Transfer ID"
+              value={metrcIdInput}
+              onChange={(e) => setMetrcIdInput(e.target.value)}
+              className="h-10 w-48"
+            />
+
+            <Input
+              placeholder="Product name"
+              value={productNameInput}
+              onChange={(e) => setProductNameInput(e.target.value)}
+              className="h-10 w-48"
+            />
+
+            <Select
+              items={[{ value: "__all__", label: "Supplier" }, ...suppliers.map((s) => ({ value: s.id, label: s.name || s.licenseNumber || s.id }))]}
+              value={supplierId ?? "__all__"}
+              onValueChange={(v) => setSupplierId(v === "__all__" ? null : (v as string))}
+            >
+              <SelectTrigger className="h-10! w-48">
+                <SelectValue placeholder="Supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Supplier</SelectItem>
+                {suppliers.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name || s.licenseNumber}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              items={[
+                { value: "__all__", label: "Status" },
+                { value: "OPEN", label: "Open" },
+                { value: "CLOSED", label: "Closed" },
+              ]}
+              value={status ?? "__all__"}
+              onValueChange={(v) => setStatus(v === "__all__" ? null : (v as string))}
+            >
+              <SelectTrigger className="h-10! w-48">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Status</SelectItem>
+                <SelectItem value="OPEN">Open</SelectItem>
+                <SelectItem value="CLOSED">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              items={[
+                { value: "__all__", label: "Payment" },
+                { value: "UNPAID", label: "Unpaid" },
+                { value: "PARTIAL", label: "Partial" },
+                { value: "PAID", label: "Paid" },
+              ]}
+              value={paymentStatus ?? "__all__"}
+              onValueChange={(v) => setPaymentStatus(v === "__all__" ? null : (v as string))}
+            >
+              <SelectTrigger className="h-10! w-48">
+                <SelectValue placeholder="Payment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Payment</SelectItem>
+                <SelectItem value="UNPAID">Unpaid</SelectItem>
+                <SelectItem value="PARTIAL">Partial</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {dateFilter === "custom" && <DateRangePicker value={customRange} onChange={setCustomRange} />}
+
+          <div className="overflow-hidden rounded-lg">
           <Table>
-            <TableHeader className="[&_tr]:border-b-0">
-              <TableRow className="bg-muted/60">
+            <TableHeader className="[&_tr]:border-b-0 [&_th]:h-14 [&_th]:px-4">
+              <TableRow style={{ backgroundColor: "#FAFAFA" }}>
                 <TableHead>Transfer ID</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Status</TableHead>
@@ -265,10 +288,10 @@ export default function PurchaseOrdersPage() {
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="text-foreground/70 [&_td]:px-4 [&_td]:py-3.5">
               {loading && rows.length === 0 &&
                 Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={`sk-${i}`} className="border-b-0">
+                  <TableRow key={`sk-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
                     {Array.from({ length: 7 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -285,10 +308,10 @@ export default function PurchaseOrdersPage() {
                 </TableRow>
               )}
 
-              {rows.map((row, i) => (
+              {rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className="cursor-pointer border-b-0 bg-component-bg shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]"
                   onClick={() => openRow(row.id)}
                 >
                   <TableCell>
@@ -296,10 +319,20 @@ export default function PurchaseOrdersPage() {
                   </TableCell>
                   <TableCell>{row.supplierNameSnapshot || "-"}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_BADGE[row.status] ?? "outline"}>{row.status}</Badge>
+                    <Badge
+                      variant={STATUS_BADGE[row.status] ?? "outline"}
+                      className={`rounded-md font-normal ${STATUS_BADGE_CLASS[row.status] ?? ""}`}
+                    >
+                      {row.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={PAYMENT_BADGE[row.paymentStatus] ?? "outline"}>{row.paymentStatus}</Badge>
+                    <Badge
+                      variant={PAYMENT_BADGE[row.paymentStatus] ?? "outline"}
+                      className={`rounded-md font-normal ${PAYMENT_BADGE_CLASS[row.paymentStatus] ?? ""}`}
+                    >
+                      {row.paymentStatus}
+                    </Badge>
                   </TableCell>
                   <TableCell>{fmtDate(row.createdAt)}</TableCell>
                   <TableCell className="text-center font-mono">
@@ -312,19 +345,22 @@ export default function PurchaseOrdersPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+          </div>
 
-        <TablePagination
-          page={page}
-          totalPages={totalPages}
-          totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
-          loading={loading}
-          onPageChange={loadPurchaseOrders}
-        />
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalEntries={totalEntries}
+            pageSize={PAGE_SIZE}
+            loading={loading}
+            onPageChange={loadPurchaseOrders}
+          />
+        </div>
       </div>
 
-      {openId && <PurchaseOrderDetailPanel id={openId} onClose={closeDetail} onChanged={() => loadPurchaseOrders(page)} />}
+      {activeId && (
+        <PurchaseOrderDetailPanel id={activeId} open={!!openId} onClose={closeDetail} onChanged={() => loadPurchaseOrders(page)} />
+      )}
     </div>
   );
 }
