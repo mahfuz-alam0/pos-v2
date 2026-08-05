@@ -87,7 +87,7 @@ export default function EventModal({
   const isUpdate = !!eventId;
 
   const [step, setStep] = useState(0);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(isUpdate);
   const [loading, setLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
