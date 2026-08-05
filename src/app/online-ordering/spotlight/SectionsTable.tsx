@@ -56,6 +56,8 @@ import type { SectionRow } from "./types";
 export default function SectionsTable() {
   const [rows, setRows] = useState<SectionRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   const [entities, setEntities] = useState<{ id: string | number; name: string }[]>([]);
   const [entitiesLoading, setEntitiesLoading] = useState(false);
@@ -79,7 +81,8 @@ export default function SectionsTable() {
   }, []);
 
   const loadSections = useCallback(async () => {
-    setLoading(true);
+    if (initialLoaded) setRefreshing(true);
+    else setLoading(true);
     try {
       const res = await fetchSectionsList(entityId);
       setRows(res?.data ?? []);
@@ -87,8 +90,10 @@ export default function SectionsTable() {
       toast.error(err?.message || "Failed to load sections");
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      setInitialLoaded(true);
     }
-  }, [entityId]);
+  }, [entityId, initialLoaded]);
 
   useEffect(() => {
     loadSections();
@@ -156,7 +161,12 @@ export default function SectionsTable() {
         </div>
       </div>
 
-      <div className="rounded-xl ring-1 ring-foreground/10">
+      <div className="relative rounded-xl ring-1 ring-foreground/10">
+        {refreshing && (
+          <div className="absolute inset-0 z-10 flex items-start justify-center rounded-xl bg-background/60 pt-10">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
         <Table>
           <TableHeader className="[&_tr]:border-b-0">
             <TableRow className="bg-muted/60">

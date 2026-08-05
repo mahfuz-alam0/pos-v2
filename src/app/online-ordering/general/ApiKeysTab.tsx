@@ -37,7 +37,7 @@ export default function ApiKeysTab() {
 
   useEffect(() => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const user = JSON.parse(localStorage.getItem("userInfo") || "null");
       setOrgId(user?.orgId || "");
     } catch {
       setOrgId("");

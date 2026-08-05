@@ -47,15 +47,15 @@ export default function SocialLinksTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entityId]);
 
-  const fetchLinks = async (businessEntityId: string | null) => {
-    setLoading(true);
+  const fetchLinks = async (businessEntityId: string | null, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getSocialLinks(businessEntityId);
       setLinks(res?.data?.data?.socialLinks || []);
     } catch (err: any) {
       toast.error(err?.message || "Failed to fetch social links");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -86,7 +86,7 @@ export default function SocialLinksTab() {
       if (entityId) payload.businessEntityId = entityId;
       await updateSocialLinks(payload);
       toast.success("Social links updated successfully");
-      fetchLinks(entityId);
+      fetchLinks(entityId, true);
     } catch (err: any) {
       toast.error(err?.message || "Failed to update social links");
     } finally {
@@ -166,7 +166,7 @@ export default function SocialLinksTab() {
                       placeholder="Enter URL"
                       value={link.url}
                       onChange={(e) => handleUrlChange(index, e.target.value)}
-                      className="h-7 border-none bg-transparent px-0 text-sm shadow-none focus-visible:shadow-none"
+                      className="h-7 border-input bg-background px-2 text-sm"
                     />
                   </div>
                   <button

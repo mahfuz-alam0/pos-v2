@@ -8,7 +8,7 @@ import { Pencil, QrCode, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -224,7 +224,7 @@ export default function ApkManagementTab() {
             </div>
             <div>
               <Label className="mb-2 text-muted-foreground">Description</Label>
-              <Textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter your app description..." />
+              <RichTextEditor value={description} onChange={setDescription} placeholder="Enter your app description..." />
             </div>
           </div>
         </CardContent>
@@ -232,7 +232,7 @@ export default function ApkManagementTab() {
 
       {/* Store Metadata */}
       <Card>
-        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div>
             <Label className="mb-2 text-muted-foreground">Version</Label>
             <Input value={versionNumber} onChange={(e) => setVersionNumber(e.target.value)} placeholder="e.g. 1.0.0" />
@@ -274,7 +274,7 @@ export default function ApkManagementTab() {
       {/* Screenshots */}
       <Card>
         <CardContent>
-          <div className="mb-4 flex items-center justify-between border-b pb-2.5">
+          <div className="mb-4 flex items-center justify-between pb-2.5 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
             <div className="text-xs font-semibold tracking-wide text-primary uppercase">
               Screenshots <span className="font-normal text-muted-foreground normal-case">(4 required · 1080 × 1920 px)</span>
             </div>
@@ -301,7 +301,7 @@ export default function ApkManagementTab() {
                   </div>
                 </div>
               ) : (
-                <label key={index} className="flex h-95 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/40 text-muted-foreground">
+                <label key={index} className="flex h-95 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/15 bg-muted/40 text-muted-foreground">
                   <Upload className="size-6" />
                   <span className="text-sm">Upload Screenshot</span>
                   <input
@@ -421,7 +421,7 @@ function ApkUpload({ selectedEntityId }: { selectedEntityId: string | null }) {
   return (
     <Card>
       <CardContent>
-        <div className="mb-4 border-b pb-2.5 text-xs font-semibold tracking-wide text-primary uppercase">APK Management</div>
+        <div className="mb-4 pb-2.5 text-xs font-semibold tracking-wide text-primary uppercase shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">APK Management</div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <Label className="mb-2 text-muted-foreground">APK Version</Label>
