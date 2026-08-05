@@ -222,7 +222,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
               <SectionHeading icon={<MessageSquare className="size-4" />} text="Basic Information" />
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Notification Title</Label>
+                  <Label>
+                    Notification Title <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     value={title}
                     onChange={(e) => {
@@ -234,7 +236,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>Description</Label>
+                  <Label>
+                    Description <span className="text-destructive">*</span>
+                  </Label>
                   <Textarea
                     rows={4}
                     value={description}
@@ -253,7 +257,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
               <SectionHeading icon={<Users className="size-4" />} text="Target Audience" />
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Select Shops</Label>
+                  <Label>
+                    Select Shops <span className="text-destructive">*</span>
+                  </Label>
                   <MultiApiSelect
                     placeholder="Select Shops"
                     items={shopOptions}
@@ -296,7 +302,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label>Customer Groups</Label>
+                  <Label>
+                    Customer Groups <span className="text-destructive">*</span>
+                  </Label>
                   <MultiApiSelect
                     placeholder="Select Customer Groups"
                     items={customerGroupOptions}
@@ -338,7 +346,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
 
                 {subject === "DEAL" && (
                   <div className="flex flex-col gap-1.5">
-                    <Label>Select Deal</Label>
+                    <Label>
+                      Select Deal <span className="text-destructive">*</span>
+                    </Label>
                     <Select
                       items={[{ value: "__none__", label: "Select deal" }, ...deals.map((d) => ({ value: d.id, label: d.name }))]}
                       value={dealId ?? "__none__"}
@@ -363,7 +373,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
 
                 {subject === "COUPON" && (
                   <div className="flex flex-col gap-1.5">
-                    <Label>Select Coupon</Label>
+                    <Label>
+                      Select Coupon <span className="text-destructive">*</span>
+                    </Label>
                     <Select
                       items={[{ value: "__none__", label: "Select coupon" }, ...coupons.map((c) => ({ value: c.id, label: c.name }))]}
                       value={couponId ?? "__none__"}
@@ -414,7 +426,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
                   {scheduleForLater && (
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <Label className="mb-1.5">Date</Label>
+                        <Label className="mb-1.5">
+                          Date <span className="text-destructive">*</span>
+                        </Label>
                         <DatePicker
                           value={scheduledDate}
                           onChange={(d) => {
@@ -426,7 +440,9 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
                         />
                       </div>
                       <div className="flex-1">
-                        <Label className="mb-1.5">Time</Label>
+                        <Label className="mb-1.5">
+                          Time <span className="text-destructive">*</span>
+                        </Label>
                         <Input
                           type="time"
                           value={scheduledTime}
@@ -445,7 +461,7 @@ export default function ComposeNotificationDrawer({ open, onClose, onCreated }: 
           </div>
 
           <Card className={cn("mt-4 p-5", errors.images && "border-destructive")}>
-            <SectionHeading icon={<Bell className="size-4" />} text="Notification Image" />
+            <SectionHeading icon={<Bell className="size-4" />} text="Notification Image *" />
             <SimpleFileUpload
               files={images}
               onChange={(files) => {

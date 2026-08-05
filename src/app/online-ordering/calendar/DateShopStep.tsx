@@ -107,8 +107,8 @@ export default function DateShopStep({
   };
 
   const handleRangeChange = (range: DateRange | undefined) => {
+    setRangeValue(range ?? { from: undefined, to: undefined });
     if (!range?.from || !range?.to) return;
-    setRangeValue(range);
     onEventsChange(buildDayEvents(range.from, range.to, isAllDay));
   };
 

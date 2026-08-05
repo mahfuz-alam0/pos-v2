@@ -59,7 +59,9 @@ export default function DayRangePicker({
         )}
       </div>
 
-      <Calendar mode="range" selected={value} onSelect={onChange} numberOfMonths={2} className="bg-transparent" />
+      <div className="overflow-x-auto">
+        <Calendar mode="range" selected={value} onSelect={onChange} numberOfMonths={2} className="bg-transparent" />
+      </div>
 
       {value?.from && value?.to && (
         <div className="flex items-center justify-center gap-2 bg-background/60 py-2 text-sm font-medium shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
