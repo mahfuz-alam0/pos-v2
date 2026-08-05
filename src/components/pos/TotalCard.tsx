@@ -1155,18 +1155,13 @@ export default function TotalCard({
   };
   const checkoutButtonDisabled =
     loading || orderProcessing || (isPaymentConfigured && !paymentCompleted);
-  const checkoutButtonLabel = (
-    <>
-      {loading
-        ? "Processing…"
-        : isPaymentConfigured
-          ? paymentCompleted
-            ? "Complete Order"
-            : `Pay Remaining $${remainingAmount.toFixed(2)}`
-          : "Checkout"}{" "}
-      (Total: ${(finalPayable + (onlineTransactionFee || 0)).toFixed(2)})
-    </>
-  );
+  const checkoutButtonLabel = loading
+    ? "Processing…"
+    : isPaymentConfigured
+      ? paymentCompleted
+        ? "Complete Order"
+        : `Pay Remaining $${remainingAmount.toFixed(2)}`
+      : "Checkout";
 
   const runOrDeferForPin = (action) => {
     if (isShareModeActive() && quoteBody?.proxyPin == null) {
