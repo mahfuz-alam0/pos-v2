@@ -189,7 +189,7 @@ export default function NewAvailableCoupons({
   // e.g. Tablet Mode's Discounts & Taxes drawer) and the component's own
   // Available Coupons drawer (compact/default trigger modes).
   const couponListContent = (
-    <>
+    <div className="@container">
       <div className="mb-6">
         <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
           Available Coupons
@@ -199,7 +199,12 @@ export default function NewAvailableCoupons({
             Loading...
           </div>
         ) : couponData.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          // Container-query columns, not viewport ones — this list renders
+          // both in a narrow sidebar (Discounts & Taxes) and a wide popup
+          // drawer (the component's own Available Coupons drawer), so the
+          // column count needs to track its own rendered width rather than
+          // the screen's.
+          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2 @3xl:grid-cols-3">
             {couponData.map((coupon) => {
               const disabled = couponDisabled || couponApplied;
               const notApplicable = coupon.usageRule?.isApplicable === false;
@@ -414,7 +419,7 @@ export default function NewAvailableCoupons({
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 
   if (inline) {

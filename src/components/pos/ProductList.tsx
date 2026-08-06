@@ -151,9 +151,16 @@ export default function ProductList({
         .then((res) => {
           if (!mountedRef.current) return res.data;
           const { inventories } = res.data.data;
-          setProductsData((prev) =>
-            append ? [...prev, ...inventories] : inventories,
-          );
+          setProductsData((prev) => {
+            if (!append) return inventories;
+            // Defensive dedupe — a page fetched twice (e.g. a fast
+            // re-intersection of the infinite-scroll sentinel) or backend
+            // pagination overlap would otherwise append the same product id
+            // twice, which React then reports as a duplicate key.
+            const seen = new Set(prev.map((p) => p.id));
+            const deduped = inventories.filter((p) => !seen.has(p.id));
+            return [...prev, ...deduped];
+          });
           const { limit, totalPages, totalEntries, currentPage } =
             res.data.data.paginationData || {};
           setPaginationData({

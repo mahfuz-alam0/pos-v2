@@ -196,8 +196,15 @@ export default function ProductGridView({
   // Infinite scroll — swaps the old Prev/Next pager for an IntersectionObserver
   // on a sentinel div after the grid; fires onLoadMore(next page, appended)
   // once it's within 400px of the scroll container's bottom edge.
+  //
+  // Guarded on loadingMore (both in the early-return and the dep array) —
+  // without it, the observer keeps firing on every intersecting layout
+  // change while a fetch is already in flight (more likely now that smaller
+  // cards mean more rows fit on screen and the sentinel comes into view
+  // sooner/more often), requesting the same "next page" twice and appending
+  // duplicate items into productsData → duplicate React keys.
   useEffect(() => {
-    if (!onLoadMore || !hasMore) return;
+    if (!onLoadMore || !hasMore || loadingMore) return;
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
     const observer = new IntersectionObserver(
@@ -208,7 +215,7 @@ export default function ProductGridView({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [onLoadMore, hasMore, noScroll]);
+  }, [onLoadMore, hasMore, loadingMore, noScroll]);
 
   return (
     <div

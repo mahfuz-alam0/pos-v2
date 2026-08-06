@@ -609,36 +609,51 @@ export default function TabletModeCartSummary({
         open={discountsDrawerOpen}
         onClose={() => setDiscountsDrawerOpen(false)}
         side="right"
-        size="72vw">
+        size="100vw">
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-6 py-4 text-base font-semibold">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-base font-semibold">
+            <button
+              type="button"
+              onClick={() => setDiscountsDrawerOpen(false)}
+              aria-label="Back"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+              <ChevronLeft className="size-5" />
+            </button>
             Discounts & Taxes
           </div>
-          <div className="flex-1 space-y-4 overflow-auto p-4">
-            {discountsDrawerOpen && (
-              <>
-                <ProductPromoTaxes
-                  currentAction={null}
-                  getOrderSummary={getOrderSummary}
-                  deleteMiscCharge={deleteMiscCharge}
-                  setSubTotalValue={() => {}}
-                  getMiscDiscountFromOrderData={getMiscDiscountFromOrderData}
-                  deleteMiscallenousDiscount={deleteMiscallenousDiscount}
-                  deleteLoyaltyPoints={deleteLoyaltyPoints}
-                  removeDealFromSelectedProduct={removeDealFromSelectedProduct}
-                />
-                <div ref={setLoyaltyPointsNode} className="empty:hidden" />
-                {(selectedCustomer?.id || quoteBody?.customerId) && (
-                  <div className="border-t border-border pt-4">
-                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      <Tag className="size-4" />
-                      Coupons
-                    </div>
-                    <NewAvailableCoupons inline />
-                  </div>
-                )}
-              </>
-            )}
+          <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
+            {/* Coupons — same side-panel treatment as Cart Items' Purchase Limits */}
+            <div className="w-[25%] xl:w-[20%] max-w-96 flex-shrink-0 overflow-y-auto rounded-xl border border-border bg-muted/20 p-4">
+              <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <Tag className="size-4" />
+                Coupons
+              </div>
+              {selectedCustomer?.id || quoteBody?.customerId ? (
+                discountsDrawerOpen && <NewAvailableCoupons inline />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                  Attach a customer to view coupons.
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-4 overflow-auto">
+              {discountsDrawerOpen && (
+                <>
+                  <ProductPromoTaxes
+                    currentAction={null}
+                    getOrderSummary={getOrderSummary}
+                    deleteMiscCharge={deleteMiscCharge}
+                    setSubTotalValue={() => {}}
+                    getMiscDiscountFromOrderData={getMiscDiscountFromOrderData}
+                    deleteMiscallenousDiscount={deleteMiscallenousDiscount}
+                    deleteLoyaltyPoints={deleteLoyaltyPoints}
+                    removeDealFromSelectedProduct={removeDealFromSelectedProduct}
+                  />
+                  <div ref={setLoyaltyPointsNode} className="empty:hidden" />
+                </>
+              )}
+            </div>
           </div>
         </div>
       </Drawer>
