@@ -10,6 +10,7 @@ import { chatLogin, getChatSessions } from "@/store/slices/chatSlice";
 import UserProfile from "./UserProfile";
 import AnnouncementDrawer from "./AnnouncementDrawer";
 import LeaflyOrdersDrawer from "./LeaflyOrdersDrawer";
+import RegisterDrawerModal from "@/components/pos/RegisterDrawerModal";
 import { cn } from "@/lib/utils";
 
 function ShopSwitcher() {
@@ -91,6 +92,7 @@ function RegisterSwitcher() {
   // pages themselves listen to for their own register-ready state.
   const [registerName, setRegisterName] = useState("");
   const [drawerName, setDrawerName] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     setRegisterName(localStorage.getItem("registerName") || "");
@@ -116,20 +118,24 @@ function RegisterSwitcher() {
   }, []);
 
   return (
-    <button
-      type="button"
-      className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 px-3 backdrop-blur-sm"
-    >
-      <Monitor className="size-3.5 text-blue-400" />
-      <div className="flex flex-col items-start justify-center gap-0 leading-none">
-        <span className="text-xs leading-tight font-medium text-blue-200">
-          {registerName || "Select Register"}
-        </span>
-        {drawerName && (
-          <span className="text-[9px] leading-tight text-blue-300">{drawerName}</span>
-        )}
-      </div>
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 px-3 backdrop-blur-sm"
+      >
+        <Monitor className="size-3.5 text-blue-400" />
+        <div className="flex flex-col items-start justify-center gap-0 leading-none">
+          <span className="text-xs leading-tight font-medium text-blue-200">
+            {registerName || "Select Register"}
+          </span>
+          {drawerName && (
+            <span className="text-[9px] leading-tight text-blue-300">{drawerName}</span>
+          )}
+        </div>
+      </button>
+      <RegisterDrawerModal open={modalOpen} onClose={() => setModalOpen(false)} />
+    </>
   );
 }
 
