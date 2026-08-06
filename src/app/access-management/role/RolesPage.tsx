@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { fetchRolesList } from "@/services/roles/list";
 import { deleteRole } from "@/services/roles/deleteRole";
@@ -18,7 +18,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import DeleteRoleDrawer from "./DeleteRoleDrawer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import RoleFormDrawer from "./RoleFormDrawer";
 
 export default function RolesPage() {
@@ -126,7 +135,12 @@ export default function RolesPage() {
                 key={row.id}
                 className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
               >
-                <TableCell className="font-medium">{row.name}</TableCell>
+                <TableCell
+                  className="cursor-pointer font-medium hover:underline"
+                  onClick={() => setEditTarget(row)}
+                >
+                  {row.name}
+                </TableCell>
                 <TableCell className="text-center">
                   <span className="inline-block size-4 rounded-full ring-1 ring-foreground/10" style={{ backgroundColor: row.colorCode }} />
                 </TableCell>
@@ -165,7 +179,23 @@ export default function RolesPage() {
         onPageChange={(p: number) => load(p)}
       />
 
-      <DeleteRoleDrawer role={deleteTarget} loading={deleteLoading} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the role &quot;{deleteTarget?.name}&quot;? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+              {deleteLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <RoleFormDrawer open={addOpen} mode="add" roleId={null} onClose={() => setAddOpen(false)} onSaved={() => load(pagination.current)} />
 
