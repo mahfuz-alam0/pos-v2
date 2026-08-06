@@ -238,6 +238,16 @@ export default function ProductList({
   const handleSearch = (value) =>
     fetchProductsData(buildBaseParams(activeFiltersRef.current, value));
 
+  // Auto-search as the user types — debounced 0.5s, and only once there are
+  // at least 2 characters (avoids firing a search on every single keystroke
+  // for a 1-character query, which is rarely useful and just churns the API).
+  useEffect(() => {
+    if (searchTerm !== "product" || searchQuery.length < 2) return;
+    const timer = setTimeout(() => handleSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, searchTerm]);
+
   // Toggle behaviour: clicking an already-selected chip removes just that
   // filter; clicking "all" clears the whole group; clicking any other chip
   // adds it alongside whatever's already selected (multi-select).

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchDeliveryJobsList } from "@/services/deliveryJobs/list";
@@ -14,11 +14,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  TableLoadingOverlay,
+  TablePagination,
+} from "@/components/ui/table-pagination";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +56,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import JobDetailsPanel from "./JobDetailsPanel";
 import JobFormDrawer from "./JobFormDrawer";
@@ -52,7 +84,10 @@ const METRC_STATUS_OPTIONS = [
   { value: "FAILED", label: "FAILED" },
 ];
 
-const STATUS_BADGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const STATUS_BADGE_VARIANT: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   WAITING_TO_START: "outline",
   IN_PROGRESS: "secondary",
   COMPLETED: "default",
@@ -67,9 +102,15 @@ interface JobRow {
   advertisedSaleId: string;
   status: string;
   driverInfo: { name: string; phone?: string } | null;
-  vehicleInfo: { name: string; make?: string; model?: string; licensePlateData?: string } | null;
+  vehicleInfo: {
+    name: string;
+    make?: string;
+    model?: string;
+    licensePlateData?: string;
+  } | null;
   createdAt: string;
   metrcReportingStatus: string | null;
+  metrcReportingLogs?: { payloadResponse?: { row: number; message: string }[] }[];
 }
 
 function formatDate(v?: string | null) {
@@ -78,9 +119,20 @@ function formatDate(v?: string | null) {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
 }
 
+function getIsCaliforniaState() {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem("isCaliforniaState") === "true") return true;
+  try {
+    const orgScopes = JSON.parse(localStorage.getItem("userInfo") || "null")?.orgFeatureScopes || [];
+    return orgScopes.includes("METRC_CALI") || orgScopes.includes("METRC_CA");
+  } catch {
+    return false;
+  }
+}
+
 export default function JobsTable() {
   const { shopId } = useShop();
-  const isCaliforniaState = typeof window !== "undefined" && localStorage.getItem("isCaliforniaState") === "true";
+  const isCaliforniaState = getIsCaliforniaState();
 
   const [statusFilter, setStatusFilter] = useState("__all__");
   const [driverIdFilter, setDriverIdFilter] = useState("");
@@ -89,12 +141,22 @@ export default function JobsTable() {
 
   const [rows, setRows] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: PAGE_SIZE,
+    totalEntries: 0,
+    totalPages: 0,
+  });
 
   const [detailId, setDetailId] = useState<string | number | null>(null);
   const [editJobId, setEditJobId] = useState<string | number | null>(null);
-  const [statusDrawer, setStatusDrawer] = useState<{ action: "start" | "complete"; job: JobRow } | null>(null);
-  const [retryingMetrcIds, setRetryingMetrcIds] = useState<Set<string | number>>(new Set());
+  const [statusDrawer, setStatusDrawer] = useState<{
+    action: "start" | "complete";
+    job: JobRow;
+  } | null>(null);
+  const [retryingMetrcIds, setRetryingMetrcIds] = useState<
+    Set<string | number>
+  >(new Set());
 
   const [dismissTarget, setDismissTarget] = useState<JobRow | null>(null);
   const [dismissLoading, setDismissLoading] = useState(false);
@@ -102,9 +164,18 @@ export default function JobsTable() {
   const [failLoading, setFailLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<JobRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteAfterDismissTarget, setDeleteAfterDismissTarget] =
+    useState<JobRow | null>(null);
+  const [detailRefreshTick, setDetailRefreshTick] = useState(0);
 
   const loadJobs = useCallback(
-    async (page = 1, status = "__all__", driverId = "", advertisedSaleId = "", metrcStatus = "__all__") => {
+    async (
+      page = 1,
+      status = "__all__",
+      driverId = "",
+      advertisedSaleId = "",
+      metrcStatus = "__all__",
+    ) => {
       if (!shopId) return;
       setLoading(true);
       try {
@@ -112,12 +183,18 @@ export default function JobsTable() {
         if (status !== "__all__") params.status = status;
         if (driverId) params.driverId = driverId;
         if (advertisedSaleId) params.advertisedSaleId = advertisedSaleId;
-        if (metrcStatus !== "__all__") params.metrcReportingStatus = metrcStatus;
+        if (metrcStatus !== "__all__")
+          params.metrcReportingStatus = metrcStatus;
         const res = await fetchDeliveryJobsList(shopId, params);
         setRows(res?.data ?? []);
         const p = res?.paginationData;
         if (p) {
-          setPagination({ page: p.currentPage ?? page, limit: p.limit ?? PAGE_SIZE, totalEntries: p.totalEntries ?? 0, totalPages: p.totalPages ?? 0 });
+          setPagination({
+            page: p.currentPage ?? page,
+            limit: p.limit ?? PAGE_SIZE,
+            totalEntries: p.totalEntries ?? 0,
+            totalPages: p.totalPages ?? 0,
+          });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load delivery jobs");
@@ -125,7 +202,7 @@ export default function JobsTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId],
   );
 
   useEffect(() => {
@@ -133,9 +210,19 @@ export default function JobsTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
 
-  const refresh = () => loadJobs(pagination.page, statusFilter, driverIdFilter, saleIdFilter, metrcStatusFilter);
+  const refresh = () => {
+    loadJobs(
+      pagination.page,
+      statusFilter,
+      driverIdFilter,
+      saleIdFilter,
+      metrcStatusFilter,
+    );
+    setDetailRefreshTick((t) => t + 1);
+  };
 
-  const handleSearch = () => loadJobs(1, statusFilter, driverIdFilter, saleIdFilter, metrcStatusFilter);
+  const handleSearch = () =>
+    loadJobs(1, statusFilter, driverIdFilter, saleIdFilter, metrcStatusFilter);
 
   const handleReset = () => {
     setStatusFilter("__all__");
@@ -167,10 +254,15 @@ export default function JobsTable() {
     if (!dismissTarget || !shopId) return;
     setDismissLoading(true);
     try {
-      await changeDeliveryJobStatus(dismissTarget.id, { shopId, status: "DISMISSED" });
+      await changeDeliveryJobStatus(dismissTarget.id, {
+        shopId,
+        status: "DISMISSED",
+      });
       toast.success("Delivery job dismissed successfully");
+      const target = dismissTarget;
       setDismissTarget(null);
       refresh();
+      setDeleteAfterDismissTarget(target);
     } catch (err: any) {
       toast.error(err?.message || "Failed to dismiss delivery job");
     } finally {
@@ -182,7 +274,10 @@ export default function JobsTable() {
     if (!failTarget || !shopId) return;
     setFailLoading(true);
     try {
-      await changeDeliveryJobStatus(failTarget.id, { shopId, status: "FAILED" });
+      await changeDeliveryJobStatus(failTarget.id, {
+        shopId,
+        status: "FAILED",
+      });
       toast.success("Delivery job marked as failed");
       setFailTarget(null);
       refresh();
@@ -209,6 +304,24 @@ export default function JobsTable() {
     }
   };
 
+  const handleDeleteAfterDismiss = async () => {
+    if (!deleteAfterDismissTarget || !shopId) return;
+    setDeleteLoading(true);
+    try {
+      await removeDeliveryJob(deleteAfterDismissTarget.id, shopId);
+      toast.success("Delivery job deleted successfully");
+      if (String(detailId) === String(deleteAfterDismissTarget.id))
+        setDetailId(null);
+      setDeleteAfterDismissTarget(null);
+      refresh();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete delivery job");
+      setDeleteAfterDismissTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const metrcBadgeVariant = (status: string | null) => {
     if (status === "SUCCESS") return "default";
     if (status === "PENDING") return "secondary";
@@ -218,12 +331,16 @@ export default function JobsTable() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div className={detailId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+      <div
+        className={
+          detailId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"
+        }>
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbPage>Delivery Management</BreadcrumbPage>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>Delivery Jobs</BreadcrumbPage>
             </BreadcrumbItem>
@@ -233,7 +350,10 @@ export default function JobsTable() {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <p className="mb-1 text-xs text-muted-foreground">Status</p>
-            <Select items={STATUS_OPTIONS} value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              items={STATUS_OPTIONS}
+              value={statusFilter}
+              onValueChange={setStatusFilter}>
               <SelectTrigger className="w-44">
                 <SelectValue />
               </SelectTrigger>
@@ -272,7 +392,10 @@ export default function JobsTable() {
           {isCaliforniaState && (
             <div>
               <p className="mb-1 text-xs text-muted-foreground">METRC Status</p>
-              <Select items={METRC_STATUS_OPTIONS} value={metrcStatusFilter} onValueChange={setMetrcStatusFilter}>
+              <Select
+                items={METRC_STATUS_OPTIONS}
+                value={metrcStatusFilter}
+                onValueChange={setMetrcStatusFilter}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -303,7 +426,11 @@ export default function JobsTable() {
                 <TableHead>Driver</TableHead>
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Created</TableHead>
-                {isCaliforniaState && <TableHead className="text-center">Reporting Status</TableHead>}
+                {isCaliforniaState && (
+                  <TableHead className="text-center">
+                    Reporting Status
+                  </TableHead>
+                )}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -312,17 +439,21 @@ export default function JobsTable() {
                 rows.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={`sk-${i}`} className="border-b-0">
-                    {Array.from({ length: isCaliforniaState ? 7 : 6 }).map((__, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    ))}
+                    {Array.from({ length: isCaliforniaState ? 7 : 6 }).map(
+                      (__, j) => (
+                        <TableCell key={j}>
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                      ),
+                    )}
                   </TableRow>
                 ))}
 
               {!loading && rows.length === 0 && (
                 <TableRow className="border-b-0">
-                  <TableCell colSpan={isCaliforniaState ? 7 : 6} className="py-10 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={isCaliforniaState ? 7 : 6}
+                    className="py-10 text-center text-muted-foreground">
                     No delivery jobs found.
                   </TableCell>
                 </TableRow>
@@ -331,25 +462,36 @@ export default function JobsTable() {
               {rows.map((row, i) => {
                 const isTerminal = TERMINAL_STATUSES.includes(row.status);
                 const isRetrying = retryingMetrcIds.has(row.id);
+                const lastFailureMessages =
+                  row.metrcReportingLogs?.[row.metrcReportingLogs.length - 1]
+                    ?.payloadResponse?.map((p) => p.message) ?? [];
                 return (
                   <TableRow
                     key={row.id}
                     data-active={detailId === row.id}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
-                  >
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
                     <TableCell className="font-mono text-xs">
-                      <button onClick={() => setDetailId(row.id)} className="cursor-pointer text-left text-primary hover:underline">
+                      <button
+                        onClick={() => setDetailId(row.id)}
+                        className="cursor-pointer text-left text-primary hover:underline">
                         {row.advertisedSaleId || "-"}
                       </button>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_BADGE_VARIANT[row.status] || "outline"}>{row.status?.replace(/_/g, " ") || "-"}</Badge>
+                      <Badge
+                        variant={STATUS_BADGE_VARIANT[row.status] || "outline"}>
+                        {row.status?.replace(/_/g, " ") || "-"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {row.driverInfo ? (
                         <div>
-                          <p className="text-sm font-medium">{row.driverInfo.name}</p>
-                          <p className="text-xs text-muted-foreground">{row.driverInfo.phone}</p>
+                          <p className="text-sm font-medium">
+                            {row.driverInfo.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {row.driverInfo.phone}
+                          </p>
                         </div>
                       ) : (
                         "-"
@@ -358,24 +500,67 @@ export default function JobsTable() {
                     <TableCell>
                       {row.vehicleInfo ? (
                         <div>
-                          <p className="text-sm font-medium">{row.vehicleInfo.name}</p>
+                          <p className="text-sm font-medium">
+                            {row.vehicleInfo.name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {[row.vehicleInfo.make, row.vehicleInfo.model, row.vehicleInfo.licensePlateData].filter(Boolean).join(" · ")}
+                            {[
+                              row.vehicleInfo.make,
+                              row.vehicleInfo.model,
+                              row.vehicleInfo.licensePlateData,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </p>
                         </div>
                       ) : (
                         "-"
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDate(row.createdAt)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(row.createdAt)}
+                    </TableCell>
                     {isCaliforniaState && (
                       <TableCell className="text-center">
                         <Badge
                           variant={metrcBadgeVariant(row.metrcReportingStatus)}
-                          className={row.metrcReportingStatus !== "SUCCESS" ? "cursor-pointer" : ""}
-                          onClick={() => !isRetrying && row.metrcReportingStatus !== "SUCCESS" && handleRetryMetrc(row.id)}
-                        >
-                          {isRetrying && <Loader2 className="mr-1 size-3 animate-spin" />}
+                          className={
+                            row.metrcReportingStatus !== "SUCCESS"
+                              ? "cursor-pointer"
+                              : ""
+                          }
+                          onClick={() =>
+                            !isRetrying &&
+                            row.metrcReportingStatus !== "SUCCESS" &&
+                            handleRetryMetrc(row.id)
+                          }>
+                          {isRetrying ? (
+                            <Loader2 className="mr-1 size-3 animate-spin" />
+                          ) : (
+                            row.metrcReportingStatus === "FAILED" &&
+                            (lastFailureMessages.length > 0 ? (
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <span
+                                      className="mr-1 inline-flex"
+                                      onClick={(e) => e.stopPropagation()}>
+                                      <AlertTriangle className="size-3" />
+                                    </span>
+                                  }
+                                />
+                                <TooltipContent className="max-w-sm whitespace-normal">
+                                  <ul className="list-disc space-y-1 pl-3">
+                                    {lastFailureMessages.map((m, idx) => (
+                                      <li key={idx}>{m}</li>
+                                    ))}
+                                  </ul>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <AlertTriangle className="mr-1 size-3" />
+                            ))
+                          )}
                           {row.metrcReportingStatus || "N/A"}
                         </Badge>
                       </TableCell>
@@ -384,32 +569,53 @@ export default function JobsTable() {
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
-                            <Button variant="outline" size="sm" disabled={row.status === "FAILED"}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={row.status === "FAILED"}>
                               Actions <ChevronDown className="size-3.5" />
                             </Button>
                           }
                         />
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem disabled={isTerminal} onClick={() => setEditJobId(row.id)}>
+                          <DropdownMenuItem
+                            disabled={isTerminal}
+                            onClick={() => setEditJobId(row.id)}>
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            disabled={["IN_PROGRESS", ...TERMINAL_STATUSES].includes(row.status)}
-                            onClick={() => setStatusDrawer({ action: "start", job: row })}
-                          >
+                            disabled={[
+                              "IN_PROGRESS",
+                              ...TERMINAL_STATUSES,
+                            ].includes(row.status)}
+                            onClick={() =>
+                              setStatusDrawer({ action: "start", job: row })
+                            }>
                             Start
                           </DropdownMenuItem>
-                          <DropdownMenuItem disabled={isTerminal} onClick={() => setStatusDrawer({ action: "complete", job: row })}>
+                          <DropdownMenuItem
+                            disabled={isTerminal}
+                            onClick={() =>
+                              setStatusDrawer({ action: "complete", job: row })
+                            }>
                             Complete
                           </DropdownMenuItem>
-                          <DropdownMenuItem variant={isTerminal ? "default" : "destructive"} disabled={isTerminal} onClick={() => setDismissTarget(row)}>
+                          <DropdownMenuItem
+                            variant={isTerminal ? "default" : "destructive"}
+                            disabled={isTerminal}
+                            onClick={() => setDismissTarget(row)}>
                             Dismiss
                           </DropdownMenuItem>
-                          <DropdownMenuItem variant={isTerminal ? "default" : "destructive"} disabled={isTerminal} onClick={() => setFailTarget(row)}>
+                          <DropdownMenuItem
+                            variant={isTerminal ? "default" : "destructive"}
+                            disabled={isTerminal}
+                            onClick={() => setFailTarget(row)}>
                             Mark as Failed
                           </DropdownMenuItem>
                           {["DISMISSED", "COMPLETED"].includes(row.status) && (
-                            <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(row)}>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => setDeleteTarget(row)}>
                               Delete
                             </DropdownMenuItem>
                           )}
@@ -430,12 +636,32 @@ export default function JobsTable() {
             totalEntries={pagination.totalEntries}
             pageSize={pagination.limit}
             loading={loading}
-            onPageChange={(p: number) => loadJobs(p, statusFilter, driverIdFilter, saleIdFilter, metrcStatusFilter)}
+            onPageChange={(p: number) =>
+              loadJobs(
+                p,
+                statusFilter,
+                driverIdFilter,
+                saleIdFilter,
+                metrcStatusFilter,
+              )
+            }
           />
         )}
       </div>
 
-      {detailId && <JobDetailsPanel jobId={detailId} onClose={() => setDetailId(null)} />}
+      {detailId && (
+        <JobDetailsPanel
+          jobId={detailId}
+          refreshTick={detailRefreshTick}
+          onClose={() => setDetailId(null)}
+          onEdit={(job) => setEditJobId(job.id)}
+          onStart={(job) => setStatusDrawer({ action: "start", job })}
+          onComplete={(job) => setStatusDrawer({ action: "complete", job })}
+          onDismiss={(job) => setDismissTarget(job)}
+          onMarkFailed={(job) => setFailTarget(job)}
+          onDelete={(job) => setDeleteTarget(job)}
+        />
+      )}
 
       <JobFormDrawer
         open={!!editJobId}
@@ -459,35 +685,54 @@ export default function JobsTable() {
         }}
       />
 
-      <AlertDialog open={!!dismissTarget} onOpenChange={(open) => !open && !dismissLoading && setDismissTarget(null)}>
+      <AlertDialog
+        open={!!dismissTarget}
+        onOpenChange={(open) =>
+          !open && !dismissLoading && setDismissTarget(null)
+        }>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Dismiss Delivery Job</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to dismiss this delivery job? The status will be changed to <strong>DISMISSED</strong>. You can delete it afterwards.
+              Are you sure you want to dismiss this delivery job? The status
+              will be changed to <strong>DISMISSED</strong>. You can delete it
+              afterwards.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={dismissLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDismiss} disabled={dismissLoading}>
-              {dismissLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+            <AlertDialogCancel disabled={dismissLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDismiss}
+              disabled={dismissLoading}>
+              {dismissLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : null}
               Yes, Dismiss
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!failTarget} onOpenChange={(open) => !open && !failLoading && setFailTarget(null)}>
+      <AlertDialog
+        open={!!failTarget}
+        onOpenChange={(open) => !open && !failLoading && setFailTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Mark as Failed</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to mark this delivery job as <strong>FAILED</strong>? This action cannot be undone.
+              Are you sure you want to mark this delivery job as{" "}
+              <strong>FAILED</strong>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={failLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleMarkAsFailed} disabled={failLoading}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleMarkAsFailed}
+              disabled={failLoading}>
               {failLoading ? <Loader2 className="size-4 animate-spin" /> : null}
               Yes, Mark as Failed
             </AlertDialogAction>
@@ -495,18 +740,62 @@ export default function JobsTable() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) =>
+          !open && !deleteLoading && setDeleteTarget(null)
+        }>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Delivery Job</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete this delivery job? This action <strong>cannot be undone</strong>.
+              Are you sure you want to permanently delete this delivery job?
+              This action <strong>cannot be undone</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+            <AlertDialogCancel disabled={deleteLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteLoading}>
+              {deleteLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : null}
+              Yes, Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteAfterDismissTarget}
+        onOpenChange={(open) =>
+          !open && !deleteLoading && setDeleteAfterDismissTarget(null)
+        }>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete the delivery job too?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The job has been dismissed. Would you also like to permanently
+              delete it?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={deleteLoading}
+              onClick={() => setDeleteAfterDismissTarget(null)}>
+              No, Keep It
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteAfterDismiss}
+              disabled={deleteLoading}>
+              {deleteLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : null}
               Yes, Delete
             </AlertDialogAction>
           </AlertDialogFooter>
