@@ -11,6 +11,8 @@ import {
   TriangleAlert,
   Pencil,
   UserPlus,
+  MapPin,
+  ChevronLeft,
 } from "lucide-react";
 
 import Drawer from "@/components/ui/Drawer";
@@ -72,6 +74,9 @@ export default function TabletModeCartSummary({
   onEditCustomer,
   deliverySubType,
   deliveryType,
+  customerDeliveryLocations,
+  deliverySummary,
+  onOpenDeliveryAddress,
   refreshOrders,
   onDraftSaved,
 }: any) {
@@ -381,6 +386,90 @@ export default function TabletModeCartSummary({
           </div>
         )}
 
+        {/* Delivery address banner */}
+        {quoteBody?.deliveryMethod === "DELIVERY" && selectedCustomer?.id && (
+          <button
+            type="button"
+            onClick={onOpenDeliveryAddress}
+            className="w-full rounded-xl px-3.5 py-3 text-left transition-colors"
+            style={{
+              border: deliverySummary
+                ? "1.5px solid rgba(1,144,221,0.6)"
+                : "1.5px dashed rgba(255,255,255,0.25)",
+              background: deliverySummary ? "rgba(1,144,221,0.12)" : NAVY_CARD,
+            }}>
+            {deliverySummary ? (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <MapPin
+                      className="size-4 flex-shrink-0"
+                      style={{ color: BLUE }}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 truncate text-sm font-bold">
+                        {deliverySummary.tag && (
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[11px] font-semibold"
+                            style={{
+                              background: "rgba(1,144,221,0.25)",
+                              color: BLUE,
+                            }}>
+                            {deliverySummary.tag}
+                          </span>
+                        )}
+                        <span className="truncate">
+                          {deliverySummary.address}
+                        </span>
+                      </div>
+                      {(deliverySummary.state || deliverySummary.zipCode) && (
+                        <div className="mt-0.5 text-xs text-white/60">
+                          {[deliverySummary.state, deliverySummary.zipCode]
+                            .filter(Boolean)
+                            .join("  ·  ")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="flex-shrink-0 rounded-md border border-white/20 bg-white/5 px-2 py-0.5 text-[11px] text-white/70">
+                    Edit
+                  </span>
+                </div>
+                {(deliverySummary.tierName || deliverySummary.slotLabel) && (
+                  <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/10 pt-2">
+                    {deliverySummary.tierName && (
+                      <span className="rounded-md border border-orange-400/40 bg-orange-400/10 px-2 py-0.5 text-xs font-semibold text-orange-300">
+                        🚚 {deliverySummary.tierName}
+                        {deliverySummary.tierCharge > 0 &&
+                          ` · +$${deliverySummary.tierCharge}`}
+                      </span>
+                    )}
+                    {deliverySummary.slotLabel && (
+                      <span className="rounded-md border border-purple-400/40 bg-purple-400/10 px-2 py-0.5 text-xs font-semibold text-purple-300">
+                        🕐 {deliverySummary.slotLabel}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <MapPin className="size-4 flex-shrink-0 text-white/40" />
+                <span className="flex-1 truncate text-sm text-white/70">
+                  {customerDeliveryLocations?.length > 0
+                    ? customerDeliveryLocations[0]?.streetAddress1 ||
+                      customerDeliveryLocations[0]?.tag ||
+                      "Delivery Address"
+                    : "Set Delivery Address"}
+                </span>
+                <span className="flex-shrink-0 text-xs text-white/40">
+                  Edit
+                </span>
+              </div>
+            )}
+          </button>
+        )}
+
         {/* Items in cart */}
         <button
           type="button"
@@ -464,13 +553,20 @@ export default function TabletModeCartSummary({
         open={cartDrawerOpen}
         onClose={() => setCartDrawerOpen(false)}
         side="right"
-        size="85vw">
+        size="100vw">
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-6 py-4 text-base font-semibold">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-base font-semibold">
+            <button
+              type="button"
+              onClick={() => setCartDrawerOpen(false)}
+              aria-label="Back"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+              <ChevronLeft className="size-5" />
+            </button>
             Cart Items
           </div>
           <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
-            <div className="w-84 flex-shrink-0 overflow-y-auto rounded-xl border border-border bg-muted/20 p-4">
+            <div className="w-[25%] xl:w-[20%] max-w-96 flex-shrink-0 overflow-y-auto rounded-xl border border-border bg-muted/20 p-4">
               <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Purchase Limits
               </h3>
@@ -495,7 +591,7 @@ export default function TabletModeCartSummary({
         open={discountsDrawerOpen}
         onClose={() => setDiscountsDrawerOpen(false)}
         side="right"
-        size="60vw">
+        size="72vw">
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-4 text-base font-semibold">
             Discounts & Taxes
@@ -513,18 +609,16 @@ export default function TabletModeCartSummary({
                   deleteLoyaltyPoints={deleteLoyaltyPoints}
                   removeDealFromSelectedProduct={removeDealFromSelectedProduct}
                 />
+                <div ref={setLoyaltyPointsNode} className="empty:hidden" />
                 {(selectedCustomer?.id || quoteBody?.customerId) && (
-                  <div className="rounded-lg p-3 shadow-[0_0_6px_rgba(0,0,0,0.08)]">
-                    <div className="mb-2 font-semibold capitalize text-muted-foreground">
+                  <div className="border-t border-border pt-4">
+                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <Tag className="size-4" />
                       Coupons
                     </div>
-                    <NewAvailableCoupons />
+                    <NewAvailableCoupons inline />
                   </div>
                 )}
-                <div
-                  ref={setLoyaltyPointsNode}
-                  className="empty:hidden rounded-lg p-3 shadow-[0_0_6px_rgba(0,0,0,0.08)] [&>div]:mt-0 [&>div]:rounded-none [&>div]:border-0 [&>div]:p-0"
-                />
               </>
             )}
           </div>
@@ -539,8 +633,8 @@ export default function TabletModeCartSummary({
           wrapper being visible. What's hidden along with it: QuickActionsRow
           (Draft/Misc/Notes/Tip) and the discount/tax line-item breakdown —
           the latter is still reachable via the "Discounts applied" bar
-          above, and Coupons is rendered directly in that same drawer since
-          it's self-contained. */}
+          above; Coupons is the full pickable list inline in this drawer
+          (NewAvailableCoupons inline). */}
       <div className="hidden">
         <TotalCard
           statusRowContainer={statusRowNode}

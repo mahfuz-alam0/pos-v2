@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useSettings } from "@/context/settings-context";
 import { useShop } from "@/context/shop-context";
 import { updateQueueStatus } from "@/services/customerQueue/updateStatus";
+import useResetPOS from "@/hooks/useResetPOS";
 
 function calculateWaitTime(updatedAt) {
   if (!updatedAt) return "N/A";
@@ -31,6 +32,7 @@ function isDobBefore(dateStr) {
 export default function QueueCard({ data, onRemove, onServe, onOpenDetails, sidepanel = false, wide = false }) {
   const { shopId } = useShop();
   const { queueBorder15, queueBorder20, queueYellowTime, queueRedTime } = useSettings();
+  const { handleResetPOS } = useResetPOS();
   const [waitTime, setWaitTime] = useState(calculateWaitTime(data?.updatedAt));
   const [isServing, setIsServing] = useState(Boolean(data?.isGettingServed));
   const [isNewCustomer, setIsNewCustomer] = useState(true);
@@ -95,6 +97,12 @@ export default function QueueCard({ data, onRemove, onServe, onOpenDetails, side
         toast.success("Customer's order now being processed");
         onServe?.(data);
       } else {
+        // Putting the customer back to waiting clears them (and their cart)
+        // out of the active POS session — their in-progress cart was already
+        // auto-saved against this queue entry (see TotalCard's cartMetaData
+        // sync effect) and gets restored via cartMetaDataJsonString the next
+        // time they're moved back to serving.
+        handleResetPOS();
         toast.success("Customer moved to waiting list.");
       }
     } catch {

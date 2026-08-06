@@ -55,6 +55,7 @@ import { getSingleSale } from "@/services/sales/getSingleSales";
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
+import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
@@ -88,6 +89,9 @@ export default function TotalCard({
     useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
   const currentMiscallenousCharges = useSelector(
     (state: any) => state?.miscCharges?.miscCharges || [],
+  );
+  const customerInQueue = useSelector(
+    (state: any) => state?.customerQueue?.customerInQueue,
   );
 
   const { discountTypes } = useDiscountTypes();
@@ -406,7 +410,7 @@ export default function TotalCard({
 
   // ---- Build order body (ported verbatim in structure) ----------------------
   const buildOrderBody = (
-    paymentPayload,
+    paymentPayload = null,
     isPaymentCompleted = false,
     achData = null,
     overrideProxyPin = undefined,
@@ -499,6 +503,62 @@ export default function TotalCard({
       body = { ...body, proxyPin: overrideProxyPin };
     return body;
   };
+
+  // Debounced auto-save of the in-progress cart against the active queue
+  // customer (front-desk queue entry, or a customer picked directly in POS).
+  // Lets QueueCard restore the exact cart (line items, deals, coupon,
+  // loyalty, tip, delivery, ...) when this customer is moved back to
+  // "serving" from the queue after being put back to "waiting" mid-cart.
+  const cartMetaDebounceRef = useRef<any>(null);
+  useEffect(() => {
+    const activeCustomerId = customerInQueue?.customerId || quoteBody?.customerId;
+    if (!activeCustomerId) return;
+    const hasItems =
+      (quoteBody.lineItems && quoteBody.lineItems.length > 0) ||
+      (lineItems && lineItems.length > 0);
+    if (!hasItems) return;
+
+    if (cartMetaDebounceRef.current) clearTimeout(cartMetaDebounceRef.current);
+
+    cartMetaDebounceRef.current = setTimeout(() => {
+      // Reuse the same enriched payload shape used to complete an order
+      // (discounts, coupons, deals, loyalty, tip, delivery, etc.) so the
+      // queued cart can be restored exactly as it would be checked out.
+      const orderBody = buildOrderBody();
+      const {
+        statusId,
+        paymentMethod: _paymentMethod,
+        cashPaid,
+        virtualPaid,
+        onlinePaymentMethod,
+        isAchPayment,
+        ...cartMetaBody
+      } = orderBody;
+
+      setCartMetaData({
+        shopId: JSON.parse(localStorage.getItem("shopId")),
+        customerId: activeCustomerId,
+        cartMetaDataJsonString: JSON.stringify(cartMetaBody),
+      }).catch((err) => console.error("Failed to sync cart meta data:", err));
+    }, 800);
+
+    return () => {
+      if (cartMetaDebounceRef.current) clearTimeout(cartMetaDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    customerInQueue?.customerId,
+    quoteBody?.customerId,
+    quoteBody.lineItems,
+    quoteBody.miscCharges,
+    quoteBody.miscDiscount,
+    quoteBody.loyaltyPointsClaimed,
+    quoteBody.couponId,
+    quoteBody.applicableRegularDeals,
+    quoteBody.applicableBogoDeals,
+    quoteBody.tipGiven,
+    lineItems,
+  ]);
 
   const hasQuoteErrors = () => {
     const em = getOrderSummary?.data?.errorMessages;
@@ -625,9 +685,26 @@ export default function TotalCard({
         dispatch(updateSalesDetail({ proxyPin: null }));
         setShareModePin(true);
       }
-      toast.error(
-        error?.message || error?.error || "Unexpected error occurred",
-      );
+      // handleApiError throws { status, errors } (not .message) for 422s —
+      // without this, validation failures (e.g. missing registerId) silently
+      // fall through to the generic string below and the real reason is lost.
+      const validationMessage = error?.errors?.length
+        ? error.errors.join(" ")
+        : null;
+      if (
+        !quoteBody?.registerId ||
+        error?.errors?.some((e) => e.includes("registerId"))
+      ) {
+        toast.warning("Please select a register before completing the sale");
+        window.dispatchEvent(new CustomEvent("openRegisterModal"));
+      } else {
+        toast.error(
+          validationMessage ||
+            error?.message ||
+            error?.error ||
+            "Unexpected error occurred",
+        );
+      }
     } finally {
       setLoading(false);
       setOrderProcessing(false);
@@ -1078,18 +1155,13 @@ export default function TotalCard({
   };
   const checkoutButtonDisabled =
     loading || orderProcessing || (isPaymentConfigured && !paymentCompleted);
-  const checkoutButtonLabel = (
-    <>
-      {loading
-        ? "Processing…"
-        : isPaymentConfigured
-          ? paymentCompleted
-            ? "Complete Order"
-            : `Pay Remaining $${remainingAmount.toFixed(2)}`
-          : "Checkout"}{" "}
-      (Total: ${(finalPayable + (onlineTransactionFee || 0)).toFixed(2)})
-    </>
-  );
+  const checkoutButtonLabel = loading
+    ? "Processing…"
+    : isPaymentConfigured
+      ? paymentCompleted
+        ? "Complete Order"
+        : `Pay Remaining $${remainingAmount.toFixed(2)}`
+      : "Checkout";
 
   const runOrDeferForPin = (action) => {
     if (isShareModeActive() && quoteBody?.proxyPin == null) {
