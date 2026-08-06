@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/admin/form-fields";
-import { MultiApiSelect } from "@/components/ui/multi-api-select";
+import { MultiApiSelect, type MultiApiSelectOption } from "@/components/ui/multi-api-select";
 import { REGULAR_DEAL_DISCOUNT_TYPE_ITEMS, REGULAR_DEAL_TARGET_ENTITY_ITEMS } from "@/services/promotions/enums";
 import { fetchCategoriesPage, fetchBrandsPage, fetchProductsPage, fetchPackagesPage } from "@/services/promotions/pickerAdapters";
 import type { RegularDealInfoValue } from "./types";
@@ -12,9 +12,11 @@ import type { RegularDealInfoValue } from "./types";
 export function RegularDealFields({
   value,
   onChange,
+  labels,
 }: {
   value: RegularDealInfoValue;
   onChange: (patch: Partial<RegularDealInfoValue>) => void;
+  labels?: Partial<Record<keyof RegularDealInfoValue, MultiApiSelectOption[]>>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -55,25 +57,25 @@ export function RegularDealFields({
 
       {value.targetEntity === "CATEGORIES" && (
         <Field label="Categories" required>
-          <MultiApiSelect placeholder="Select categories" fetchPage={fetchCategoriesPage} value={value.associatedCategoryIds} onChange={(ids) => onChange({ associatedCategoryIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select categories" fetchPage={fetchCategoriesPage} value={value.associatedCategoryIds} onChange={(ids) => onChange({ associatedCategoryIds: ids })} initialLabels={labels?.associatedCategoryIds} triggerClassName="w-full" />
         </Field>
       )}
       {value.targetEntity === "BRANDS" && (
         <Field label="Brands" required>
-          <MultiApiSelect placeholder="Select brands" fetchPage={fetchBrandsPage} value={value.associatedBrandIds} onChange={(ids) => onChange({ associatedBrandIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select brands" fetchPage={fetchBrandsPage} value={value.associatedBrandIds} onChange={(ids) => onChange({ associatedBrandIds: ids })} initialLabels={labels?.associatedBrandIds} triggerClassName="w-full" />
         </Field>
       )}
       {value.targetEntity === "PRODUCTS" && (
         <Field label="Products" required>
-          <MultiApiSelect placeholder="Select products" fetchPage={fetchProductsPage} value={value.associatedProductIds} onChange={(ids) => onChange({ associatedProductIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select products" fetchPage={fetchProductsPage} value={value.associatedProductIds} onChange={(ids) => onChange({ associatedProductIds: ids })} initialLabels={labels?.associatedProductIds} triggerClassName="w-full" />
         </Field>
       )}
 
       <Field label="Product Exceptions">
-        <MultiApiSelect placeholder="Exclude specific products" fetchPage={fetchProductsPage} value={value.productExceptionIds} onChange={(ids) => onChange({ productExceptionIds: ids })} triggerClassName="w-full" />
+        <MultiApiSelect placeholder="Exclude specific products" fetchPage={fetchProductsPage} value={value.productExceptionIds} onChange={(ids) => onChange({ productExceptionIds: ids })} initialLabels={labels?.productExceptionIds} triggerClassName="w-full" />
       </Field>
       <Field label="Package Exceptions">
-        <MultiApiSelect placeholder="Exclude specific packages" fetchPage={fetchPackagesPage} value={value.packageExceptionIds} onChange={(ids) => onChange({ packageExceptionIds: ids })} triggerClassName="w-full" />
+        <MultiApiSelect placeholder="Exclude specific packages" fetchPage={fetchPackagesPage} value={value.packageExceptionIds} onChange={(ids) => onChange({ packageExceptionIds: ids })} initialLabels={labels?.packageExceptionIds} triggerClassName="w-full" />
       </Field>
 
       <div className="flex items-center justify-between rounded-lg p-3 ring-1 ring-foreground/10">

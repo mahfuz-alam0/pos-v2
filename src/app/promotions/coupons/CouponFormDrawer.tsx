@@ -15,6 +15,7 @@ import { Field, SingleImageUpload } from "@/components/admin/form-fields";
 import { RestrictionsFields, EMPTY_RESTRICTIONS, type RestrictionsValue } from "@/components/promotions/RestrictionsFields";
 import { UsageRuleFields, EMPTY_USAGE_RULE, type UsageRuleValue } from "@/components/promotions/UsageRuleFields";
 import { ValidityScheduler, type ShopExpiry } from "@/components/promotions/ValidityScheduler";
+import { sanitizeShopExpiry } from "@/services/promotions/defaultShopExpiry";
 import { COUPON_DISCOUNT_TYPE_ITEMS, COUPON_STACK_ITEMS } from "@/services/promotions/enums";
 import { fetchSingleCoupon } from "@/services/coupons/getSingle";
 import { createCoupon } from "@/services/coupons/create";
@@ -40,6 +41,8 @@ const EMPTY_DETAILS: DetailsValue = {
   discountRate: 10,
 };
 
+const TAB_ORDER = ["general", "validity"] as const;
+
 export default function CouponFormDrawer({
   open,
   mode,
@@ -53,7 +56,7 @@ export default function CouponFormDrawer({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [tab, setTab] = useState("details");
+  const [tab, setTab] = useState("general");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -64,7 +67,7 @@ export default function CouponFormDrawer({
 
   useEffect(() => {
     if (!open) return;
-    setTab("details");
+    setTab("general");
 
     if (mode === "add") {
       setDetails(EMPTY_DETAILS);
@@ -111,7 +114,7 @@ export default function CouponFormDrawer({
             totalUsageLimitPerUser: c.usageRule?.totalUsageLimitPerUser ?? { isEnabled: false, value: 0 },
             maximumApplicableDiscount: c.usageRule?.maximumApplicableDiscount ?? { isEnabled: false, value: 0 },
           });
-          setShopExpiry(c.shopBasisPromoExpiry ?? []);
+          setShopExpiry(sanitizeShopExpiry(c.shopBasisPromoExpiry));
         })
         .catch((err: any) => toast.error(err?.message || "Failed to load coupon"))
         .finally(() => setLoading(false));
@@ -157,7 +160,7 @@ export default function CouponFormDrawer({
   };
 
   return (
-    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={640}>
+    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={960}>
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -181,75 +184,78 @@ export default function CouponFormDrawer({
             </div>
           ) : (
             <Tabs value={tab} onValueChange={(v) => setTab(v as string)}>
-              <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="restrictions">Restrictions</TabsTrigger>
-                <TabsTrigger value="usage">Usage Rules</TabsTrigger>
-                <TabsTrigger value="validity">Validity</TabsTrigger>
+              <TabsList variant="line" className="w-full gap-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)]">
+                <TabsTrigger value="general" className="flex-1">General Information</TabsTrigger>
+                <TabsTrigger value="validity" className="flex-1">Validity &amp; Expiry</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="mt-4">
-                <div className="flex flex-col gap-4">
-                  <Field label="Image">
-                    <SingleImageUpload imageUrl={details.imageUrl} onChange={(imageUrl) => setDetails({ ...details, imageUrl })} />
-                  </Field>
-                  <Field label="Coupon Name" required>
-                    <Input value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} />
-                  </Field>
-                  <Field label="Coupon Code" required>
-                    <Input
-                      value={details.couponCode}
-                      onChange={(e) => setDetails({ ...details, couponCode: e.target.value.toUpperCase() })}
-                    />
-                  </Field>
-                  <Field label="Description">
-                    <Textarea
-                      rows={3}
-                      value={details.description}
-                      onChange={(e) => setDetails({ ...details, description: e.target.value })}
-                    />
-                  </Field>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Discount Type">
-                      <Select
-                        items={COUPON_DISCOUNT_TYPE_ITEMS}
-                        value={details.discountType}
-                        onValueChange={(v) => setDetails({ ...details, discountType: v as string })}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {COUPON_DISCOUNT_TYPE_ITEMS.map((i) => (
-                            <SelectItem key={i.value} value={i.value}>
-                              {i.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              <TabsContent value="general" className="mt-4">
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-4">
+                    <div className="text-sm font-semibold">Coupon Information</div>
+                    <Field label="Image">
+                      <SingleImageUpload imageUrl={details.imageUrl} onChange={(imageUrl) => setDetails({ ...details, imageUrl })} />
                     </Field>
-                    <Field label="Discount Rate" required>
+                    <Field label="Coupon Name" required>
+                      <Input value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} />
+                    </Field>
+                    <Field label="Coupon Code" required>
                       <Input
-                        type="number"
-                        min={0}
-                        value={details.discountRate}
-                        onChange={(e) => setDetails({ ...details, discountRate: Number(e.target.value) })}
+                        value={details.couponCode}
+                        onChange={(e) => setDetails({ ...details, couponCode: e.target.value.toUpperCase() })}
                       />
                     </Field>
+                    <Field label="Description">
+                      <Textarea
+                        rows={3}
+                        value={details.description}
+                        onChange={(e) => setDetails({ ...details, description: e.target.value })}
+                      />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Discount Type">
+                        <Select
+                          items={COUPON_DISCOUNT_TYPE_ITEMS}
+                          value={details.discountType}
+                          onValueChange={(v) => setDetails({ ...details, discountType: v as string })}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUPON_DISCOUNT_TYPE_ITEMS.map((i) => (
+                              <SelectItem key={i.value} value={i.value}>
+                                {i.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Discount Rate" required>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={details.discountRate}
+                          onChange={(e) => setDetails({ ...details, discountRate: Number(e.target.value) })}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4 pt-2 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+                    <div className="pt-4 text-sm font-semibold">Restrictions</div>
+                    <RestrictionsFields
+                      value={restrictions}
+                      onChange={(patch) => setRestrictions({ ...restrictions, ...patch })}
+                      stackItems={COUPON_STACK_ITEMS}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-4 pt-2 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+                    <div className="pt-4 text-sm font-semibold">Usage Rules</div>
+                    <UsageRuleFields value={usageRule} onChange={(patch) => setUsageRule({ ...usageRule, ...patch })} showMinimumOrderAmount />
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="restrictions" className="mt-4">
-                <RestrictionsFields
-                  value={restrictions}
-                  onChange={(patch) => setRestrictions({ ...restrictions, ...patch })}
-                  stackItems={COUPON_STACK_ITEMS}
-                />
-              </TabsContent>
-
-              <TabsContent value="usage" className="mt-4">
-                <UsageRuleFields value={usageRule} onChange={(patch) => setUsageRule({ ...usageRule, ...patch })} showMinimumOrderAmount />
               </TabsContent>
 
               <TabsContent value="validity" className="mt-4">
@@ -263,9 +269,16 @@ export default function CouponFormDrawer({
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving || loading}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
+          {tab !== "validity" && (
+            <Button onClick={() => setTab(TAB_ORDER[TAB_ORDER.indexOf(tab as (typeof TAB_ORDER)[number]) + 1])} disabled={saving || loading}>
+              Next
+            </Button>
+          )}
+          {tab === "validity" && (
+            <Button onClick={handleSave} disabled={saving || loading}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          )}
         </div>
       </div>
     </Drawer>
