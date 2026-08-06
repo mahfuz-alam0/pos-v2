@@ -1,8 +1,9 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function TableLoadingOverlay({ show }: { show: boolean }) {
   if (!show) return null;
@@ -20,6 +21,11 @@ interface TablePaginationProps {
   pageSize?: number;
   loading?: boolean;
   onPageChange: (page: number) => void;
+  /** Compact look: icon-only Previous/Next, outlined (not filled) active page. Opt-in — default look is unchanged. */
+  compact?: boolean;
+  /** Pass both to render a "N / page" selector on the far right. */
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (size: number) => void;
 }
 
 const SIBLING_COUNT = 4;
@@ -49,6 +55,9 @@ export function TablePagination({
   pageSize,
   loading,
   onPageChange,
+  compact = false,
+  pageSizeOptions,
+  onPageSizeChange,
 }: TablePaginationProps) {
   const rangeLabel =
     totalEntries != null && pageSize != null
@@ -63,8 +72,13 @@ export function TablePagination({
     <div className="flex items-center justify-between text-sm text-muted-foreground">
       <span>{rangeLabel}</span>
       <div className="flex items-center gap-1">
-        <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => onPageChange(page - 1)}>
-          Previous
+        <Button
+          variant="outline"
+          size={compact ? "icon-sm" : "sm"}
+          disabled={page <= 1 || loading}
+          onClick={() => onPageChange(page - 1)}
+        >
+          {compact ? <ChevronLeft className="size-4" /> : "Previous"}
         </Button>
         {getPageList(page, totalPages).map((p, i) =>
           p === "ellipsis" ? (
@@ -74,10 +88,10 @@ export function TablePagination({
           ) : (
             <Button
               key={p}
-              variant={p === page ? "default" : "outline"}
+              variant={compact ? "outline" : p === page ? "default" : "outline"}
               size="sm"
               disabled={loading}
-              className="w-8 px-0"
+              className={`w-8 px-0 ${compact && p === page ? "border-primary text-primary" : ""}`}
               onClick={() => onPageChange(p)}
             >
               {p}
@@ -86,12 +100,31 @@ export function TablePagination({
         )}
         <Button
           variant="outline"
-          size="sm"
+          size={compact ? "icon-sm" : "sm"}
           disabled={page >= totalPages || loading}
           onClick={() => onPageChange(page + 1)}
         >
-          Next
+          {compact ? <ChevronRight className="size-4" /> : "Next"}
         </Button>
+
+        {pageSizeOptions && onPageSizeChange && pageSize != null && (
+          <Select
+            items={pageSizeOptions.map((s) => ({ value: String(s), label: `${s} / page` }))}
+            value={String(pageSize)}
+            onValueChange={(v) => onPageSizeChange(Number(v))}
+          >
+            <SelectTrigger className="h-8! ml-2 w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((s) => (
+                <SelectItem key={s} value={String(s)}>
+                  {s} / page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   );

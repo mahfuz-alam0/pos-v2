@@ -37,10 +37,10 @@
    dark sider: @nav-dark-bg #001529, @nav-dark-text-color #038fdd); the rest
    are derived variations of their primary/secondary pair. */
 [data-theme="navy"] {
-  --color-primary: #0088df;
-  --color-primary-hover: #1f98e3;
-  --color-primary-active: #0073c4;
-  --color-primary-soft: rgba(0, 136, 223, 0.16);
+  --color-primary: #3390de;
+  --color-primary-hover: #52a0e2;
+  --color-primary-active: #337bc3;
+  --color-primary-soft: rgba(51, 144, 222, 0.16);
   --on-primary: #ffffff;
   --color-secondary: #001529;
   --color-secondary-hover: #002748;
@@ -204,7 +204,7 @@
   --color-on-secondary: var(--on-secondary);
   --color-secondary-foreground: var(--on-secondary);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-noir-pro);
   --font-mono: var(--font-geist-mono);
 
   /* shadcn/ui component tokens, mapped onto the admin theme above so

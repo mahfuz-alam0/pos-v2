@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider, noFlashThemeScript } from "@/context/theme-context";
 import { SettingsProvider } from "@/context/settings-context";
@@ -15,9 +16,16 @@ import { ChatSocketProvider } from "@/context/chat-socket-context";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const noirPro = localFont({
+  variable: "--font-noir-pro",
+  src: [
+    { path: "../fonts/noir-pro/NoirPro-Light.woff2", weight: "300", style: "normal" },
+    { path: "../fonts/noir-pro/NoirPro-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/noir-pro/NoirPro-Medium.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/noir-pro/NoirPro-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/noir-pro/NoirPro-Bold.woff2", weight: "700", style: "normal" },
+    { path: "../fonts/noir-pro/NoirPro-Heavy.woff2", weight: "900", style: "normal" },
+  ],
 });
 
 const geistMono = Geist_Mono({
@@ -40,7 +48,7 @@ export default function RootLayout({ children }) {
       data-theme="navy"
       data-mode="light"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${noirPro.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         <InlineScript id="no-flash-theme" html={noFlashThemeScript} />

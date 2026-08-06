@@ -275,11 +275,15 @@ export default function InventoryDetailsDrawer({
           </div>
           {inventory && (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => setEditProductOpen(true)}>
+              <Button
+                variant="outline"
+                className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                onClick={() => setEditProductOpen(true)}
+              >
                 Edit Product
               </Button>
               <Button
-                size="sm"
+                className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
                 nativeButton={false}
                 render={<Link href={`/inventory-management/inventory-and-pricing/edit/${inventory.id}`} />}
               >
@@ -290,7 +294,7 @@ export default function InventoryDetailsDrawer({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <Button size="sm" className="inline-flex items-center gap-1">
+                      <Button className="h-9! inline-flex! items-center gap-1 rounded! px-3.5! text-[14px]! font-normal!">
                         <img src="/images/vm.png" alt="" className="size-4 rounded-full border border-white/35 object-contain" />
                         <ChevronDown className="size-3.5" />
                       </Button>
@@ -315,7 +319,10 @@ export default function InventoryDetailsDrawer({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <Button size="sm" variant="outline" className="inline-flex items-center gap-1 border-green-500 text-green-600">
+                      <Button
+                        variant="outline"
+                        className="h-9! inline-flex! items-center gap-1 rounded! border-green-500! px-3.5! text-[14px]! font-normal! text-green-600!"
+                      >
                         {(pushLeaflyLoading || removeLeaflyLoading) && <Loader2 className="size-3.5 animate-spin" />}
                         <img src="/images/leafly-logo.png" alt="" className="size-5 object-contain" />
                         <ChevronDown className="size-3.5" />
@@ -433,7 +440,12 @@ export default function InventoryDetailsDrawer({
                       <p className="text-sm font-medium">Delete this inventory</p>
                       <p className="text-xs text-muted-foreground">Once deleted, this inventory cannot be recovered.</p>
                     </div>
-                    <Button size="sm" variant="destructive" disabled={deleteDisabled} onClick={() => setDeleteConfirmOpen(true)}>
+                    <Button
+                      variant="destructive"
+                      className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                      disabled={deleteDisabled}
+                      onClick={() => setDeleteConfirmOpen(true)}
+                    >
                       Delete
                     </Button>
                   </div>
@@ -450,7 +462,12 @@ export default function InventoryDetailsDrawer({
                         <img src="/images/leafly-logo.png" alt="" className="size-3.5 object-contain" />
                         This inventory is synced with Leafly.
                       </div>
-                      <Button size="sm" variant="destructive" onClick={handleRemoveFromLeafly} disabled={removeLeaflyLoading}>
+                      <Button
+                        variant="destructive"
+                        className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                        onClick={handleRemoveFromLeafly}
+                        disabled={removeLeaflyLoading}
+                      >
                         Remove from Leafly
                       </Button>
                     </div>
@@ -494,10 +511,18 @@ export default function InventoryDetailsDrawer({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setWmModalOpen(false)}>
+            <Button
+              variant="outline"
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              onClick={() => setWmModalOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleAttachProduct} disabled={attachLoading}>
+            <Button
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              onClick={handleAttachProduct}
+              disabled={attachLoading}
+            >
               {attachLoading ? "Attaching..." : "Attach Product"}
             </Button>
           </DialogFooter>

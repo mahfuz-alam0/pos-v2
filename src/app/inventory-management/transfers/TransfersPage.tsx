@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -65,7 +65,12 @@ const DEFAULT_PAGINATION: PaginationState = { limit: 30, page: 1, totalEntries: 
 
 function fmtDate(value?: string) {
   if (!value) return "-";
-  return new Date(value).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  return new Date(value).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" }).replace(/\//g, ".");
+}
+
+function fmtDateISO(value?: string) {
+  if (!value) return "-";
+  return value.split("T")[0];
 }
 
 export default function TransfersPage() {
@@ -315,315 +320,339 @@ export default function TransfersPage() {
   const anyDetailOpen = Boolean(withinDetail || shopDetail);
 
   return (
-    <div className="flex gap-4 p-6">
-      <div className={anyDetailOpen ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Transfers</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+    <div className="p-6">
+      <div className="flex gap-4">
+        <div className={anyDetailOpen ? "flex w-2/3 flex-col rounded-xl bg-card shadow-md" : "flex w-full flex-col rounded-xl bg-card shadow-md"}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-6 py-4">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/inventory-management" className="text-muted-foreground">
+                    Inventory
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="font-normal text-primary">Transfers</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
 
-          <Button
-            render={
-              <Link href={{ pathname: "/inventory-management/transfers/add-transfer", query: { transferType: activeTab } }} />
-            }
-          >
-            Add Transfer
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex overflow-hidden rounded-lg bg-muted p-0.5">
-              {(["all", "today", "yesterday", "custom"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setDateFilter(opt)}
-                  className={`rounded-[7px] px-3 py-1 text-sm capitalize transition-colors ${
-                    dateFilter === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-            {dateFilter === "custom" && (
-              <DateRangePicker value={customRange} onChange={setCustomRange} />
-            )}
+            <Button
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              render={
+                <Link href={{ pathname: "/inventory-management/transfers/add-transfer", query: { transferType: activeTab } }} />
+              }
+            >
+              Add Transfer
+            </Button>
           </div>
 
-          <Select
-            items={[
-              { value: "__all__", label: "All Employees" },
-              ...employees.map((e) => ({ value: e.id, label: e.name ?? e.id })),
-            ]}
-            value={employeeFilter ?? "__all__"}
-            onValueChange={(v) => setEmployeeFilter(v === "__all__" ? null : (v as string))}
-          >
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Select Employee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All Employees</SelectItem>
-              {employees.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.name ?? e.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-4 px-4 pt-3 pb-6">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1.5">
+                <div className="inline-flex h-10 rounded-md border border-input">
+                  {(["all", "today", "yesterday", "custom"] as const).map((opt, idx) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setDateFilter(opt)}
+                      className={`flex items-center justify-center px-4 text-sm capitalize transition-colors ${idx !== 0 ? "border-l border-input" : ""} ${
+                        dateFilter === opt
+                          ? "relative z-10 -mx-px rounded-md border border-primary bg-background text-primary"
+                          : "text-foreground/80 hover:bg-muted/40"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {dateFilter === "custom" && (
+                  <DateRangePicker value={customRange} onChange={setCustomRange} />
+                )}
+              </div>
+
+              <Select
+                items={[
+                  { value: "__all__", label: "Select Employee" },
+                  ...employees.map((e) => ({ value: e.id, label: e.name ?? e.id })),
+                ]}
+                value={employeeFilter ?? "__all__"}
+                onValueChange={(v) => setEmployeeFilter(v === "__all__" ? null : (v as string))}
+              >
+                <SelectTrigger className="h-10! w-52">
+                  <SelectValue placeholder="Select Employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Select Employee</SelectItem>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.name ?? e.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TransferTab)} className="mt-4">
+              <TabsList variant="line">
+                <TabsTrigger value="within-storage-locations">Within Storage Locations</TabsTrigger>
+                <TabsTrigger value="with-in-shops">Within Shops</TabsTrigger>
+                <TabsTrigger value="supplier-specific">Supplier Specific</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {activeTab === "within-storage-locations" && (
+              <>
+                <div className="relative overflow-hidden rounded-t-lg">
+                  <TableLoadingOverlay show={withinLoading && withinRows.length > 0} />
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Initiated By</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Source Location</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Destination Location</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Date Created</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="[&_td]:py-4.5">
+                      {withinLoading && withinRows.length === 0 &&
+                        Array.from({ length: 6 }).map((_, i) => (
+                          <TableRow key={`sk-${i}`} className="border-b border-border">
+                            {Array.from({ length: 5 }).map((__, j) => (
+                              <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      {!withinLoading && withinRows.length === 0 && (
+                        <TableRow className="border-b border-border">
+                          <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                            No transfers found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {withinRows.map((row) => (
+                        <TableRow key={row.id} className="border-b border-border">
+                          <TableCell>
+                            <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
+                              {row.advertisedId}
+                            </button>
+                          </TableCell>
+                          <TableCell>{row.initiatedBy?.name || "-"}</TableCell>
+                          <TableCell>{row.sourceStorageLocation}</TableCell>
+                          <TableCell>{row.destinationStorageLocation}</TableCell>
+                          <TableCell>{fmtDateISO(row.createdAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <TablePagination
+                  page={withinPagination.page}
+                  totalPages={withinPagination.totalPages}
+                  totalEntries={withinPagination.totalEntries}
+                  pageSize={withinPagination.limit}
+                  loading={withinLoading}
+                  onPageChange={(p) => loadWithin(p, withinPagination.limit)}
+                />
+              </>
+            )}
+
+            {activeTab === "with-in-shops" && (
+              <>
+                <div className="relative overflow-hidden rounded-t-lg">
+                  <TableLoadingOverlay show={shopLoading && shopRows.length > 0} />
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Created At</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Status</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Type</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Source Location</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Destination Location</TableHead>
+                        <TableHead className="h-12 text-center font-semibold text-muted-foreground">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="[&_td]:py-4.5">
+                      {shopLoading && shopRows.length === 0 &&
+                        Array.from({ length: 6 }).map((_, i) => (
+                          <TableRow key={`sk-${i}`} className="border-b border-border">
+                            {Array.from({ length: 7 }).map((__, j) => (
+                              <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      {!shopLoading && shopRows.length === 0 && (
+                        <TableRow className="border-b border-border">
+                          <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                            No transfers found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {shopRows.map((row) => (
+                        <TableRow key={row.id} className="border-b border-border">
+                          <TableCell>
+                            <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
+                              {row.advertisedId}
+                            </button>
+                          </TableCell>
+                          <TableCell>{fmtDate(row.createdAt)}</TableCell>
+                          <TableCell>{row.isCompleted ? "Completed" : "In Route"}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className="rounded-md"
+                              style={
+                                row.isIncoming
+                                  ? { backgroundColor: "#F5FCED", color: "var(--color-emerald-400)", borderColor: "currentColor" }
+                                  : { backgroundColor: "#E6F7FF", color: "var(--color-sky-400)", borderColor: "currentColor" }
+                              }
+                            >
+                              {row.isIncoming ? "Incoming" : "Outgoing"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{row.sourceStorageLocation ?? "-"}</TableCell>
+                          <TableCell>{row.destinationStorageLocation ?? "-"}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              size="icon-sm"
+                              className="rounded-full"
+                              render={<Link href={`/inventory-management/transfers/details/${row.id}`} />}
+                            >
+                              <Pencil />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <TablePagination
+                  page={shopPagination.page}
+                  totalPages={shopPagination.totalPages}
+                  totalEntries={shopPagination.totalEntries}
+                  pageSize={shopPagination.limit}
+                  loading={shopLoading}
+                  onPageChange={(p) => loadShopTransfers(p, shopPagination.limit)}
+                />
+              </>
+            )}
+
+            {activeTab === "supplier-specific" && (
+              <>
+                <div className="relative overflow-hidden rounded-t-lg">
+                  <TableLoadingOverlay show={supplierLoading && supplierRows.length > 0} />
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Created At</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Supplier</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Status</TableHead>
+                        <TableHead className="h-12 font-semibold text-muted-foreground">Type</TableHead>
+                        <TableHead className="h-12 text-right font-semibold text-muted-foreground">Total Price</TableHead>
+                        <TableHead className="h-12 text-center font-semibold text-muted-foreground">Number of Packages</TableHead>
+                        <TableHead className="sticky right-0 z-10 h-12 w-40 bg-muted/50 text-center font-semibold text-muted-foreground">
+                          Action
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="[&_td]:py-4.5">
+                      {supplierLoading && supplierRows.length === 0 &&
+                        Array.from({ length: 6 }).map((_, i) => (
+                          <TableRow key={`sk-${i}`} className="border-b border-border">
+                            {Array.from({ length: 8 }).map((__, j) => (
+                              <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      {!supplierLoading && supplierRows.length === 0 && (
+                        <TableRow className="border-b border-border">
+                          <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                            No transfers found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {supplierRows.map((row) => (
+                        <TableRow key={row.id} className="border-b border-border">
+                          <TableCell>
+                            <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
+                              {row.advertisedId}
+                            </button>
+                          </TableCell>
+                          <TableCell>{fmtDate(row.createdAt)}</TableCell>
+                          <TableCell>{row.fromSupplier?.name || row.toSupplier?.name || "-"}</TableCell>
+                          <TableCell>{row.isCompleted ? "Completed" : "In Route"}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className="rounded-md"
+                              style={
+                                row.transferType === "incoming"
+                                  ? { backgroundColor: "#F5FCED", color: "var(--color-emerald-400)", borderColor: "currentColor" }
+                                  : { backgroundColor: "#E6F7FF", color: "var(--color-sky-400)", borderColor: "currentColor" }
+                              }
+                            >
+                              {row.transferType === "incoming" ? "Incoming" : "Outgoing"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">${(row.totalPrice || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-center">{row.numberOfPackages || 0}</TableCell>
+                          <TableCell className="sticky right-0 z-10 w-40 bg-card text-center">
+                            {!row.isTransit ? (
+                              <AlertDialog>
+                                <AlertDialogTrigger>
+                                  <Button size="sm" disabled={markInTransitLoading[row.id]}>
+                                    {markInTransitLoading[row.id] && <Loader2 className="size-3.5 animate-spin" />}
+                                    Mark In Transit
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirm Completion</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to mark this transfer as In Transit?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>No</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleMarkInTransit(row.id)}>Yes</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : (
+                              <Button size="sm" render={<Link href={`/inventory-management/transfers/details/${row.id}`} />}>
+                                {row.isCompleted ? "Completed" : "Manage"}
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <TablePagination
+                  page={supplierPagination.page}
+                  totalPages={supplierPagination.totalPages}
+                  totalEntries={supplierPagination.totalEntries}
+                  pageSize={supplierPagination.limit}
+                  loading={supplierLoading}
+                  onPageChange={(p) => loadSupplierTransfers(p, supplierPagination.limit)}
+                />
+              </>
+            )}
+          </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TransferTab)}>
-          <TabsList>
-            <TabsTrigger value="within-storage-locations">Within Storage Locations</TabsTrigger>
-            <TabsTrigger value="with-in-shops">Within Shops</TabsTrigger>
-            <TabsTrigger value="supplier-specific">Supplier Specific</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {activeTab === "within-storage-locations" && (
-          <>
-            <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-              <TableLoadingOverlay show={withinLoading && withinRows.length > 0} />
-              <Table>
-                <TableHeader className="[&_tr]:border-b-0">
-                  <TableRow className="bg-muted/60">
-                    <TableHead>Transfer ID</TableHead>
-                    <TableHead>Initiated By</TableHead>
-                    <TableHead>Source Location</TableHead>
-                    <TableHead>Destination Location</TableHead>
-                    <TableHead>Date Created</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {withinLoading && withinRows.length === 0 &&
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <TableRow key={`sk-${i}`} className="border-b-0">
-                        {Array.from({ length: 5 }).map((__, j) => (
-                          <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  {!withinLoading && withinRows.length === 0 && (
-                    <TableRow className="border-b-0">
-                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                        No transfers found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {withinRows.map((row, i) => (
-                    <TableRow
-                      key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
-                    >
-                      <TableCell>
-                        <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
-                          {row.advertisedId}
-                        </button>
-                      </TableCell>
-                      <TableCell>{row.initiatedBy?.name || "-"}</TableCell>
-                      <TableCell>{row.sourceStorageLocation}</TableCell>
-                      <TableCell>{row.destinationStorageLocation}</TableCell>
-                      <TableCell>{fmtDate(row.createdAt)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <TablePagination
-              page={withinPagination.page}
-              totalPages={withinPagination.totalPages}
-              totalEntries={withinPagination.totalEntries}
-              pageSize={withinPagination.limit}
-              loading={withinLoading}
-              onPageChange={(p) => loadWithin(p, withinPagination.limit)}
-            />
-          </>
+        {withinDetail && (
+          <WithinLocationDetailPanel transfer={withinDetail} onClose={closeDetail} />
         )}
-
-        {activeTab === "with-in-shops" && (
-          <>
-            <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-              <TableLoadingOverlay show={shopLoading && shopRows.length > 0} />
-              <Table>
-                <TableHeader className="[&_tr]:border-b-0">
-                  <TableRow className="bg-muted/60">
-                    <TableHead>Transfer ID</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Source Location</TableHead>
-                    <TableHead>Destination Location</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shopLoading && shopRows.length === 0 &&
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <TableRow key={`sk-${i}`} className="border-b-0">
-                        {Array.from({ length: 6 }).map((__, j) => (
-                          <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  {!shopLoading && shopRows.length === 0 && (
-                    <TableRow className="border-b-0">
-                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                        No transfers found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {shopRows.map((row, i) => (
-                    <TableRow
-                      key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
-                    >
-                      <TableCell>
-                        <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
-                          {row.advertisedId}
-                        </button>
-                      </TableCell>
-                      <TableCell>{fmtDate(row.createdAt)}</TableCell>
-                      <TableCell>{row.isCompleted ? "Completed" : "In Route"}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.isIncoming ? "default" : "secondary"}>
-                          {row.isIncoming ? "Incoming" : "Outgoing"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{row.sourceStorageLocation ?? "-"}</TableCell>
-                      <TableCell>{row.destinationStorageLocation ?? "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <TablePagination
-              page={shopPagination.page}
-              totalPages={shopPagination.totalPages}
-              totalEntries={shopPagination.totalEntries}
-              pageSize={shopPagination.limit}
-              loading={shopLoading}
-              onPageChange={(p) => loadShopTransfers(p, shopPagination.limit)}
-            />
-          </>
-        )}
-
-        {activeTab === "supplier-specific" && (
-          <>
-            <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-              <TableLoadingOverlay show={supplierLoading && supplierRows.length > 0} />
-              <Table>
-                <TableHeader className="[&_tr]:border-b-0">
-                  <TableRow className="bg-muted/60">
-                    <TableHead>Transfer ID</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Total Price</TableHead>
-                    <TableHead className="text-center"># Packages</TableHead>
-                    <TableHead className="sticky right-0 z-10 w-40 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">
-                      Action
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {supplierLoading && supplierRows.length === 0 &&
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <TableRow key={`sk-${i}`} className="border-b-0">
-                        {Array.from({ length: 8 }).map((__, j) => (
-                          <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  {!supplierLoading && supplierRows.length === 0 && (
-                    <TableRow className="border-b-0">
-                      <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                        No transfers found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {supplierRows.map((row, i) => (
-                    <TableRow
-                      key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
-                    >
-                      <TableCell>
-                        <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
-                          {row.advertisedId}
-                        </button>
-                      </TableCell>
-                      <TableCell>{fmtDate(row.createdAt)}</TableCell>
-                      <TableCell>{row.fromSupplier?.name || row.toSupplier?.name || "-"}</TableCell>
-                      <TableCell>{row.isCompleted ? "Completed" : "In Route"}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.transferType === "incoming" ? "default" : "secondary"}>
-                          {row.transferType === "incoming" ? "Incoming" : "Outgoing"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">${(row.totalPrice || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-center">{row.numberOfPackages || 0}</TableCell>
-                      <TableCell
-                        className={`sticky right-0 z-10 w-40 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
-                      >
-                        {!row.isTransit ? (
-                          <AlertDialog>
-                            <AlertDialogTrigger>
-                              <Button size="sm" disabled={markInTransitLoading[row.id]}>
-                                {markInTransitLoading[row.id] && <Loader2 className="size-3.5 animate-spin" />}
-                                Mark In Transit
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirm Completion</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to mark this transfer as In Transit?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>No</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleMarkInTransit(row.id)}>Yes</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        ) : (
-                          <Button size="sm" render={<Link href={`/inventory-management/transfers/details/${row.id}`} />}>
-                            {row.isCompleted ? "Completed" : "Manage"}
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <TablePagination
-              page={supplierPagination.page}
-              totalPages={supplierPagination.totalPages}
-              totalEntries={supplierPagination.totalEntries}
-              pageSize={supplierPagination.limit}
-              loading={supplierLoading}
-              onPageChange={(p) => loadSupplierTransfers(p, supplierPagination.limit)}
-            />
-          </>
+        {shopDetail && (
+          <ShopTransferDetailPanel transfer={shopDetail} onClose={closeDetail} />
         )}
       </div>
-
-      {withinDetail && (
-        <WithinLocationDetailPanel transfer={withinDetail} onClose={closeDetail} />
-      )}
-      {shopDetail && (
-        <ShopTransferDetailPanel transfer={shopDetail} onClose={closeDetail} />
-      )}
     </div>
   );
 }

@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Download, Loader2, Plus, X } from "lucide-react";
+import { Download, Loader2, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
 import { fetchArchivedPackages } from "@/services/packages/listArchived";
+import { fetchSinglePackage } from "@/services/packages/getSingle";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchBrandsList } from "@/services/brands/list";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
@@ -35,6 +36,8 @@ import RepackageDrawer from "./RepackageDrawer";
 import WasteDrawer from "./WasteDrawer";
 import BulkFinishDrawer from "./BulkFinishDrawer";
 import BulkUploadDrawer from "./BulkUploadDrawer";
+import ReconcilePackageDrawer from "./ReconcilePackageDrawer";
+import { CleanupPackagesDrawer, CleanupPreferencesDrawer } from "./CleanupDrawer";
 import { exportPackagesToCSV, exportPackagesToXLS } from "./packagesExport";
 import type { BrandOption, CategoryOption, PackageFilters, PackageRow, PackageTab, StorageLocationOption } from "./types";
 
@@ -119,12 +122,13 @@ export default function PackagesPage() {
     Boolean(userInfo?.orgFeatureScopes?.includes("METRC_REPORTING")) ||
     userInfo?.type === "SUPER_ADMIN" ||
     userInfo?.type === "ADMINISTRATION";
+  const isAdmin = userInfo?.type === "SUPER_ADMIN" || userInfo?.type === "ADMINISTRATION";
 
   const [tab, setTab] = useState<PackageTab>("unFinish");
   const [rows, setRows] = useState<PackageRow[]>([]);
   const [archivedRows, setArchivedRows] = useState<PackageRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0, totalPages: 1 });
 
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [brands, setBrands] = useState<BrandOption[]>([]);
@@ -133,6 +137,12 @@ export default function PackagesPage() {
 
   const [filters, setFilters] = useState<PackageFilters>(DEFAULT_FILTERS);
   const debouncedSearchText = useDebounce(filters.searchText, 300);
+  const [showLastUpdated, setShowLastUpdated] = useState(false);
+  const [showLastAdjusted, setShowLastAdjusted] = useState(false);
+
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [barcodeSearching, setBarcodeSearching] = useState(false);
+  const barcodeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([]);
   const [selectedRows, setSelectedRows] = useState<PackageRow[]>([]);
@@ -142,8 +152,13 @@ export default function PackagesPage() {
   const [bulkFinishOpen, setBulkFinishOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
+  const [reconcileDetail, setReconcileDetail] = useState<any>(null);
+  const [reconcileLoadingId, setReconcileLoadingId] = useState<string | null>(null);
+
   const [exporting, setExporting] = useState(false);
-  const [cleanupCount, setCleanupCount] = useState(0);
+  const [cleanupPackageIds, setCleanupPackageIds] = useState<string[]>([]);
+  const [cleanupViewOpen, setCleanupViewOpen] = useState(false);
+  const [cleanupPrefsOpen, setCleanupPrefsOpen] = useState(false);
 
   const fetchFilterOptions = useCallback(async () => {
     try {
@@ -215,12 +230,45 @@ export default function PackagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, tab, filters.productCategoryIds, filters.productBrandIds, filters.storageLocationId, filters.discrepancyFilter, filters.source, filters.packageStatus, filters.productProfile, filters.lastUpdatedWithinDays, filters.lastManuallyAdjustedWithinDays, debouncedSearchText]);
 
-  useEffect(() => {
+  const loadCleanupRecord = useCallback(() => {
     if (!shopId) return;
     fetchInventoryCleanupRecord(shopId as string)
-      .then((res) => setCleanupCount(res?.data?.data?.packages?.length ?? 0))
-      .catch(() => setCleanupCount(0));
+      .then((res) => setCleanupPackageIds(res?.data?.data?.stagedPackageIds ?? []))
+      .catch(() => setCleanupPackageIds([]));
   }, [shopId]);
+
+  useEffect(() => {
+    loadCleanupRecord();
+  }, [loadCleanupRecord]);
+
+  const handleBarcodeSearch = useCallback(
+    async (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed || !shopId) {
+        setBarcodeSearching(false);
+        return;
+      }
+      setBarcodeSearching(true);
+      try {
+        const res = await fetchPackagesMinimalExtended(shopId as string, { limit: 1, page: 1, advertisedIds: trimmed });
+        const pkg = res?.data?.packages?.[0] ?? (await fetchPackagesMinimalExtended(shopId as string, { limit: 1, page: 1, metrcTags: trimmed }))?.data?.packages?.[0];
+        if (pkg) openRow(pkg.id);
+        else toast.error("No package found with this barcode");
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to search package");
+      } finally {
+        setBarcodeSearching(false);
+        setBarcodeInput("");
+      }
+    },
+    [shopId] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const onBarcodeChange = (value: string) => {
+    setBarcodeInput(value);
+    if (barcodeDebounceRef.current) clearTimeout(barcodeDebounceRef.current);
+    barcodeDebounceRef.current = setTimeout(() => handleBarcodeSearch(value), 500);
+  };
 
   const activeRows = tab === "archived" ? archivedRows : rows;
 
@@ -238,6 +286,9 @@ export default function PackagesPage() {
 
   const isCaliforniaState = typeof window !== "undefined" && localStorage.getItem("isCaliforniaState") === "true";
   const selectedMetrcRows = selectedRows.filter((r) => r.source === "METRC" && (r.quantityLeft ?? 0) > 0);
+  const selectedTransferRows = selectedRows.filter(
+    (r) => r.storageLocationBreakdown && Object.keys(r.storageLocationBreakdown).length > 0
+  );
 
   const openRow = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -251,8 +302,28 @@ export default function PackagesPage() {
     router.push(`/inventory-management/packages${params.toString() ? `?${params}` : ""}`, { scroll: false });
   };
 
+  const openReconcile = async (id: string) => {
+    if (!shopId) return;
+    setReconcileLoadingId(id);
+    try {
+      const res = await fetchSinglePackage(shopId as string, { id });
+      const pkg = res?.data?.data?.package ?? res?.data?.data ?? null;
+      if (!pkg) {
+        toast.error("Failed to load package details");
+        return;
+      }
+      setReconcileDetail(pkg);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load package details");
+    } finally {
+      setReconcileLoadingId(null);
+    }
+  };
+
   const handleClearFilter = (key: keyof PackageFilters) => {
     setFilters((prev) => ({ ...prev, [key]: key === "searchText" ? "" : undefined }));
+    if (key === "lastUpdatedWithinDays") setShowLastUpdated(false);
+    if (key === "lastManuallyAdjustedWithinDays") setShowLastAdjusted(false);
   };
 
   const hasActiveFilters =
@@ -326,9 +397,9 @@ export default function PackagesPage() {
   const showMetrcQtyColumn = shouldPopulateMetrcData;
 
   return (
-    <div className="flex gap-4 p-6">
-      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -336,70 +407,127 @@ export default function PackagesPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Packages</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium text-primary">Packages</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {cleanupCount > 0 && (
-              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-400">
-                {cleanupCount} packages need cleanup
+          <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
+            {selectedRowKeys.length > 0 && (
+              <Badge variant="outline" className="gap-1.5 border-blue-200 bg-blue-50 py-1 pr-1 pl-2.5 font-normal text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-400">
+                {selectedRowKeys.length} package{selectedRowKeys.length !== 1 ? "s" : ""} selected
+                <button
+                  onClick={() => {
+                    setSelectedRowKeys([]);
+                    setSelectedRows([]);
+                  }}
+                  className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-900"
+                >
+                  <X className="size-3" />
+                </button>
               </Badge>
             )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="outline" disabled={!activeRows.length || exporting}>
-                    {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                    Export
-                  </Button>
+            {selectedRowKeys.length > 0 && !isCaliforniaState && (
+              <Button
+                className="h-9! rounded! px-3.5! text-[14px]! font-normal! text-muted-foreground!"
+                variant="outline"
+                onClick={() => setWasteOpen(true)}
+              >
+                Assign New Waste Tag ({selectedRowKeys.length})
+              </Button>
+            )}
+
+            {selectedMetrcRows.length > 0 && (
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!" onClick={() => setRepackageOpen(true)}>
+                Repackage ({selectedMetrcRows.length})
+              </Button>
+            )}
+
+            {selectedTransferRows.length > 0 && (
+              <Button
+                className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+                variant="outline"
+                onClick={() =>
+                  router.push(
+                    `/inventory-management/transfers/add-transfer?transferType=within-storage-locations&packageIds=${selectedTransferRows
+                      .map((r) => r.id)
+                      .join(",")}`
+                  )
                 }
-              />
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleExport("csv")}>Export to CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("xls")}>Export to Excel</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              >
+                Transfer ({selectedTransferRows.length})
+              </Button>
+            )}
+
+            {selectedRowKeys.length > 0 && tab === "finishPackages" && (
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!" variant="outline" onClick={() => setBulkFinishOpen(true)}>
+                Bulk Finish ({selectedRowKeys.length})
+              </Button>
+            )}
+
+            {cleanupPackageIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCleanupViewOpen(true)}
+                className="cursor-pointer"
+              >
+                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-400">
+                  {cleanupPackageIds.length} packages need cleanup
+                </Badge>
+              </button>
+            )}
+
+            {isAdmin && (
+              <Button
+                className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+                variant="outline"
+                onClick={() => setCleanupPrefsOpen(true)}
+              >
+                Cleanup Preferences
+              </Button>
+            )}
 
             {shouldPopulateMetrcData ? (
               <DropdownMenu>
-                <DropdownMenuTrigger render={<Button><Plus className="size-4" /> Add</Button>} />
+                <DropdownMenuTrigger render={<Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!">Add</Button>} />
                 <DropdownMenuContent>
                   <DropdownMenuItem render={<Link href="/inventory-management/packages/add" />}>Create Regular Package</DropdownMenuItem>
                   <DropdownMenuItem render={<Link href="/inventory-management/packages/import-metrc" />}>Import From METRC</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button render={<Link href="/inventory-management/packages/add" />}>
-                <Plus className="size-4" /> Add Package
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!" render={<Link href="/inventory-management/packages/add" />}>
+                Add Package
               </Button>
             )}
 
-            <Button variant="outline" onClick={() => setBulkUploadOpen(true)}>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!" onClick={() => setBulkUploadOpen(true)}>
               Bulk Package Upload
             </Button>
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as PackageTab)}>
-          <TabsList>
-            {TAB_OPTIONS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
         {tab !== "archived" && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-60">
+                <Input
+                  placeholder="Scan via barcode"
+                  value={barcodeInput}
+                  onChange={(e) => onBarcodeChange(e.target.value)}
+                  className={`h-10 placeholder:text-muted-foreground/60 ${barcodeSearching ? "pr-8" : ""}`}
+                />
+                {barcodeSearching && (
+                  <Loader2 className="absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
+              </div>
+
               <div className="flex items-center gap-1.5">
                 <Input
                   placeholder="Search By.."
-                  style={{ maxWidth: 180 }}
+                  className="h-10 placeholder:text-muted-foreground/60"
+                  style={{ width: 240 }}
                   value={filters.searchText}
                   onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
                 />
@@ -412,8 +540,8 @@ export default function PackagesPage() {
                   value={filters.searchType}
                   onValueChange={(v) => setFilters((prev) => ({ ...prev, searchType: v as PackageFilters["searchType"] }))}
                 >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
+                  <SelectTrigger className="h-10! w-36">
+                    <SelectValue className="text-muted-foreground/60" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="advertisedIds">Package ID</SelectItem>
@@ -424,25 +552,25 @@ export default function PackagesPage() {
               </div>
 
               <ApiSelect
-                placeholder="All Categories"
-                value={filters.productCategoryIds ?? null}
-                onChange={(val) => setFilters((prev) => ({ ...prev, productCategoryIds: (val as string) ?? undefined }))}
-                fetchPage={async (page, search) => {
-                  const res = await fetchCategoriesList({ page, limit: 20, ...(search ? { search } : {}) } as any);
-                  return { items: (res?.data ?? []).map((c: any) => ({ id: c.id, name: c.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
-                }}
-                triggerClassName="w-40"
-              />
-
-              <ApiSelect
-                placeholder="Select Brand..."
+                placeholder="Select Brand"
                 value={filters.productBrandIds ?? null}
                 onChange={(val) => setFilters((prev) => ({ ...prev, productBrandIds: (val as string) ?? undefined }))}
                 fetchPage={async (page, search) => {
                   const res = await fetchBrandsList({ page, limit: 20, ...(search ? { search } : {}) } as any);
                   return { items: (res?.data ?? []).map((b: any) => ({ id: b.id, name: b.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
                 }}
-                triggerClassName="w-40"
+                triggerClassName="h-10 w-44 [&_.text-muted-foreground]:text-muted-foreground/60"
+              />
+
+              <ApiSelect
+                placeholder="Select Category"
+                value={filters.productCategoryIds ?? null}
+                onChange={(val) => setFilters((prev) => ({ ...prev, productCategoryIds: (val as string) ?? undefined }))}
+                fetchPage={async (page, search) => {
+                  const res = await fetchCategoriesList({ page, limit: 20, ...(search ? { search } : {}) } as any);
+                  return { items: (res?.data ?? []).map((c: any) => ({ id: c.id, name: c.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
+                }}
+                triggerClassName="h-10 w-44 [&_.text-muted-foreground]:text-muted-foreground/60"
               />
 
               <Select
@@ -450,8 +578,12 @@ export default function PackagesPage() {
                 value={filters.storageLocationId ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, storageLocationId: v === "__all__" ? undefined : (v as string) }))}
               >
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All Locations" />
+                <SelectTrigger className="h-10! w-48">
+                  <SelectValue className="text-muted-foreground/60" placeholder="Storage Locations">
+                    {(value: string) =>
+                      value === "__all__" ? "Storage Locations" : locations.find((l) => l.id === value)?.name ?? "Storage Locations"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All Locations</SelectItem>
@@ -472,8 +604,12 @@ export default function PackagesPage() {
                 value={filters.discrepancyFilter ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, discrepancyFilter: v === "__all__" ? undefined : (v as "YES" | "NO") }))}
               >
-                <SelectTrigger className="w-44">
-                  <SelectValue placeholder="Discrepancy" />
+                <SelectTrigger className="h-10! w-52">
+                  <SelectValue className="text-muted-foreground/60" placeholder="Metrc Discrepancy">
+                    {(value: string) =>
+                      value === "__all__" ? "Metrc Discrepancy" : value === "YES" ? "Has METRC Discrepancy" : "No METRC Discrepancy"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All</SelectItem>
@@ -491,8 +627,12 @@ export default function PackagesPage() {
                 value={filters.source ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, source: v === "__all__" ? undefined : (v as "PLATFORM" | "METRC") }))}
               >
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Source" />
+                <SelectTrigger className="h-10! w-36">
+                  <SelectValue className="text-muted-foreground/60" placeholder="Source">
+                    {(value: string) =>
+                      value === "__all__" ? "Source" : value === "PLATFORM" ? "POS (Point of Sale)" : "METRC"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All</SelectItem>
@@ -501,6 +641,22 @@ export default function PackagesPage() {
                 </SelectContent>
               </Select>
 
+              {hasActiveFilters && (
+                <Button
+                  className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+                  variant="outline"
+                  onClick={() => {
+                    setFilters(DEFAULT_FILTERS);
+                    setShowLastUpdated(false);
+                    setShowLastAdjusted(false);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
               <Select
                 items={[
                   { value: "__all__", label: "All" },
@@ -513,8 +669,20 @@ export default function PackagesPage() {
                 value={filters.packageStatus ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, packageStatus: v === "__all__" ? undefined : (v as PackageFilters["packageStatus"]) }))}
               >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="h-10! w-44">
+                  <SelectValue className="text-muted-foreground/60" placeholder="Package Status">
+                    {(value: string) => {
+                      const labels: Record<string, string> = {
+                        __all__: "Package Status",
+                        isImported: "Imported",
+                        isExpired: "Expired",
+                        isSample: "Sample",
+                        isActive: "Active",
+                        pendingImport: "Pending Import",
+                      };
+                      return labels[value] ?? "Package Status";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All</SelectItem>
@@ -535,8 +703,12 @@ export default function PackagesPage() {
                 value={filters.productProfile ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, productProfile: v === "__all__" ? undefined : (v as "REGULAR" | "CANNABIS") }))}
               >
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Type" />
+                <SelectTrigger className="h-10! w-40">
+                  <SelectValue className="text-muted-foreground/60" placeholder="Package Type">
+                    {(value: string) =>
+                      value === "__all__" ? "Package Type" : value === "REGULAR" ? "REGULAR" : "CANNABIS"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All</SelectItem>
@@ -545,10 +717,79 @@ export default function PackagesPage() {
                 </SelectContent>
               </Select>
 
-              {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={() => setFilters(DEFAULT_FILTERS)} className="ml-auto">
-                  Clear Filters
-                </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!" disabled={!activeRows.length || exporting}>
+                      {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                      Export
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleExport("csv")}>Export to CSV</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("xls")}>Export to Excel</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Checkbox
+                  checked={showLastUpdated}
+                  onCheckedChange={(checked) => {
+                    setShowLastUpdated(!!checked);
+                    if (!checked) setFilters((prev) => ({ ...prev, lastUpdatedWithinDays: undefined }));
+                  }}
+                />
+                Filter based on the latest activity
+              </label>
+
+              {showLastUpdated && (
+                <Select
+                  items={Array.from({ length: 30 }, (_, i) => ({ value: String(i + 1), label: `${i + 1} days` }))}
+                  value={filters.lastUpdatedWithinDays ? String(filters.lastUpdatedWithinDays) : undefined}
+                  onValueChange={(v) => setFilters((prev) => ({ ...prev, lastUpdatedWithinDays: Number(v) }))}
+                >
+                  <SelectTrigger className="h-9! w-24">
+                    <SelectValue placeholder="Days" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 30 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {i + 1} days
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Checkbox
+                  checked={showLastAdjusted}
+                  onCheckedChange={(checked) => {
+                    setShowLastAdjusted(!!checked);
+                    if (!checked) setFilters((prev) => ({ ...prev, lastManuallyAdjustedWithinDays: undefined }));
+                  }}
+                />
+                Last adjusted
+              </label>
+
+              {showLastAdjusted && (
+                <Select
+                  items={Array.from({ length: 90 }, (_, i) => ({ value: String(i + 1), label: `${i + 1} day${i + 1 > 1 ? "s" : ""}` }))}
+                  value={filters.lastManuallyAdjustedWithinDays ? String(filters.lastManuallyAdjustedWithinDays) : undefined}
+                  onValueChange={(v) => setFilters((prev) => ({ ...prev, lastManuallyAdjustedWithinDays: Number(v) }))}
+                >
+                  <SelectTrigger className="h-9! w-24">
+                    <SelectValue placeholder="Days" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 90 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {i + 1} day{i + 1 > 1 ? "s" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
 
@@ -567,155 +808,157 @@ export default function PackagesPage() {
           </div>
         )}
 
-        {selectedRowKeys.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-blue-600">
-              {selectedRowKeys.length} package{selectedRowKeys.length !== 1 ? "s" : ""} selected
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setSelectedRowKeys([]);
-                setSelectedRows([]);
-              }}
-            >
-              Clear
-            </Button>
+        <div className="mt-4 border-b border-border">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as PackageTab)}>
+            <TabsList variant="line" className="h-auto gap-7 p-0">
+              {TAB_OPTIONS.map((t) => (
+                <TabsTrigger
+                  key={t.value}
+                  value={t.value}
+                  className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
+                >
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
-            {!isCaliforniaState && (
-              <Button size="sm" variant="outline" onClick={() => setWasteOpen(true)}>
-                Assign New Waste Tag ({selectedRowKeys.length})
-              </Button>
-            )}
-
-            {selectedMetrcRows.length > 0 && (
-              <Button size="sm" variant="outline" onClick={() => setRepackageOpen(true)}>
-                Repackage ({selectedMetrcRows.length})
-              </Button>
-            )}
-
-            {tab === "finishPackages" && (
-              <Button size="sm" variant="outline" onClick={() => setBulkFinishOpen(true)}>
-                Bulk Finish ({selectedRowKeys.length})
-              </Button>
-            )}
-          </div>
-        )}
-
-        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="relative overflow-hidden rounded-xl">
           <TableLoadingOverlay show={loading && activeRows.length > 0} />
-          <Table>
-            <TableHeader className="[&_tr]:border-b-0">
-              <TableRow className="bg-muted/60">
-                {tab === "archived" ? (
-                  <>
-                    <TableHead>Package ID</TableHead>
-                    <TableHead>Product Name</TableHead>
-                    <TableHead>Archived At</TableHead>
-                  </>
-                ) : (
-                  <>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={activeRows.length > 0 && selectedRowKeys.length === activeRows.length}
-                        onCheckedChange={(checked) => toggleAllRows(!!checked)}
-                      />
-                    </TableHead>
-                    <TableHead>Package ID</TableHead>
-                    <TableHead>Product Name</TableHead>
-                    <TableHead>Metrc Tag</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-center">Orig. Qty</TableHead>
-                    <TableHead className="text-center">Qty Left</TableHead>
-                    {showMetrcQtyColumn && <TableHead className="text-center">Metrc Qty</TableHead>}
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Age</TableHead>
-                    <TableHead>Last Adj.</TableHead>
-                    <TableHead className="sticky right-0 z-10 w-28 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">
-                      Action
-                    </TableHead>
-                  </>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && activeRows.length === 0 &&
-                Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={`sk-${i}`} className="border-b-0">
-                    {Array.from({ length: tab === "archived" ? 3 : showMetrcQtyColumn ? 12 : 11 }).map((__, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-
-              {!loading && activeRows.length === 0 && (
-                <TableRow className="border-b-0">
-                  <TableCell colSpan={tab === "archived" ? 3 : showMetrcQtyColumn ? 12 : 11} className="py-10 text-center text-muted-foreground">
-                    No packages found.
-                  </TableCell>
+          <div className="overflow-auto *:data-[slot=table-container]:overflow-visible" style={{ maxHeight: "calc(100vh - 420px)" }}>
+            <Table className="table-fixed">
+              <TableHeader className="sticky top-0 z-10 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4">
+                <TableRow className="bg-[#FAFAFA]">
+                  {tab === "archived" ? (
+                    <>
+                      <TableHead>Package ID</TableHead>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead>Archived At</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={activeRows.length > 0 && selectedRowKeys.length === activeRows.length}
+                          onCheckedChange={(checked) => toggleAllRows(!!checked)}
+                        />
+                      </TableHead>
+                      <TableHead className="w-[9%]">Package ID</TableHead>
+                      <TableHead className="w-[20%]">Product Name</TableHead>
+                      <TableHead className="w-[13%]">Metrc Tag</TableHead>
+                      <TableHead className="w-[8%]">Brand</TableHead>
+                      <TableHead className="w-[8%]">Category</TableHead>
+                      <TableHead className="w-[8%] text-center">Orig. Qty</TableHead>
+                      <TableHead className="w-[7%] text-center">Qty Left</TableHead>
+                      {showMetrcQtyColumn && <TableHead className="w-[6%] text-center">Metrc Qty</TableHead>}
+                      <TableHead className="w-[8%] text-center">Converted QTY</TableHead>
+                      <TableHead className="w-[6%] text-center">Status</TableHead>
+                      <TableHead className="w-[5%] text-center">Age</TableHead>
+                      <TableHead className="w-[8%]">Last Adj.</TableHead>
+                      <TableHead className="w-32 text-center">
+                        Action
+                      </TableHead>
+                    </>
+                  )}
                 </TableRow>
-              )}
+              </TableHeader>
+              <TableBody className="text-foreground/70 [&_td]:px-4 [&_td]:py-3">
+                {loading && activeRows.length === 0 &&
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <TableRow key={`sk-${i}`} className="border-b-0">
+                      {Array.from({ length: tab === "archived" ? 3 : showMetrcQtyColumn ? 13 : 12 }).map((__, j) => (
+                        <TableCell key={j}>
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
 
-              {tab === "archived"
-                ? activeRows.map((row, i) => (
-                  <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
-                    <TableCell>
-                      <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
-                        {row.advertisedId || "-"}
-                      </button>
+                {!loading && activeRows.length === 0 && (
+                  <TableRow className="border-b-0">
+                    <TableCell colSpan={tab === "archived" ? 3 : showMetrcQtyColumn ? 13 : 12} className="py-10 text-center text-muted-foreground">
+                      No packages found.
                     </TableCell>
-                    <TableCell>{row.name || "-"}</TableCell>
-                    <TableCell>{fmtDate(row.archivedAt)}</TableCell>
                   </TableRow>
-                ))
-                : activeRows.map((row, i) => (
-                  <TableRow
-                    key={row.id}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
-                  >
-                    <TableCell>
-                      <Checkbox checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
-                    </TableCell>
-                    <TableCell>
-                      <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
-                        {row.advertisedId || "-"}
-                      </button>
-                    </TableCell>
-                    <TableCell className="max-w-50 truncate" title={row.name}>
-                      {row.name || "-"}
-                    </TableCell>
-                    <TableCell>{row.metrcTag || "-"}</TableCell>
-                    <TableCell>{row.brand?.name || "-"}</TableCell>
-                    <TableCell>{row.category?.name || "-"}</TableCell>
-                    <TableCell className="text-center font-mono">
-                      {row.originalQuantity ?? "-"} {row.uoMShortForm}
-                    </TableCell>
-                    <TableCell className="text-center font-mono">
-                      {(row.quantityLeft ?? 0).toFixed(2)} {row.uoMShortForm}
-                    </TableCell>
-                    {showMetrcQtyColumn && (
-                      <TableCell className="text-center font-mono">{row.metrQuantity ?? "-"}</TableCell>
-                    )}
-                    <TableCell className="text-center">
-                      <Badge variant={row.isActive ? "default" : "destructive"}>{row.isActive ? "Active" : "Inactive"}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center text-xs text-muted-foreground">{ageInDays(row.createdAt)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{fmtDate(row.updatedAt)}</TableCell>
-                    <TableCell
-                      className={`sticky right-0 z-10 w-28 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                )}
+
+                {tab === "archived"
+                  ? activeRows.map((row) => (
+                    <TableRow key={row.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                      <TableCell>
+                        <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
+                          {row.advertisedId || "-"}
+                        </button>
+                      </TableCell>
+                      <TableCell>{row.name || "-"}</TableCell>
+                      <TableCell>{fmtDate(row.archivedAt)}</TableCell>
+                    </TableRow>
+                  ))
+                  : activeRows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]"
                     >
-                      <Button size="sm" variant="outline" onClick={() => openRow(row.id)}>
-                        Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+                      <TableCell>
+                        <Checkbox checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
+                      </TableCell>
+                      <TableCell>
+                        <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
+                          {row.advertisedId || "-"}
+                        </button>
+                      </TableCell>
+                      <TableCell className="max-w-70 whitespace-normal" title={row.name}>
+                        {row.name || "-"}
+                      </TableCell>
+                      <TableCell>{row.metrcTag || "-"}</TableCell>
+                      <TableCell>{row.productBrand || "-"}</TableCell>
+                      <TableCell>{row.productCategory || "-"}</TableCell>
+                      <TableCell className="text-center font-mono">
+                        {row.originalQuantity ?? "-"} {row.uoMShortForm}
+                      </TableCell>
+                      <TableCell className="text-center font-mono">
+                        {(row.quantityLeft ?? 0).toFixed(2)} {row.uoMShortForm}
+                      </TableCell>
+                      {showMetrcQtyColumn && (
+                        <TableCell className="text-center font-mono">{row.metrQuantity ?? "-"}</TableCell>
+                      )}
+                      <TableCell className="text-center">
+                        {row.quantityLeft && row.projectedQtyConversionRate && row.projectedQtyConversionRate > 0 ? (
+                          <div className="flex flex-col items-center text-xs">
+                            <span className="font-medium">
+                              {row.quantityLeft} {row.uoMShortForm}
+                            </span>
+                            <span className="leading-none text-muted-foreground">↓</span>
+                            <span className="font-medium">
+                              {(row.quantityLeft / row.projectedQtyConversionRate).toFixed(2)}
+                            </span>
+                            <span className="text-muted-foreground">(Rate: {row.projectedQtyConversionRate})</span>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={row.isActive ? "default" : "destructive"}>{row.isActive ? "Active" : "Inactive"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center text-sm text-muted-foreground">{ageInDays(row.createdAt)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{fmtDate(row.updatedAt)}</TableCell>
+                      <TableCell className="w-32 text-center">
+                        <Button
+                          className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                          variant="outline"
+                          disabled={reconcileLoadingId === row.id}
+                          onClick={() => openReconcile(row.id)}
+                        >
+                          {reconcileLoadingId === row.id ? "Loading..." : "Reconcile"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         <TablePagination
@@ -725,17 +968,18 @@ export default function PackagesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadPackages(p, pagination.pageSize)}
+          compact
+          pageSizeOptions={[50, 100, 200]}
+          onPageSizeChange={(size) => loadPackages(1, size)}
         />
       </div>
 
-      {openId && (
-        <PackageDetailsPanel
-          id={openId}
-          onClose={closeDetail}
-          onChanged={() => loadPackages(pagination.current, pagination.pageSize)}
-          locationMap={locationMap}
-        />
-      )}
+      <PackageDetailsPanel
+        id={openId}
+        onClose={closeDetail}
+        onChanged={() => loadPackages(pagination.current, pagination.pageSize)}
+        locationMap={locationMap}
+      />
 
       <RepackageDrawer
         open={repackageOpen}
@@ -780,6 +1024,31 @@ export default function PackagesPage() {
           setBulkUploadOpen(false);
           loadPackages(pagination.current, pagination.pageSize);
         }}
+      />
+
+      <ReconcilePackageDrawer
+        open={!!reconcileDetail}
+        packageDetail={reconcileDetail}
+        onClose={() => setReconcileDetail(null)}
+        onReconciled={() => {
+          setReconcileDetail(null);
+          loadPackages(pagination.current, pagination.pageSize);
+        }}
+      />
+
+      <CleanupPackagesDrawer
+        open={cleanupViewOpen}
+        onClose={() => setCleanupViewOpen(false)}
+        packageIds={cleanupPackageIds}
+        shopId={shopId}
+        onIgnored={loadCleanupRecord}
+      />
+
+      <CleanupPreferencesDrawer
+        open={cleanupPrefsOpen}
+        onClose={() => setCleanupPrefsOpen(false)}
+        shopId={shopId}
+        onSaved={loadCleanupRecord}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { useShop } from "@/context/shop-context";
 import {
@@ -103,9 +104,9 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }
 function LineIndicator({ title, widthPct, value, color }) {
   return (
     <div className="flex flex-col justify-center gap-3">
-      <p className="m-0 truncate" title={title}>{title}</p>
+      <p className="m-0 truncate text-sm text-gray-600 dark:text-gray-300" title={title}>{title}</p>
       <div className="flex items-center">
-        <div className="h-2 rounded" style={{ width: `${widthPct * 4}px`, backgroundColor: color }} />
+        <div className="h-0.5 rounded" style={{ width: `${widthPct * 4}px`, backgroundColor: color }} />
         <span className="ml-2 text-xs text-muted-foreground">{value}</span>
       </div>
     </div>
@@ -176,41 +177,26 @@ export default function RevenueBreakdownCard() {
   const getPredefinedColor = (index) => ["#E9C46A", "#2A9D8F", "#F4A261"][index] || "#FE9E15";
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="m-0 text-lg font-semibold text-text">Revenue Breakdown</h2>
-        <select
-          className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
-          value={statsDefaultValue}
-          onChange={handleTimeChange}
-        >
-          {TIME_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+    <div className="h-full rounded-xl bg-component-bg shadow-md p-3">
+      <div className="flex items-center justify-end gap-3">
+        <div className="relative">
+          <select
+            className="w-full appearance-none rounded-md border border-border bg-component-bg py-1.5 pr-6 pl-2 text-sm focus:bg-muted"
+            value={statsDefaultValue}
+            onChange={handleTimeChange}
+          >
+            {TIME_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        </div>
       </div>
 
       <div className="mt-4">
         <div className="flex flex-col gap-4 md:flex-row">
-          {rankingData.length !== 0 && (
-            <div className="w-full shrink-0 md:w-1/4">
-              <ul className="flex list-none flex-col gap-4 p-0">
-                {pageItems.map((item, index) => {
-                  const percentage = totalTimesBought ? ((item.totalTimesBought / totalTimesBought) * 100).toFixed(0) : "0";
-                  const displayName = item.name.length > 20 ? `${item.name.slice(0, 30)}...` : item.name;
-                  const color = getPredefinedColor(index);
-                  return (
-                    <Link href={TYPE_HREF[currentTypeValue]} key={item.id} className="cursor-pointer">
-                      <LineIndicator title={displayName} widthPct={Number(percentage)} value={`${percentage}%`} color={color} />
-                    </Link>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
           <div className="relative min-w-0 flex-1">
             {hasChartData ? (
               <ResponsiveContainer width="100%" height={200}>
@@ -229,25 +215,41 @@ export default function RevenueBreakdownCard() {
               </div>
             )}
 
-            <div className="mt-4 flex w-full justify-center gap-2">
+            <div className="mt-4 flex w-full justify-center gap-4">
               {TYPE_OPTIONS.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    setCurrentTypeValue(type);
-                    setCurrentPage(0);
-                  }}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                    currentTypeValue === type
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-component-bg text-muted-foreground hover:text-text"
-                  }`}
-                >
+                <label key={type} className="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="revenue-breakdown-type"
+                    checked={currentTypeValue === type}
+                    onChange={() => {
+                      setCurrentTypeValue(type);
+                      setCurrentPage(0);
+                    }}
+                    className="accent-primary"
+                  />
                   {type}
-                </button>
+                </label>
               ))}
             </div>
           </div>
+
+          {rankingData.length !== 0 && (
+            <div className="w-full shrink-0 md:w-1/4">
+              <ul className="mx-0 mt-3 mb-0 flex list-none flex-col gap-4 p-0">
+                {pageItems.map((item, index) => {
+                  const percentage = totalTimesBought ? ((item.totalTimesBought / totalTimesBought) * 100).toFixed(0) : "0";
+                  const displayName = item.name.length > 20 ? `${item.name.slice(0, 30)}...` : item.name;
+                  const color = getPredefinedColor(index);
+                  return (
+                    <Link href={TYPE_HREF[currentTypeValue]} key={item.id} className="cursor-pointer">
+                      <LineIndicator title={displayName} widthPct={Number(percentage)} value={`${percentage}%`} color={color} />
+                    </Link>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

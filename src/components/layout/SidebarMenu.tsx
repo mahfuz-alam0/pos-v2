@@ -73,7 +73,7 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }: MenuLeafProps) {
       prefetch={true}
       className={cn(
         "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
-        collapsed ? "mx-auto my-0.5 h-10 w-10 justify-center" : "px-3 py-2",
+        collapsed ? "mx-auto h-9 w-9 justify-center" : "px-3 py-2",
         depth > 0 && !collapsed && "pl-9",
         active ? "text-sidebar-active" : "text-sidebar-text hover:text-white"
       )}
@@ -149,7 +149,7 @@ function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionP
         type="button"
         title={item.label}
         className={cn(
-          "mx-auto my-0.5 flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+          "mx-auto flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
           sectionActive ? "text-white" : "text-sidebar-text hover:text-white"
         )}
       >
