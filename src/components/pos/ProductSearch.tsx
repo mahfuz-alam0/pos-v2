@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSelector } from "react-redux";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import Drawer from "@/components/ui/Drawer";
@@ -121,8 +122,8 @@ export default function ProductSearch({
               >
                 <CustomerCartSidebar />
               </div>
-            }
-          />
+            )}
+          </div>
         </div>
       </Drawer>
     </div>

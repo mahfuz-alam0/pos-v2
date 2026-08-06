@@ -56,7 +56,6 @@ import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
-import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
@@ -89,9 +88,6 @@ export default function TotalCard({
   const bogoData = useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
   const currentMiscallenousCharges = useSelector(
     (state: any) => state?.miscCharges?.miscCharges || [],
-  );
-  const customerInQueue = useSelector(
-    (state: any) => state?.customerQueue?.customerInQueue,
   );
 
   const { discountTypes } = useDiscountTypes();

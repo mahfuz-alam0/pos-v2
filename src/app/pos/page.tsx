@@ -106,7 +106,6 @@ import PosDrafts from "@/components/pos/PosDrafts";
 import ReturnsPage from "@/components/pos/ReturnsPage";
 import CustomerUploads from "@/components/pos/CustomerUploads";
 import CustomerQueue from "@/components/dashboard/CustomerQueue";
-import CustomerQueue from "@/components/dashboard/CustomerQueue";
 import SelectCustomers from "@/components/pos-tablet/SelectCustomers";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
 
