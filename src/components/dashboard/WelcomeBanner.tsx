@@ -85,7 +85,7 @@ export default function WelcomeBanner() {
     year: "numeric",
   })}`;
 
-  const chips = [
+  const chips: { key: string; count: number; label: string; href?: string; icon: React.ReactNode }[] = [
     {
       key: "tasks",
       count: taskCount,
