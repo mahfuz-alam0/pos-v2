@@ -157,9 +157,11 @@ function dataUrlToFile(dataUrl: string, prefix: string) {
 export function DocumentsUpload({
   links,
   onChange,
+  variant = "dropzone",
 }: {
   links: string[];
   onChange: (links: string[]) => void;
+  variant?: "dropzone" | "button";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);

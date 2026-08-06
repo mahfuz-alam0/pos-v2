@@ -85,16 +85,15 @@ export default function WelcomeBanner() {
     year: "numeric",
   })}`;
 
-  const chips = [];
-  if (taskCount > 0) {
-    chips.push({
+  const chips: { key: string; count: number; label: string; href?: string; icon: React.ReactNode }[] = [
+    {
       key: "tasks",
       count: taskCount,
       label: `Pending task${taskCount !== 1 ? "s" : ""}`,
       href: "/settings/tasks-listings",
       icon: <FileText className="size-4" />,
-    });
-  }
+    },
+  ];
   if (orderCount > 0) {
     chips.push({
       key: "orders",
@@ -114,12 +113,12 @@ export default function WelcomeBanner() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-linear-to-br from-[#0a1830] via-[#0d2038] to-[#0a1830] px-6 py-5 text-white">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-linear-to-br from-[#0a1830] via-[#0d2038] to-[#0a1830] px-5 py-3.5 text-white">
       <div>
         <div className="text-[22px] font-medium">
           Welcome, <span className="font-semibold">{userDetails?.name || "-"}</span>
         </div>
-        <div className="mt-1 text-[13px] font-medium text-[#7c8db5]">{dateLabel}</div>
+        <div className="mt-2 text-[13px] font-medium text-[#7c8db5]">{dateLabel}</div>
       </div>
 
       {chips.length > 0 && (

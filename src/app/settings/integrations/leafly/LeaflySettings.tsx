@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,8 +39,9 @@ const STAGES: { key: PushStage; title: string }[] = [
   { key: "completed", title: "Completed" },
 ];
 
-export default function LeaflySettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function LeaflySettings({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved?: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [menuIntegrationKey, setMenuIntegrationKey] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
@@ -52,11 +54,14 @@ export default function LeaflySettings({ open, onClose }: { open: boolean; onClo
     if (!open) return;
 
     const shopId = JSON.parse(localStorage.getItem("shopId") || "null");
-    fetchLeaflyConfig(shopId).then((res) => {
-      const key = res?.data?.data?.menuIntegrationKey || "";
-      setMenuIntegrationKey(key);
-      setIsConfigured(!!key);
-    });
+    setInitialLoading(true);
+    fetchLeaflyConfig(shopId)
+      .then((res) => {
+        const key = res?.data?.data?.menuIntegrationKey || "";
+        setMenuIntegrationKey(key);
+        setIsConfigured(!!key);
+      })
+      .finally(() => setInitialLoading(false));
 
     const socket = connectToSocket({ url: `${process.env.NEXT_PUBLIC_BASE_URL}/leafly-order-status`, shopId });
     socketRef.current = socket;
@@ -87,6 +92,7 @@ export default function LeaflySettings({ open, onClose }: { open: boolean; onClo
       await saveLeaflyConfig({ shopId, menuIntegrationKey });
       setIsConfigured(true);
       toast.success("Leafly configuration saved successfully!");
+      onSaved?.();
     } catch (err: any) {
       toast.error(err?.message || "Failed to save Leafly configuration.");
     } finally {
@@ -145,28 +151,49 @@ export default function LeaflySettings({ open, onClose }: { open: boolean; onClo
             </TabsList>
 
             <TabsContent value="configuration" className="flex flex-col gap-4 pt-4">
-              <p className="text-sm text-muted-foreground">
-                Configure your Leafly menu integration key to sync your menu and manage orders.
-              </p>
+              {initialLoading ? (
+                <div className="flex flex-col gap-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-9 w-full" />
+                  </div>
+                  <Skeleton className="h-9 w-36" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Configure your Leafly menu integration key to sync your menu and manage orders.
+                  </p>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="menu-integration-key">Menu Integration Key</Label>
-                <Input
-                  id="menu-integration-key"
-                  placeholder="Enter your Leafly Menu Integration Key"
-                  value={menuIntegrationKey}
-                  onChange={(e) => setMenuIntegrationKey(e.target.value)}
-                />
-              </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="menu-integration-key">Menu Integration Key</Label>
+                    <Input
+                      id="menu-integration-key"
+                      placeholder="Enter your Leafly Menu Integration Key"
+                      value={menuIntegrationKey}
+                      onChange={(e) => setMenuIntegrationKey(e.target.value)}
+                    />
+                  </div>
 
-              <div>
-                <Button onClick={handleSubmit} disabled={loading}>
-                  {loading ? "Saving..." : "Save Configuration"}
-                </Button>
-              </div>
+                  <div>
+                    <Button onClick={handleSubmit} disabled={loading}>
+                      {loading ? "Saving..." : "Save Configuration"}
+                    </Button>
+                  </div>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="menu" className="flex flex-col gap-6 pt-4">
+              {initialLoading ? (
+                <div className="flex flex-col gap-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-28 w-full rounded-xl" />
+                  <Skeleton className="h-20 w-full rounded-xl" />
+                </div>
+              ) : (
+                <>
               <p className="text-sm text-muted-foreground">
                 Push your full inventory to Leafly or manage individual products from the Inventory page.
               </p>
@@ -255,6 +282,8 @@ export default function LeaflySettings({ open, onClose }: { open: boolean; onClo
                   </Button>
                 </div>
               </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </div>

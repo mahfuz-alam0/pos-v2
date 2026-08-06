@@ -15,8 +15,14 @@ export function buildDefaultShopExpiry(shopId: string) {
     startsAtTime: "12:00 AM",
     neverExpires: true,
     endsAtDate: null,
-    endsAtTime: null,
+    endsAtTime: "11:59 PM",
     isEnabled: true,
     slots: buildDefaultSlots(),
   };
+}
+
+// ponytail: backend requires endsAtTime as a non-null string even when neverExpires is true;
+// older records saved before that constraint (or the "never expires" toggle) can carry null.
+export function sanitizeShopExpiry<T extends { endsAtTime: string | null }>(list: T[] | undefined | null): T[] {
+  return (list ?? []).map((shop) => (shop.endsAtTime ? shop : { ...shop, endsAtTime: "11:59 PM" }));
 }

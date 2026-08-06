@@ -80,9 +80,12 @@ export default function IntegrationsList() {
     refreshStatuses();
   }, []);
 
+  const updateStatus = (id: IntegrationId, status: IntegrationStatus) => {
+    setStatuses((prev) => ({ ...prev, [id]: status }));
+  };
+
   const handleDrawerClose = () => {
     setOpenDrawer(null);
-    refreshStatuses();
   };
 
   return (
@@ -145,10 +148,15 @@ export default function IntegrationsList() {
         })}
       </div>
 
-      <WeedmapsSettings open={openDrawer === "weedmaps"} onClose={handleDrawerClose} />
-      <AeropaySettings open={openDrawer === "aeropay"} onClose={handleDrawerClose} />
-      <LeaflySettings open={openDrawer === "leafly"} onClose={handleDrawerClose} />
-      <BreeoSettings open={openDrawer === "breeo"} onClose={handleDrawerClose} />
+      <WeedmapsSettings open={openDrawer === "weedmaps"} onClose={handleDrawerClose} onSaved={() => updateStatus("weedmaps", "Active")} />
+      <AeropaySettings open={openDrawer === "aeropay"} onClose={handleDrawerClose} onSaved={() => updateStatus("aeropay", "Active")} />
+      <LeaflySettings open={openDrawer === "leafly"} onClose={handleDrawerClose} onSaved={() => updateStatus("leafly", "Active")} />
+      <BreeoSettings
+        open={openDrawer === "breeo"}
+        onClose={handleDrawerClose}
+        onSaved={() => updateStatus("breeo", "Active")}
+        onStatusToggle={(active) => updateStatus("breeo", active ? "Active" : "Setup")}
+      />
     </div>
   );
 }

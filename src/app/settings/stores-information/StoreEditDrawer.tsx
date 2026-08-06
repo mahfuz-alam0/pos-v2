@@ -30,6 +30,7 @@ interface FormValues {
   currency: string;
   countryCode: string;
   cannabisLicenceNo: string;
+  businessLicenceNo: string;
   address: string;
   city: string;
   state: string;
@@ -49,6 +50,7 @@ const EMPTY_VALUES: FormValues = {
   currency: "USD",
   countryCode: "US",
   cannabisLicenceNo: "",
+  businessLicenceNo: "",
   address: "",
   city: "",
   state: "",
@@ -105,6 +107,7 @@ export default function StoreEditDrawer({ open, storeId, onClose, onSaved }: Sto
           currency: s.currency ?? "USD",
           countryCode: s.countryCode ?? "US",
           cannabisLicenceNo: s.licenseDetails?.licenseId ?? "",
+          businessLicenceNo: s.licenseDetails?.additionalProperties?.businessLicenceNo ?? "",
           address: s.locationDetails?.streetAddress ?? "",
           city: s.locationDetails?.city ?? "",
           state: s.locationDetails?.state ?? "",
@@ -146,6 +149,7 @@ export default function StoreEditDrawer({ open, storeId, onClose, onSaved }: Sto
       });
 
       const body = {
+        orgId: storeId,
         shopName: values.storeName,
         phone: values.phone ? (values.phone.startsWith("+") ? values.phone : `+${values.phone}`) : undefined,
         shopEmail: values.emailId || undefined,
@@ -158,9 +162,13 @@ export default function StoreEditDrawer({ open, storeId, onClose, onSaved }: Sto
         long: values.long || undefined,
         timeZone: values.timeZone || undefined,
         logo: values.logo ?? undefined,
-        operationHours: { open24X7: values.open24X7, slots: operationHours },
+        open24X7: values.open24X7,
+        operationHours,
         licenseDetails: {
           licenseId: values.cannabisLicenceNo || undefined,
+          additionalProperties: {
+            businessLicenceNo: values.businessLicenceNo || undefined,
+          },
         },
       };
       await updateShop(storeId!, body);

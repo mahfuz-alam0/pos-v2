@@ -110,7 +110,9 @@ interface JobRow {
   } | null;
   createdAt: string;
   metrcReportingStatus: string | null;
-  metrcReportingLogs?: { payloadResponse?: { row: number; message: string }[] }[];
+  metrcReportingLogs?: {
+    payloadResponse?: { row: number; message: string }[];
+  }[];
 }
 
 function formatDate(v?: string | null) {
@@ -123,7 +125,9 @@ function getIsCaliforniaState() {
   if (typeof window === "undefined") return false;
   if (localStorage.getItem("isCaliforniaState") === "true") return true;
   try {
-    const orgScopes = JSON.parse(localStorage.getItem("userInfo") || "null")?.orgFeatureScopes || [];
+    const orgScopes =
+      JSON.parse(localStorage.getItem("userInfo") || "null")
+        ?.orgFeatureScopes || [];
     return orgScopes.includes("METRC_CALI") || orgScopes.includes("METRC_CA");
   } catch {
     return false;
@@ -463,8 +467,9 @@ export default function JobsTable() {
                 const isTerminal = TERMINAL_STATUSES.includes(row.status);
                 const isRetrying = retryingMetrcIds.has(row.id);
                 const lastFailureMessages =
-                  row.metrcReportingLogs?.[row.metrcReportingLogs.length - 1]
-                    ?.payloadResponse?.map((p) => p.message) ?? [];
+                  row.metrcReportingLogs?.[
+                    row.metrcReportingLogs.length - 1
+                  ]?.payloadResponse?.map((p) => p.message) ?? [];
                 return (
                   <TableRow
                     key={row.id}

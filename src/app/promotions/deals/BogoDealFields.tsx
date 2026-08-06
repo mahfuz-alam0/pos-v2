@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/admin/form-fields";
-import { MultiApiSelect } from "@/components/ui/multi-api-select";
+import { MultiApiSelect, type MultiApiSelectOption } from "@/components/ui/multi-api-select";
 import {
   BOGO_BUY_SCOPE_ITEMS,
   BOGO_GET_PRODUCT_TYPE_ITEMS,
@@ -19,27 +19,35 @@ function EntityPicker({
   categoryIds,
   brandIds,
   productIds,
+  categoryLabels,
+  brandLabels,
+  productLabels,
   onChange,
 }: {
   scope: string;
   categoryIds: string[];
   brandIds: string[];
   productIds: string[];
+  categoryLabels?: MultiApiSelectOption[];
+  brandLabels?: MultiApiSelectOption[];
+  productLabels?: MultiApiSelectOption[];
   onChange: (patch: { categoryIds?: string[]; brandIds?: string[]; productIds?: string[] }) => void;
 }) {
   if (scope === "CATEGORIES")
-    return <MultiApiSelect placeholder="Select categories" fetchPage={fetchCategoriesPage} value={categoryIds} onChange={(ids) => onChange({ categoryIds: ids })} triggerClassName="w-full" />;
+    return <MultiApiSelect placeholder="Select categories" fetchPage={fetchCategoriesPage} value={categoryIds} onChange={(ids) => onChange({ categoryIds: ids })} initialLabels={categoryLabels} triggerClassName="w-full" />;
   if (scope === "BRANDS")
-    return <MultiApiSelect placeholder="Select brands" fetchPage={fetchBrandsPage} value={brandIds} onChange={(ids) => onChange({ brandIds: ids })} triggerClassName="w-full" />;
-  return <MultiApiSelect placeholder="Select products" fetchPage={fetchProductsPage} value={productIds} onChange={(ids) => onChange({ productIds: ids })} triggerClassName="w-full" />;
+    return <MultiApiSelect placeholder="Select brands" fetchPage={fetchBrandsPage} value={brandIds} onChange={(ids) => onChange({ brandIds: ids })} initialLabels={brandLabels} triggerClassName="w-full" />;
+  return <MultiApiSelect placeholder="Select products" fetchPage={fetchProductsPage} value={productIds} onChange={(ids) => onChange({ productIds: ids })} initialLabels={productLabels} triggerClassName="w-full" />;
 }
 
 export function BogoDealFields({
   value,
   onChange,
+  labels,
 }: {
   value: BogoDealInfoValue;
   onChange: (patch: Partial<BogoDealInfoValue>) => void;
+  labels?: Partial<Record<keyof BogoDealInfoValue, MultiApiSelectOption[]>>;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -69,6 +77,9 @@ export function BogoDealFields({
               categoryIds={value.buyProductCategoryIds}
               brandIds={value.buyProductBrandIds}
               productIds={value.buyProductIds}
+              categoryLabels={labels?.buyProductCategoryIds}
+              brandLabels={labels?.buyProductBrandIds}
+              productLabels={labels?.buyProductIds}
               onChange={(patch) =>
                 onChange({
                   ...(patch.categoryIds ? { buyProductCategoryIds: patch.categoryIds } : {}),
@@ -79,10 +90,10 @@ export function BogoDealFields({
             />
           </Field>
           <Field label="Buy Product Exceptions">
-            <MultiApiSelect placeholder="Exclude products" fetchPage={fetchProductsPage} value={value.buyProductExceptionIds} onChange={(ids) => onChange({ buyProductExceptionIds: ids })} triggerClassName="w-full" />
+            <MultiApiSelect placeholder="Exclude products" fetchPage={fetchProductsPage} value={value.buyProductExceptionIds} onChange={(ids) => onChange({ buyProductExceptionIds: ids })} initialLabels={labels?.buyProductExceptionIds} triggerClassName="w-full" />
           </Field>
           <Field label="Buy Package Exceptions">
-            <MultiApiSelect placeholder="Exclude packages" fetchPage={fetchPackagesPage} value={value.buyProductPackageExceptionIds} onChange={(ids) => onChange({ buyProductPackageExceptionIds: ids })} triggerClassName="w-full" />
+            <MultiApiSelect placeholder="Exclude packages" fetchPage={fetchPackagesPage} value={value.buyProductPackageExceptionIds} onChange={(ids) => onChange({ buyProductPackageExceptionIds: ids })} initialLabels={labels?.buyProductPackageExceptionIds} triggerClassName="w-full" />
           </Field>
         </div>
       </div>
@@ -130,6 +141,9 @@ export function BogoDealFields({
                   categoryIds={value.getProductCategoryIds}
                   brandIds={value.getProductBrandIds}
                   productIds={value.getProductIds}
+                  categoryLabels={labels?.getProductCategoryIds}
+                  brandLabels={labels?.getProductBrandIds}
+                  productLabels={labels?.getProductIds}
                   onChange={(patch) =>
                     onChange({
                       ...(patch.categoryIds ? { getProductCategoryIds: patch.categoryIds } : {}),
@@ -143,10 +157,10 @@ export function BogoDealFields({
           )}
 
           <Field label="Get Product Exceptions">
-            <MultiApiSelect placeholder="Exclude products" fetchPage={fetchProductsPage} value={value.getProductExceptionIds} onChange={(ids) => onChange({ getProductExceptionIds: ids })} triggerClassName="w-full" />
+            <MultiApiSelect placeholder="Exclude products" fetchPage={fetchProductsPage} value={value.getProductExceptionIds} onChange={(ids) => onChange({ getProductExceptionIds: ids })} initialLabels={labels?.getProductExceptionIds} triggerClassName="w-full" />
           </Field>
           <Field label="Get Package Exceptions">
-            <MultiApiSelect placeholder="Exclude packages" fetchPage={fetchPackagesPage} value={value.getProductPackageExceptionIds} onChange={(ids) => onChange({ getProductPackageExceptionIds: ids })} triggerClassName="w-full" />
+            <MultiApiSelect placeholder="Exclude packages" fetchPage={fetchPackagesPage} value={value.getProductPackageExceptionIds} onChange={(ids) => onChange({ getProductPackageExceptionIds: ids })} initialLabels={labels?.getProductPackageExceptionIds} triggerClassName="w-full" />
           </Field>
 
           <div className="flex items-center justify-between">

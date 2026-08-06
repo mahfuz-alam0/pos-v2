@@ -14,6 +14,8 @@ import { Field, SingleImageUpload } from "@/components/admin/form-fields";
 import { RestrictionsFields, EMPTY_RESTRICTIONS, type RestrictionsValue } from "@/components/promotions/RestrictionsFields";
 import { UsageRuleFields, EMPTY_USAGE_RULE, type UsageRuleValue } from "@/components/promotions/UsageRuleFields";
 import { ValidityScheduler, type ShopExpiry } from "@/components/promotions/ValidityScheduler";
+import { sanitizeShopExpiry } from "@/services/promotions/defaultShopExpiry";
+import type { MultiApiSelectOption } from "@/components/ui/multi-api-select";
 import { DEAL_STACK_ITEMS } from "@/services/promotions/enums";
 import { fetchScopedShopIdsForDeals } from "@/services/deals/scopedShops";
 
@@ -63,6 +65,12 @@ function idsOf(list: any[] | undefined) {
   return (list ?? []).map((x) => x.id);
 }
 
+function labelsOf(list: any[] | undefined): MultiApiSelectOption[] {
+  return (list ?? []).map((x) => ({ id: x.id, name: x.name }));
+}
+
+const TAB_ORDER = ["general", "validity"] as const;
+
 export default function DealFormDrawer({
   open,
   mode,
@@ -79,7 +87,7 @@ export default function DealFormDrawer({
   onSaved: () => void;
 }) {
   const [dealType, setDealType] = useState<DealType | null>(null);
-  const [tab, setTab] = useState("details");
+  const [tab, setTab] = useState("general");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -92,9 +100,13 @@ export default function DealFormDrawer({
   const [bogoInfo, setBogoInfo] = useState<BogoDealInfoValue>(EMPTY_BOGO_DEAL_INFO);
   const [tieredInfo, setTieredInfo] = useState<TieredDealInfoValue>(EMPTY_TIERED_DEAL_INFO);
 
+  const [regularLabels, setRegularLabels] = useState<Partial<Record<keyof RegularDealInfoValue, MultiApiSelectOption[]>>>({});
+  const [bogoLabels, setBogoLabels] = useState<Partial<Record<keyof BogoDealInfoValue, MultiApiSelectOption[]>>>({});
+  const [tieredLabels, setTieredLabels] = useState<Partial<Record<keyof TieredDealInfoValue, MultiApiSelectOption[]>>>({});
+
   useEffect(() => {
     if (!open) return;
-    setTab("details");
+    setTab("general");
 
     if (mode === "add") {
       setDealType(null);
@@ -105,6 +117,9 @@ export default function DealFormDrawer({
       setRegularInfo(EMPTY_REGULAR_DEAL_INFO);
       setBogoInfo(EMPTY_BOGO_DEAL_INFO);
       setTieredInfo(EMPTY_TIERED_DEAL_INFO);
+      setRegularLabels({});
+      setBogoLabels({});
+      setTieredLabels({});
       return;
     }
 
@@ -141,7 +156,7 @@ export default function DealFormDrawer({
             totalUsageLimitPerUser: d.usageRule?.totalUsageLimitPerUser ?? { isEnabled: false, value: 0 },
             maximumApplicableDiscount: d.usageRule?.maximumApplicableDiscount ?? { isEnabled: false, value: 0 },
           });
-          setShopExpiry(d.shopBasisPromoExpiry ?? []);
+          setShopExpiry(sanitizeShopExpiry(d.shopBasisPromoExpiry));
 
           if (initialDealType === "REGULAR") {
             const info = d.regularDealInfo;
@@ -156,6 +171,13 @@ export default function DealFormDrawer({
               packageExceptionIds: idsOf(info?.packageExceptions),
               isPerLineItemPriceRestrictionEnabled: !!info?.isPerLineItemPriceRestrictionEnabled,
               perLineItemPriceRestrictionAmount: info?.perLineItemPriceRestrictionAmount ?? 0,
+            });
+            setRegularLabels({
+              associatedCategoryIds: labelsOf(info?.associatedCategories),
+              associatedBrandIds: labelsOf(info?.associatedBrands),
+              associatedProductIds: labelsOf(info?.associatedProducts),
+              productExceptionIds: labelsOf(info?.productExceptions),
+              packageExceptionIds: labelsOf(info?.packageExceptions),
             });
           } else if (initialDealType === "BOGO") {
             const info = d.bogoDealinfo ?? d.bogoDealInfo;
@@ -181,6 +203,18 @@ export default function DealFormDrawer({
               discountTargetType: info?.discountTargetType ?? "ON_GET_PRODUCT",
               userPickedProductScopes: info?.userPickedProductScopes ?? "PRODUCTS",
             });
+            setBogoLabels({
+              buyProductIds: labelsOf(info?.buyProducts),
+              buyProductCategoryIds: labelsOf(info?.buyProductCategories),
+              buyProductBrandIds: labelsOf(info?.buyProductBrands),
+              buyProductExceptionIds: labelsOf(info?.buyProductExceptions),
+              buyProductPackageExceptionIds: labelsOf(info?.buyProductPackageExceptions),
+              getProductIds: labelsOf(info?.getProducts),
+              getProductCategoryIds: labelsOf(info?.getProductCategories),
+              getProductBrandIds: labelsOf(info?.getProductBrands),
+              getProductExceptionIds: labelsOf(info?.getProductExceptions),
+              getProductPackageExceptionIds: labelsOf(info?.getProductPackageExceptions),
+            });
           } else {
             const info = d.tieredDealInfo;
             setTieredInfo({
@@ -195,6 +229,14 @@ export default function DealFormDrawer({
               packageExceptionIds: idsOf(info?.packageExceptions),
               shouldAllowAutoApply: !!info?.shouldAllowAutoApply,
               shouldAllowMixAndMatch: !!info?.shouldAllowMixAndMatch,
+            });
+            setTieredLabels({
+              associatedCategoryIds: labelsOf(info?.associatedCategories),
+              associatedBrandIds: labelsOf(info?.associatedBrands),
+              associatedProductIds: labelsOf(info?.associatedProducts),
+              associatedTagIds: labelsOf(info?.associatedTags),
+              productExceptionIds: labelsOf(info?.productExceptions),
+              packageExceptionIds: labelsOf(info?.packageExceptions),
             });
           }
         })
@@ -251,7 +293,7 @@ export default function DealFormDrawer({
   };
 
   return (
-    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={640}>
+    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={960}>
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -296,39 +338,42 @@ export default function DealFormDrawer({
           ) : (
             <Tabs value={tab} onValueChange={(v) => setTab(v as string)}>
               <TabsList variant="line" className="w-full gap-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)]">
-                <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-                <TabsTrigger value="type" className="flex-1">{dealType === "REGULAR" ? "Discount" : dealType === "BOGO" ? "BOGO" : "Tiers"}</TabsTrigger>
-                <TabsTrigger value="restrictions" className="flex-1">Restrictions</TabsTrigger>
-                <TabsTrigger value="usage" className="flex-1">Usage Rules</TabsTrigger>
-                <TabsTrigger value="validity" className="flex-1">Validity</TabsTrigger>
+                <TabsTrigger value="general" className="flex-1">General Information</TabsTrigger>
+                <TabsTrigger value="validity" className="flex-1">Validity &amp; Expiry</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="mt-4">
-                <div className="flex flex-col gap-4">
-                  <Field label="Image">
-                    <SingleImageUpload imageUrl={common.imageUrl} onChange={(imageUrl) => setCommon({ ...common, imageUrl })} />
-                  </Field>
-                  <Field label="Deal Name" required>
-                    <Input value={common.name} onChange={(e) => setCommon({ ...common, name: e.target.value })} />
-                  </Field>
-                  <Field label="Description">
-                    <Textarea rows={3} value={common.description} onChange={(e) => setCommon({ ...common, description: e.target.value })} />
-                  </Field>
+              <TabsContent value="general" className="mt-4">
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-4">
+                    <div className="text-sm font-semibold">Deal Information</div>
+                    <Field label="Image">
+                      <SingleImageUpload imageUrl={common.imageUrl} onChange={(imageUrl) => setCommon({ ...common, imageUrl })} />
+                    </Field>
+                    <Field label="Deal Name" required>
+                      <Input value={common.name} onChange={(e) => setCommon({ ...common, name: e.target.value })} />
+                    </Field>
+                    <Field label="Description">
+                      <Textarea rows={3} value={common.description} onChange={(e) => setCommon({ ...common, description: e.target.value })} />
+                    </Field>
+                  </div>
+
+                  <div className="flex flex-col gap-4 pt-2 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+                    <div className="pt-4 text-sm font-semibold">{dealType === "REGULAR" ? "Discount" : dealType === "BOGO" ? "BOGO" : "Tiers"}</div>
+                    {dealType === "REGULAR" && <RegularDealFields value={regularInfo} onChange={(patch) => setRegularInfo({ ...regularInfo, ...patch })} labels={regularLabels} />}
+                    {dealType === "BOGO" && <BogoDealFields value={bogoInfo} onChange={(patch) => setBogoInfo({ ...bogoInfo, ...patch })} labels={bogoLabels} />}
+                    {dealType === "TIERED" && <TieredDealFields value={tieredInfo} onChange={(patch) => setTieredInfo({ ...tieredInfo, ...patch })} labels={tieredLabels} />}
+                  </div>
+
+                  <div className="flex flex-col gap-4 pt-2 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+                    <div className="pt-4 text-sm font-semibold">Restrictions</div>
+                    <RestrictionsFields value={restrictions} onChange={(patch) => setRestrictions({ ...restrictions, ...patch })} stackItems={DEAL_STACK_ITEMS} />
+                  </div>
+
+                  <div className="flex flex-col gap-4 pt-2 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+                    <div className="pt-4 text-sm font-semibold">Usage Rules</div>
+                    <UsageRuleFields value={usageRule} onChange={(patch) => setUsageRule({ ...usageRule, ...patch })} showMinimumOrderAmount={false} />
+                  </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="type" className="mt-4">
-                {dealType === "REGULAR" && <RegularDealFields value={regularInfo} onChange={(patch) => setRegularInfo({ ...regularInfo, ...patch })} />}
-                {dealType === "BOGO" && <BogoDealFields value={bogoInfo} onChange={(patch) => setBogoInfo({ ...bogoInfo, ...patch })} />}
-                {dealType === "TIERED" && <TieredDealFields value={tieredInfo} onChange={(patch) => setTieredInfo({ ...tieredInfo, ...patch })} />}
-              </TabsContent>
-
-              <TabsContent value="restrictions" className="mt-4">
-                <RestrictionsFields value={restrictions} onChange={(patch) => setRestrictions({ ...restrictions, ...patch })} stackItems={DEAL_STACK_ITEMS} />
-              </TabsContent>
-
-              <TabsContent value="usage" className="mt-4">
-                <UsageRuleFields value={usageRule} onChange={(patch) => setUsageRule({ ...usageRule, ...patch })} showMinimumOrderAmount={false} />
               </TabsContent>
 
               <TabsContent value="validity" className="mt-4">
@@ -342,7 +387,12 @@ export default function DealFormDrawer({
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          {dealType && (
+          {dealType && tab !== "validity" && (
+            <Button onClick={() => setTab(TAB_ORDER[TAB_ORDER.indexOf(tab as (typeof TAB_ORDER)[number]) + 1])} disabled={saving || loading}>
+              Next
+            </Button>
+          )}
+          {dealType && tab === "validity" && (
             <Button onClick={handleSave} disabled={saving || loading}>
               {saving ? "Saving..." : "Save"}
             </Button>

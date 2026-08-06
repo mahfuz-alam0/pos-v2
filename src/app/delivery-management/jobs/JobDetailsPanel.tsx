@@ -59,7 +59,6 @@ interface JobDetailsPanelProps {
 export default function JobDetailsPanel({
   jobId,
   onClose,
-  refreshTick,
   className,
   onEdit,
   onStart,
@@ -69,9 +68,6 @@ export default function JobDetailsPanel({
   onDelete,
 }: JobDetailsPanelProps) {
   const { shopId } = useShop();
-  const [job, setJob] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     if (!jobId || !shopId) return;
     setLoading(true);
@@ -83,11 +79,7 @@ export default function JobDetailsPanel({
 
   return (
     <div className={cn("flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10", className)}>
-      <div className="flex items-center justify-between px-4 py-3">
         <h2 className="text-sm font-semibold">Job Details</h2>
-        <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
-          <X className="size-4" />
-        </Button>
       </div>
       <div className="h-px bg-border" />
 

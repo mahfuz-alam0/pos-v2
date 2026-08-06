@@ -52,10 +52,10 @@ import { getCustomerLoyaltyStatus } from "@/services/loyalty/getCustomerLoyaltyS
 import { getOrderStatuses } from "@/services/sales/getOrderStatuses";
 import { createOrder as createOrderService } from "@/services/sales/createOrder";
 import { getSingleSale } from "@/services/sales/getSingleSales";
+import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
-import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
@@ -80,18 +80,14 @@ export default function TotalCard({
     (state: any) => state.customer?.selectedCustomer,
   );
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
-  const currentAction = useSelector(
-    (state: any) => state?.orderAction?.orderAction,
+  const currentAction = useSelector((state: any) => state?.orderAction?.orderAction);
+  const lineItems = useSelector((state: any) => state?.lineItems?.lineItems) || [];
+  const customerInQueue = useSelector(
+    (state: any) => state?.customerQueue?.customerInQueue
   );
-  const lineItems =
-    useSelector((state: any) => state?.lineItems?.lineItems) || [];
-  const bogoData =
-    useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
+  const bogoData = useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
   const currentMiscallenousCharges = useSelector(
     (state: any) => state?.miscCharges?.miscCharges || [],
-  );
-  const customerInQueue = useSelector(
-    (state: any) => state?.customerQueue?.customerInQueue,
   );
 
   const { discountTypes } = useDiscountTypes();

@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const STATUS_OPTIONS = [
   { value: "__all__", label: "Select Status" },
@@ -71,6 +71,7 @@ export default function AchTransactionsPage() {
           <BreadcrumbItem>
             <BreadcrumbPage>Audit Logs</BreadcrumbPage>
           </BreadcrumbItem>
+          <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage>ACH Transactions</BreadcrumbPage>
           </BreadcrumbItem>

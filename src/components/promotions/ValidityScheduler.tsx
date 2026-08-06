@@ -94,7 +94,7 @@ export function ValidityScheduler({
   const shopName = (id: string) => shops.find((s) => s.id === id)?.name || id;
 
   return (
-    <Accordion multiple>
+    <Accordion multiple key={value.length > 0 ? "loaded" : "empty"} defaultValue={value.length > 0 ? [value[0].shopId] : []}>
       {value.map((shop) => (
         <AccordionItem key={shop.shopId} value={shop.shopId}>
           <AccordionTrigger>

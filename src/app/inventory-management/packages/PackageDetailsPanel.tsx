@@ -14,6 +14,8 @@ import { discontinuePackage } from "@/services/packages/discontinue";
 import { detachPackage } from "@/services/packages/detach";
 import { pullPackageCoa } from "@/services/packages/pullCoa";
 
+import PrintLabelModal from "@/components/pos/PrintLabelModal";
+import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -31,11 +33,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import EditPackageForm from "./edit/[packageid]/EditPackageForm";
 import PackageIdCard from "./PackageIdCard";
 import ConvertPackageDialog from "./ConvertPackageDialog";
 import ReconcilePackageDrawer from "./ReconcilePackageDrawer";
 import ImportPackageDrawer from "./ImportPackageDrawer";
 import PackageActivityDrawer from "./PackageActivityDrawer";
+import PackageOrderHistoryDrawer from "./PackageOrderHistoryDrawer";
 import type { PackageDetail } from "./types";
 
 function fmtDate(value?: string) {
@@ -45,8 +49,8 @@ function fmtDate(value?: string) {
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="mb-3 flex w-full items-center justify-between">
-      <div className="w-[40%] font-semibold">{label}</div>
+    <div className="mb-2.5 flex w-full items-center justify-between text-sm">
+      <div className="w-[40%] font-medium">{label}</div>
       <div className="line-clamp-3 w-[60%] text-right">{value}</div>
     </div>
   );
@@ -85,7 +89,7 @@ function LabResultsTable({ data }: { data: NonNullable<PackageDetail["metrcData"
     <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
       <Table>
         <TableHeader className="[&_tr]:border-b-0">
-          <TableRow className="bg-muted/60">
+          <TableRow className="bg-muted/60 text-foreground/70">
             <TableHead>Test Name</TableHead>
             <TableHead>Value</TableHead>
             <TableHead>Date</TableHead>
@@ -126,7 +130,7 @@ export default function PackageDetailsPanel({
   onEditPricing,
   onEditProduct,
 }: {
-  id: string;
+  id: string | null;
   onClose: () => void;
   onChanged?: () => void;
   locationMap?: Record<string, string>;
@@ -149,6 +153,8 @@ export default function PackageDetailsPanel({
   const [continuePackageLoading, setContinuePackageLoading] = useState(false);
   const [discontinuePackageLoading, setDiscontinuePackageLoading] = useState(false);
   const [pullCoaLoading, setPullCoaLoading] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [editPackageOpen, setEditPackageOpen] = useState(false);
 
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
@@ -160,6 +166,7 @@ export default function PackageDetailsPanel({
   const [reconcileOpen, setReconcileOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
 
   const fetchDetail = async () => {
     if (!shopId || !id) return;
@@ -288,24 +295,28 @@ export default function PackageDetailsPanel({
 
   if (loading) {
     return (
-      <div className="flex w-1/3 flex-col gap-4 rounded-xl p-5 ring-1 ring-foreground/10">
-        <Skeleton className="h-6 w-2/3" />
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
+      <Drawer open={!!id} onClose={onClose} side="right" size="50vw">
+        <div className="flex h-full flex-col gap-4 p-5">
+          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </Drawer>
     );
   }
 
   if (!packageDetail) {
     return (
-      <div className="flex w-1/3 flex-col items-center justify-center gap-3 rounded-xl p-10 ring-1 ring-foreground/10">
-        <Package className="size-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Package not found.</p>
-        <Button variant="outline" size="sm" onClick={onClose}>
-          Close
-        </Button>
-      </div>
+      <Drawer open={!!id} onClose={onClose} side="right" size="50vw">
+        <div className="flex h-full flex-col items-center justify-center gap-3 p-10">
+          <Package className="size-10 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Package not found.</p>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </Drawer>
     );
   }
 
@@ -316,7 +327,8 @@ export default function PackageDetailsPanel({
       : undefined;
 
   return (
-    <div className="flex w-1/3 flex-col gap-4 rounded-xl ring-1 ring-foreground/10">
+    <Drawer open={!!id} onClose={onClose} side="right" size="50vw">
+    <div className="flex h-full flex-col gap-4">
       <div className="flex items-start justify-between gap-3 p-5 pb-0">
         <div className="min-w-0">
           <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -339,10 +351,36 @@ export default function PackageDetailsPanel({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-5">
+      <div className="flex flex-wrap items-center justify-end gap-2 px-5">
+        {packageDetail.source === "METRC" && !!metrcMechanism && packageDetail.metrcData && (
+          <Button
+            className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+            onClick={handlePullCoa}
+            disabled={pullCoaLoading}
+          >
+            <FileText className="size-3.5" />
+            {pullCoaLoading ? "Pulling..." : "Pull COA"}
+          </Button>
+        )}
+        <Button
+          className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+          variant="outline"
+          onClick={() => setPrintOpen(true)}
+        >
+          Print
+        </Button>
+        <Button
+          className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+          onClick={() => setEditPackageOpen(true)}
+        >
+          Edit Package
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-5 text-foreground/70">
         {/* Attached Product card */}
         {!isFinishedPkg && (
-          <div className="mb-4 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="mb-4 rounded-xl p-4 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
               <div className="font-semibold">Attached Product</div>
               <div className="flex gap-2">
@@ -418,11 +456,11 @@ export default function PackageDetailsPanel({
         )}
 
         {/* Package Details card */}
-        <div className="mb-4 rounded-xl border border-border bg-muted/30 p-4">
+        <div className="mb-4 rounded-xl p-4 shadow-sm">
           <div className="font-semibold">Packages Details</div>
           <div className="my-3 h-px bg-border" />
 
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2 [&_button]:h-8! [&_button]:px-3! [&_button]:text-[13px]!">
             {isProductImported && !isFinishedPkg && (
               <Button onClick={handleToggleActivate} disabled={activationToggleLoading}>
                 {activationToggleLoading ? "Please wait..." : packageDetail.isActive ? "Deactivate" : "Activate"}
@@ -475,6 +513,9 @@ export default function PackageDetailsPanel({
               }}
             >
               Activity
+            </Button>
+            <Button variant="outline" onClick={() => setOrderHistoryOpen(true)}>
+              Order History
             </Button>
           </div>
 
@@ -544,11 +585,11 @@ export default function PackageDetailsPanel({
           />
 
           {!isFinishedPkg && packageDetail.source === "METRC" && (
-            <div className="mt-2 overflow-hidden rounded-xl border border-border">
+            <div className="mt-4 overflow-hidden rounded-xl shadow-sm">
               <button
                 type="button"
                 onClick={() => setMetrcInfoOpen((v) => !v)}
-                className="flex w-full items-center justify-between bg-muted/50 px-3 py-2 text-left text-sm font-semibold"
+                className="flex w-full items-center justify-between bg-muted/50 px-3 py-1.5 text-left text-xs font-medium"
               >
                 METRC Information
                 <span className="text-xs text-muted-foreground">{metrcInfoOpen ? "Hide" : "Show"}</span>
@@ -597,28 +638,20 @@ export default function PackageDetailsPanel({
 
         {/* Lab Results card */}
         {packageDetail.metrcData && (
-          <div className="mb-4 rounded-xl border border-border bg-muted/30 p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="font-semibold">Lab Results</div>
-              {packageDetail.source === "METRC" && !!metrcMechanism && (
-                <Button variant="outline" size="sm" onClick={handlePullCoa} disabled={pullCoaLoading}>
-                  <FileText className="size-3.5" />
-                  {pullCoaLoading ? "Pulling..." : "Pull COA"}
-                </Button>
-              )}
-            </div>
-            <div className="mb-3 h-px bg-border" />
+          <div className="mb-4 rounded-xl p-4 shadow-sm">
+            <div className="font-semibold">Lab Results</div>
+            <div className="mb-3 mt-2 h-px bg-border" />
             {labResults.length > 0 ? <LabResultsTable data={labResults} /> : <p className="text-sm text-muted-foreground">N/A</p>}
           </div>
         )}
 
         {/* Storage location breakdown */}
         {storageLocations.length > 0 && (
-          <div className="mb-4 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="mb-4 rounded-xl p-4 shadow-sm">
             <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
               <Table>
                 <TableHeader className="[&_tr]:border-b-0">
-                  <TableRow className="bg-muted/60">
+                  <TableRow className="bg-muted/60 text-foreground/70">
                     <TableHead>Storage Location</TableHead>
                     <TableHead>Storage Location Quantity</TableHead>
                   </TableRow>
@@ -653,7 +686,7 @@ export default function PackageDetailsPanel({
           </AlertDialogHeader>
           {!!packageDetail.metrcData && (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 shadow-sm">
                 <div>
                   <p className="text-sm font-medium">Report to METRC</p>
                   <p className="text-xs text-muted-foreground">Also finish this package in METRC</p>
@@ -690,7 +723,7 @@ export default function PackageDetailsPanel({
           </AlertDialogHeader>
           {!!packageDetail.metrcData && (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 shadow-sm">
                 <div>
                   <p className="text-sm font-medium">Report to METRC</p>
                   <p className="text-xs text-muted-foreground">Also restore this package in METRC</p>
@@ -766,9 +799,24 @@ export default function PackageDetailsPanel({
             }}
           />
 
-          <PackageActivityDrawer open={activityOpen} packageId={id} onClose={() => setActivityOpen(false)} />
+          <PackageActivityDrawer open={activityOpen} packageId={id ?? ""} onClose={() => setActivityOpen(false)} />
+          <PackageOrderHistoryDrawer open={orderHistoryOpen} packageId={id ?? ""} onClose={() => setOrderHistoryOpen(false)} />
+
+          <PrintLabelModal open={printOpen} onClose={() => setPrintOpen(false)} packageId={packageDetail.id} shopId={shopId} />
+
+          <EditPackageForm
+            packageId={editPackageOpen ? packageDetail.id : null}
+            open={editPackageOpen}
+            onClose={() => setEditPackageOpen(false)}
+            onSaved={() => {
+              setEditPackageOpen(false);
+              refreshPackageDetails();
+              onChanged?.();
+            }}
+          />
         </>
       )}
     </div>
+    </Drawer>
   );
 }

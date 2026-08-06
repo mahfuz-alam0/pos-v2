@@ -602,6 +602,78 @@ function TabletPosInner() {
     }
   };
 
+  // --- Serve a customer picked from the queue: restore whatever cart they
+  //     had saved (if any) instead of just linking their id. Mirrors the old
+  //     app's QueueCard handleOrderPlacement("MOVE_TO_SERVING") — the queue
+  //     status update itself already happened inside <CustomerQueue>. ---
+  const handleServeFromQueue = (record) => {
+    if (!record) return;
+
+    localStorage.setItem("customerInQueueId", JSON.stringify(record.id));
+    dispatch(addCustomerInQueue(record));
+
+    let cartLineItems = [];
+    let cartExtras: Record<string, any> = {};
+    if (record?.cartMetaDataJsonString) {
+      try {
+        const cartData = JSON.parse(record.cartMetaDataJsonString);
+        cartLineItems = Array.isArray(cartData.lineItems) ? cartData.lineItems : [];
+        cartExtras = {
+          miscCharges: cartData.miscCharges || [],
+          miscDiscount: cartData.miscDiscount || null,
+          applicableRegularDeals: cartData.applicableRegularDeals || [],
+          applicableBogoDeals: cartData.applicableBogoDeals || [],
+          couponId: cartData.couponId || null,
+          loyaltyPointsClaimed: cartData.loyaltyPointsClaimed || 0,
+          tipGiven: cartData.tipGiven || 0,
+        };
+      } catch (e) {
+        console.error("Failed to parse cart meta data:", e);
+      }
+    }
+
+    dispatch(resetAddedLineITems());
+    dispatch(resetCartForSale());
+    if (cartLineItems.length > 0) {
+      dispatch(addLineItemsAction(cartLineItems));
+      dispatch(addToCart(cartLineItems));
+    }
+
+    const customerId = record?.isAnonymous ? null : record?.customerId;
+    dispatch(
+      updateSalesDetail({
+        customerId,
+        customerTypeId: record?.customerTypeId,
+        ...(cartLineItems.length > 0 && { lineItems: cartLineItems }),
+        ...cartExtras,
+      })
+    );
+
+    dispatch(
+      setSelectedCustomer({
+        id: customerId,
+        firstName: record?.firstName,
+        lastName: record?.lastName,
+        phone: record?.phone,
+        avatarUrl: record?.avatarUrl,
+        customerTypeId: record?.customerTypeId,
+        customerType: record?.customerTypeName,
+      })
+    );
+
+    const updatedQuoteBody = {
+      ...quoteBody,
+      customerTypeId: record?.customerTypeId,
+      customerId,
+      ...(cartLineItems.length > 0 && { lineItems: cartLineItems }),
+      ...cartExtras,
+    };
+    quoteApiManager
+      .call(getQuoteForSales, updatedQuoteBody, "tablet-serve-queue")
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) => toast.error(error?.error || "Failed to get quote"));
+  };
+
   // --- Remove customer: queue removal + quote reset ---
   const removeSelectedCustomer = async () => {
     quoteApiManager.reset();
@@ -1258,8 +1330,8 @@ function TabletPosInner() {
             <div className="flex-1 overflow-auto p-4">
               <CustomerQueue
                 sidepanel
-                wide
                 onCustomerServed={(record) => {
+                  handleServeFromQueue(record);
                   setQueueDrawerVisible(false);
                   if (!record?.customerId) return;
                   getSingleCustomer(record.customerId)

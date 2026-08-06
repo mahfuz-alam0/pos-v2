@@ -17,6 +17,24 @@ interface VehicleDetailsPanelProps {
   onEdit: () => void;
 }
 
+function Field({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="mb-3 flex flex-col">
+      <span className="mb-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className="text-sm text-foreground">{value || <span className="text-muted-foreground italic">—</span>}</span>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4">
+      <span className="mb-3 block text-xs font-semibold tracking-wider uppercase">{title}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function VehicleDetailsPanel({ vehicleId, onClose, onEdit }: VehicleDetailsPanelProps) {
   const { shopId } = useShop();
   const [vehicle, setVehicle] = useState<any>(null);
@@ -65,8 +83,8 @@ export default function VehicleDetailsPanel({ vehicleId, onClose, onEdit }: Vehi
         ) : !vehicle ? (
           <p className="py-4 text-sm text-muted-foreground">Vehicle not found.</p>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
+          <div>
+            <div className="mb-4 flex items-center gap-3">
               <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                 {initials}
               </div>
@@ -78,59 +96,81 @@ export default function VehicleDetailsPanel({ vehicleId, onClose, onEdit }: Vehi
               </div>
             </div>
 
-            {[
-              ["Make", vehicle.make],
-              ["Model", vehicle.model],
-              ["Color", vehicle.color],
-              ["License Plate", vehicle.licensePlateData],
-              ["VIN", vehicle.vin],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-start gap-2 border-b border-foreground/5 pb-2">
-                <span className="w-32 shrink-0 text-sm text-muted-foreground">{label}</span>
-                <span className="flex-1 text-sm font-medium">{value || "N/A"}</span>
-              </div>
-            ))}
+            <div className="h-px bg-border" />
+            <div className="mt-4">
+              <Section title="Vehicle Info">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Field label="Make" value={vehicle.make} />
+                  </div>
+                  <div className="flex-1">
+                    <Field label="Model" value={vehicle.model} />
+                  </div>
+                </div>
+                <Field label="Color" value={vehicle.color} />
+              </Section>
+            </div>
+
+            <div className="h-px bg-border" />
+            <div className="mt-4">
+              <Section title="Identification">
+                <Field label="License Plate" value={vehicle.licensePlateData} />
+                <Field label="VIN" value={vehicle.vin} />
+              </Section>
+            </div>
 
             {vehicle.description && (
-              <div>
-                <span className="mb-1 block text-sm text-muted-foreground">Description</span>
-                <p className="text-sm">{vehicle.description}</p>
-              </div>
+              <>
+                <div className="h-px bg-border" />
+                <div className="mt-4">
+                  <Section title="Description">
+                    <p className="m-0 text-sm text-foreground">{vehicle.description}</p>
+                  </Section>
+                </div>
+              </>
             )}
 
             {vehicle.images?.length > 0 && (
-              <div>
-                <span className="mb-2 block text-sm text-muted-foreground">Images</span>
-                <div className="flex flex-wrap gap-2">
-                  {vehicle.images.map((url: string, i: number) => (
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`Vehicle ${i + 1}`}
-                      className="size-20 rounded-lg object-cover ring-1 ring-foreground/10"
-                    />
-                  ))}
+              <>
+                <div className="h-px bg-border" />
+                <div className="mt-4">
+                  <Section title="Images">
+                    <div className="flex flex-wrap gap-2">
+                      {vehicle.images.map((url: string, i: number) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`Vehicle ${i + 1}`}
+                          className="size-20 rounded-lg object-cover ring-1 ring-foreground/10"
+                        />
+                      ))}
+                    </div>
+                  </Section>
                 </div>
-              </div>
+              </>
             )}
 
             {vehicle.documentLinks?.length > 0 && (
-              <div>
-                <span className="mb-2 block text-sm text-muted-foreground">Documents</span>
-                <div className="flex flex-col gap-2">
-                  {vehicle.documentLinks.map((url: string, i: number) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="truncate text-sm text-primary hover:underline"
-                    >
-                      Document {i + 1}
-                    </a>
-                  ))}
+              <>
+                <div className="h-px bg-border" />
+                <div className="mt-4">
+                  <Section title="Documents">
+                    <div className="flex flex-col gap-2">
+                      {vehicle.documentLinks.map((url: string, i: number) => (
+                        <a
+                          key={i}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate text-sm text-primary hover:underline"
+                        >
+                          Document {i + 1}
+                        </a>
+                      ))}
+                    </div>
+                  </Section>
                 </div>
-              </div>
+              </>
             )}
           </div>
         )}

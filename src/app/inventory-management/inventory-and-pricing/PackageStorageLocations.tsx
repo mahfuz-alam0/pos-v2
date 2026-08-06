@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import PrintLabelModal from "@/components/pos/PrintLabelModal";
 import PackageActivityDrawer from "../packages/PackageActivityDrawer";
+import PackageOrderHistoryDrawer from "../packages/PackageOrderHistoryDrawer";
 import AddEditProductDrawer from "@/app/catalog/products/AddEditProductDrawer";
 
 function isMetrcPackage(pkg: any) {
@@ -51,6 +52,7 @@ function PackageCard({
   const [detaching, setDetaching] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -173,37 +175,40 @@ function PackageCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             {!pkg.isMarkedAsFinished && (
-              <Button size="sm" onClick={handleToggleActive} disabled={toggleLoading}>
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleToggleActive} disabled={toggleLoading}>
                 {pkg.isActive ? "Deactivate" : "Activate"}
               </Button>
             )}
             {!pkg.isMarkedAsFinished ? (
-              <Button size="sm" onClick={() => setFinishOpen(true)}>
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setFinishOpen(true)}>
                 Finish
               </Button>
             ) : (
-              <Button size="sm" onClick={() => setRestoreOpen(true)}>
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setRestoreOpen(true)}>
                 Restore
               </Button>
             )}
-            <Button size="sm" onClick={() => setPrintOpen(true)}>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setPrintOpen(true)}>
               Print
             </Button>
             {onReconcile && (
-              <Button size="sm" onClick={() => onReconcile(pkg)}>
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => onReconcile(pkg)}>
                 Reconcile
               </Button>
             )}
-            <Button size="sm" onClick={() => setActivityOpen(true)}>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setActivityOpen(true)}>
               Activity
             </Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" variant="outline" onClick={() => setOrderHistoryOpen(true)}>
+              Order History
+            </Button>
             {pkg.productId && pkg.inventoryId && (
-              <Button size="sm" variant="destructive" onClick={handleDetach} disabled={detaching}>
+              <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" variant="destructive" onClick={handleDetach} disabled={detaching}>
                 Detach
               </Button>
             )}
           </div>
-          <Button size="sm" onClick={() => setEditOpen(true)}>
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
         </div>
@@ -212,6 +217,8 @@ function PackageCard({
       <PrintLabelModal open={printOpen} onClose={() => setPrintOpen(false)} packageId={pkg.id} shopId={shopId} />
 
       <PackageActivityDrawer open={activityOpen} packageId={pkg.id} onClose={() => setActivityOpen(false)} />
+
+      <PackageOrderHistoryDrawer open={orderHistoryOpen} packageId={pkg.id} onClose={() => setOrderHistoryOpen(false)} />
 
       {pkg.productId && (
         <AddEditProductDrawer

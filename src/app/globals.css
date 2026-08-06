@@ -37,10 +37,10 @@
    dark sider: @nav-dark-bg #001529, @nav-dark-text-color #038fdd); the rest
    are derived variations of their primary/secondary pair. */
 [data-theme="navy"] {
-  --color-primary: #0088df;
-  --color-primary-hover: #1f98e3;
-  --color-primary-active: #0073c4;
-  --color-primary-soft: rgba(0, 136, 223, 0.16);
+  --color-primary: #3390de;
+  --color-primary-hover: #52a0e2;
+  --color-primary-active: #337bc3;
+  --color-primary-soft: rgba(51, 144, 222, 0.16);
   --on-primary: #ffffff;
   --color-secondary: #001529;
   --color-secondary-hover: #002748;
@@ -204,7 +204,7 @@
   --color-on-secondary: var(--on-secondary);
   --color-secondary-foreground: var(--on-secondary);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-noir-pro);
   --font-mono: var(--font-geist-mono);
 
   /* shadcn/ui component tokens, mapped onto the admin theme above so
@@ -294,4 +294,51 @@ body {
 
 .animate-gear-spin {
   animation: gearSpin 2s linear infinite;
+}
+
+/* react-phone-input-2 ships fixed white/light styles; theme it off our tokens
+   so it matches the active color theme and dark mode instead of staying white.
+   !important needed: the lib's own style.css is imported per-component, which
+   Next.js places after globals.css in the build output, so equal-specificity
+   rules here lose to it without it. */
+.react-tel-input .form-control {
+  background-color: var(--component-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.react-tel-input .flag-dropdown {
+  background-color: var(--component-bg) !important;
+  border-color: var(--border) !important;
+}
+
+.react-tel-input .selected-flag:hover,
+.react-tel-input .selected-flag:focus,
+.react-tel-input .flag-dropdown.open .selected-flag {
+  background-color: var(--muted) !important;
+}
+
+.react-tel-input .country-list {
+  background-color: var(--component-bg) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 0 1px var(--border), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.react-tel-input .country-list .search {
+  background-color: var(--component-bg) !important;
+}
+
+.react-tel-input .country-list .search-box {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.react-tel-input .country-list .country:hover,
+.react-tel-input .country-list .country.highlight {
+  background-color: var(--muted) !important;
+}
+
+.react-tel-input .country-list .divider {
+  border-bottom-color: var(--border) !important;
 }

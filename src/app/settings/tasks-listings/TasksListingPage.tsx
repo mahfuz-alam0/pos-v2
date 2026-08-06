@@ -11,7 +11,7 @@ import { updateTaskStatus } from "@/services/tasks/updateTaskStatus";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 import TaskItem from "./TaskItem";
@@ -114,6 +114,7 @@ export default function TasksListingPage() {
           <BreadcrumbItem>
             <BreadcrumbPage>Settings</BreadcrumbPage>
           </BreadcrumbItem>
+          <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage>Tasks</BreadcrumbPage>
           </BreadcrumbItem>

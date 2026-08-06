@@ -37,7 +37,7 @@ interface AddEditProductDrawerProps {
   open: boolean;
   onClose: () => void;
   product?: ProductRow | null;
-  onDone: () => void;
+  onDone: (created?: { id: string; name: string }) => void;
 }
 
 function selectableId(item: any): string {
@@ -294,9 +294,10 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
         }
       }
 
-      await createProduct(body);
+      const res: any = await createProduct(body);
+      const createdId = res?.data?.data?.id;
       toast.success("Product created successfully");
-      onDone();
+      onDone(createdId ? { id: createdId, name: values.name } : undefined);
     } catch (err: any) {
       toast.error(err?.message || err?.error || "An unexpected error occurred");
     } finally {

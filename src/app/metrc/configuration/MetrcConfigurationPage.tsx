@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Field } from "@/components/admin/form-fields";
 import {
   AlertDialog,
@@ -185,6 +185,7 @@ export default function MetrcConfigurationPage() {
           <BreadcrumbItem>
             <BreadcrumbPage>Settings</BreadcrumbPage>
           </BreadcrumbItem>
+          <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage>Metrc Configuration</BreadcrumbPage>
           </BreadcrumbItem>

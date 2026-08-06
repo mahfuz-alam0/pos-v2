@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import PricingTemplateDrawer from "./PricingTemplateDrawer";
@@ -122,6 +122,7 @@ export default function PricingTemplatesPage() {
               <BreadcrumbItem>
                 <BreadcrumbPage>Settings</BreadcrumbPage>
               </BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Pricing Templates</BreadcrumbPage>
               </BreadcrumbItem>
