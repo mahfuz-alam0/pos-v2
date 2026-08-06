@@ -62,6 +62,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import Drawer from "@/components/ui/Drawer";
 import JobDetailsPanel from "./JobDetailsPanel";
 import JobFormDrawer from "./JobFormDrawer";
 import StatusChangeDrawer from "./StatusChangeDrawer";
@@ -335,10 +336,7 @@ export default function JobsTable() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div
-        className={
-          detailId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"
-        }>
+      <div className="flex w-full flex-col gap-4">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -654,19 +652,26 @@ export default function JobsTable() {
         )}
       </div>
 
-      {detailId && (
-        <JobDetailsPanel
-          jobId={detailId}
-          refreshTick={detailRefreshTick}
-          onClose={() => setDetailId(null)}
-          onEdit={(job) => setEditJobId(job.id)}
-          onStart={(job) => setStatusDrawer({ action: "start", job })}
-          onComplete={(job) => setStatusDrawer({ action: "complete", job })}
-          onDismiss={(job) => setDismissTarget(job)}
-          onMarkFailed={(job) => setFailTarget(job)}
-          onDelete={(job) => setDeleteTarget(job)}
-        />
-      )}
+      <Drawer
+        open={!!detailId}
+        onClose={() => setDetailId(null)}
+        side="right"
+        size={640}>
+        {detailId && (
+          <JobDetailsPanel
+            jobId={detailId}
+            refreshTick={detailRefreshTick}
+            className="h-full w-full rounded-none ring-0"
+            onClose={() => setDetailId(null)}
+            onEdit={(job) => setEditJobId(job.id)}
+            onStart={(job) => setStatusDrawer({ action: "start", job })}
+            onComplete={(job) => setStatusDrawer({ action: "complete", job })}
+            onDismiss={(job) => setDismissTarget(job)}
+            onMarkFailed={(job) => setFailTarget(job)}
+            onDelete={(job) => setDeleteTarget(job)}
+          />
+        )}
+      </Drawer>
 
       <JobFormDrawer
         open={!!editJobId}

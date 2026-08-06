@@ -21,6 +21,7 @@ import {
 } from "./constants";
 import OrderDetailDialog from "./OrderDetailDialog";
 import DeliveryJobDrawer from "./DeliveryJobDrawer";
+import DeliveryOptionsDrawer from "./DeliveryOptionsDrawer";
 
 const DELIVERY_ICON = {
   DELIVERY: Truck,
@@ -81,6 +82,7 @@ export default function OrderCard({
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deliveryJobDrawerOpen, setDeliveryJobDrawerOpen] = useState(false);
+  const [deliveryOptionsDrawerOpen, setDeliveryOptionsDrawerOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: sortId });
 
@@ -120,6 +122,15 @@ export default function OrderCard({
   const isDeliveryJobOrder =
     deliveryFulfillmentStrategy === "DELIVERY_JOB" &&
     (lifecycle === "AWAITING_DRIVER" || lifecycle === "OUT_FOR_DELIVERY");
+
+  // Packaged & Ready -> Awaiting Driver is the one transition where the user
+  // gets a choice: advance the status normally, or hand the delivery off to
+  // a newly-created delivery job instead (which then drives status itself).
+  const showDeliveryOptionsOnNext =
+    !isPreSale &&
+    lifecycle === "PACKAGED_AND_READY" &&
+    deliveryMethod === "DELIVERY" &&
+    (!deliveryFulfillmentStrategy || deliveryFulfillmentStrategy === "STANDARD");
 
   const saleFlow = useSaleStatusFlow(item, !isPreSale);
   const nextLabel =
@@ -243,11 +254,12 @@ export default function OrderCard({
                     ? false
                     : !saleFlow?.nextStatus || saleFlow?.updating
                 }
-                onClick={() =>
-                  isDeliveryJobOrder
-                    ? setDeliveryJobDrawerOpen(true)
-                    : saleFlow.moveTo(saleFlow.nextStatus.statusId, onRefresh)
-                }>
+                onClick={() => {
+                  if (isDeliveryJobOrder) setDeliveryJobDrawerOpen(true);
+                  else if (showDeliveryOptionsOnNext)
+                    setDeliveryOptionsDrawerOpen(true);
+                  else saleFlow.moveTo(saleFlow.nextStatus.statusId, onRefresh);
+                }}>
                 {isDeliveryJobOrder ? "Next" : nextLabel}
               </Button>
             </>
@@ -274,6 +286,18 @@ export default function OrderCard({
           open={deliveryJobDrawerOpen}
           onClose={() => setDeliveryJobDrawerOpen(false)}
           advertisedSaleId={advertisedId}
+        />
+      )}
+
+      {showDeliveryOptionsOnNext && (
+        <DeliveryOptionsDrawer
+          open={deliveryOptionsDrawerOpen}
+          onClose={() => setDeliveryOptionsDrawerOpen(false)}
+          saleId={item.id}
+          onStandard={() =>
+            saleFlow.moveTo(saleFlow.nextStatus?.statusId, onRefresh)
+          }
+          onJobCreated={() => onRefresh?.()}
         />
       )}
     </>
