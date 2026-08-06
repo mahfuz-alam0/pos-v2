@@ -10,13 +10,22 @@ import { fetchShiftsList } from "@/services/employees/shift/list";
 import { deleteShift } from "@/services/employees/shift/deleteShift";
 import { approveShift } from "@/services/employees/shift/approve";
 import { fetchMyLiveShift } from "@/services/employees/shift/myLiveShift";
+import { fetchAccessControlledEmployees } from "@/services/employees/listAccessControlled";
+import { fetchShopsData } from "@/services/shops/list";
 
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +36,13 @@ import LiveShiftControl from "./LiveShiftControl";
 import ShiftFormDrawer from "./ShiftFormDrawer";
 import TotalWorkHoursDrawer from "./TotalWorkHoursDrawer";
 import DeleteShiftDrawer from "./DeleteShiftDrawer";
+
+const DATE_FILTERS = ["All", "Today", "Yesterday", "Custom"] as const;
+type DateFilter = (typeof DATE_FILTERS)[number];
+
+function toISODate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
 
 function fmtDateTime(date?: string, time?: string) {
   if (!date) return "-";
@@ -58,12 +74,46 @@ export default function EmployeeShiftPage() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
+  const [employeeId, setEmployeeId] = useState("");
+  const [filterShopId, setFilterShopId] = useState("");
+  const [approvalStatus, setApprovalStatus] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("All");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+
+  const isAccessControlled = user?.type === "ACCESS_CONTROLLED";
+
+  useEffect(() => {
+    fetchAccessControlledEmployees(100, 1).then((res) => setEmployees(res?.data?.employees ?? []));
+    fetchShopsData().then((res) => setShops(res?.data ?? []));
+  }, []);
+
   const load = useCallback(
     async (page = 1) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchShiftsList({ shopId, page, limit: pagination.pageSize });
+        const params: Record<string, unknown> = { shopId, page, limit: pagination.pageSize };
+        if (employeeId) params.employeeId = employeeId;
+        if (filterShopId) params.shopId = filterShopId;
+        if (approvalStatus) params.isApproved = approvalStatus === "approved";
+
+        if (dateFilter === "Today") {
+          const today = toISODate(new Date());
+          params.startDate = today;
+          params.endDate = today;
+        } else if (dateFilter === "Yesterday") {
+          const y = toISODate(new Date(Date.now() - 86400000));
+          params.startDate = y;
+          params.endDate = y;
+        } else if (dateFilter === "Custom" && customStartDate && customEndDate) {
+          params.startDate = customStartDate;
+          params.endDate = customEndDate;
+        }
+
+        const res = await fetchShiftsList(params);
         setRows(res?.data?.workShifts ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -76,7 +126,7 @@ export default function EmployeeShiftPage() {
         setLoading(false);
       }
     },
-    [shopId, pagination.pageSize]
+    [shopId, pagination.pageSize, employeeId, filterShopId, approvalStatus, dateFilter, customStartDate, customEndDate]
   );
 
   const refreshLiveShift = useCallback(() => {
@@ -85,6 +135,10 @@ export default function EmployeeShiftPage() {
 
   useEffect(() => {
     load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, employeeId, filterShopId, approvalStatus, dateFilter, customStartDate, customEndDate]);
+
+  useEffect(() => {
     refreshLiveShift();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
@@ -122,8 +176,9 @@ export default function EmployeeShiftPage() {
             <BreadcrumbItem>
               <BreadcrumbPage>Access Management</BreadcrumbPage>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Shifts</BreadcrumbPage>
+              <BreadcrumbPage>Employee Shift</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -145,6 +200,99 @@ export default function EmployeeShiftPage() {
             Add Shift
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        {!isAccessControlled && (
+          <Select
+            items={[{ value: "", label: "Select Employees" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
+            value={employeeId}
+            onValueChange={(v) => setEmployeeId(v as string)}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Select Employees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Select Employees</SelectItem>
+              {employees.map((e) => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <Select
+          items={[{ value: "", label: "Select Shop" }, ...shops.map((s) => ({ value: s.id, label: s.name }))]}
+          value={filterShopId}
+          onValueChange={(v) => setFilterShopId(v as string)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Select Shop" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Select Shop</SelectItem>
+            {shops.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          items={[
+            { value: "", label: "Approval Status" },
+            { value: "approved", label: "Approved" },
+            { value: "pending", label: "Not Approved" },
+          ]}
+          value={approvalStatus}
+          onValueChange={(v) => setApprovalStatus(v as string)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Approval Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Approval Status</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="pending">Not Approved</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
+          {DATE_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setDateFilter(f)}
+              className={`rounded-[7px] px-3 py-1.5 text-sm font-medium transition-colors ${
+                dateFilter === f
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-background/60"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {dateFilter === "Custom" && (
+          <>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+            />
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+            />
+          </>
+        )}
       </div>
 
       <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
@@ -187,8 +335,8 @@ export default function EmployeeShiftPage() {
                 key={row.id}
                 className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
               >
-                <TableCell>{row.employeeInfo?.name ?? row.employeeName ?? "-"}</TableCell>
-                <TableCell>{row.shopInfo?.name ?? "-"}</TableCell>
+                <TableCell>{row.employee?.name ?? "-"}</TableCell>
+                <TableCell>{row.storeInfo?.name ?? "-"}</TableCell>
                 <TableCell>{fmtDateTime(row.startDate, row.startTimeTwelveHours)}</TableCell>
                 <TableCell>{fmtDateTime(row.endDate, row.endTimeTwelveHours)}</TableCell>
                 <TableCell>{hoursWorked(row)}</TableCell>

@@ -1,19 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { useDebounce } from "@/hooks/useDebounce";
 import { fetchCouponsList } from "@/services/coupons/list";
 import { removeCoupon } from "@/services/coupons/remove";
+import { fetchShopsData } from "@/services/shops/list";
+import { listCustomerTypes } from "@/services/customers/listCustomerTypes";
+import { listCustomerGroups } from "@/services/customers/listCustomerGroups";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
+import { MultiApiSelect } from "@/components/ui/multi-api-select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,13 +34,31 @@ import type { CouponRow } from "./types";
 
 const PAGE_SIZE = 10;
 
+const DELIVERY_METHOD_OPTIONS = [
+  { id: "IN_STORE", name: "In Store" },
+  { id: "PICK_UP", name: "PickUp" },
+  { id: "DELIVERY", name: "Delivery" },
+];
+
+type CouponFilters = {
+  shopIds: string[];
+  customerTypeIds: string[];
+  customerGroupIds: string[];
+  deliveryMethods: string[];
+};
+
+const DEFAULT_FILTERS: CouponFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
+
 export default function CouponsTab() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const openId = searchParams.get("id");
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const [filters, setFilters] = useState<CouponFilters>(DEFAULT_FILTERS);
+
+  const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
+  const [customerTypes, setCustomerTypes] = useState<{ id: string; name: string }[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<{ id: string; name: string }[]>([]);
 
   const [allRows, setAllRows] = useState<CouponRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,14 +76,21 @@ export default function CouponsTab() {
   const loadCoupons = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchCouponsList();
+      const params: Record<string, any> = {};
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (filters.shopIds.length) params.shopIds = filters.shopIds;
+      if (filters.customerTypeIds.length) params.customerTypeIds = filters.customerTypeIds;
+      if (filters.customerGroupIds.length) params.customerGroupIds = filters.customerGroupIds;
+      if (filters.deliveryMethods.length) params.deliveryMethods = filters.deliveryMethods;
+
+      const res = await fetchCouponsList(params);
       setAllRows(res?.data ?? []);
     } catch (err: any) {
       toast.error(err?.message || "Failed to load coupons");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, filters]);
 
   useEffect(() => {
     loadCoupons();
@@ -70,28 +98,35 @@ export default function CouponsTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, filters]);
 
-  const filtered = useMemo(() => {
-    const term = debouncedSearch.trim().toLowerCase();
-    if (!term) return allRows;
-    return allRows.filter((r) => r.name?.toLowerCase().includes(term) || r.couponCode?.toLowerCase().includes(term));
-  }, [allRows, debouncedSearch]);
+  useEffect(() => {
+    fetchShopsData().then((res) => setShops(res?.data ?? []));
+    listCustomerTypes().then((res) => setCustomerTypes(res?.data?.data?.customerTypes ?? []));
+    listCustomerGroups().then((res) => setCustomerGroups(res?.data?.data?.customerGroups ?? []));
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const hasActiveFilters =
+    debouncedSearch ||
+    filters.shopIds.length > 0 ||
+    filters.customerTypeIds.length > 0 ||
+    filters.customerGroupIds.length > 0 ||
+    filters.deliveryMethods.length > 0;
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilters(DEFAULT_FILTERS);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openDetail = (id: string | number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("id", String(id));
-    router.push(`?${params.toString()}`, { scroll: false });
+    setOpenId(String(id));
   };
 
   const closeDetail = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("id");
-    const qs = params.toString();
-    router.push(qs ? `?${qs}` : ".", { scroll: false });
+    setOpenId(null);
   };
 
   const handleDelete = async () => {
@@ -129,6 +164,38 @@ export default function CouponsTab() {
           </Button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <MultiApiSelect
+            placeholder="Select Delivery Methods"
+            value={filters.deliveryMethods}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, deliveryMethods: ids }))}
+            items={DELIVERY_METHOD_OPTIONS}
+          />
+          <MultiApiSelect
+            placeholder="Select Shops"
+            value={filters.shopIds}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, shopIds: ids }))}
+            items={shops}
+          />
+          <MultiApiSelect
+            placeholder="Select Customer Types"
+            value={filters.customerTypeIds}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, customerTypeIds: ids }))}
+            items={customerTypes}
+          />
+          <MultiApiSelect
+            placeholder="Select Customer Groups"
+            value={filters.customerGroupIds}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, customerGroupIds: ids }))}
+            items={customerGroups}
+          />
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              Reset
+            </Button>
+          )}
+        </div>
+
         <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
           <TableLoadingOverlay show={loading && allRows.length > 0} />
           <Table>
@@ -136,7 +203,6 @@ export default function CouponsTab() {
               <TableRow className="bg-muted/60">
                 <TableHead>Name</TableHead>
                 <TableHead>Code</TableHead>
-                <TableHead>Discount</TableHead>
                 <TableHead className="text-right">Usage</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -149,7 +215,7 @@ export default function CouponsTab() {
                     key={`skeleton-${i}`}
                     className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
                   >
-                    {Array.from({ length: 5 }).map((__, j) => (
+                    {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
@@ -159,7 +225,7 @@ export default function CouponsTab() {
 
               {!loading && rows.length === 0 && (
                 <TableRow className="border-b-0">
-                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
                     No coupons found.
                   </TableCell>
                 </TableRow>
@@ -177,7 +243,6 @@ export default function CouponsTab() {
                     </button>
                   </TableCell>
                   <TableCell>{row.couponCode}</TableCell>
-                  <TableCell>{(row as any).discountType === "PERCENTAGE" ? `${(row as any).discountRate}%` : `$${(row as any).discountRate ?? "-"}`}</TableCell>
                   <TableCell className="text-right">
                     <button onClick={() => openDetail(row.id)} className="cursor-pointer text-primary hover:underline">
                       {row.onGoingTotalUsage ?? 0}
@@ -199,8 +264,8 @@ export default function CouponsTab() {
           </Table>
         </div>
 
-        {filtered.length > 0 && (
-          <TablePagination page={page} totalPages={totalPages} totalEntries={filtered.length} pageSize={PAGE_SIZE} loading={loading} onPageChange={setPage} />
+        {allRows.length > 0 && (
+          <TablePagination page={page} totalPages={totalPages} totalEntries={allRows.length} pageSize={PAGE_SIZE} loading={loading} onPageChange={setPage} />
         )}
       </div>
 

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { Plus } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -9,13 +11,16 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import LabelsTable from "./LabelsTable";
-import TemplatesTable from "./TemplatesTable";
+import TemplatesTable, { type TemplatesTableHandle } from "./TemplatesTable";
 
 export default function LabelsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("labels");
+  const templatesTableRef = useRef<TemplatesTableHandle>(null);
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -32,17 +37,29 @@ export default function LabelsPage() {
       </Breadcrumb>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="labels">Labels & Receipts</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="labels">Labels & Receipts</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
+          </TabsList>
+
+          {activeTab === "labels" ? (
+            <Button onClick={() => router.push("/settings/labels/add")}>
+              <Plus /> Create Custom Package Label
+            </Button>
+          ) : (
+            <Button onClick={() => templatesTableRef.current?.openCreate()}>
+              <Plus /> Add Template
+            </Button>
+          )}
+        </div>
 
         <TabsContent value="labels">
           <LabelsTable />
         </TabsContent>
 
         <TabsContent value="templates">
-          <TemplatesTable />
+          <TemplatesTable ref={templatesTableRef} />
         </TabsContent>
       </Tabs>
     </div>

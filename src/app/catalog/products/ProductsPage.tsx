@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 import { MultiApiSelect } from "@/components/ui/multi-api-select";
 import AddEditProductDrawer from "./AddEditProductDrawer";
@@ -188,6 +188,7 @@ export default function ProductsPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>Catalog</BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Products</BreadcrumbPage>
               </BreadcrumbItem>

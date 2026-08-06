@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, MoreHorizontal, Plus } from "lucide-react";
+import { Loader2, MoreHorizontal } from "lucide-react";
 
 import { fetchPrintTemplates } from "@/services/printTemplates/list";
 import { removePrintTemplate } from "@/services/printTemplates/remove";
@@ -30,7 +30,11 @@ import {
 import TemplateEditorModal from "./TemplateEditorModal";
 import type { PrintTemplate } from "./types";
 
-export default function TemplatesTable() {
+export type TemplatesTableHandle = {
+  openCreate: () => void;
+};
+
+const TemplatesTable = forwardRef<TemplatesTableHandle>(function TemplatesTable(_props, ref) {
   const [rows, setRows] = useState<PrintTemplate[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -56,6 +60,13 @@ export default function TemplatesTable() {
     loadTemplates();
   }, [loadTemplates]);
 
+  useImperativeHandle(ref, () => ({
+    openCreate: () => {
+      setEditingTemplate(null);
+      setEditorOpen(true);
+    },
+  }));
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
@@ -73,18 +84,6 @@ export default function TemplatesTable() {
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <div className="flex items-center justify-between">
-        <div />
-        <Button
-          onClick={() => {
-            setEditingTemplate(null);
-            setEditorOpen(true);
-          }}
-        >
-          <Plus /> Add Template
-        </Button>
-      </div>
-
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
@@ -175,4 +174,6 @@ export default function TemplatesTable() {
       </AlertDialog>
     </div>
   );
-}
+});
+
+export default TemplatesTable;

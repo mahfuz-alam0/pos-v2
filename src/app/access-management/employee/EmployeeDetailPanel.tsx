@@ -16,15 +16,21 @@ export default function EmployeeDetailPanel({ employeeId, onClose }: { employeeI
   useEffect(() => {
     setLoading(true);
     fetchSingleEmployee(employeeId)
-      .then((res) => setEmployee(res?.data?.employee ?? res?.data ?? null))
+      .then((res) => setEmployee(res?.data?.account ?? res?.data?.employee ?? res?.data ?? null))
+      .catch((err) => console.error("Failed to load employee", err))
       .finally(() => setLoading(false));
   }, [employeeId]);
 
   const rows = [
     { label: "Name", value: employee?.name ?? "-" },
     { label: "Email", value: employee?.email ?? "-" },
+    { label: "Username", value: employee?.username ?? "-" },
     { label: "Country", value: employee?.countryCode ?? "-" },
     { label: "Phone", value: employee?.phone ?? "-" },
+    { label: "Role", value: employee?.roleInfo?.name ?? "-" },
+    { label: "Associated Shops", value: employee?.associatedShopIds?.length ?? 0 },
+    { label: "Documents", value: employee?.documentLinks?.length ?? 0 },
+    { label: "Status", value: employee?.lockedAt ? "Locked" : "Active" },
   ];
 
   return (

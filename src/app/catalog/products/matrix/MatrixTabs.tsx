@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 import AttributesTable from "./AttributesTable";
 import TemplatesTable from "./TemplatesTable";
@@ -50,6 +50,7 @@ export default function MatrixTabs() {
             <BreadcrumbItem>
               <BreadcrumbPage>Catalog</BreadcrumbPage>
             </BreadcrumbItem>
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>{tab === "attributes" ? "Attributes" : "Product Matrices"}</BreadcrumbPage>
             </BreadcrumbItem>

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { X } from "lucide-react";
 
 import { fetchSingleDeliveryJob } from "@/services/deliveryJobs/getSingle";
+import { useShop } from "@/context/shop-context";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,17 +40,18 @@ interface JobDetailsPanelProps {
 }
 
 export default function JobDetailsPanel({ jobId, onClose }: JobDetailsPanelProps) {
+  const { shopId } = useShop();
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId || !shopId) return;
     setLoading(true);
-    fetchSingleDeliveryJob(jobId)
+    fetchSingleDeliveryJob(jobId, shopId)
       .then((res) => setJob(res?.data ?? null))
       .catch(() => toast.error("Failed to load job details"))
       .finally(() => setLoading(false));
-  }, [jobId]);
+  }, [jobId, shopId]);
 
   return (
     <div className="flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
@@ -111,6 +113,33 @@ export default function JobDetailsPanel({ jobId, onClose }: JobDetailsPanelProps
                 <Row label="Planned Route" value={job.deliveryEstimationWindow?.plannedRoute} />
               </div>
             </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Job Info</p>
+              <div className="flex flex-col gap-2">
+                <Row label="Cycle Count" value={job.cycleCount != null ? String(job.cycleCount) : null} />
+                <Row label="Created" value={formatDate(job.createdAt)} />
+                <Row label="Updated" value={formatDate(job.updatedAt)} />
+              </div>
+            </div>
+
+            {(job.initiationDocumentUrls?.length > 0 || job.completionDocumentUrls?.length > 0) && (
+              <div>
+                <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Documents</p>
+                <div className="flex flex-col gap-2">
+                  {job.initiationDocumentUrls?.map((url: string, i: number) => (
+                    <a key={`init-${i}`} href={url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+                      Initiation Document {i + 1}
+                    </a>
+                  ))}
+                  {job.completionDocumentUrls?.map((url: string, i: number) => (
+                    <a key={`comp-${i}`} href={url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+                      Completion Document {i + 1}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {job.tracks?.length > 0 && (
               <div>

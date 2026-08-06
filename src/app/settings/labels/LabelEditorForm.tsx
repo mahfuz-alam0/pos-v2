@@ -337,8 +337,8 @@ export default function LabelEditorForm({ labelId }: { labelId: string | null })
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-        <Card className="gap-4 p-4 lg:col-span-2">
+      <div className={`grid grid-cols-1 items-stretch gap-4 ${selectedTemplateId ? "lg:grid-cols-3" : ""}`}>
+        <Card className={`gap-4 p-4 ${selectedTemplateId ? "lg:col-span-2" : ""}`}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Name" required>
               <Input disabled={!!labelId} value={name} onChange={(e) => setName(e.target.value)} />

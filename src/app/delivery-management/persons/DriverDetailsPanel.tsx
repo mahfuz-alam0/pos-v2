@@ -16,6 +16,24 @@ interface DriverDetailsPanelProps {
   onEdit: () => void;
 }
 
+function Field({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="mb-3 flex flex-col">
+      <span className="mb-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className="text-sm text-foreground">{value || <span className="text-muted-foreground italic">—</span>}</span>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4">
+      <span className="mb-3 block text-xs font-semibold tracking-wider uppercase">{title}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function DriverDetailsPanel({ driverId, onClose, onEdit }: DriverDetailsPanelProps) {
   const { shopId } = useShop();
   const [driver, setDriver] = useState<any>(null);
@@ -65,8 +83,8 @@ export default function DriverDetailsPanel({ driverId, onClose, onEdit }: Driver
         ) : !driver ? (
           <p className="py-4 text-sm text-muted-foreground">Driver not found.</p>
         ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
+          <div>
+            <div className="mb-4 flex items-center gap-3">
               {driver.avatarUrl ? (
                 <img src={driver.avatarUrl} alt={driver.name} className="size-12 rounded-full object-cover ring-1 ring-foreground/10" />
               ) : (
@@ -80,29 +98,51 @@ export default function DriverDetailsPanel({ driverId, onClose, onEdit }: Driver
               </div>
             </div>
 
-            {[
-              ["Phone", driver.phone],
-              ["Email", driver.email],
-              ["License Number", driver.license],
-              ["UBI", driver.ubi],
-              ["Country Code", driver.countryCode],
-              ["Street", loc.streetAddress],
-              ["City", loc.city],
-              ["State", loc.state],
-              ["Zip", loc.zipCode],
-              ["Country", loc.country],
-            ].map(([label, value]) => (
-              <div key={label} className="flex items-start gap-2 border-b border-foreground/5 pb-2">
-                <span className="w-32 shrink-0 text-sm text-muted-foreground">{label}</span>
-                <span className="flex-1 text-sm font-medium">{value || "N/A"}</span>
-              </div>
-            ))}
+            <div className="h-px bg-border" />
+            <div className="mt-4">
+              <Section title="Contact">
+                <Field label="Phone" value={driver.phone} />
+                <Field label="Email" value={driver.email} />
+              </Section>
+            </div>
+
+            <div className="h-px bg-border" />
+            <div className="mt-4">
+              <Section title="License & Identity">
+                <Field label="License Number" value={driver.license} />
+                <Field label="UBI" value={driver.ubi} />
+                <Field label="Country Code" value={driver.countryCode} />
+              </Section>
+            </div>
+
+            <div className="h-px bg-border" />
+            <div className="mt-4">
+              <Section title="Address">
+                <Field label="Street" value={loc.streetAddress} />
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Field label="City" value={loc.city} />
+                  </div>
+                  <div className="flex-1">
+                    <Field label="State" value={loc.state} />
+                  </div>
+                  <div className="w-24">
+                    <Field label="Zip" value={loc.zipCode} />
+                  </div>
+                </div>
+                <Field label="Country" value={loc.country} />
+              </Section>
+            </div>
 
             {driver.description && (
-              <div>
-                <span className="mb-1 block text-sm text-muted-foreground">Description</span>
-                <p className="text-sm">{driver.description}</p>
-              </div>
+              <>
+                <div className="h-px bg-border" />
+                <div className="mt-4">
+                  <Section title="Description">
+                    <p className="m-0 text-sm text-foreground">{driver.description}</p>
+                  </Section>
+                </div>
+              </>
             )}
           </div>
         )}

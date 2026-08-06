@@ -58,9 +58,9 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
   }, [open, shopId]);
 
   useEffect(() => {
-    if (!open || !jobId) return;
+    if (!open || !jobId || !shopId) return;
     setLoading(true);
-    fetchSingleDeliveryJob(jobId)
+    fetchSingleDeliveryJob(jobId, shopId)
       .then((res) => {
         const job = res?.data;
         if (!job) {
@@ -76,7 +76,7 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
       })
       .catch((err: any) => toast.error(err?.message || "Failed to load delivery job"))
       .finally(() => setLoading(false));
-  }, [open, jobId]);
+  }, [open, jobId, shopId]);
 
   const handleUpdate = async () => {
     if (!driverId) {
