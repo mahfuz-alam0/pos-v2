@@ -430,7 +430,7 @@ function TabletPosInner() {
           quoteApiManager
             .call(getQuoteForSales, updatedQuoteBody, "tablet-default-group")
             .then((res) => dispatch(getQuoteForSale(res.data)))
-            .catch((error) => toast.error(error.error || "Error"));
+            .catch((error) => toast.error(error?.message || error?.error || "Error"));
         }
       }
     }
@@ -565,7 +565,9 @@ function TabletPosInner() {
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tablet-select-customer")
       .then((res) => dispatch(getQuoteForSale(res.data)))
-      .catch((error) => toast.error(error?.error || "Failed to get quote"));
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to get quote"),
+      );
 
     // Auto-add customer to queue and immediately move to serving state.
     if (customer?.id) {
@@ -677,7 +679,7 @@ function TabletPosInner() {
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tablet-customer-group")
       .then((res) => dispatch(getQuoteForSale(res.data)))
-      .catch((error) => toast.error(error.error || "Error"));
+      .catch((error) => toast.error(error?.message || error?.error || "Error"));
   };
 
   const persistedDeliveryType =

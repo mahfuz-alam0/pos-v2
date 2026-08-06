@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft, CheckCircle2, Inbox, Monitor } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Inbox, LayoutGrid, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -524,6 +524,23 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
           </span>
         </div>
 
+        {/* Live-total gradient banner — matches the old openRegister.js
+            "Opening Drawer" header exactly (icon + label left, running
+            total right, updates as denominations/flat cash are entered). */}
+        {step === "start" && (
+          <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-white">
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="size-3.5 text-white/80" />
+              <span className="text-xs font-medium uppercase tracking-wider text-white/80">
+                Opening Drawer
+              </span>
+            </div>
+            <div className="text-xl font-bold tracking-tight">
+              ${startTotal.toFixed(2)}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-3">
           {loading && (
             <p className="py-8 text-center text-sm text-muted-foreground">
@@ -586,14 +603,26 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
                     String(drawer.id) === String(currentDrawerId);
                   return (
                     <li key={drawer.id}>
-                      <button
+                      {/* A plain div, not a <button> — it wraps the
+                          Start/Close Drawer <Button>s below, and a disabled
+                          <button disabled> blocks pointer events on all its
+                          descendants, which silently ate every click on
+                          "Start Drawer" for closed rows (disabled={!isOpen}
+                          is true exactly when that button shows). */}
+                      <div
+                        role={isOpen ? "button" : undefined}
+                        tabIndex={isOpen ? 0 : undefined}
                         onClick={() => isOpen && handleSelectDrawer(drawer)}
-                        disabled={!isOpen}
+                        onKeyDown={(e) => {
+                          if (isOpen && (e.key === "Enter" || e.key === " ")) {
+                            handleSelectDrawer(drawer);
+                          }
+                        }}
                         className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
                           isOpen && isActive
-                            ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950"
+                            ? "cursor-pointer border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950"
                             : isOpen
-                            ? "border-transparent bg-muted hover:bg-muted/70"
+                            ? "cursor-pointer border-transparent bg-muted hover:bg-muted/70"
                             : "cursor-default border-destructive/30 bg-destructive/5"
                         }`}
                       >
@@ -640,7 +669,7 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
                             Start Drawer
                           </Button>
                         )}
-                      </button>
+                      </div>
                     </li>
                   );
                 })}
