@@ -163,10 +163,8 @@ export default function DeliveryProfilesPage() {
                   <TableCell>{row.lastUpdaterName}</TableCell>
                   <TableCell className="text-center">
                     <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="outline" size="sm">
-                          Actions <ChevronDown className="size-4" />
-                        </Button>
+                      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                        Actions <ChevronDown className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuItem onClick={() => openDetails(row)}>View Details</DropdownMenuItem>

@@ -243,10 +243,9 @@ export default function EmployeesPage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="outline" size="sm" disabled={!canManage(row)}>
-                          Actions <ChevronDown className="size-4" />
-                        </Button>
+                      <DropdownMenuTrigger
+                        render={<Button variant="outline" size="sm" disabled={!canManage(row)} />}>
+                        Actions <ChevronDown className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem className="gap-2 whitespace-nowrap" onClick={() => setResetTarget(row)}>
