@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,6 +59,8 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
   const [search, setSearch] = useState("");
+  const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
+  const [employeeFilter, setEmployeeFilter] = useState("");
   const [liveShift, setLiveShift] = useState<any>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -99,6 +102,12 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchMyLiveShift().then((res) => setLiveShift(res?.data?.shift ?? null));
   }, []);
+
+  useEffect(() => {
+    if (user?.type === "ACCESS_CONTROLLED") return;
+    fetchEmployeesList({ limit: 1000 }).then((res) => setEmployeeOptions(res?.data?.employees ?? []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.type]);
 
   const canManage = (row: any) => {
     if (!user) return false;
@@ -177,12 +186,28 @@ export default function EmployeesPage() {
       </div>
 
       {user?.type !== "ACCESS_CONTROLLED" && (
-        <Input
-          placeholder="Search by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
-        />
+        <Select
+          value={employeeFilter || "__all__"}
+          onValueChange={(v) => {
+            setEmployeeFilter(v === "__all__" ? "" : v);
+            const emp = employeeOptions.find((e: any) => String(e.id) === v);
+            setSearch(emp?.name ?? "");
+          }}
+        >
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="Select Employee">
+              {employeeFilter ? employeeOptions.find((e: any) => String(e.id) === employeeFilter)?.name : "All Employees"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Employees</SelectItem>
+            {employeeOptions.map((emp: any) => (
+              <SelectItem key={emp.id} value={String(emp.id)}>
+                {emp.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       <div className="flex gap-4">
