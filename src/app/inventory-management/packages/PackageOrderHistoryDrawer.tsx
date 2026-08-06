@@ -7,8 +7,8 @@ import { fetchInventoryPackageHistory } from "@/services/reporting/inventoryPack
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
-import PackageHistoryTable from "@/app/reports-analytics/inventory/PackageHistoryTable";
-import type { PackageHistoryRow, InventoryPagination } from "@/app/reports-analytics/inventory/types";
+import PackageHistoryTable from "@/app/reports-analytics/reports/inventory/PackageHistoryTable";
+import type { PackageHistoryRow, InventoryPagination } from "@/app/reports-analytics/reports/inventory/types";
 
 const PAGE_SIZE = 20;
 
