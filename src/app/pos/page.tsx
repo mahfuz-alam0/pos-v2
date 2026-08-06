@@ -30,13 +30,19 @@ import {
 } from "@/store/slices/quoteForSaleSlice";
 import { getSaleDetail, resetSaleDetail } from "@/store/slices/saleDataSlice";
 import { updateOrderAction } from "@/store/slices/orderActionSlice";
-import { addLineItemsAction, resetAddedLineITems } from "@/store/slices/lineItemsSlice";
+import {
+  addLineItemsAction,
+  resetAddedLineITems,
+} from "@/store/slices/lineItemsSlice";
 import { addToCart, resetCartForSale } from "@/store/slices/cartSlice";
 import {
   setSelectedCustomer,
   resetSelectedCustomer,
 } from "@/store/slices/customerSlice";
-import { addCustomerAhead, addCustomerInQueue } from "@/store/slices/customerQueueSlice";
+import {
+  addCustomerAhead,
+  addCustomerInQueue,
+} from "@/store/slices/customerQueueSlice";
 
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getAllPaginatedRegisterDrawer } from "@/services/registers/getRegisterDrawer";
@@ -425,7 +431,7 @@ function TabletPosInner() {
           quoteApiManager
             .call(getQuoteForSales, updatedQuoteBody, "tablet-default-group")
             .then((res) => dispatch(getQuoteForSale(res.data)))
-            .catch((error) => toast.error(error.error || "Error"));
+            .catch((error) => toast.error(error?.message || error?.error || "Error"));
         }
       }
     }
@@ -487,8 +493,14 @@ function TabletPosInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomer?.id]);
 
-  // --- Select customer (from overlay): quote refresh + default group + auto-queue ---
-  const handleSelectCustomer = (customer) => {
+  // --- Select customer (from overlay, or resumed from the queue): quote
+  // refresh + default group + auto-queue. queueRecord is the raw queue
+  // entry (only passed when resuming from the queue drawer) — its
+  // cartMetaDataJsonString is whatever TotalCard's auto-save effect last
+  // synced for this customer, and gets restored into the cart here before
+  // re-quoting, so putting a customer back to waiting mid-cart and later
+  // pulling them back into serving brings their products back too. ---
+  const handleSelectCustomer = (customer, queueRecord: any = null) => {
     if (!customer) return;
 
     dispatch(setSelectedCustomer(customer));
@@ -503,11 +515,43 @@ function TabletPosInner() {
       defaultCustomerGroupId = def ? def.id : customer.customerGroups[0].id;
     }
 
+    let cartLineItems: any[] = [];
+    let cartExtras: any = {};
+    if (queueRecord?.cartMetaDataJsonString) {
+      try {
+        const cartData = JSON.parse(queueRecord.cartMetaDataJsonString);
+        cartLineItems = Array.isArray(cartData.lineItems) ? cartData.lineItems : [];
+        cartExtras = {
+          miscCharges: cartData.miscCharges || [],
+          miscDiscount: cartData.miscDiscount || null,
+          applicableRegularDeals: cartData.applicableRegularDeals || [],
+          applicableBogoDeals: cartData.applicableBogoDeals || [],
+          couponId: cartData.couponId || null,
+          loyaltyPointsClaimed: cartData.loyaltyPointsClaimed || 0,
+          tipGiven: cartData.tipGiven || 0,
+        };
+      } catch (err) {
+        console.error("Failed to parse cart meta data:", err);
+      }
+
+      localStorage.setItem("customerInQueueId", JSON.stringify(queueRecord.id));
+      dispatch(addCustomerInQueue(queueRecord));
+
+      dispatch(resetAddedLineITems());
+      dispatch(resetCartForSale());
+      if (cartLineItems.length > 0) {
+        dispatch(addLineItemsAction(cartLineItems));
+        dispatch(addToCart(cartLineItems));
+      }
+    }
+
     dispatch(
       updateSalesDetail({
         customerId: customer?.id,
         customerTypeId: customer?.customerTypeId,
         customerGroupId: defaultCustomerGroupId,
+        ...(cartLineItems.length > 0 && { lineItems: cartLineItems }),
+        ...cartExtras,
       })
     );
 
@@ -516,11 +560,15 @@ function TabletPosInner() {
       customerTypeId: customer?.customerTypeId,
       customerId: customer?.id,
       customerGroupId: defaultCustomerGroupId,
+      ...(cartLineItems.length > 0 && { lineItems: cartLineItems }),
+      ...cartExtras,
     };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tablet-select-customer")
       .then((res) => dispatch(getQuoteForSale(res.data)))
-      .catch((error) => toast.error(error?.error || "Failed to get quote"));
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to get quote"),
+      );
 
     // Auto-add customer to queue and immediately move to serving state.
     if (customer?.id) {
@@ -691,7 +739,10 @@ function TabletPosInner() {
     const updatedQuoteBody = { ...quoteBody, deliveryMethod: value };
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tablet-delivery-method")
-      .then((res) => dispatch(getQuoteForSale(res.data)));
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((error) =>
+        toast.error(error?.message || error?.error || "Failed to update delivery method"),
+      );
   };
 
   const handleCustomerGroupChange = (value) => {
@@ -701,7 +752,7 @@ function TabletPosInner() {
     quoteApiManager
       .call(getQuoteForSales, updatedQuoteBody, "tablet-customer-group")
       .then((res) => dispatch(getQuoteForSale(res.data)))
-      .catch((error) => toast.error(error.error || "Error"));
+      .catch((error) => toast.error(error?.message || error?.error || "Error"));
   };
 
   const persistedDeliveryType =
@@ -1283,6 +1334,13 @@ function TabletPosInner() {
                 onCustomerServed={(record) => {
                   handleServeFromQueue(record);
                   setQueueDrawerVisible(false);
+                  if (!record?.customerId) return;
+                  getSingleCustomer(record.customerId)
+                    .then((res) => {
+                      const customer = res?.data?.data?.customer;
+                      if (customer) handleSelectCustomer(customer, record);
+                    })
+                    .catch(() => {});
                 }}
               />
             </div>

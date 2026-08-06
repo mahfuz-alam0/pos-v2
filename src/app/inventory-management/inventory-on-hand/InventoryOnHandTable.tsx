@@ -479,7 +479,7 @@ export default function InventoryOnHandTable() {
                     <Button
                       size="sm"
                       render={
-                        <Link href={`/inventory-management/manage-inventories/edit/${row.inventoryId}`} />
+                        <Link href={`/inventory-management/inventory-and-pricing/edit/${row.inventoryId}`} />
                       }
                     >
                       Edit
@@ -566,7 +566,7 @@ export default function InventoryOnHandTable() {
                       <Button
                         size="sm"
                         render={
-                          <Link href={`/inventory-management/manage-inventories/edit/${row.inventoryId}`} />
+                          <Link href={`/inventory-management/inventory-and-pricing/edit/${row.inventoryId}`} />
                         }
                       >
                         Edit

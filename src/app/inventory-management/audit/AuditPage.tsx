@@ -603,11 +603,10 @@ export default function AuditPage() {
           <div className="mx-1 h-6 w-px bg-border" />
 
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button variant="outline" disabled={!data || data.length === 0 || exporting}>
-                <Download className="size-4" />
-                Export
-              </Button>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" disabled={!data || data.length === 0 || exporting} />}>
+              <Download className="size-4" />
+              Export
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onClick={() => handleExport("csv")}>Export to CSV</DropdownMenuItem>

@@ -22,11 +22,17 @@ import Drawer from "@/components/ui/Drawer";
  *
  * Props:
  *   compact — render a small toolbar trigger button instead of a full row.
+ *   inline  — render just the coupon list + manual-code entry directly
+ *             (no trigger button, no own Drawer) — for dropping straight
+ *             into a host drawer/page, e.g. Tablet Mode's Discounts & Taxes.
  *
  * Self-contained: reads salesDetail + quoteForSale.lineItems + customer from
  * Redux, applies via updateSalesDetail(couponId) + re-quote.
  */
-export default function NewAvailableCoupons({ compact = false }) {
+export default function NewAvailableCoupons({
+  compact = false,
+  inline = false,
+}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState([]);
@@ -179,6 +185,247 @@ export default function NewAvailableCoupons({ compact = false }) {
       : `$${Number(appliedCoupon.discountRate).toFixed(2)} off`
     : null;
 
+  // Shared between the "inline" render (dropped straight into a host page —
+  // e.g. Tablet Mode's Discounts & Taxes drawer) and the component's own
+  // Available Coupons drawer (compact/default trigger modes).
+  const couponListContent = (
+    <div className="@container">
+      <div className="mb-6">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+          Available Coupons
+        </p>
+        {couponsLoading ? (
+          <div className="flex justify-center py-10 text-sm text-muted-foreground">
+            Loading...
+          </div>
+        ) : couponData.length > 0 ? (
+          // Container-query columns, not viewport ones — this list renders
+          // both in a narrow sidebar (Discounts & Taxes) and a wide popup
+          // drawer (the component's own Available Coupons drawer), so the
+          // column count needs to track its own rendered width rather than
+          // the screen's.
+          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2 @3xl:grid-cols-3">
+            {couponData.map((coupon) => {
+              const disabled = couponDisabled || couponApplied;
+              const notApplicable = coupon.usageRule?.isApplicable === false;
+              const isCouponDisabled = disabled || notApplicable;
+
+              const discountLabel =
+                coupon.discountType === "PERCENTAGE"
+                  ? `${coupon.discountRate}% off`
+                  : `$${Number(coupon.discountRate).toFixed(2)} off`;
+
+              const maxDiscount = coupon.usageRule?.maximumApplicableDiscount;
+              const minOrder = coupon.usageRule?.minimumOrderAmount;
+              const totalLimit = coupon.usageRule?.totalUsageLimit;
+              const perUserLimit = coupon.usageRule?.totalUsageLimitPerUser;
+
+              return (
+                <div
+                  key={coupon.couponCode}
+                  className={`flex flex-col overflow-hidden rounded-xl border-[1.5px] ${
+                    isCouponDisabled
+                      ? "border-neutral-200 bg-neutral-50 opacity-60"
+                      : "border-[#52c41a] bg-[#f6ffed]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 px-3.5 py-3">
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={`w-fit rounded-md border border-dashed px-2.5 py-0.5 font-mono text-sm font-bold tracking-wider ${
+                          isCouponDisabled
+                            ? "border-neutral-300 bg-neutral-100 text-neutral-400"
+                            : "border-green-300 bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {coupon.couponCode}
+                      </span>
+                      <span
+                        className={`text-sm font-bold ${
+                          isCouponDisabled
+                            ? "text-neutral-500"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {discountLabel}
+                      </span>
+                    </div>
+                    {notApplicable && (
+                      <Badge className="shrink-0 bg-orange-100 text-orange-700">
+                        Not Applicable
+                      </Badge>
+                    )}
+                  </div>
+
+                  {(minOrder?.isEnabled ||
+                    maxDiscount?.isEnabled ||
+                    perUserLimit?.isEnabled ||
+                    totalLimit?.isEnabled ||
+                    coupon.allowedStacks?.length > 0 ||
+                    coupon.description) && (
+                    <div
+                      className={`flex flex-1 flex-col gap-1 border-t px-3.5 py-2 text-[11px] text-gray-500 ${
+                        isCouponDisabled
+                          ? "border-neutral-200 bg-neutral-50"
+                          : "border-green-200 bg-green-50"
+                      }`}
+                    >
+                      {minOrder?.isEnabled && (
+                        <span>
+                          <span className="font-semibold text-gray-600">
+                            Min order:
+                          </span>{" "}
+                          ${Number(minOrder.value).toFixed(2)}
+                        </span>
+                      )}
+                      {maxDiscount?.isEnabled && (
+                        <span>
+                          <span className="font-semibold text-gray-600">
+                            Max discount:
+                          </span>{" "}
+                          ${Number(maxDiscount.value).toFixed(2)}
+                        </span>
+                      )}
+                      {perUserLimit?.isEnabled && (
+                        <span>
+                          <span className="font-semibold text-gray-600">
+                            Per user:
+                          </span>{" "}
+                          {perUserLimit.value}x
+                        </span>
+                      )}
+                      {totalLimit?.isEnabled && (
+                        <span>
+                          <span className="font-semibold text-gray-600">
+                            Usage:
+                          </span>{" "}
+                          {coupon.onGoingTotalUsage ?? 0} / {totalLimit.value}
+                        </span>
+                      )}
+                      {coupon.allowedStacks?.length > 0 && (
+                        <span className="flex flex-wrap items-center gap-1">
+                          <span className="font-semibold text-gray-600">
+                            Stacks with:
+                          </span>
+                          {coupon.allowedStacks.map((s) => (
+                            <Badge
+                              key={s}
+                              className="bg-blue-100 px-1.5 py-0 text-[10px] text-blue-700"
+                            >
+                              {s.replace(/_/g, " ")}
+                            </Badge>
+                          ))}
+                        </span>
+                      )}
+                      {coupon.description && (
+                        <span className="italic text-gray-400">
+                          {coupon.description}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div
+                    className={`border-t px-3.5 py-2.5 ${
+                      isCouponDisabled
+                        ? "border-neutral-200"
+                        : "border-green-200"
+                    }`}
+                  >
+                    <Button
+                      disabled={isCouponDisabled}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        if (!isCouponDisabled) {
+                          setCouponCode(coupon.couponCode);
+                          setCouponRecord(coupon);
+                          applyCoupon(coupon, true);
+                        }
+                      }}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            No coupons available for this order
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+          Or enter a code manually
+        </p>
+        <div className="flex items-start gap-2">
+          <Input
+            placeholder="Coupon code"
+            value={couponCode}
+            disabled={couponApplied}
+            onChange={(e) => {
+              setCouponCode(e.target.value);
+              setCouponRecord(
+                couponData.find((c) => c.couponCode === e.target.value) ||
+                  null
+              );
+            }}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                couponRecord &&
+                !couponDisabled &&
+                !couponApplied
+              ) {
+                applyCoupon(couponRecord, true);
+              }
+            }}
+          />
+          <span
+            title={
+              couponDisabled
+                ? "Coupon discount source is disabled in settings"
+                : couponApplied
+                  ? "A coupon is already applied"
+                  : ""
+            }
+          >
+            <Button
+              disabled={couponDisabled || couponApplied || !couponCode}
+              onClick={() => applyCoupon(couponRecord, true)}
+            >
+              {loading ? "..." : "Apply"}
+            </Button>
+          </span>
+        </div>
+
+        {couponApplied && (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+            <span className="text-sm font-medium text-green-700">
+              Coupon applied — -$
+              {Number(getOrderSummary?.data?.couponDiscountApplied).toFixed(
+                2
+              )}
+            </span>
+            <button
+              onClick={removeCoupon}
+              className="rounded border border-red-300 px-2 py-0.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (inline) {
+    return couponListContent;
+  }
+
   return (
     <>
       {compact ? (
@@ -242,221 +489,7 @@ export default function NewAvailableCoupons({ compact = false }) {
             </button>
           </div>
 
-          <div className="flex-1 overflow-auto p-6">
-            <div className="mb-6">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                Available Coupons
-              </p>
-              {couponsLoading ? (
-                <div className="flex justify-center py-10 text-sm text-muted-foreground">
-                  Loading...
-                </div>
-              ) : couponData.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {couponData.map((coupon) => {
-                    const disabled = couponDisabled || couponApplied;
-                    const notApplicable =
-                      coupon.usageRule?.isApplicable === false;
-                    const isCouponDisabled = disabled || notApplicable;
-
-                    const discountLabel =
-                      coupon.discountType === "PERCENTAGE"
-                        ? `${coupon.discountRate}% off`
-                        : `$${Number(coupon.discountRate).toFixed(2)} off`;
-
-                    const maxDiscount =
-                      coupon.usageRule?.maximumApplicableDiscount;
-                    const minOrder = coupon.usageRule?.minimumOrderAmount;
-                    const totalLimit = coupon.usageRule?.totalUsageLimit;
-                    const perUserLimit =
-                      coupon.usageRule?.totalUsageLimitPerUser;
-
-                    return (
-                      <div
-                        key={coupon.couponCode}
-                        className={`overflow-hidden rounded-xl border-[1.5px] ${
-                          isCouponDisabled
-                            ? "border-neutral-200 bg-neutral-50 opacity-60"
-                            : "border-[#52c41a] bg-[#f6ffed]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3 px-4 py-3">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span
-                              className={`rounded-md border border-dashed px-3 py-1 font-mono text-base font-bold tracking-wider ${
-                                isCouponDisabled
-                                  ? "border-neutral-300 bg-neutral-100 text-neutral-400"
-                                  : "border-green-300 bg-green-100 text-green-700"
-                              }`}
-                            >
-                              {coupon.couponCode}
-                            </span>
-                            <span
-                              className={`text-[15px] font-bold ${
-                                isCouponDisabled
-                                  ? "text-neutral-500"
-                                  : "text-green-600"
-                              }`}
-                            >
-                              {discountLabel}
-                            </span>
-                            {notApplicable && (
-                              <Badge className="bg-orange-100 text-orange-700">
-                                Not Applicable
-                              </Badge>
-                            )}
-                          </div>
-
-                          <Button
-                            disabled={isCouponDisabled}
-                            className="shrink-0 bg-green-600 hover:bg-green-700"
-                            onClick={() => {
-                              if (!isCouponDisabled) {
-                                setCouponCode(coupon.couponCode);
-                                setCouponRecord(coupon);
-                                applyCoupon(coupon, true);
-                              }
-                            }}
-                          >
-                            Apply
-                          </Button>
-                        </div>
-
-                        <div
-                          className={`flex flex-wrap items-center gap-4 border-t px-4 py-2 text-xs text-gray-500 ${
-                            isCouponDisabled
-                              ? "border-neutral-200 bg-neutral-50"
-                              : "border-green-200 bg-green-50"
-                          }`}
-                        >
-                          {minOrder?.isEnabled && (
-                            <span>
-                              <span className="font-semibold text-gray-600">
-                                Min order:
-                              </span>{" "}
-                              ${Number(minOrder.value).toFixed(2)}
-                            </span>
-                          )}
-                          {maxDiscount?.isEnabled && (
-                            <span>
-                              <span className="font-semibold text-gray-600">
-                                Max discount:
-                              </span>{" "}
-                              ${Number(maxDiscount.value).toFixed(2)}
-                            </span>
-                          )}
-                          {perUserLimit?.isEnabled && (
-                            <span>
-                              <span className="font-semibold text-gray-600">
-                                Per user:
-                              </span>{" "}
-                              {perUserLimit.value}x
-                            </span>
-                          )}
-                          {totalLimit?.isEnabled && (
-                            <span>
-                              <span className="font-semibold text-gray-600">
-                                Usage:
-                              </span>{" "}
-                              {coupon.onGoingTotalUsage ?? 0} /{" "}
-                              {totalLimit.value}
-                            </span>
-                          )}
-                          {coupon.allowedStacks?.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <span className="font-semibold text-gray-600">
-                                Stacks with:
-                              </span>
-                              {coupon.allowedStacks.map((s) => (
-                                <Badge
-                                  key={s}
-                                  className="bg-blue-100 px-1.5 py-0 text-[10px] text-blue-700"
-                                >
-                                  {s.replace(/_/g, " ")}
-                                </Badge>
-                              ))}
-                            </span>
-                          )}
-                          {coupon.description && (
-                            <span className="italic text-gray-400">
-                              {coupon.description}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-                  No coupons available for this order
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                Or enter a code manually
-              </p>
-              <div className="flex items-start gap-2">
-                <Input
-                  placeholder="Coupon code"
-                  value={couponCode}
-                  disabled={couponApplied}
-                  onChange={(e) => {
-                    setCouponCode(e.target.value);
-                    setCouponRecord(
-                      couponData.find((c) => c.couponCode === e.target.value) ||
-                        null
-                    );
-                  }}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Enter" &&
-                      couponRecord &&
-                      !couponDisabled &&
-                      !couponApplied
-                    ) {
-                      applyCoupon(couponRecord, true);
-                    }
-                  }}
-                />
-                <span
-                  title={
-                    couponDisabled
-                      ? "Coupon discount source is disabled in settings"
-                      : couponApplied
-                        ? "A coupon is already applied"
-                        : ""
-                  }
-                >
-                  <Button
-                    disabled={couponDisabled || couponApplied || !couponCode}
-                    onClick={() => applyCoupon(couponRecord, true)}
-                  >
-                    {loading ? "..." : "Apply"}
-                  </Button>
-                </span>
-              </div>
-
-              {couponApplied && (
-                <div className="mt-3 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
-                  <span className="text-sm font-medium text-green-700">
-                    Coupon applied — -$
-                    {Number(
-                      getOrderSummary?.data?.couponDiscountApplied
-                    ).toFixed(2)}
-                  </span>
-                  <button
-                    onClick={removeCoupon}
-                    className="rounded border border-red-300 px-2 py-0.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <div className="flex-1 overflow-auto p-6">{couponListContent}</div>
         </div>
       </Drawer>
     </>
