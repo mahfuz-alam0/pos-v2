@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import EmployeeFormDrawer from "../../EmployeeFormDrawer";
+import EmployeeFormDrawer from "../../employee/EmployeeFormDrawer";
 
 export default function EditEmployeePage({ employeeId }: { employeeId: string }) {
   const router = useRouter();

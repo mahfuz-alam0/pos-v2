@@ -30,7 +30,7 @@ import Drawer from "@/components/ui/Drawer";
 import { Field } from "@/components/admin/form-fields";
 import EmployeeDetailPanel from "./EmployeeDetailPanel";
 import DeleteEmployeeDrawer from "./DeleteEmployeeDrawer";
-import EmployeeFormDrawer from "../EmployeeFormDrawer";
+import EmployeeFormDrawer from "./EmployeeFormDrawer";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMINISTRATION: "Administration",
@@ -156,34 +156,36 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="flex gap-4 p-6">
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Access Management</BreadcrumbPage>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Team</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="size-4" />
+          Add Employee
+        </Button>
+      </div>
+
+      {user?.type !== "ACCESS_CONTROLLED" && (
+        <Input
+          placeholder="Search by name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-64"
+        />
+      )}
+
+      <div className="flex gap-4">
       <div className={selectedId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Access Management</BreadcrumbPage>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Team</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="size-4" />
-            Add Employee
-          </Button>
-        </div>
-
-        {user?.type !== "ACCESS_CONTROLLED" && (
-          <Input
-            placeholder="Search by name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
-          />
-        )}
 
         <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
           <TableLoadingOverlay show={loading && rows.length > 0} />
@@ -196,7 +198,7 @@ export default function EmployeesPage() {
                 <TableHead>Role</TableHead>
                 <TableHead className="text-center">Lock Status</TableHead>
                 <TableHead className="text-center">Active</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -241,7 +243,9 @@ export default function EmployeesPage() {
                   <TableCell className="text-center">
                     {row.id === liveShift?.employeeId ? <Badge variant="default">Active</Badge> : "-"}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                  >
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={<Button variant="outline" size="sm" disabled={!canManage(row)} />}>
@@ -287,6 +291,7 @@ export default function EmployeesPage() {
           <EmployeeDetailPanel employeeId={selectedId} onClose={() => setSelectedId(null)} />
         </div>
       )}
+      </div>
 
       <Drawer open={!!resetTarget} onClose={resetting ? undefined : () => setResetTarget(null)} side="right" size={400}>
         <div className="flex h-full flex-col">

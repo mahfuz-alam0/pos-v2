@@ -295,3 +295,50 @@ body {
 .animate-gear-spin {
   animation: gearSpin 2s linear infinite;
 }
+
+/* react-phone-input-2 ships fixed white/light styles; theme it off our tokens
+   so it matches the active color theme and dark mode instead of staying white.
+   !important needed: the lib's own style.css is imported per-component, which
+   Next.js places after globals.css in the build output, so equal-specificity
+   rules here lose to it without it. */
+.react-tel-input .form-control {
+  background-color: var(--component-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.react-tel-input .flag-dropdown {
+  background-color: var(--component-bg) !important;
+  border-color: var(--border) !important;
+}
+
+.react-tel-input .selected-flag:hover,
+.react-tel-input .selected-flag:focus,
+.react-tel-input .flag-dropdown.open .selected-flag {
+  background-color: var(--muted) !important;
+}
+
+.react-tel-input .country-list {
+  background-color: var(--component-bg) !important;
+  color: var(--text) !important;
+  box-shadow: 0 0 0 1px var(--border), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.react-tel-input .country-list .search {
+  background-color: var(--component-bg) !important;
+}
+
+.react-tel-input .country-list .search-box {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.react-tel-input .country-list .country:hover,
+.react-tel-input .country-list .country.highlight {
+  background-color: var(--muted) !important;
+}
+
+.react-tel-input .country-list .divider {
+  border-bottom-color: var(--border) !important;
+}
