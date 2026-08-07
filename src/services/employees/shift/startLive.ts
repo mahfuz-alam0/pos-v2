@@ -1,5 +1,6 @@
 import { api } from "@/services/api";
 import { handleApiError } from "@/services/handleApiError";
+import { getCurrentUser } from "@/util/use-current-user";
 
 function formatTime12h(date) {
   return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
@@ -11,7 +12,7 @@ function formatDateISO(date) {
 
 export async function startLiveShift(pin) {
   const currentDate = new Date();
-  const user = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const user = getCurrentUser();
 
   const body = {
     employeeId: user?.id,

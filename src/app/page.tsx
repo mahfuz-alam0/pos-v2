@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePermission } from "@/util/use-permission";
+import { useCurrentUser } from "@/util/use-current-user";
 import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import RevenueBreakdownCard from "@/components/dashboard/RevenueBreakdownCard";
 import ShopDashboardStats from "@/components/dashboard/ShopDashboardStats";
@@ -16,24 +17,17 @@ import TaskList from "@/components/dashboard/TaskList";
 import MetrcAlerts from "@/components/dashboard/MetrcAlerts";
 import RegistersPanel from "@/components/dashboard/RegistersPanel";
 
-function readUserInfo() {
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null");
-  } catch {
-    return null;
-  }
-}
-
 export default function Home() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [hasMetrcReporting, setHasMetrcReporting] = useState(false);
   const { checkPermission } = usePermission();
   const canViewDashboardStats = checkPermission("DASHBOARD");
+  const currentUser = useCurrentUser();
 
   useEffect(() => {
-    const orgFeatureScopes = readUserInfo()?.orgFeatureScopes || [];
+    const orgFeatureScopes = currentUser?.orgFeatureScopes || [];
     setHasMetrcReporting(orgFeatureScopes.includes("METRC_REPORTING"));
-  }, []);
+  }, [currentUser]);
 
   return (
     <div className="flex flex-col gap-3 p-4">

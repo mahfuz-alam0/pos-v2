@@ -9,9 +9,14 @@ export interface CurrentUser {
   email?: string;
   type: "SUPER_ADMIN" | "ADMINISTRATION" | "ACCESS_CONTROLLED";
   allowedPermissionCodes?: string[];
+  orgFeatureScopes?: string[];
+  orgId?: string;
+  sessionId?: string;
+  associatedShopIds?: string[];
+  avatarUrl?: string;
 }
 
-function readUser(): CurrentUser | null {
+export function getCurrentUser(): CurrentUser | null {
   if (typeof window === "undefined") return null;
   try {
     return JSON.parse(localStorage.getItem("userInfo") || "null");
@@ -24,8 +29,8 @@ export function useCurrentUser() {
   const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
-    setUser(readUser());
-    const handler = () => setUser(readUser());
+    setUser(getCurrentUser());
+    const handler = () => setUser(getCurrentUser());
     window.addEventListener(AUTH_CHANGE_EVENT, handler);
     window.addEventListener("storage", handler);
     return () => {

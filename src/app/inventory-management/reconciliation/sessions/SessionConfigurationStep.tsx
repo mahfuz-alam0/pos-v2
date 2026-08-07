@@ -19,6 +19,7 @@ import { fetchSingleSession } from "@/services/liveInventory/getSingleSession";
 import { startLiveSession } from "@/services/liveInventory/startLiveSession";
 import { startProductLiveSession } from "@/services/liveInventory/startProductLiveSession";
 import { cancelLiveCountSession } from "@/services/liveInventory/cancelLiveCountSession";
+import { useCurrentUser } from "@/util/use-current-user";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,15 +48,6 @@ import LiveSessionTimer from "./live/LiveSessionTimer";
 import SessionPhaseOne from "./live/SessionPhaseOne";
 
 const PAGE_SIZE = 30;
-
-function readUserInfo() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") ?? "null");
-  } catch {
-    return null;
-  }
-}
 
 interface SessionState {
   assignedToId: string;
@@ -103,7 +95,7 @@ interface SessionConfigurationStepProps {
 export default function SessionConfigurationStep({ mode, sessionId }: SessionConfigurationStepProps) {
   const router = useRouter();
   const { shopId } = useShop();
-  const userInfo = readUserInfo();
+  const userInfo = useCurrentUser();
 
   const [storageLocations, setStorageLocations] = useState([]);
   const [rows, setRows] = useState([]);

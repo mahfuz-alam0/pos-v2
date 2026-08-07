@@ -9,6 +9,7 @@ import { createEmployeeGroup } from "@/services/employeeGroups/create";
 import { updateEmployeeGroup } from "@/services/employeeGroups/update";
 import { fetchLegacyPermissionsTree } from "@/services/employeeGroups/getPermissionsTree";
 import { fetchAccessControlledEmployees } from "@/services/employees/listAccessControlled";
+import { getCurrentUser } from "@/util/use-current-user";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +37,7 @@ export default function GroupFormPage({ groupId }: { groupId?: string }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
-    const orgId = userInfo?.orgId;
+    const orgId = getCurrentUser()?.orgId;
 
     Promise.all([
       fetchAccessControlledEmployees(100, 1),

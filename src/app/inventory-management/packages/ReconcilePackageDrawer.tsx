@@ -9,6 +9,7 @@ import { createPackageAdjustment } from "@/services/packageAdjustments/create";
 import { reconcileMetrcPackages } from "@/services/packageReconciliation/reconcileMetrcPackages";
 import { fetchMetrcAdjustmentReasons } from "@/services/packageReconciliation/metrcAdjustmentReasons";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
+import { useCurrentUser } from "@/util/use-current-user";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -82,15 +83,6 @@ function buildLocationRows(packageDetail: any): LocationRow[] {
   }));
 }
 
-function readUserType(): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null")?.type;
-  } catch {
-    return undefined;
-  }
-}
-
 export default function ReconcilePackageDrawer({
   open,
   onClose,
@@ -104,7 +96,7 @@ export default function ReconcilePackageDrawer({
   // been imported yet — old app blocks reconcile entirely in that case.
   const needsImport = !packageDetail?.productId && !packageDetail?.inventoryId;
 
-  const userType = readUserType();
+  const userType = useCurrentUser()?.type;
   const canApprove = userType === "SUPER_ADMIN" || userType === "ADMINISTRATION";
 
   const [rows, setRows] = useState<LocationRow[]>([]);

@@ -7,22 +7,15 @@ import { fetchMyTasksList } from "@/services/tasks/listMyTasks";
 import { fetchTaskStatuses } from "@/services/tasks/taskStatuses";
 import { updateTaskStatus } from "@/services/tasks/updateTaskStatus";
 import { useShop } from "@/context/shop-context";
+import { useCurrentUser } from "@/util/use-current-user";
 import { Button } from "@/components/ui/button";
 import TaskItem from "./TaskItem";
-
-function readUserInfo() {
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null");
-  } catch {
-    return null;
-  }
-}
 
 const PAGE_SIZE = 5;
 
 export default function TaskList() {
   const { shopId } = useShop();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const currentUser = useCurrentUser();
   const [roleResolved, setRoleResolved] = useState(false);
   const [allTasks, setAllTasks] = useState([]);
   const [taskStatuses, setTaskStatuses] = useState([]);
@@ -30,10 +23,11 @@ export default function TaskList() {
   const [showArchived, setShowArchived] = useState(false);
   const [pagination, setPagination] = useState({ total: 0, current: 1 });
 
+  const isAdmin = currentUser?.type === "SUPER_ADMIN";
+
   useEffect(() => {
-    setIsAdmin(readUserInfo()?.type === "SUPER_ADMIN");
     setRoleResolved(true);
-  }, []);
+  }, [currentUser]);
 
   const tasks = useMemo(() => {
     return allTasks.filter((task) => {

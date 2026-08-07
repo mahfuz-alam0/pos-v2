@@ -9,6 +9,7 @@ import { Download, Loader2, X } from "lucide-react";
 import { useShop } from "@/context/shop-context";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { useCurrentUser } from "@/util/use-current-user";
 import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
 import { fetchArchivedPackages } from "@/services/packages/listArchived";
 import { fetchSinglePackage } from "@/services/packages/getSingle";
@@ -109,14 +110,7 @@ export default function PackagesPage() {
   const metrcMechanism = useFeatureAccess();
   const openId = searchParams.get("id");
 
-  const [userInfo, setUserInfo] = useState<{ orgFeatureScopes?: string[]; type?: string } | null>(null);
-  useEffect(() => {
-    try {
-      setUserInfo(JSON.parse(localStorage.getItem("userInfo") || "null"));
-    } catch {
-      setUserInfo(null);
-    }
-  }, []);
+  const userInfo = useCurrentUser();
 
   const shouldPopulateMetrcData =
     Boolean(userInfo?.orgFeatureScopes?.includes("METRC_REPORTING")) ||

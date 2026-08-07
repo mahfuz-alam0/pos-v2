@@ -7,6 +7,7 @@ import { Loader2, X } from "lucide-react";
 import { fetchSingleBrand } from "@/services/brands/getSingle";
 import { fetchShopsData } from "@/services/shops/list";
 import { updateEcommStatusBrand } from "@/services/brands/updateEcommStatus";
+import { getCurrentUser } from "@/util/use-current-user";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,11 +45,7 @@ interface BrandDetail {
 }
 
 function readOrgFeatureScopes(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null")?.orgFeatureScopes || [];
-  } catch {
-    return [];
-  }
+  return getCurrentUser()?.orgFeatureScopes || [];
 }
 
 interface ManufacturerDetailsPanelProps {

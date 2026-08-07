@@ -4,17 +4,9 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { fetchShopsData } from "@/services/shops/list";
 import { PUBLIC_PATHS } from "@/components/auth/AuthGuard";
+import { getCurrentUser } from "@/util/use-current-user";
 
 const ShopContext = createContext(null);
-
-function readUserInfo() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo"));
-  } catch {
-    return null;
-  }
-}
 
 function readStoredShop() {
   if (typeof window === "undefined") return { id: null, details: null };
@@ -49,7 +41,7 @@ export function ShopProvider({ children }) {
     if (isPublicPath || initialized.current) return;
     initialized.current = true;
 
-    const userInfo = readUserInfo();
+    const userInfo = getCurrentUser();
     if (!userInfo) {
       // AuthGuard will redirect to /signin — nothing to initialize.
       setShopReady(true);

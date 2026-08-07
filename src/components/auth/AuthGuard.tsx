@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AUTH_CHANGE_EVENT } from "@/util/use-auth";
+import { getCurrentUser } from "@/util/use-current-user";
 
 export const PUBLIC_PATHS = ["/signin"];
 
@@ -16,7 +17,7 @@ function subscribe(callback) {
 }
 
 function getSnapshot() {
-  return Boolean(localStorage.getItem("userInfo"));
+  return Boolean(getCurrentUser());
 }
 
 function getServerSnapshot() {
