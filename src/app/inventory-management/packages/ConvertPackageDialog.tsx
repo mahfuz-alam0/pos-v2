@@ -28,6 +28,7 @@ import {
 import Drawer from "@/components/ui/Drawer";
 
 import MetrcTagCombobox from "./MetrcTagCombobox";
+import SimpleFileUpload, { type UploadedDoc } from "./SimpleFileUpload";
 import type { PackageDetail } from "./types";
 
 interface StorageLocationRow {
@@ -139,6 +140,7 @@ export default function ConvertPackageDialog({
   const [externalBatchId, setExternalBatchId] = useState("");
   const [manufacturerSKU, setManufacturerSKU] = useState("");
   const [isSample, setIsSample] = useState(false);
+  const [documents, setDocuments] = useState<UploadedDoc[]>([]);
 
   const hasStorageLocations = useMemo(
     () => (data?.storageLocationBreakdown ?? []).filter((item: any) => item.quantity !== 0).length > 0,
@@ -276,6 +278,7 @@ export default function ConvertPackageDialog({
     setExternalBatchId("");
     setManufacturerSKU("");
     setIsSample(false);
+    setDocuments([]);
   };
 
   const handleClose = () => {
@@ -399,6 +402,7 @@ export default function ConvertPackageDialog({
                 externalBatchId: externalBatchId || undefined,
                 manufacturerSKU: manufacturerSKU || undefined,
                 isSample,
+                documentLinks: documents.length ? documents.map((d) => d.url) : undefined,
               },
         };
 
@@ -717,6 +721,10 @@ export default function ConvertPackageDialog({
                       <Switch checked={isSample} onCheckedChange={setIsSample} />
                       <span className="text-sm font-medium">Is that sample?</span>
                     </label>
+                    <div className="col-span-2">
+                      <Label className="mb-1 block">Documents</Label>
+                      <SimpleFileUpload files={documents} onChange={setDocuments} maxCount={5} />
+                    </div>
                   </div>
                 )}
               </div>

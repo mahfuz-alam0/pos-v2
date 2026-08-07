@@ -64,9 +64,9 @@ export default function ConversionStats() {
   }, [shopId, timeframe]);
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg p-4">
+    <div className="h-full min-w-0 rounded-xl bg-component-bg shadow-md p-3">
       <div className="flex flex-row items-center gap-3">
-        <h2 className="m-0 text-lg font-semibold text-text">Conversions</h2>
+        <h2 className="m-0 text-lg font-normal text-text">Conversions</h2>
         <div className="ml-auto truncate">
           <select
             className="w-27.5 rounded-md border border-border bg-component-bg px-2 py-1 text-sm md:w-30 xl:w-37.5"

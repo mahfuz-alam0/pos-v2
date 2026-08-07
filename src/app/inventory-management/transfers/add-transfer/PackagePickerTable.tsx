@@ -60,58 +60,55 @@ export default function PackagePickerTable({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+      <div className="relative overflow-hidden rounded-t-lg">
         <TableLoadingOverlay show={loading && rows.length > 0} />
-        <Table>
-          <TableHeader className="[&_tr]:border-b-0">
-            <TableRow className="bg-muted/60">
+        <Table className="table-fixed">
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-10">
                 {onToggleAll && <Checkbox checked={allSelected} onCheckedChange={(c) => onToggleAll(!!c)} />}
               </TableHead>
-              <TableHead>Package ID</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Package Name</TableHead>
-              <TableHead>Orig. Category</TableHead>
-              <TableHead>Orig. Brand</TableHead>
-              <TableHead className="text-center">Orig. Qty</TableHead>
-              <TableHead className="text-center">Qty Left</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              {showQtyColumn && <TableHead className="text-center">Qty to Shift</TableHead>}
+              <TableHead className="w-36 font-medium text-muted-foreground">Package ID</TableHead>
+              <TableHead className="w-24 font-medium text-muted-foreground">Date</TableHead>
+              <TableHead className="w-50 font-medium text-muted-foreground">Package Name</TableHead>
+              <TableHead className="w-32 font-medium text-muted-foreground">Orig. Category</TableHead>
+              <TableHead className="w-32 font-medium text-muted-foreground">Orig. Brand</TableHead>
+              <TableHead className="w-24 text-center font-medium text-muted-foreground">Orig. Qty</TableHead>
+              <TableHead className="w-24 text-center font-medium text-muted-foreground">Qty Left</TableHead>
+              <TableHead className="w-24 text-center font-medium text-muted-foreground">Status</TableHead>
+              {showQtyColumn && <TableHead className="w-32 text-center font-medium text-muted-foreground">Qty to Shift</TableHead>}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="[&_td]:py-4.5">
             {loading && rows.length === 0 &&
               Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={`sk-${i}`} className="border-b-0">
+                <TableRow key={`sk-${i}`} className="border-b border-border">
                   {Array.from({ length: showQtyColumn ? 10 : 9 }).map((__, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))}
             {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
+              <TableRow className="border-b border-border">
                 <TableCell colSpan={showQtyColumn ? 10 : 9} className="py-10 text-center text-muted-foreground">
                   No packages found.
                 </TableCell>
               </TableRow>
             )}
-            {rows.map((row, i) => {
+            {rows.map((row) => {
               const checked = selectedIds.includes(row.id);
               const locationQty = sourceLocationId ? row.storageLocationBreakdown?.[sourceLocationId] : undefined;
               const maxQty = locationQty ?? row.quantityLeft;
               return (
-                <TableRow
-                  key={row.id}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
-                >
+                <TableRow key={row.id} className="border-b border-border">
                   <TableCell>
                     <Checkbox checked={checked} onCheckedChange={(c) => onToggle(row, !!c)} />
                   </TableCell>
-                  <TableCell className="font-medium">{row.advertisedId}</TableCell>
-                  <TableCell>{fmtDate(row.createdAt)}</TableCell>
+                  <TableCell className="font-medium text-primary">{row.advertisedId}</TableCell>
+                  <TableCell className="text-muted-foreground">{fmtDate(row.createdAt)}</TableCell>
                   <TableCell className="max-w-50 truncate" title={row.name}>{row.name}</TableCell>
-                  <TableCell>{row.originalCategory || "-"}</TableCell>
-                  <TableCell>{row.originalBrand || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.originalCategory || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.originalBrand || "-"}</TableCell>
                   <TableCell className="text-center">{row.originalQuantity}</TableCell>
                   <TableCell className="text-center">{row.quantityLeft}</TableCell>
                   <TableCell className="text-center">
@@ -139,7 +136,9 @@ export default function PackagePickerTable({
           </TableBody>
         </Table>
       </div>
-      <TablePagination page={page} totalPages={totalPages} totalEntries={totalEntries} pageSize={pageSize} loading={loading} onPageChange={onPageChange} />
+      <div className="px-4 pb-4">
+        <TablePagination page={page} totalPages={totalPages} totalEntries={totalEntries} pageSize={pageSize} loading={loading} onPageChange={onPageChange} />
+      </div>
     </div>
   );
 }

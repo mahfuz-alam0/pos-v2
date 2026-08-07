@@ -52,10 +52,12 @@ import { getCustomerLoyaltyStatus } from "@/services/loyalty/getCustomerLoyaltyS
 import { getOrderStatuses } from "@/services/sales/getOrderStatuses";
 import { createOrder as createOrderService } from "@/services/sales/createOrder";
 import { getSingleSale } from "@/services/sales/getSingleSales";
+import { setCartMetaData } from "@/services/sales/setCartMetaData";
 import { createSaleDraft } from "@/services/sales/createSaleDraft";
 import { updateOrderStatus as updateOrderStatusService } from "@/services/sales/updateOrderStatus";
 import { createReturn } from "@/services/sales/createReturn";
-import { setCartMetaData } from "@/services/sales/setCartMetaData";
+import { createSaleReport } from "@/services/metrc/createSaleReport";
+import { createSaleReturnReport } from "@/services/metrc/createSaleReturnReport";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import useDiscountTypes from "@/hooks/useDiscountTypes";
 
@@ -80,18 +82,14 @@ export default function TotalCard({
     (state: any) => state.customer?.selectedCustomer,
   );
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
-  const currentAction = useSelector(
-    (state: any) => state?.orderAction?.orderAction,
+  const currentAction = useSelector((state: any) => state?.orderAction?.orderAction);
+  const lineItems = useSelector((state: any) => state?.lineItems?.lineItems) || [];
+  const customerInQueue = useSelector(
+    (state: any) => state?.customerQueue?.customerInQueue
   );
-  const lineItems =
-    useSelector((state: any) => state?.lineItems?.lineItems) || [];
-  const bogoData =
-    useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
+  const bogoData = useSelector((state: any) => state?.bogoLineItems?.bogoDeals) || [];
   const currentMiscallenousCharges = useSelector(
     (state: any) => state?.miscCharges?.miscCharges || [],
-  );
-  const customerInQueue = useSelector(
-    (state: any) => state?.customerQueue?.customerInQueue,
   );
 
   const { discountTypes } = useDiscountTypes();
@@ -596,6 +594,24 @@ export default function TotalCard({
   };
 
   // ---- Create order (checkout) ----------------------------------------------
+  // Ported from the old app's CreateSaleReport/reportToMetric — pushes a
+  // completed sale to METRC. Reads deliveryMethod off the order response
+  // itself (not live quoteBody state), since this also fires as the manual
+  // "Update on Metrc" click from PrintReceiptModal, well after quoteBody has
+  // already been reset for the next order. Delivery orders are reported via
+  // the delivery job flow instead, not here.
+  const handleReportToMetric = async (saleId, deliveryMethodUsed) => {
+    if (!saleId || deliveryMethodUsed === "DELIVERY") return;
+    try {
+      const res = await createSaleReport({ shopId, id: saleId });
+      if (res?.data?.success) {
+        toast.success("METRC sale report created successfully");
+      }
+    } catch (err) {
+      toast.error(err?.message || err?.error || "Failed to report sale to METRC");
+    }
+  };
+
   const createOrder = async (
     paymentPayload = null,
     overrideProxyPin = undefined,
@@ -672,6 +688,12 @@ export default function TotalCard({
           receiptNote: quoteBody?.receiptNote,
         });
         toast.success("Order placed successfully");
+        if (
+          res.data.data?.isAutomatedReportingEnabled &&
+          res.data.data?.shouldAttemptMetrcReporting
+        ) {
+          handleReportToMetric(saleId, sale?.deliveryMethod);
+        }
         resetSessionAfterOrder();
         setOriginalPaymentPayload(null);
       } else {
@@ -788,6 +810,13 @@ export default function TotalCard({
         setInvoiceOrderId(res.data.data.saleId);
         setCreateOrderRes(res.data.data);
         toast.success("Order placed successfully");
+        if (
+          isTerminalState &&
+          res.data.data?.isAutomatedReportingEnabled &&
+          res.data.data?.shouldAttemptMetrcReporting
+        ) {
+          handleReportToMetric(res.data.data.saleId, body?.deliveryMethod);
+        }
         resetSessionAfterOrder(false);
         router.push("/fulfillment/orderahead");
       } else {
@@ -1076,8 +1105,20 @@ export default function TotalCard({
       proxyPin: quoteBody.proxyPin,
     };
     try {
-      await createReturn(body);
+      const res = await createReturn(body);
+      const returnData = res?.data?.data;
       toast.success("Return placed successfully");
+      if (returnData?.shouldAttemptMetrcReporting && !isShareModeActive()) {
+        try {
+          await createSaleReturnReport({ shopId, id: returnData.id });
+        } catch (metrcError) {
+          toast.error(
+            metrcError?.message ||
+              metrcError?.error ||
+              "Failed to report return to METRC",
+          );
+        }
+      }
       localStorage.removeItem("orderAheadStatus");
       localStorage.removeItem("orderSource");
       window.location.reload();
@@ -1635,7 +1676,9 @@ export default function TotalCard({
             ? `${selectedCustomer.firstName || ""} ${selectedCustomer.lastName || ""}`.trim()
             : undefined
         }
-        reportToMetric={() => {}}
+        reportToMetric={(saleId) =>
+          handleReportToMetric(saleId, createOrderRes?.deliveryMethod)
+        }
         changeAmount={orderChangeAmount}
         onNewOrder={() => {
           setIsNewOrderModal(false);

@@ -239,7 +239,10 @@ export default function PaymentSidebar({
           }
         }
       } catch (error) {
-        console.error("Error fetching shop preferences:", error);
+        console.error(
+          "Error fetching shop preferences:",
+          error?.message || error?.errors || error,
+        );
       }
     };
     fetchShopPreferences();

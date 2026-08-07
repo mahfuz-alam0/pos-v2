@@ -85,16 +85,15 @@ export default function WelcomeBanner() {
     year: "numeric",
   })}`;
 
-  const chips = [];
-  if (taskCount > 0) {
-    chips.push({
+  const chips: { key: string; count: number; label: string; href?: string; icon: React.ReactNode }[] = [
+    {
       key: "tasks",
       count: taskCount,
       label: `Pending task${taskCount !== 1 ? "s" : ""}`,
       href: "/settings/tasks-listings",
       icon: <FileText className="size-4" />,
-    });
-  }
+    },
+  ];
   if (orderCount > 0) {
     chips.push({
       key: "orders",

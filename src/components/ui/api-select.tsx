@@ -31,6 +31,10 @@ interface ApiSelectProps {
   ) => Promise<{ items: ApiSelectOption[]; totalPages: number }>;
   className?: string;
   triggerClassName?: string;
+  /** Seeds the displayed label when `value` is set from outside the dropdown
+   * (e.g. right after creating a new record elsewhere and pre-selecting it),
+   * since the popup's own item list won't have been opened/loaded yet. */
+  initialLabel?: string;
 }
 
 export function ApiSelect({
@@ -40,12 +44,13 @@ export function ApiSelect({
   fetchPage,
   className,
   triggerClassName,
+  initialLabel,
 }: ApiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [items, setItems] = React.useState<ApiSelectOption[]>([]);
-  const [selectedLabel, setSelectedLabel] = React.useState<string | null>(null);
+  const [selectedLabel, setSelectedLabel] = React.useState<string | null>(initialLabel ?? null);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -77,7 +82,8 @@ export function ApiSelect({
 
   React.useEffect(() => {
     if (value == null) setSelectedLabel(null);
-  }, [value]);
+    else if (initialLabel) setSelectedLabel(initialLabel);
+  }, [value, initialLabel]);
 
   const handleScroll = () => {
     const el = listRef.current;

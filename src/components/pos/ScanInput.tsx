@@ -34,7 +34,22 @@ import { quoteApiManager } from "@/utils/quoteApiManager";
 // NOT ported (out of the product/cart scope, and depend on unported services):
 // within-store transfer drawer, breakdown-package fallback (listPackagesMinimal),
 // matrix product resolution.
-export default function ScanInput({ setAddSelected, placeholder = "Scan barcode / package ID", className = "" }) {
+export default function ScanInput({
+  setAddSelected,
+  placeholder = "Scan barcode / package ID",
+  className = "",
+  // A code captured externally (e.g. a camera-based barcode/QR scan — see
+  // BarcodeScanDialog) to feed into this field exactly like a HID scanner
+  // keystroke would. Pass { value, nonce } with a fresh nonce per scan (a
+  // timestamp works) so scanning the same code twice in a row still fires —
+  // a plain string prop wouldn't re-trigger the effect on an unchanged value.
+  scannedCode,
+}: {
+  setAddSelected?: (v: boolean) => void;
+  placeholder?: string;
+  className?: string;
+  scannedCode?: { value: string; nonce: number } | null;
+}) {
   const dispatch = useDispatch();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const quoteBody = useSelector((state: any) => state?.salesDetail);
@@ -358,6 +373,17 @@ export default function ScanInput({ setAddSelected, placeholder = "Scan barcode 
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
+
+  // Externally-captured code (camera scan) — same handling as a pasted value.
+  useEffect(() => {
+    const value = scannedCode?.value?.trim();
+    if (!value) return;
+    setInputValue(value);
+    if (value.length >= 5) {
+      setTimeout(() => fetchSellablePackages(value), 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedCode?.nonce]);
 
   return (
     <div className="w-full">

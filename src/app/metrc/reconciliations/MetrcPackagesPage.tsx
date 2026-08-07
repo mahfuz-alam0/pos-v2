@@ -218,7 +218,7 @@ export default function MetrcPackagesPage() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+      <div className="flex w-full flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb>
             <BreadcrumbList>
@@ -622,14 +622,12 @@ export default function MetrcPackagesPage() {
         />
       </div>
 
-      {openId && (
-        <PackageDetailsPanel
-          id={openId}
-          onClose={closeDetail}
-          onChanged={() => loadPackages(pagination.current, pagination.pageSize)}
-          locationMap={{}}
-        />
-      )}
+      <PackageDetailsPanel
+        id={openId}
+        onClose={closeDetail}
+        onChanged={() => loadPackages(pagination.current, pagination.pageSize)}
+        locationMap={{}}
+      />
 
       <MetrcActivityDrawer open={activityOpen} onClose={() => setActivityOpen(false)} />
 

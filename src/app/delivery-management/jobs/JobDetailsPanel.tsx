@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
-import { fetchSingleDeliveryJob } from "@/services/deliveryJobs/getSingle";
 import { useShop } from "@/context/shop-context";
+import { fetchSingleDeliveryJob } from "@/services/deliveryJobs/getSingle";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const TERMINAL_STATUSES = ["COMPLETED", "DISMISSED", "FAILED"];
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   WAITING_TO_START: "outline",
@@ -25,6 +28,12 @@ function formatDate(v?: string | null) {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
 }
 
+const METRC_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  SUCCESS: "default",
+  PENDING: "secondary",
+  FAILED: "destructive",
+};
+
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex items-start gap-2 border-b border-foreground/5 pb-2">
@@ -37,9 +46,28 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 interface JobDetailsPanelProps {
   jobId: string | number;
   onClose: () => void;
+  refreshTick?: number;
+  className?: string;
+  onEdit?: (job: any) => void;
+  onStart?: (job: any) => void;
+  onComplete?: (job: any) => void;
+  onDismiss?: (job: any) => void;
+  onMarkFailed?: (job: any) => void;
+  onDelete?: (job: any) => void;
 }
 
-export default function JobDetailsPanel({ jobId, onClose }: JobDetailsPanelProps) {
+export default function JobDetailsPanel({
+  jobId,
+  onClose,
+  refreshTick,
+  className,
+  onEdit,
+  onStart,
+  onComplete,
+  onDismiss,
+  onMarkFailed,
+  onDelete,
+}: JobDetailsPanelProps) {
   const { shopId } = useShop();
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -51,10 +79,10 @@ export default function JobDetailsPanel({ jobId, onClose }: JobDetailsPanelProps
       .then((res) => setJob(res?.data ?? null))
       .catch(() => toast.error("Failed to load job details"))
       .finally(() => setLoading(false));
-  }, [jobId, shopId]);
+  }, [jobId, shopId, refreshTick]);
 
   return (
-    <div className="flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
+    <div className={cn("flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10", className)}>
       <div className="flex items-center justify-between px-4 py-3">
         <h2 className="text-sm font-semibold">Job Details</h2>
         <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
@@ -82,6 +110,65 @@ export default function JobDetailsPanel({ jobId, onClose }: JobDetailsPanelProps
               <Badge variant={STATUS_VARIANT[job.status] || "outline"} className="ml-auto">
                 {job.status?.replace(/_/g, " ")}
               </Badge>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={TERMINAL_STATUSES.includes(job.status)}
+                  onClick={() => onEdit(job)}>
+                  Edit
+                </Button>
+              )}
+              {onStart && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={["IN_PROGRESS", ...TERMINAL_STATUSES].includes(job.status)}
+                  onClick={() => onStart(job)}>
+                  Start
+                </Button>
+              )}
+              {onComplete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={TERMINAL_STATUSES.includes(job.status)}
+                  onClick={() => onComplete(job)}>
+                  Complete
+                </Button>
+              )}
+              {onDismiss && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={TERMINAL_STATUSES.includes(job.status)}
+                  onClick={() => onDismiss(job)}>
+                  Dismiss
+                </Button>
+              )}
+              {onMarkFailed && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={TERMINAL_STATUSES.includes(job.status)}
+                  onClick={() => onMarkFailed(job)}>
+                  Mark as Failed
+                </Button>
+              )}
+              {onDelete && ["DISMISSED", "COMPLETED"].includes(job.status) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => onDelete(job)}>
+                  Delete
+                </Button>
+              )}
             </div>
 
             <div>
@@ -114,28 +201,37 @@ export default function JobDetailsPanel({ jobId, onClose }: JobDetailsPanelProps
               </div>
             </div>
 
-            <div>
-              <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Job Info</p>
-              <div className="flex flex-col gap-2">
-                <Row label="Cycle Count" value={job.cycleCount != null ? String(job.cycleCount) : null} />
-                <Row label="Created" value={formatDate(job.createdAt)} />
-                <Row label="Updated" value={formatDate(job.updatedAt)} />
-              </div>
-            </div>
-
-            {(job.initiationDocumentUrls?.length > 0 || job.completionDocumentUrls?.length > 0) && (
+            {job.metrcReportingLogs?.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Documents</p>
-                <div className="flex flex-col gap-2">
-                  {job.initiationDocumentUrls?.map((url: string, i: number) => (
-                    <a key={`init-${i}`} href={url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
-                      Initiation Document {i + 1}
-                    </a>
-                  ))}
-                  {job.completionDocumentUrls?.map((url: string, i: number) => (
-                    <a key={`comp-${i}`} href={url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
-                      Completion Document {i + 1}
-                    </a>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">METRC Reporting</p>
+                  {job.metrcReportingStatus && (
+                    <Badge variant={METRC_STATUS_VARIANT[job.metrcReportingStatus] || "outline"}>
+                      {job.metrcReportingStatus}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex flex-col gap-3">
+                  {[...job.metrcReportingLogs].reverse().map((log: any, i: number) => (
+                    <div
+                      key={i}
+                      className={`border-l-2 pl-3 ${log.status === "FAILED" ? "border-destructive/40" : "border-primary/30"}`}>
+                      <div className="flex items-center gap-1.5">
+                        {log.status === "FAILED" && <AlertTriangle className="size-3 text-destructive" />}
+                        <p className="text-sm font-medium">{log.step?.replace(/_/g, " ")}</p>
+                        <Badge variant={METRC_STATUS_VARIANT[log.status] || "outline"} className="ml-auto">
+                          {log.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{formatDate(log.timestamp)}</p>
+                      {log.payloadResponse?.length > 0 && (
+                        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+                          {log.payloadResponse.map((p: any, idx: number) => (
+                            <li key={idx}>{p.message}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

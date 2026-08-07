@@ -11,8 +11,8 @@ export interface PackageRow {
   name?: string;
   metrcTag?: string;
   metrQuantity?: number;
-  brand?: { id: string; name: string } | null;
-  category?: { id: string; name: string } | null;
+  productBrand?: string | null;
+  productCategory?: string | null;
   originalQuantity?: number;
   quantityLeft?: number;
   uoMShortForm?: string;
@@ -27,6 +27,8 @@ export interface PackageRow {
   updatedAt?: string;
   hasMETRCDiscrepancy?: boolean;
   storageLocationBreakdown?: StorageLocationBreakdown;
+  unitCost?: number | null;
+  effectiveUnitCost?: number | null;
   projectedQtyConversionRate?: number;
   supplierId?: string;
   productId?: string;
@@ -120,6 +122,7 @@ export interface PackageDetail {
   supplierName?: string;
   category?: { id: string; name: string } | null;
   brand?: { id: string; name: string } | null;
+  inventoryId?: string | null;
   originalQuantity?: number;
   quantityLeft?: number;
   uoMShortForm?: string;

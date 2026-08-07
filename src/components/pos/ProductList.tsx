@@ -30,7 +30,7 @@ import SkeletonLoader from "@/components/pos/SkeletonLoader";
 import ProductGridView from "@/components/pos/ProductGridView";
 import ProductDetailPanel from "@/components/pos/ProductDetailPanel";
 import ScanInput from "@/components/pos/ScanInput";
-import PhotoCheckinDialog from "@/components/settings/verify/PhotoCheckinDialog";
+import BarcodeScanDialog from "@/components/pos/BarcodeScanDialog";
 
 import { listInventories } from "@/services/inventories/listInventories";
 import { listBrands } from "@/services/classifications/listBrands";
@@ -102,7 +102,11 @@ export default function ProductList({
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [scanDlBarcodeOpen, setScanDlBarcodeOpen] = useState(false);
+  const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
+  const [scannedCode, setScannedCode] = useState<{
+    value: string;
+    nonce: number;
+  } | null>(null);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [brandSearchQuery, setBrandSearchQuery] = useState("");
 
@@ -147,9 +151,16 @@ export default function ProductList({
         .then((res) => {
           if (!mountedRef.current) return res.data;
           const { inventories } = res.data.data;
-          setProductsData((prev) =>
-            append ? [...prev, ...inventories] : inventories,
-          );
+          setProductsData((prev) => {
+            if (!append) return inventories;
+            // Defensive dedupe — a page fetched twice (e.g. a fast
+            // re-intersection of the infinite-scroll sentinel) or backend
+            // pagination overlap would otherwise append the same product id
+            // twice, which React then reports as a duplicate key.
+            const seen = new Set(prev.map((p) => p.id));
+            const deduped = inventories.filter((p) => !seen.has(p.id));
+            return [...prev, ...deduped];
+          });
           const { limit, totalPages, totalEntries, currentPage } =
             res.data.data.paginationData || {};
           setPaginationData({
@@ -226,6 +237,16 @@ export default function ProductList({
 
   const handleSearch = (value) =>
     fetchProductsData(buildBaseParams(activeFiltersRef.current, value));
+
+  // Auto-search as the user types — debounced 0.5s, and only once there are
+  // at least 2 characters (avoids firing a search on every single keystroke
+  // for a 1-character query, which is rarely useful and just churns the API).
+  useEffect(() => {
+    if (searchTerm !== "product" || searchQuery.length < 2) return;
+    const timer = setTimeout(() => handleSearch(searchQuery), 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, searchTerm]);
 
   // Toggle behaviour: clicking an already-selected chip removes just that
   // filter; clicking "all" clears the whole group; clicking any other chip
@@ -458,6 +479,7 @@ export default function ProductList({
               setAddSelected={setAddSelected}
               placeholder="Scan package id"
               className="h-12 border-white/20 bg-[#00152B] text-base text-white placeholder:text-white/50"
+              scannedCode={scannedCode}
             />
           </div>
         )}
@@ -467,9 +489,12 @@ export default function ProductList({
             variant="outline"
             size="icon"
             className="h-12 w-12 shrink-0 border-white/20 bg-[#00152B] text-white hover:bg-[#038FDE] hover:text-white [&_svg]:size-5"
-            aria-label="Scan Driver's License Barcode"
-            title="Scan Driver's License Barcode"
-            onClick={() => setScanDlBarcodeOpen(true)}>
+            aria-label="Scan Barcode / QR Code"
+            title="Scan Barcode / QR Code"
+            onClick={() => {
+              setSearchTerm("package");
+              setBarcodeScanOpen(true);
+            }}>
             <Camera />
           </Button>
           <Button
@@ -569,10 +594,13 @@ export default function ProductList({
         </div>
       </div>
 
-      <PhotoCheckinDialog
-        open={scanDlBarcodeOpen}
-        onOpenChange={setScanDlBarcodeOpen}
-        mode="dl-back"
+      <BarcodeScanDialog
+        open={barcodeScanOpen}
+        onClose={() => setBarcodeScanOpen(false)}
+        onScan={(text) => {
+          setBarcodeScanOpen(false);
+          setScannedCode({ value: text, nonce: Date.now() });
+        }}
       />
 
       {/* Filter by category / brand */}
@@ -722,86 +750,86 @@ export default function ProductList({
 
       {/* Listing */}
       <div className="flex min-h-0 flex-1">
-      <div className="min-h-0 flex-1 overflow-auto">
-        {loading ? (
-          <SkeletonLoader rows={6} />
-        ) : view === "list" ? (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="px-2 py-2">Product</th>
-                  <th className="px-2 py-2">Total QTY</th>
-                  <th className="px-2 py-2">Sellable QTY</th>
-                  <th className="px-2 py-2">Price</th>
-                  <th className="px-2 py-2 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productsData.map((record) => (
-                  <tr key={record.id} className="border-b">
-                    <td className="px-2 py-2">{record?.productName}</td>
-                    <td className="px-2 py-2">
-                      {record?.totalQuantity} {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">
-                      {record?.totalActiveQuantity}{" "}
-                      {record.sellableUoMShortForm}
-                    </td>
-                    <td className="px-2 py-2">${record?.unitPrice}</td>
-                    <td className="px-2 py-2 text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          fetchSellablePackages(record?.productId);
-                          setShowDetail(true);
-                          setFetchModalProductDetails(record);
-                          setSelectedRowKeys([]);
-                        }}>
-                        Packages
-                      </Button>
-                    </td>
+        <div className="min-h-0 flex-1 overflow-auto">
+          {loading ? (
+            <SkeletonLoader rows={6} />
+          ) : view === "list" ? (
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="px-2 py-2">Product</th>
+                    <th className="px-2 py-2">Total QTY</th>
+                    <th className="px-2 py-2">Sellable QTY</th>
+                    <th className="px-2 py-2">Price</th>
+                    <th className="px-2 py-2 text-center">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <ProductGridView
-            data={productsData}
-            hasMore={hasMoreProducts}
-            loadingMore={loadingMore}
-            onLoadMore={handleLoadMore}
-            setShowDetail={setShowDetail}
-            fetchSellablePackages={fetchSellablePackages}
-            setSelectedRowKeys={setSelectedRowKeys}
-            setFetchModalProductDetails={setFetchModalProductDetails}
-          />
-        )}
-      </div>
-
-      {onToggleCartPanel && (
-        <button
-          type="button"
-          onClick={onToggleCartPanel}
-          title={cartPanelOpen ? "Hide cart" : "Show cart"}
-          className="z-10 mx-1.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-[#038FDE] hover:text-white">
-          {cartPanelOpen ? (
-            <ChevronRight className="h-5 w-5" />
+                </thead>
+                <tbody>
+                  {productsData.map((record) => (
+                    <tr key={record.id} className="border-b">
+                      <td className="px-2 py-2">{record?.productName}</td>
+                      <td className="px-2 py-2">
+                        {record?.totalQuantity} {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">
+                        {record?.totalActiveQuantity}{" "}
+                        {record.sellableUoMShortForm}
+                      </td>
+                      <td className="px-2 py-2">${record?.unitPrice}</td>
+                      <td className="px-2 py-2 text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            fetchSellablePackages(record?.productId);
+                            setShowDetail(true);
+                            setFetchModalProductDetails(record);
+                            setSelectedRowKeys([]);
+                          }}>
+                          Packages
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <ChevronLeft className="h-5 w-5" />
+            <ProductGridView
+              data={productsData}
+              hasMore={hasMoreProducts}
+              loadingMore={loadingMore}
+              onLoadMore={handleLoadMore}
+              setShowDetail={setShowDetail}
+              fetchSellablePackages={fetchSellablePackages}
+              setSelectedRowKeys={setSelectedRowKeys}
+              setFetchModalProductDetails={setFetchModalProductDetails}
+            />
           )}
-        </button>
-      )}
-
-      {cartPanel && (
-        <div
-          className={`h-full shrink-0 overflow-hidden transition-[max-width] duration-300 ease-in-out ${
-            cartPanelOpen ? "max-w-105" : "max-w-0"
-          }`}>
-          {cartPanel}
         </div>
-      )}
+
+        {onToggleCartPanel && (
+          <button
+            type="button"
+            onClick={onToggleCartPanel}
+            title={cartPanelOpen ? "Hide cart" : "Show cart"}
+            className="z-10 mx-1.5 flex h-16 w-5 shrink-0 self-center items-center justify-center rounded-xl border border-border bg-card shadow-sm transition-colors hover:bg-[#038FDE] hover:text-white">
+            {cartPanelOpen ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </button>
+        )}
+
+        {cartPanel && (
+          <div
+            className={`h-full shrink-0 overflow-hidden transition-[max-width] duration-300 ease-in-out ${
+              cartPanelOpen ? "max-w-105" : "max-w-0"
+            }`}>
+            {cartPanel}
+          </div>
+        )}
       </div>
 
       {/* Product details — full-screen instead of replacing the grid in place */}

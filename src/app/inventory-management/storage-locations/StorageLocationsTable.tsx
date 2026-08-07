@@ -9,7 +9,6 @@ import { useShop } from "@/context/shop-context";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -116,7 +115,7 @@ export default function StorageLocationsTable() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Storage Locations</BreadcrumbPage>
+                <BreadcrumbPage className="text-primary">Storage Location</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -132,8 +131,8 @@ export default function StorageLocationsTable() {
               <TableRow className="bg-muted/60">
                 <TableHead>Location Name</TableHead>
                 <TableHead>Default Package Destination</TableHead>
-                <TableHead>Sellable In Physical Store</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Open For Sellable In Physical Store</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,20 +173,13 @@ export default function StorageLocationsTable() {
                         {row.name}
                       </button>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={row.openForAcceptingTransfers ? "default" : "secondary"}>
-                        {row.openForAcceptingTransfers ? "Yes" : "No"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={row.isSellableOnPhysicalStore ? "default" : "secondary"}>
-                        {row.isSellableOnPhysicalStore ? "Yes" : "No"}
-                      </Badge>
-                    </TableCell>
+                    <TableCell>{row.openForAcceptingTransfers ? "yes" : "no"}</TableCell>
+                    <TableCell>{row.isSellableOnPhysicalStore ? "yes" : "no"}</TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon-sm"
+                        className="text-primary hover:text-primary"
                         onClick={() => setDrawer({ open: true, mode: "edit", locationId: row.id })}
                       >
                         <Pencil />

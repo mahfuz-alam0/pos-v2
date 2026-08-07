@@ -29,6 +29,9 @@ export async function loginWithBackendAndPersist({
   const userInfo = res?.data?.userInfo;
   if (userInfo) {
     localStorage.setItem("userInfo", JSON.stringify(userInfo));
+    const orgScopes = userInfo?.orgFeatureScopes || [];
+    const isCaliforniaState = orgScopes.includes("METRC_CALI") || orgScopes.includes("METRC_CA");
+    localStorage.setItem("isCaliforniaState", isCaliforniaState ? "true" : "false");
   }
 
   const ecomRes = await getEcomAccessToken();

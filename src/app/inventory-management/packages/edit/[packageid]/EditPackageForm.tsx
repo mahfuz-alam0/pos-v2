@@ -6,12 +6,15 @@ import { toast } from "sonner";
 import { FileText, QrCode } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { fetchSinglePackage } from "@/services/packages/getSingle";
 import { updatePackage, updateCannabisPackage } from "@/services/packages/update";
+import { pullPackageCoa } from "@/services/packages/pullCoa";
 import { listUoms } from "@/services/uoms/listUoms";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchBrandsList } from "@/services/brands/list";
 
+import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -204,13 +207,31 @@ function disablePastDates(date: Date) {
   return date < today;
 }
 
-export default function EditPackageForm({ packageId }: { packageId: string }) {
+export default function EditPackageForm({
+  packageId,
+  open,
+  onClose,
+  onSaved,
+}: {
+  packageId: string | null;
+  /** Pass this (even `false`) to render as a slide-in Drawer instead of a full page. */
+  open?: boolean;
+  onClose?: () => void;
+  onSaved?: () => void;
+}) {
   const router = useRouter();
   const { shopId } = useShop();
+  const metrcMechanism = useFeatureAccess();
+  const isDrawerMode = open !== undefined;
+  const closeOrNavigate = () => {
+    if (onClose) onClose();
+    else router.push("/inventory-management/packages");
+  };
 
   const [packageDetail, setPackageDetail] = useState<PackageDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pullCoaLoading, setPullCoaLoading] = useState(false);
   const [values, setValues] = useState<FormState>(EMPTY_STATE);
   const [uomLists, setUomLists] = useState<UomOption[]>([]);
   const [documents, setDocuments] = useState<UploadedDoc[]>([]);
@@ -421,7 +442,8 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
       await (isMetrc ? updateCannabisPackage(body) : updatePackage(body));
 
       toast.success("Package updated successfully");
-      router.push("/inventory-management/packages");
+      if (onSaved) onSaved();
+      else router.push("/inventory-management/packages");
     } catch (err: any) {
       const validationErrors = err?.childValidationErrors || err?.validationErrors || err?.error?.data?.errors || err?.data?.data?.errors;
       if (Array.isArray(validationErrors) && validationErrors.length > 0) {
@@ -440,21 +462,58 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
     }
   };
 
+  const handlePullCoa = async () => {
+    if (!packageId || !shopId) return;
+    setPullCoaLoading(true);
+    try {
+      await pullPackageCoa(packageId, shopId as string);
+      toast.success("COA pulled from Metrc successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to pull COA");
+    } finally {
+      setPullCoaLoading(false);
+    }
+  };
+
   const thcCbdUnit = values.testUom === "PERCENTAGE" ? "%" : "mg";
 
+  const skeleton = (
+    <div className="flex flex-col gap-4 p-6">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+  );
+
   if (loading) {
-    return (
-      <div className="flex flex-col gap-4 p-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-96 w-full" />
-      </div>
+    return isDrawerMode ? (
+      <Drawer open={!!open} onClose={onClose} side="right" size="76vw">
+        {skeleton}
+      </Drawer>
+    ) : (
+      skeleton
     );
   }
 
-  return (
-    <TooltipProvider>
-      <div className="flex flex-col gap-4 p-6">
-        <div className="flex items-center justify-between">
+  const headerBar = isDrawerMode ? (
+    <div className="flex items-center justify-between border-b border-border p-5 pb-4">
+      <h2 className="text-base font-semibold text-foreground/70">Edit Package</h2>
+      <div className="flex gap-2 [&_button]:h-9! [&_button]:px-5! [&_button]:text-[14px]!">
+        <Button onClick={handleSubmit} disabled={saving}>
+          {saving ? "Saving..." : "Save"}
+        </Button>
+        {isMetrc && !!metrcMechanism && (
+          <Button variant="outline" onClick={handlePullCoa} disabled={pullCoaLoading}>
+            <FileText className="size-3.5" />
+            {pullCoaLoading ? "Pulling..." : "Pull COA"}
+          </Button>
+        )}
+        <Button variant="outline" onClick={closeOrNavigate}>
+          Close
+        </Button>
+      </div>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -479,10 +538,13 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
             </Button>
           </div>
         </div>
+  );
 
+  const formBody = (
+    <>
         {/* Basic Package Information */}
-        <div className="rounded-xl bg-muted/40 p-5 ring-1 ring-foreground/10">
-          <h3 className="mb-4 text-base font-semibold">Basic Package Information</h3>
+        <div className="rounded-xl bg-muted/40 p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground/70">Basic Package Information</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {isMetrc ? (
               <>
@@ -720,7 +782,7 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
         </div>
 
         {/* THC/CBD Analysis */}
-        <div className="rounded-xl bg-muted/40 p-5 ring-1 ring-foreground/10">
+        <div className="rounded-xl bg-muted/40 p-5 shadow-sm">
           <h3 className="mb-4 text-base font-semibold">THC/CBD Analysis</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Field label="THC/CBD UoM">
@@ -793,7 +855,7 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Test Information */}
-          <div className="rounded-xl bg-muted/40 p-5 ring-1 ring-foreground/10">
+          <div className="rounded-xl bg-muted/40 p-5 shadow-sm">
             <h3 className="mb-4 text-base font-semibold">Test Information</h3>
             <div className="flex flex-col gap-4">
               <Field label="Test Facility">
@@ -826,7 +888,7 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
           </div>
 
           {/* Other Package Information */}
-          <div className="rounded-xl bg-muted/40 p-5 ring-1 ring-foreground/10">
+          <div className="rounded-xl bg-muted/40 p-5 shadow-sm">
             <h3 className="mb-4 text-base font-semibold">Other Package Information</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Manufactured Date">
@@ -855,7 +917,7 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
         </div>
 
         {/* Documents & QR Codes */}
-        <div className="rounded-xl bg-muted/40 p-5 ring-1 ring-foreground/10">
+        <div className="rounded-xl bg-muted/40 p-5 shadow-sm">
           <h3 className="mb-4 text-base font-semibold">Documents & QR Codes</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="COA DOC (Upload Documents)">
@@ -881,11 +943,30 @@ export default function EditPackageForm({ packageId }: { packageId: string }) {
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={saving}>
+          <Button className="h-9! px-5! text-[14px]!" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </Button>
         </div>
-      </div>
+    </>
+  );
+
+  return (
+    <TooltipProvider>
+      {isDrawerMode ? (
+        <Drawer open={!!open} onClose={onClose} side="right" size="76vw">
+          <div className="flex h-full flex-col bg-[#F9F9F9]">
+            {headerBar}
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5 [&_.bg-transparent]:bg-white [&_.h-8]:h-9 [&_[data-slot=input]]:h-9 [&_[data-slot=select-trigger]]:h-9">
+              {formBody}
+            </div>
+          </div>
+        </Drawer>
+      ) : (
+        <div className="flex flex-col gap-4 p-6">
+          {headerBar}
+          {formBody}
+        </div>
+      )}
     </TooltipProvider>
   );
 }
@@ -905,7 +986,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="mb-1 flex items-center gap-1 text-sm font-medium">
+      <label className="mb-1.5 flex items-center gap-1 text-sm font-normal text-foreground/70">
         {label}
         {required && <span className="text-destructive">*</span>}
         {tooltip && (

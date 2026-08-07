@@ -32,8 +32,8 @@ function toCsvRow(item: PackageRow) {
   return [
     `"${item.advertisedId ?? ""}"`,
     `"${item.name ?? ""}"`,
-    `"${item.brand?.name ?? "-"}"`,
-    `"${item.category?.name ?? "-"}"`,
+    `"${item.productBrand ?? "-"}"`,
+    `"${item.productCategory ?? "-"}"`,
     `${item.originalQuantity ?? "-"} ${item.uoMShortForm ?? ""}`,
     `${item.quantityLeft ?? "-"} ${item.uoMShortForm ?? ""}`,
     `${item.metrQuantity ?? "-"} ${item.uoMShortForm ?? ""}`,
@@ -58,8 +58,8 @@ export async function exportPackagesToXLS(rows: PackageRow[]) {
   const excelData = rows.map((item) => ({
     "Package ID": item.advertisedId ?? "",
     "Package Name": item.name ?? "",
-    "Original Brand": item.brand?.name ?? "-",
-    "Original Category": item.category?.name ?? "-",
+    "Original Brand": item.productBrand ?? "-",
+    "Original Category": item.productCategory ?? "-",
     "Original Qty": `${item.originalQuantity ?? "-"} ${item.uoMShortForm ?? ""}`,
     "Qty Left": `${item.quantityLeft ?? "-"} ${item.uoMShortForm ?? ""}`,
     "Metrc Qty": `${item.metrQuantity ?? "-"} ${item.uoMShortForm ?? ""}`,

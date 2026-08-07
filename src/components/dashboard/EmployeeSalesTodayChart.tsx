@@ -5,7 +5,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Bar, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, LabelList } from "recharts";
 import { useShop } from "@/context/shop-context";
 import { fetchSalesByEmployee } from "@/services/reporting/salesByEmployee";
+import { fetchAccessControlledEmployees } from "@/services/employees/listAccessControlled";
 import { nowInShopTimezone, formatCurrency } from "@/util/dateUtil";
+import { ApiSelect } from "@/components/ui/api-select";
 
 const REVENUE_COLOR = "#14b8a6";
 const ORDERS_COLOR = "#f97316";
@@ -33,6 +35,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] 
 
 export default function EmployeeSalesTodayChart({
   employeeId,
+  onEmployeeChange,
 }: {
   employeeId?: string | null
   onEmployeeChange?: (id: string | null) => void
@@ -56,7 +59,7 @@ export default function EmployeeSalesTodayChart({
           ...(employeeId ? { responsibleEmployeeId: employeeId } : {}),
         };
         const response = await fetchSalesByEmployee(params);
-        setRows(Array.isArray(response?.data) ? response.data : []);
+        setRows(Array.isArray(response?.data?.data) ? response.data.data : []);
       } catch (err) {
         console.error("Error fetching employee sales:", err);
         setRows([]);
@@ -106,12 +109,24 @@ export default function EmployeeSalesTodayChart({
   const dateShort = new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
   return (
-    <div className="h-full rounded-xl border border-border bg-component-bg">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
-        <span className="text-base font-semibold text-text">
+    <div className="h-full rounded-xl bg-component-bg shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-5">
+        <span className="text-lg font-normal text-text">
           Today&apos;s Sales by Employee &mdash; <span className="text-[#2A9D8F]">{dateLabel}</span>
         </span>
         <div className="flex flex-wrap items-center gap-2">
+          <ApiSelect
+            placeholder="Select Employee"
+            value={employeeId ?? null}
+            onChange={(val) => onEmployeeChange?.(val ? String(val) : null)}
+            fetchPage={async (page, search) => {
+              const res = await fetchAccessControlledEmployees(20, page, search);
+              return {
+                items: (res?.data?.employees ?? []).map((e: any) => ({ id: String(e.id), name: e.name })),
+                totalPages: res?.data?.paginationData?.totalPages ?? 1,
+              };
+            }}
+          />
           <button
             onClick={goToPrev}
             className="flex items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 py-1 text-sm font-medium text-[#2A9D8F]"
