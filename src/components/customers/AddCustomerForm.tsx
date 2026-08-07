@@ -421,25 +421,30 @@ export default function AddCustomerForm({
   const handleFrontDlFile = async (file: File) => {
     const uploaded = await uploadAnySingleFile(file);
     if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
-    const res = await fetch("/api/pixlab-docscan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        img: uploaded.downloadUrl,
-        type: "driver_license",
-        country: "usa",
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok || !(json?.status === 200 || json?.doc)) {
-      throw new Error(json?.message || "Failed to extract information");
-    }
-    applyScannedFields(normalizeOcrDoc(json.doc || {}, false));
+    // Save the photo regardless of OCR outcome — extraction is a bonus, not a gate.
     setDocumentImages((prev) => ({
       ...prev,
       drivingLicenseFrontImage: uploaded.downloadUrl,
     }));
-    toast.success("License details extracted — review and save.");
+    try {
+      const res = await fetch("/api/pixlab-docscan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          img: uploaded.downloadUrl,
+          type: "driver_license",
+          country: "usa",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !(json?.status === 200 || json?.doc)) {
+        throw new Error(json?.message || "Failed to extract information");
+      }
+      applyScannedFields(normalizeOcrDoc(json.doc || {}, false));
+      toast.success("License details extracted — review and save.");
+    } catch (err: any) {
+      toast.error(err?.message || "Photo saved, but details couldn't be auto-extracted.");
+    }
   };
 
   const handleBackDlFile = async (file: File, dataUrl: string) => {
@@ -447,53 +452,62 @@ export default function AddCustomerForm({
       uploadAnySingleFile(file),
       loadImageFromSrc(dataUrl),
     ]);
-    const raw = await decodeBarcodeFromImage(img);
-    if (!raw)
-      throw new Error(
-        "No barcode found. Try a clearer, well-lit photo of the card back.",
-      );
-    const data = parseDLBarcode(raw);
-    if (!data)
-      throw new Error("Could not read DL data from the barcode. Try again.");
-    applyScannedFields({
-      firstName: data.firstName || "",
-      lastName: data.lastName || "",
-      drivingLicense: data.licenseId || "",
-      dob: data.dob || "",
-      drivingLicenseExpiry: data.expiry || "",
-      streetAddress: data.address || "",
-      city: data.city || "",
-      state: data.state || "",
-      zipCode: data.postal_code || "",
-      sex: data.sex || "",
-    });
-    if (uploaded?.downloadUrl) {
-      setDocumentImages((prev) => ({
-        ...prev,
-        drivingLicenseBackImage: uploaded.downloadUrl,
-      }));
+    if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+    // Save the photo regardless of barcode-decode outcome — extraction is a bonus, not a gate.
+    setDocumentImages((prev) => ({
+      ...prev,
+      drivingLicenseBackImage: uploaded.downloadUrl,
+    }));
+    try {
+      const raw = await decodeBarcodeFromImage(img);
+      if (!raw)
+        throw new Error(
+          "No barcode found. Try a clearer, well-lit photo of the card back.",
+        );
+      const data = parseDLBarcode(raw);
+      if (!data)
+        throw new Error("Could not read DL data from the barcode. Try again.");
+      applyScannedFields({
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        drivingLicense: data.licenseId || "",
+        dob: data.dob || "",
+        drivingLicenseExpiry: data.expiry || "",
+        streetAddress: data.address || "",
+        city: data.city || "",
+        state: data.state || "",
+        zipCode: data.postal_code || "",
+        sex: data.sex || "",
+      });
+      toast.success("Barcode scanned — review and save.");
+    } catch (err: any) {
+      toast.error(err?.message || "Photo saved, but the barcode couldn't be read.");
     }
-    toast.success("Barcode scanned — review and save.");
   };
 
   const handleMedIdFile = async (file: File) => {
     const uploaded = await uploadAnySingleFile(file);
     if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
-    const res = await fetch("/api/pixlab-medidscan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ img: uploaded.downloadUrl }),
-    });
-    const json = await res.json();
-    if (!res.ok || !(json?.status === 200 || json?.doc)) {
-      throw new Error(json?.message || "Failed to extract information");
-    }
-    applyScannedFields(normalizeOcrDoc(json.doc || {}, true));
+    // Save the photo regardless of OCR outcome — extraction is a bonus, not a gate.
     setDocumentImages((prev) => ({
       ...prev,
       medicalLicenseImage: uploaded.downloadUrl,
     }));
-    toast.success("Medical ID details extracted — review and save.");
+    try {
+      const res = await fetch("/api/pixlab-medidscan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ img: uploaded.downloadUrl }),
+      });
+      const json = await res.json();
+      if (!res.ok || !(json?.status === 200 || json?.doc)) {
+        throw new Error(json?.message || "Failed to extract information");
+      }
+      applyScannedFields(normalizeOcrDoc(json.doc || {}, true));
+      toast.success("Medical ID details extracted — review and save.");
+    } catch (err: any) {
+      toast.error(err?.message || "Photo saved, but details couldn't be auto-extracted.");
+    }
   };
 
   const toggleGroup = (groupId) => {

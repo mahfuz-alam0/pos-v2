@@ -64,30 +64,32 @@ export default function ConversionStats() {
   }, [shopId, timeframe]);
 
   return (
-    <div className="h-full min-w-0 rounded-xl bg-component-bg shadow-md p-3">
-      <div className="flex flex-row items-center gap-3">
-        <h2 className="m-0 text-lg font-normal text-text">Conversions</h2>
-        <div className="ml-auto truncate">
-          <select
-            className="w-27.5 rounded-md border border-border bg-component-bg px-2 py-1 text-sm md:w-30 xl:w-37.5"
-            value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
-          >
-            {TIME_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-component-bg shadow-md">
+      <div className="p-3 pb-0">
+        <div className="flex flex-row items-center gap-3">
+          <h2 className="m-0 text-lg font-normal text-text">Conversions</h2>
+          <div className="ml-auto truncate">
+            <select
+              className="w-27.5 rounded-md border border-border bg-component-bg px-2 py-1 text-sm md:w-30 xl:w-37.5"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+            >
+              {TIME_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex h-32.5 items-center justify-center text-sm text-muted-foreground">Loading…</div>
+        <div className="flex h-32.5 items-center justify-center px-3 text-sm text-muted-foreground">Loading…</div>
       ) : data.length === 0 ? (
-        <div className="flex h-32.5 items-center justify-center text-sm text-muted-foreground">No Data Found</div>
+        <div className="flex h-32.5 items-center justify-center px-3 text-sm text-muted-foreground">No Data Found</div>
       ) : (
-        <div className="mt-2 h-32.5 w-full">
+        <div className="mt-2 h-32.5 w-full flex-1">
           <ResponsiveContainer width="100%" height="100%" debounce={50}>
             <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Tooltip content={<CustomTooltip />} />

@@ -132,9 +132,9 @@ export default function StorageLocations({
         <TableHeader className="[&_tr]:border-b-0">
           <TableRow className="bg-muted/60">
             <TableHead className="w-8" />
-            <TableHead>Storage Location</TableHead>
-            <TableHead>Total Quantity</TableHead>
-            <TableHead>Unit of Measurement</TableHead>
+            <TableHead className="text-muted-foreground">Storage Location</TableHead>
+            <TableHead className="text-muted-foreground">Total Quantity</TableHead>
+            <TableHead className="text-muted-foreground">Unit of Measurement</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -190,32 +190,27 @@ export default function StorageLocations({
                 </TableRow>
                 {isExpanded && (
                   <TableRow key={`${row.id}-detail`}>
-                    <TableCell colSpan={4} className="bg-muted/30 p-0">
-                      <div className="overflow-hidden rounded-lg p-4">
-                        <p className="mb-2 text-sm font-medium">Package Details</p>
-                        <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
-                          <Table>
-                            <TableHeader className="[&_tr]:border-b-0">
-                              <TableRow className="bg-muted/60">
-                                <TableHead>Platform Package ID</TableHead>
-                                <TableHead>Quantity</TableHead>
+                    <TableCell colSpan={4} className="bg-muted/30 p-4">
+                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
+                        <p className="px-4 pt-4 pb-2 text-sm font-semibold text-gray-500">Package Details:</p>
+                        <Table>
+                          <TableHeader className="[&_tr]:border-b-0">
+                            <TableRow className="border-gray-200">
+                              <TableHead className="text-gray-500">Platform Package ID</TableHead>
+                              <TableHead className="text-gray-500">Quantity</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {row.packagesBreakdown.map((pkg) => (
+                              <TableRow key={pkg.id} className="border-gray-200 text-gray-500 last:border-b-0">
+                                <TableCell>{pkg.advertisedId ?? pkg.id}</TableCell>
+                                <TableCell>
+                                  {renderQuantityWithUom(pkg.totalQuantity, selectedUoMIds[row.id] ?? row.displayUoMId)}
+                                </TableCell>
                               </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {row.packagesBreakdown.map((pkg, idx) => (
-                                <TableRow
-                                  key={pkg.id}
-                                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${idx % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
-                                >
-                                  <TableCell>{pkg.id}</TableCell>
-                                  <TableCell>
-                                    {renderQuantityWithUom(pkg.totalQuantity, selectedUoMIds[row.id] ?? row.displayUoMId)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
                     </TableCell>
                   </TableRow>

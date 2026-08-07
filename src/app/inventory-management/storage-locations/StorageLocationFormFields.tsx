@@ -2,7 +2,6 @@
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 
 const YES_NO_FIELDS: { key: string; label: string }[] = [
   { key: "isSellableOnPhysicalStore", label: "Is Sellable In Physical Store" },
@@ -28,10 +27,11 @@ export default function StorageLocationFormFields({ values, onChange }: StorageL
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <Label>
+        <Label className="text-gray-700">
           Location Name <span className="text-destructive">*</span>
         </Label>
         <Input
+          className="h-10"
           value={values.name}
           onChange={(e) => onChange({ ...values, name: e.target.value })}
           placeholder="Enter location name"
@@ -39,16 +39,26 @@ export default function StorageLocationFormFields({ values, onChange }: StorageL
       </div>
 
       {YES_NO_FIELDS.map((field) => (
-        <div key={field.key} className="flex items-center justify-between rounded-lg border border-input px-4 py-3">
-          <Label className="cursor-pointer text-sm font-medium">{field.label}</Label>
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs text-muted-foreground min-w-[24px] text-right">
-              {values[field.key] ? "Yes" : "No"}
-            </span>
-            <Switch
-              checked={!!values[field.key]}
-              onCheckedChange={(checked) => onChange({ ...values, [field.key]: checked } as StorageLocationBase)}
-            />
+        <div key={field.key} className="mt-2 flex flex-col gap-1.5">
+          <Label className="text-muted-foreground">
+            <span className="text-destructive">*</span> {field.label}
+          </Label>
+          <div className="flex gap-4">
+            {[
+              { label: "Yes", value: true },
+              { label: "No", value: false },
+            ].map((option) => (
+              <label key={option.label} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  className="accent-primary"
+                  name={field.key}
+                  checked={!!values[field.key] === option.value}
+                  onChange={() => onChange({ ...values, [field.key]: option.value } as StorageLocationBase)}
+                />
+                {option.label}
+              </label>
+            ))}
           </div>
         </div>
       ))}

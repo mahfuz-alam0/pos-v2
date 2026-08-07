@@ -224,8 +224,8 @@ export default function PackageDetailsPanel({
       toast.success("Package detached successfully");
       setDetachConfirmOpen(false);
       await refreshPackageDetails();
-    } catch {
-      toast.error("Failed to detach package");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to detach package");
     } finally {
       setDetachLoading(false);
     }

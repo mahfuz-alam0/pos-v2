@@ -28,7 +28,7 @@ import Notes from "@/components/pos/Notes";
 import AddTip from "@/components/pos/AddTip";
 import EnterPin from "@/components/pos/EnterPin";
 import PaymentSidebar from "@/components/pos/PaymentSidebar";
-import PrintReceiptModal from "@/components/pos/PrintReceiptModal";
+import PrintReceiptModal from "@/components/pos/PrintReceiptModal"
 import ReturnSummary from "@/components/pos/ReturnSummary";
 
 import {

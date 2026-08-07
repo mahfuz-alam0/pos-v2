@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ChevronDown, Info, Loader2, AlertTriangle } from "lucide-react";
+import { ChevronDown, Info, Loader2, AlertTriangle, X } from "lucide-react";
 
 import { fetchSingleInventory } from "@/services/inventories/getSingle";
 import { fetchSingleProduct } from "@/services/products/getSingle";
@@ -343,6 +343,9 @@ export default function InventoryDetailsDrawer({
               )}
             </div>
           )}
+          <Button variant="outline" size="icon" onClick={onClose} className="shrink-0">
+            <X className="size-4" />
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">

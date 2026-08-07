@@ -160,24 +160,23 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex w-full flex-col gap-4">
-        <div>
-          <h1 className="mb-1 text-2xl font-normal text-text">Purchase Orders</h1>
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <Breadcrumb>
-            <BreadcrumbList className="text-sm">
+            <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Purchase Orders</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium text-primary">Purchase Orders</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
 
-        <div className="flex flex-col gap-5 rounded-xl bg-card p-6 shadow-sm">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <Select
               items={[
@@ -275,10 +274,10 @@ export default function PurchaseOrdersPage() {
 
           {dateFilter === "custom" && <DateRangePicker value={customRange} onChange={setCustomRange} />}
 
-          <div className="overflow-hidden rounded-lg">
+          <div className="relative -mx-4">
           <Table>
-            <TableHeader className="[&_tr]:border-b-0 [&_th]:h-14 [&_th]:px-4">
-              <TableRow style={{ backgroundColor: "#FAFAFA" }}>
+            <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
+              <TableRow className="border-gray-200 hover:bg-transparent">
                 <TableHead>Transfer ID</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Status</TableHead>
@@ -288,10 +287,10 @@ export default function PurchaseOrdersPage() {
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-foreground/70 [&_td]:px-4 [&_td]:py-3.5">
+            <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
               {loading && rows.length === 0 &&
                 Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={`sk-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                  <TableRow key={`sk-${i}`} className="border-gray-200">
                     {Array.from({ length: 7 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -301,7 +300,7 @@ export default function PurchaseOrdersPage() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow className="border-b-0">
+                <TableRow>
                   <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     No purchase orders found.
                   </TableCell>
@@ -311,7 +310,7 @@ export default function PurchaseOrdersPage() {
               {rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="cursor-pointer border-b-0 bg-component-bg shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]"
+                  className="cursor-pointer border-gray-200"
                   onClick={() => openRow(row.id)}
                 >
                   <TableCell>

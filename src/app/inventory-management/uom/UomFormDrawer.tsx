@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { fetchSingleUom } from "@/services/uom/getSingle";
 import { createUom } from "@/services/uom/create";
@@ -106,16 +106,21 @@ export default function UomFormDrawer({ open, uomId, onClose, onSaved }) {
   return (
     <Drawer open={open} onClose={handleClose} side="right" size={480} zIndex={40}>
       <div className="flex h-full flex-col">
-        <div className="relative z-10 px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-          <h2 className="text-base font-semibold">
-            {isEdit ? "Edit Unit of Measurement" : "Add Unit of Measurement"}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {isEdit ? "Update the details of this unit." : "Define a new unit of measurement."}
-          </p>
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-700">
+              {isEdit ? "Edit Unit of Measurement" : "Add Unit of Measurement"}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {isEdit ? "Update the details of this unit." : "Define a new unit of measurement."}
+            </p>
+          </div>
+          <Button variant="outline" size="icon" onClick={handleClose} disabled={saving}>
+            <X className="size-4" />
+          </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="flex flex-col gap-4">
               <Skeleton className="h-9 w-full" />
@@ -128,7 +133,7 @@ export default function UomFormDrawer({ open, uomId, onClose, onSaved }) {
           )}
         </div>
 
-        <div className="relative z-10 flex justify-end gap-2 bg-muted/30 p-4 shadow-[0_-1px_3px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
           <Button variant="outline" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
