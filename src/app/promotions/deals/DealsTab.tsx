@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { useDebounce } from "@/hooks/useDebounce";
 import { fetchDealsList } from "@/services/deals/list";
@@ -78,7 +78,7 @@ export default function DealsTab() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; dealId: string | null; dealType: DealType | null }>({
+  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit" | "duplicate"; dealId: string | null; dealType: DealType | null }>({
     open: false,
     mode: "add",
     dealId: null,
@@ -275,6 +275,14 @@ export default function DealsTab() {
                         onClick={() => setDrawer({ open: true, mode: "edit", dealId: row.id, dealType: row.type })}
                       >
                         <Pencil />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        title="Duplicate"
+                        onClick={() => setDrawer({ open: true, mode: "duplicate", dealId: row.id, dealType: row.type })}
+                      >
+                        <Copy />
                       </Button>
                       <Button variant="outline" size="icon-sm" onClick={() => setDeleteTarget(row)}>
                         <Trash2 />

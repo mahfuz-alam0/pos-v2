@@ -80,7 +80,7 @@ export default function DealFormDrawer({
   onSaved,
 }: {
   open: boolean;
-  mode: "add" | "edit";
+  mode: "add" | "edit" | "duplicate";
   dealId: string | number | null;
   dealType: DealType | null;
   onClose: () => void;
@@ -123,7 +123,7 @@ export default function DealFormDrawer({
       return;
     }
 
-    if (mode === "edit" && dealId && initialDealType) {
+    if ((mode === "edit" || mode === "duplicate") && dealId && initialDealType) {
       setDealType(initialDealType);
       setLoading(true);
       const fetcher =
@@ -135,7 +135,11 @@ export default function DealFormDrawer({
             toast.error("Deal not found");
             return;
           }
-          setCommon({ name: d.name ?? "", description: d.description ?? "", imageUrl: d.imageUrl ?? null });
+          setCommon({
+            name: mode === "duplicate" ? `${d.name ?? ""} (Copy)` : d.name ?? "",
+            description: d.description ?? "",
+            imageUrl: d.imageUrl ?? null,
+          });
           setRestrictions({
             shouldConsiderCustomerTypes: !!d.shouldConsiderCustomerTypes,
             allowedCustomerTypeIds: idsOf(d.allowedCustomerTypes),
@@ -265,11 +269,11 @@ export default function DealFormDrawer({
       const commonInfo = { ...common, ...restrictions, usageRule };
       const expiryInfo = { shopBasisPromoExpiry: shopExpiry };
 
-      if (mode === "add") {
+      if (mode === "add" || mode === "duplicate") {
         if (dealType === "REGULAR") await createRegularDeal({ commonInfo, expiryInfo, regularDealInfo: regularInfo });
         else if (dealType === "BOGO") await createBogoDeal({ commonInfo, expiryInfo, bogoDealInfo: bogoInfo });
         else await createTieredDeal({ commonInfo, expiryInfo, tieredDealInfo: tieredInfo });
-        toast.success("Deal created successfully");
+        toast.success(mode === "duplicate" ? "Deal duplicated successfully" : "Deal created successfully");
       } else {
         if (dealType === "REGULAR") {
           await updateRegularDeal(dealId!, { commonInfo, regularDealInfo: regularInfo });
@@ -300,7 +304,9 @@ export default function DealFormDrawer({
             <BadgePercent className="size-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">{mode === "add" ? "Add Deal" : "Edit Deal"}</div>
+            <div className="text-base font-semibold leading-tight">
+              {mode === "add" ? "Add Deal" : mode === "duplicate" ? "Duplicate Deal" : "Edit Deal"}
+            </div>
             <div className="text-xs leading-tight text-muted-foreground">Configure discount, restrictions, and validity</div>
           </div>
           <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
