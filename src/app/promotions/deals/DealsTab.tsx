@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Copy, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
@@ -61,10 +61,15 @@ type DealFilters = {
 const DEFAULT_FILTERS: DealFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
 
 export default function DealsTab() {
-  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const openId = searchParams.get("id");
-  const openType = searchParams.get("type") as DealType | null;
+  const [openDeal, setOpenDeal] = useState<{ id: string; type: DealType } | null>(() => {
+    const id = searchParams.get("id");
+    const type = searchParams.get("type") as DealType | null;
+    return id && type ? { id, type } : null;
+  });
+  const openId = openDeal?.id ?? null;
+  const openType = openDeal?.type ?? null;
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -137,18 +142,20 @@ export default function DealsTab() {
   const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openDetail = (row: DealRow) => {
+    setOpenDeal({ id: String(row.id), type: row.type });
     const params = new URLSearchParams(searchParams.toString());
-    params.set("id", row.id);
+    params.set("id", String(row.id));
     params.set("type", row.type);
-    router.push(`?${params.toString()}`, { scroll: false });
+    window.history.pushState(null, "", `${pathname}?${params.toString()}`);
   };
 
   const closeDetail = () => {
+    setOpenDeal(null);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
     params.delete("type");
     const qs = params.toString();
-    router.push(qs ? `?${qs}` : ".", { scroll: false });
+    window.history.pushState(null, "", qs ? `${pathname}?${qs}` : pathname);
   };
 
   const handleDelete = async () => {
