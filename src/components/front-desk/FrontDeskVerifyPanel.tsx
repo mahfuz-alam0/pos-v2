@@ -41,10 +41,10 @@ function Tile({ type, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(type)}
-      className="flex flex-col items-center gap-3 rounded-xl bg-muted p-5 text-center ring-1 ring-foreground/10 transition-colors hover:ring-violet-400/40 hover:bg-violet-500/10"
+      className="flex flex-col items-center gap-3 rounded-xl bg-muted p-5 text-center ring-1 ring-foreground/10 transition-colors hover:bg-primary-soft hover:ring-primary/40"
     >
-      <div className="flex size-11 items-center justify-center rounded-lg bg-violet-500/15">
-        <Icon className="size-5 text-violet-500 dark:text-violet-300" />
+      <div className="flex size-11 items-center justify-center rounded-lg bg-primary-soft">
+        <Icon className="size-5 text-primary" />
       </div>
       <div>
         <div className="text-sm font-semibold text-foreground">{type.label}</div>
@@ -68,13 +68,13 @@ export default function FrontDeskVerifyPanel({ shopId, onCheckedIn }) {
     <div className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <IdCard className="size-4.5 text-violet-500 dark:text-violet-300" />
+          <IdCard className="size-4.5 text-primary" />
           <h2 className="text-base font-semibold text-foreground">Verify &amp; Check-In</h2>
         </div>
         <button
           type="button"
           onClick={() => setAddCustomerOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
         >
           <UserPlus className="size-4" /> Add Customer
         </button>

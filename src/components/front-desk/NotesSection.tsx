@@ -91,11 +91,11 @@ export default function NotesSection({ customerId }) {
       </div>
 
       {detail?.shouldWarnUser && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-          <TriangleAlert className="mt-0.5 h-5 w-5 text-amber-600" />
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+          <TriangleAlert className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
           <div>
-            <div className="mb-1 text-xs font-semibold tracking-wider text-amber-600 uppercase">Cashier Warning</div>
-            <div className="text-sm whitespace-pre-wrap text-gray-700">
+            <div className="mb-1 text-xs font-semibold tracking-wider text-amber-600 uppercase dark:text-amber-400">Cashier Warning</div>
+            <div className="text-sm whitespace-pre-wrap text-amber-800 dark:text-amber-200">
               {detail?.warningMessage || "This customer is flagged for a warning."}
             </div>
           </div>
@@ -103,20 +103,20 @@ export default function NotesSection({ customerId }) {
       )}
 
       {hasCurrentNote ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900 dark:bg-blue-950">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
-                <FileText className="h-5 w-5 text-blue-600" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-300" />
               </div>
               <div className="min-w-0">
-                <div className="mb-1 text-xs font-semibold tracking-wider text-blue-500 uppercase">Current Note</div>
-                {detail?.noteSubject && <div className="mb-1 text-base font-semibold text-gray-800">{detail.noteSubject}</div>}
-                <div className="text-sm whitespace-pre-wrap text-gray-600">{detail?.note || "-"}</div>
+                <div className="mb-1 text-xs font-semibold tracking-wider text-blue-500 uppercase dark:text-blue-400">Current Note</div>
+                {detail?.noteSubject && <div className="mb-1 text-base font-semibold text-foreground">{detail.noteSubject}</div>}
+                <div className="text-sm whitespace-pre-wrap text-foreground/80">{detail?.note || "-"}</div>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              {detail?.updatedAt && <span className="mr-2 text-xs whitespace-nowrap text-gray-400">{fmtDate(detail.updatedAt)}</span>}
+              {detail?.updatedAt && <span className="mr-2 text-xs whitespace-nowrap text-muted-foreground">{fmtDate(detail.updatedAt)}</span>}
               <Button variant="ghost" size="icon" onClick={() => { setNoteDraft(detail?.note || ""); setDrawerOpen(true); }}>
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -133,16 +133,16 @@ export default function NotesSection({ customerId }) {
       {previousNotes.length > 0 && (
         <div>
           <div className="mb-3 flex items-center gap-2">
-            <History className="h-4 w-4 text-gray-400" />
-            <span className="text-xs font-semibold tracking-wider text-gray-500 uppercase">Previous Notes</span>
+            <History className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Previous Notes</span>
           </div>
           <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {previousNotes.slice().reverse().map((text, i) => (
               <div key={i} className="flex items-start gap-3 p-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-gray-500">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
                   {previousNotes.length - i}
                 </span>
-                <span className="text-sm whitespace-pre-wrap text-gray-600">{text}</span>
+                <span className="text-sm whitespace-pre-wrap text-muted-foreground">{text}</span>
               </div>
             ))}
           </div>
