@@ -423,7 +423,7 @@ export default function TransfersPage() {
                   {withinRows.map((row, i) => (
                     <TableRow
                       key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                     >
                       <TableCell>
                         <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
@@ -484,7 +484,7 @@ export default function TransfersPage() {
                   {shopRows.map((row, i) => (
                     <TableRow
                       key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                     >
                       <TableCell>
                         <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
@@ -554,7 +554,7 @@ export default function TransfersPage() {
                   {supplierRows.map((row, i) => (
                     <TableRow
                       key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                     >
                       <TableCell>
                         <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
@@ -572,7 +572,7 @@ export default function TransfersPage() {
                       <TableCell className="text-right">${(row.totalPrice || 0).toLocaleString()}</TableCell>
                       <TableCell className="text-center">{row.numberOfPackages || 0}</TableCell>
                       <TableCell
-                        className={`sticky right-0 z-10 w-40 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                        className={`sticky right-0 z-10 w-40 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                       >
                         {!row.isTransit ? (
                           <AlertDialog>

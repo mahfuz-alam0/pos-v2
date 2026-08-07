@@ -178,7 +178,7 @@ export default function LoyaltyAdjustmentsTable() {
                   )}
 
                   {rows.map((row, i) => (
-                    <TableRow key={row._id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                    <TableRow key={row._id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>{format(new Date(row.date), "yyyy-MM-dd HH:mm:ss")}</TableCell>
                       <TableCell>{row.action === "add" ? "Add" : "Remove"}</TableCell>
                       <TableCell className="text-right">{row.points}</TableCell>

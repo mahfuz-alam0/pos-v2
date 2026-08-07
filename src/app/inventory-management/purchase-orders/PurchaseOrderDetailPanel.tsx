@@ -342,7 +342,7 @@ export default function PurchaseOrderDetailPanel({
                     {(po.lineItems ?? []).map((item, i) => {
                       const receivedCount = (po.receptions ?? []).filter((r) => r.lineItemId === item.id).length;
                       return (
-                        <TableRow key={item.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                        <TableRow key={item.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                           <TableCell>
                             {item.productNameSnapshot ? (
                               <div>
@@ -454,7 +454,7 @@ export default function PurchaseOrderDetailPanel({
                       </TableHeader>
                       <TableBody>
                         {po.payments!.map((payment, i) => (
-                          <TableRow key={payment.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                          <TableRow key={payment.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                             <TableCell className="text-xs text-muted-foreground">{fmtDate(payment.paidAt)}</TableCell>
                             <TableCell>
                               <Badge variant="outline">{payment.method?.replace("_", " ")}</Badge>

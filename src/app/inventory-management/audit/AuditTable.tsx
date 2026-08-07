@@ -93,7 +93,7 @@ export default function AuditTable({
         <TableBody>
           {loading &&
             Array.from({ length: 8 }).map((_, i) => (
-              <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+              <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                 {Array.from({ length: selectable ? 12 : 11 }).map((__, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-full" />
@@ -124,7 +124,7 @@ export default function AuditTable({
               const adjKey = locId ? `${record.id}-${locId}` : String(record.id);
               const scanCount = scanCounts[record.advertisedId || ""] || 0;
               const manualVal = pendingAdjustments[adjKey]?.inputValue ?? "";
-              const zebra = i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background";
+              const zebra = i % 2 === 1 ? "bg-table-zebra" : "bg-background";
 
               return (
                 <TableRow

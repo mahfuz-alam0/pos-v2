@@ -333,7 +333,7 @@ export default function ItemizedSalesReport() {
                 {rows.map((r, i) => (
                   <TableRow
                     key={`${r.saleId}-${i}`}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <TableCell className="max-w-40 truncate">{r.productName || "-"}</TableCell>
                     <TableCell>{r.timeOfSale ? format(new Date(r.timeOfSale), "yyyy-MM-dd") : "-"}</TableCell>

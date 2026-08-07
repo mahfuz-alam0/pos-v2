@@ -652,7 +652,7 @@ export default function ManageInventoriesTable() {
           <TableBody>
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -671,7 +671,7 @@ export default function ManageInventoriesTable() {
 
             {rows.length > 0 &&
               rows.map((row, i) => (
-                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="max-w-70 truncate font-medium">
                     <div className="flex min-w-0 items-center gap-1.5">
                       {row.weedmapProductId && (
@@ -743,7 +743,7 @@ export default function ManageInventoriesTable() {
                     </Badge>
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <Button
                       size="sm"

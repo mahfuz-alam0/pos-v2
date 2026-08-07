@@ -336,7 +336,7 @@ export default function JobsTable() {
                   <TableRow
                     key={row.id}
                     data-active={detailId === row.id}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   >
                     <TableCell className="font-mono text-xs">
                       <button onClick={() => setDetailId(row.id)} className="cursor-pointer text-left text-primary hover:underline">

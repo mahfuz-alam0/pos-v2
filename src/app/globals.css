@@ -18,6 +18,7 @@
   --input: var(--border);
   --muted: var(--surface-alt);
   --muted-foreground: #6b7280;
+  --table-zebra: #f5f5f4;
 }
 
 [data-mode="dark"] {
@@ -30,6 +31,7 @@
   --destructive: #f87171;
   --destructive-foreground: #1a1a1a;
   --muted-foreground: #9ca3af;
+  --table-zebra: rgba(255, 255, 255, 0.04);
 }
 
 /* Per-theme brand accents, incl. sidebar/header. All switchable, independent
@@ -191,6 +193,7 @@
   --color-sidebar-active: var(--sidebar-active);
   --color-component-bg: var(--component-bg);
   --color-border: var(--border);
+  --color-table-zebra: var(--table-zebra);
   --color-accent: var(--color-accent);
 
   --color-primary: var(--color-primary);

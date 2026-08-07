@@ -205,7 +205,7 @@ export default function StorageLocations({
                               {row.packagesBreakdown.map((pkg, idx) => (
                                 <TableRow
                                   key={pkg.id}
-                                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${idx % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${idx % 2 === 1 ? "bg-table-zebra" : ""}`}
                                 >
                                   <TableCell>{pkg.id}</TableCell>
                                   <TableCell>

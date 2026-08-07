@@ -28,7 +28,7 @@ export default function TotalSalesBreakdown({ data }: { data?: SaleTransaction[]
             {rows.map((r, i) => (
               <TableRow
                 key={`${r.paymentMethod}-${i}`}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
               >
                 <TableCell>{r.displayName || r.paymentMethod}</TableCell>
                 <TableCell className="text-right">{money(r.totalSubtotal)}</TableCell>

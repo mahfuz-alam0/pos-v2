@@ -469,7 +469,7 @@ export default function ConvertPackageDialog({
                         {storageLocationBreakdown.map((loc, i) => (
                           <tr
                             key={loc.id}
-                            className={`shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                            className={`shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                           >
                             <td className="px-3 py-2">{loc.name}</td>
                             <td className="px-3 py-2 font-mono">
@@ -631,7 +631,7 @@ export default function ConvertPackageDialog({
                             {storageLocationBreakdown.map((loc, i) => (
                               <tr
                                 key={loc.id}
-                                className={`shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                                className={`shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                               >
                                 <td className="px-3 py-2">{loc.name}</td>
                                 <td className="px-3 py-2 font-mono">{loc.derivedQuantity}</td>

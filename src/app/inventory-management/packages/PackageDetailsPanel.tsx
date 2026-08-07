@@ -94,7 +94,7 @@ function LabResultsTable({ data }: { data: NonNullable<PackageDetail["metrcData"
         </TableHeader>
         <TableBody>
           {(data ?? []).map((test, i) => (
-            <TableRow key={test.id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+            <TableRow key={test.id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
               <TableCell>{test.testName ?? "-"}</TableCell>
               <TableCell>{test.testResultLevel ?? "-"}</TableCell>
               <TableCell>{fmtDate(test.testPerformedDate)}</TableCell>
@@ -625,7 +625,7 @@ export default function PackageDetailsPanel({
                 </TableHeader>
                 <TableBody>
                   {storageLocations.map((loc, i) => (
-                    <TableRow key={loc.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                    <TableRow key={loc.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>{locationMap?.[loc.id] ?? loc.id}</TableCell>
                       <TableCell>
                         {loc.quantity} {packageDetail.uoMShortForm}
