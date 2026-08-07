@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:sidecar": "next build && node scripts/build-sidecar.mjs",
+    "tauri:build": "tauri build",
+    "tauri:dev": "tauri dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -4,19 +4,13 @@
   "version": "0.1.0",
   "identifier": "com.pos.desktop",
   "build": {
-    "frontendDist": "https://pos-web-v2.bleaum.dev/",
-    "devUrl": "https://pos-web-v2.bleaum.dev/"
+    "frontendDist": "../src-tauri/placeholder",
+    "beforeBuildCommand": "bun run build:sidecar",
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:3000"
   },
   "app": {
-    "windows": [
-      {
-        "title": "POS",
-        "width": 1440,
-        "height": 900,
-        "resizable": true,
-        "fullscreen": false
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }
@@ -24,6 +18,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": ["binaries/node"],
+    "resources": {
+      "server": "server"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
