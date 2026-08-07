@@ -509,9 +509,9 @@ export default function PackagesPage() {
         </div>
 
         {tab !== "archived" && (
-          <div className="flex flex-col gap-2.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-60">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-52">
                 <Input
                   placeholder="Scan via barcode"
                   value={barcodeInput}
@@ -523,11 +523,10 @@ export default function PackagesPage() {
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex h-10 items-center overflow-hidden rounded-lg border border-input">
                 <Input
                   placeholder="Search By.."
-                  className="h-10 placeholder:text-muted-foreground/60"
-                  style={{ width: 240 }}
+                  className="h-full w-28 flex-1 rounded-none border-0 shadow-none placeholder:text-muted-foreground/60 focus-visible:shadow-none"
                   value={filters.searchText}
                   onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
                 />
@@ -540,7 +539,7 @@ export default function PackagesPage() {
                   value={filters.searchType}
                   onValueChange={(v) => setFilters((prev) => ({ ...prev, searchType: v as PackageFilters["searchType"] }))}
                 >
-                  <SelectTrigger className="h-10! w-36">
+                  <SelectTrigger className="h-full! w-32 rounded-none border-0 border-l border-input">
                     <SelectValue className="text-muted-foreground/60" />
                   </SelectTrigger>
                   <SelectContent>
@@ -552,25 +551,25 @@ export default function PackagesPage() {
               </div>
 
               <ApiSelect
-                placeholder="Select Brand"
+                placeholder="Brand"
                 value={filters.productBrandIds ?? null}
                 onChange={(val) => setFilters((prev) => ({ ...prev, productBrandIds: (val as string) ?? undefined }))}
                 fetchPage={async (page, search) => {
                   const res = await fetchBrandsList({ page, limit: 20, ...(search ? { search } : {}) } as any);
                   return { items: (res?.data ?? []).map((b: any) => ({ id: b.id, name: b.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
                 }}
-                triggerClassName="h-10 w-44 [&_.text-muted-foreground]:text-muted-foreground/60"
+                triggerClassName="h-10 w-38 [&_.text-muted-foreground]:text-muted-foreground/60"
               />
 
               <ApiSelect
-                placeholder="Select Category"
+                placeholder="Category"
                 value={filters.productCategoryIds ?? null}
                 onChange={(val) => setFilters((prev) => ({ ...prev, productCategoryIds: (val as string) ?? undefined }))}
                 fetchPage={async (page, search) => {
                   const res = await fetchCategoriesList({ page, limit: 20, ...(search ? { search } : {}) } as any);
                   return { items: (res?.data ?? []).map((c: any) => ({ id: c.id, name: c.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
                 }}
-                triggerClassName="h-10 w-44 [&_.text-muted-foreground]:text-muted-foreground/60"
+                triggerClassName="h-10 w-38 [&_.text-muted-foreground]:text-muted-foreground/60"
               />
 
               <Select
@@ -578,7 +577,7 @@ export default function PackagesPage() {
                 value={filters.storageLocationId ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, storageLocationId: v === "__all__" ? undefined : (v as string) }))}
               >
-                <SelectTrigger className="h-10! w-48">
+                <SelectTrigger className="h-10! w-52">
                   <SelectValue className="text-muted-foreground/60" placeholder="Storage Locations">
                     {(value: string) =>
                       value === "__all__" ? "Storage Locations" : locations.find((l) => l.id === value)?.name ?? "Storage Locations"
@@ -604,7 +603,7 @@ export default function PackagesPage() {
                 value={filters.discrepancyFilter ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, discrepancyFilter: v === "__all__" ? undefined : (v as "YES" | "NO") }))}
               >
-                <SelectTrigger className="h-10! w-52">
+                <SelectTrigger className="h-10! w-46">
                   <SelectValue className="text-muted-foreground/60" placeholder="Metrc Discrepancy">
                     {(value: string) =>
                       value === "__all__" ? "Metrc Discrepancy" : value === "YES" ? "Has METRC Discrepancy" : "No METRC Discrepancy"
@@ -627,7 +626,7 @@ export default function PackagesPage() {
                 value={filters.source ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, source: v === "__all__" ? undefined : (v as "PLATFORM" | "METRC") }))}
               >
-                <SelectTrigger className="h-10! w-36">
+                <SelectTrigger className="h-10! w-34">
                   <SelectValue className="text-muted-foreground/60" placeholder="Source">
                     {(value: string) =>
                       value === "__all__" ? "Source" : value === "PLATFORM" ? "POS (Point of Sale)" : "METRC"
@@ -641,22 +640,6 @@ export default function PackagesPage() {
                 </SelectContent>
               </Select>
 
-              {hasActiveFilters && (
-                <Button
-                  className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
-                  variant="outline"
-                  onClick={() => {
-                    setFilters(DEFAULT_FILTERS);
-                    setShowLastUpdated(false);
-                    setShowLastAdjusted(false);
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
               <Select
                 items={[
                   { value: "__all__", label: "All" },
@@ -669,7 +652,7 @@ export default function PackagesPage() {
                 value={filters.packageStatus ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, packageStatus: v === "__all__" ? undefined : (v as PackageFilters["packageStatus"]) }))}
               >
-                <SelectTrigger className="h-10! w-44">
+                <SelectTrigger className="h-10! w-40">
                   <SelectValue className="text-muted-foreground/60" placeholder="Package Status">
                     {(value: string) => {
                       const labels: Record<string, string> = {
@@ -703,7 +686,7 @@ export default function PackagesPage() {
                 value={filters.productProfile ?? "__all__"}
                 onValueChange={(v) => setFilters((prev) => ({ ...prev, productProfile: v === "__all__" ? undefined : (v as "REGULAR" | "CANNABIS") }))}
               >
-                <SelectTrigger className="h-10! w-40">
+                <SelectTrigger className="h-10! w-48">
                   <SelectValue className="text-muted-foreground/60" placeholder="Package Type">
                     {(value: string) =>
                       value === "__all__" ? "Package Type" : value === "REGULAR" ? "REGULAR" : "CANNABIS"
@@ -716,6 +699,20 @@ export default function PackagesPage() {
                   <SelectItem value="CANNABIS">CANNABIS</SelectItem>
                 </SelectContent>
               </Select>
+
+              {hasActiveFilters && (
+                <Button
+                  className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+                  variant="outline"
+                  onClick={() => {
+                    setFilters(DEFAULT_FILTERS);
+                    setShowLastUpdated(false);
+                    setShowLastAdjusted(false);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -824,12 +821,11 @@ export default function PackagesPage() {
           </Tabs>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl">
+        <div className="relative -mx-4">
           <TableLoadingOverlay show={loading && activeRows.length > 0} />
-          <div className="overflow-auto *:data-[slot=table-container]:overflow-visible" style={{ maxHeight: "calc(100vh - 420px)" }}>
-            <Table className="table-fixed">
-              <TableHeader className="sticky top-0 z-10 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4">
-                <TableRow className="bg-[#FAFAFA]">
+          <Table className="text-[13px]">
+              <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
+                <TableRow className="border-gray-200 hover:bg-transparent">
                   {tab === "archived" ? (
                     <>
                       <TableHead>Package ID</TableHead>
@@ -863,10 +859,10 @@ export default function PackagesPage() {
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-foreground/70 [&_td]:px-4 [&_td]:py-3">
+              <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
                 {loading && activeRows.length === 0 &&
                   Array.from({ length: 8 }).map((_, i) => (
-                    <TableRow key={`sk-${i}`} className="border-b-0">
+                    <TableRow key={`sk-${i}`} className="border-gray-200">
                       {Array.from({ length: tab === "archived" ? 3 : showMetrcQtyColumn ? 13 : 12 }).map((__, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
@@ -876,7 +872,7 @@ export default function PackagesPage() {
                   ))}
 
                 {!loading && activeRows.length === 0 && (
-                  <TableRow className="border-b-0">
+                  <TableRow>
                     <TableCell colSpan={tab === "archived" ? 3 : showMetrcQtyColumn ? 13 : 12} className="py-10 text-center text-muted-foreground">
                       No packages found.
                     </TableCell>
@@ -884,8 +880,8 @@ export default function PackagesPage() {
                 )}
 
                 {tab === "archived"
-                  ? activeRows.map((row, i) => (
-                    <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+                  ? activeRows.map((row) => (
+                    <TableRow key={row.id} className="border-gray-200">
                       <TableCell>
                         <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
                           {row.advertisedId || "-"}
@@ -898,7 +894,7 @@ export default function PackagesPage() {
                   : activeRows.map((row, i) => (
                     <TableRow
                       key={row.id}
-                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
+                      className="border-gray-200"
                     >
                       <TableCell>
                         <Checkbox checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
@@ -911,7 +907,15 @@ export default function PackagesPage() {
                       <TableCell className="max-w-70 whitespace-normal" title={row.name}>
                         {row.name || "-"}
                       </TableCell>
-                      <TableCell>{row.metrcTag || "-"}</TableCell>
+                      <TableCell
+                        className={row.metrcTag ? "max-w-40 cursor-pointer truncate transition-colors hover:text-primary" : ""}
+                        title={row.metrcTag ? `${row.metrcTag} (Click to copy)` : ""}
+                        onClick={() => {
+                          if (row.metrcTag) navigator.clipboard.writeText(row.metrcTag);
+                        }}
+                      >
+                        {row.metrcTag || "-"}
+                      </TableCell>
                       <TableCell>{row.productBrand || "-"}</TableCell>
                       <TableCell>{row.productCategory || "-"}</TableCell>
                       <TableCell className="text-center font-mono">
@@ -959,8 +963,7 @@ export default function PackagesPage() {
                     </TableRow>
                   ))}
               </TableBody>
-            </Table>
-          </div>
+          </Table>
         </div>
 
         <TablePagination

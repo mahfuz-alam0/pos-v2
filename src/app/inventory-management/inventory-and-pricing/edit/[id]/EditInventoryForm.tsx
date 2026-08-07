@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchSingleInventory } from "@/services/inventories/getSingle";
 import { updateInventory } from "@/services/inventories/updateInventory";
+import { updateInventoryEcommStatus } from "@/services/inventories/updateEcommStatus";
 import { fetchUomList } from "@/services/uom/list";
 import { fetchCustomerGroups } from "@/services/customerGroups/list";
 
@@ -50,7 +51,7 @@ function MultiSelectGroups({ groups, selected, onChange }) {
   );
 }
 
-export default function EditInventoryForm({ inventoryId }) {
+export default function EditInventoryForm({ inventoryId, onClose }: { inventoryId: string | number; onClose?: () => void }) {
   const { shopId } = useShop();
 
   const [loading, setLoading] = useState(true);
@@ -69,6 +70,9 @@ export default function EditInventoryForm({ inventoryId }) {
   const [projectedQtyUomId, setProjectedQtyUomId] = useState("");
   const [projectedQtyConversionRate, setProjectedQtyConversionRate] = useState("");
   const [isActive, setIsActive] = useState(false);
+  const [isDisabledFromIOSEcomm, setIsDisabledFromIOSEcomm] = useState(false);
+  const [isDisabledFromAndroidEcomm, setIsDisabledFromAndroidEcomm] = useState(false);
+  const [isDisabledFromWEBEcomm, setIsDisabledFromWEBEcomm] = useState(false);
 
   const [storagePayload, setStoragePayload] = useState(null);
   const [validateStorageUoms, setValidateStorageUoms] = useState(null);
@@ -101,6 +105,9 @@ export default function EditInventoryForm({ inventoryId }) {
       setProjectedQtyUomId(data.projectQtyUomId ?? "");
       setProjectedQtyConversionRate(data.projectQtyConversionRate ?? "");
       setIsActive(!!data.isActive);
+      setIsDisabledFromIOSEcomm(!!data.isDisabledFromIOSEcomm);
+      setIsDisabledFromAndroidEcomm(!!data.isDisabledFromAndroidEcomm);
+      setIsDisabledFromWEBEcomm(!!data.isDisabledFromWEBEcomm);
     } catch (err) {
       toast.error(err?.message || "Failed to load inventory");
     } finally {
@@ -135,6 +142,13 @@ export default function EditInventoryForm({ inventoryId }) {
         storageLocationDisplayUoMs: storagePayload,
       };
       await updateInventory(body);
+      await updateInventoryEcommStatus({
+        id: inventoryId,
+        shopId,
+        isDisabledFromIOSEcomm,
+        isDisabledFromAndroidEcomm,
+        isDisabledFromWEBEcomm,
+      });
       toast.success("Inventory information updated successfully");
       setEditMode(false);
       loadInventory();
@@ -179,29 +193,44 @@ export default function EditInventoryForm({ inventoryId }) {
         <div className="flex gap-2">
           {editMode ? (
             <>
-              <Button variant="outline" onClick={() => { setEditMode(false); loadInventory(); }}>
+              <Button
+                variant="outline"
+                className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                onClick={() => { setEditMode(false); loadInventory(); }}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button
+                className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                onClick={handleSave}
+                disabled={saving}
+              >
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
             </>
           ) : (
-            <Button onClick={() => setEditMode(true)}>Edit</Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setEditMode(true)}>
+              Edit
+            </Button>
+          )}
+          {onClose && (
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="size-4" />
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="inline-flex w-fit items-center gap-1 rounded-lg bg-muted p-1">
+      <div className="flex items-center gap-6 border-b border-gray-200">
         {TAB_ITEMS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => setActiveTab(tab.value)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`-mb-px border-b-2 pb-2 text-sm font-medium transition-colors ${
               activeTab === tab.value
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
@@ -243,7 +272,7 @@ export default function EditInventoryForm({ inventoryId }) {
                     onValueChange={setSellableUoMId}
                     disabled={!editMode}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="h-9 w-full">
                       <SelectValue placeholder="Select unit" />
                     </SelectTrigger>
                     <SelectContent>
@@ -258,6 +287,7 @@ export default function EditInventoryForm({ inventoryId }) {
                   <Label>Stock Threshold</Label>
                   <Input
                     type="number"
+                    className="h-9"
                     placeholder="Enter threshold quantity"
                     value={threshold}
                     onChange={(e) => setThreshold(e.target.value)}
@@ -267,7 +297,7 @@ export default function EditInventoryForm({ inventoryId }) {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-muted/30 p-4 shadow-sm ring-1 ring-foreground/10">
+                <div className="rounded-lg bg-[#F9FAFB] p-6 ring-1 ring-foreground/10">
                   <Label className="mb-3">Customer Group Restriction</Label>
                   <div className="mb-3 flex gap-4">
                     <label className="flex items-center gap-2 text-sm">
@@ -315,7 +345,7 @@ export default function EditInventoryForm({ inventoryId }) {
                   )}
                 </div>
 
-                <div className="rounded-lg bg-muted/30 p-4 shadow-sm ring-1 ring-foreground/10">
+                <div className="rounded-lg bg-[#F9FAFB] p-6 ring-1 ring-foreground/10">
                   <label className="mb-3 flex items-center gap-2 text-sm font-medium">
                     <Checkbox
                       checked={enableProjectedQty}
@@ -340,7 +370,7 @@ export default function EditInventoryForm({ inventoryId }) {
                           onValueChange={setProjectedQtyUomId}
                           disabled={!editMode}
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="h-9 w-full">
                             <SelectValue placeholder="Select target UOM" />
                           </SelectTrigger>
                           <SelectContent>
@@ -393,6 +423,46 @@ export default function EditInventoryForm({ inventoryId }) {
                 </p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} disabled={!editMode} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales Channel Availability</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col divide-y">
+              {[
+                {
+                  label: "Available on iOS App",
+                  disabled: isDisabledFromIOSEcomm,
+                  setDisabled: setIsDisabledFromIOSEcomm,
+                },
+                {
+                  label: "Available on Android App",
+                  disabled: isDisabledFromAndroidEcomm,
+                  setDisabled: setIsDisabledFromAndroidEcomm,
+                },
+                {
+                  label: "Available on Web Store",
+                  disabled: isDisabledFromWEBEcomm,
+                  setDisabled: setIsDisabledFromWEBEcomm,
+                },
+              ].map((channel) => (
+                <div key={channel.label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground">{channel.label}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Switch is {channel.disabled ? "OFF" : "ON"}: this product is{" "}
+                      {channel.disabled ? "hidden from" : "visible in"} the {channel.label.replace("Available on ", "")}.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!channel.disabled}
+                    onCheckedChange={(checked) => channel.setDisabled(!checked)}
+                    disabled={!editMode}
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

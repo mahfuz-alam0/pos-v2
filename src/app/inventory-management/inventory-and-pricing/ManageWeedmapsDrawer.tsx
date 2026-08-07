@@ -12,6 +12,7 @@ import {
   Rocket,
   Tag as TagIcon,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 import { getMenuItemDetails } from "@/services/weedmaps/getMenuItemDetails";
@@ -439,11 +440,13 @@ export default function ManageWeedmapsDrawer({
   return (
     <Drawer open={open} onClose={onClose} side="right" size="min(1000px, 92vw)">
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-2 border-b px-5 py-4">
-          <img src="/images/vm.png" alt="Weedmaps" className="size-6 rounded-full border object-contain" />
-          <span className="text-base font-semibold">Manage Weedmaps</span>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={onClose}>
-            Close
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <div className="flex items-center gap-2">
+            <img src="/images/vm.png" alt="Weedmaps" className="size-6 rounded-full border object-contain" />
+            <h3 className="text-base font-semibold">Manage Weedmaps</h3>
+          </div>
+          <Button variant="outline" size="icon" onClick={onClose}>
+            <X className="size-4" />
           </Button>
         </div>
 

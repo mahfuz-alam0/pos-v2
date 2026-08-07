@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { populatePackagesWithIds } from "@/services/packages/populateWithIds";
 import { fetchInventoryCleanupConfig, updateInventoryCleanupConfig, ignoreInventoryCleanupPackages } from "@/services/inventoryCleanup/config";
@@ -196,11 +196,14 @@ export function CleanupPreferencesDrawer({
   return (
     <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={420}>
       <div className="flex h-full flex-col">
-        <div className="px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="text-base font-semibold leading-tight">Cleanup Preferences</div>
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <h3 className="text-base font-semibold">Cleanup Preferences</h3>
+          <Button variant="outline" size="icon" onClick={onClose} disabled={saving}>
+            <X className="size-4" />
+          </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -228,7 +231,7 @@ export function CleanupPreferencesDrawer({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
           <Button variant="outline" disabled={saving} onClick={onClose}>
             Cancel
           </Button>

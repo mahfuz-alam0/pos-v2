@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 import { fetchUomList } from "@/services/uom/list";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -18,6 +17,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import UomFormDrawer from "./UomFormDrawer";
 
 const PAGE_SIZE = 30;
@@ -68,91 +75,102 @@ export default function UomTable() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Unit of Measurements</h1>
-        <Button onClick={openAdd}>
-          <Plus /> Add Unit of Measurement
-        </Button>
-      </div>
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-medium text-primary">Unit of Measurements</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <Table>
-          <TableHeader className="[&_tr]:border-b-0">
-            <TableRow className="bg-muted/60">
-              <TableHead>Name</TableHead>
-              <TableHead className="text-center">Short Form</TableHead>
-              <TableHead className="text-center">Application Type</TableHead>
-              <TableHead className="text-center">Conversion Rate</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading &&
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                  {Array.from({ length: 5 }).map((__, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-medium!" onClick={openAdd}>
+            Add Unit of Measurement
+          </Button>
+        </div>
 
-            {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                  No units of measurement found.
-                </TableCell>
+        <div className="relative -mx-4">
+          <Table>
+            <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
+              <TableRow className="border-gray-200 hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead className="text-center">Short Form</TableHead>
+                <TableHead className="text-center">Application Type</TableHead>
+                <TableHead className="text-center">Conversion Rate</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            )}
+            </TableHeader>
+            <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+              {loading &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                    {Array.from({ length: 5 }).map((__, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
 
-            {!loading &&
-              rows.map((row: any, i) => (
-                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                  <TableCell className="font-medium">
-                    {row.systemGeneratedIdentifier ? (
-                      row.name
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => openEdit(row.id)}
-                        className="text-left hover:underline"
-                      >
-                        {row.name}
-                      </button>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">{row.shortForm}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="secondary">
-                      {row.applicationType === "SELLABLE_STOCK" ? "Unit Product" : "Product Group"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">{row.conversionRate ?? "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {!row.systemGeneratedIdentifier && (
-                      <div className="flex justify-end">
-                        <Button variant="outline" size="icon-sm" onClick={() => openEdit(row.id)}>
-                          <Pencil />
-                        </Button>
-                      </div>
-                    )}
+              {!loading && rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                    No units of measurement found.
                   </TableCell>
                 </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-      </div>
+              )}
 
-      <TablePagination
-        page={page}
-        totalPages={totalPages}
-        totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
-        loading={loading}
-        onPageChange={loadUoms}
-      />
+              {!loading &&
+                rows.map((row: any, i) => (
+                  <TableRow key={row.id} className="border-gray-200">
+                    <TableCell className="font-medium">
+                      {row.systemGeneratedIdentifier ? (
+                        row.name
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(row.id)}
+                          className="text-left hover:underline"
+                        >
+                          {row.name}
+                        </button>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">{row.shortForm}</TableCell>
+                    <TableCell className="text-center text-primary">
+                      {row.applicationType === "SELLABLE_STOCK" ? "Unit Product" : "Product Group"}
+                    </TableCell>
+                    <TableCell className="text-center">{row.conversionRate ?? "-"}</TableCell>
+                    <TableCell className="text-right">
+                      {!row.systemGeneratedIdentifier && (
+                        <div className="flex justify-end">
+                          <Button variant="outline" size="icon-sm" onClick={() => openEdit(row.id)}>
+                            <Pencil />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          onPageChange={loadUoms}
+        />
+      </div>
 
       <UomFormDrawer
         open={drawerOpen}

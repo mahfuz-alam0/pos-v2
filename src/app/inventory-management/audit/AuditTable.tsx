@@ -67,35 +67,35 @@ export default function AuditTable({
 
   return (
     <div className="overflow-auto *:data-[slot=table-container]:overflow-visible" style={{ maxHeight: "calc(100vh - 420px)" }}>
-      <Table>
-        <TableHeader className="sticky top-0 z-10 bg-background [&_tr]:border-b-0">
-          <TableRow className="bg-muted/60">
+      <Table className="text-[13px]">
+        <TableHeader className="sticky top-0 z-10 bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200">
+          <TableRow className="border-gray-200 hover:bg-transparent">
             {selectable && (
-              <TableHead className="w-8">
+              <TableHead className="w-8 px-4">
                 <Checkbox checked={allSelected} onCheckedChange={(c) => toggleAll(!!c)} />
               </TableHead>
             )}
-            <TableHead className="min-w-[220px]">Product</TableHead>
-            <TableHead className="min-w-[130px]">Package ID</TableHead>
-            <TableHead className="min-w-30">Metrc Tag</TableHead>
-            <TableHead className="min-w-[130px]">Brand</TableHead>
-            <TableHead className="min-w-[130px]">Category</TableHead>
-            <TableHead className="min-w-[130px]">Supplier</TableHead>
-            <TableHead className="min-w-[110px] text-center">Total Pkg Qty</TableHead>
-            <TableHead className="min-w-[100px] text-center">Metrc Qty</TableHead>
-            <TableHead className="min-w-[100px]">Location</TableHead>
-            <TableHead className="min-w-[110px] text-center">Location Qty</TableHead>
-            <TableHead className="sticky right-0 z-10 w-45 min-w-45 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
+            <TableHead className="min-w-[220px] px-4 font-semibold text-gray-500">Product</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Package ID</TableHead>
+            <TableHead className="min-w-30 px-4 font-semibold text-gray-500">Metrc Tag</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Brand</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Category</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Supplier</TableHead>
+            <TableHead className="min-w-[110px] px-4 text-center font-semibold text-gray-500">Total Pkg Qty</TableHead>
+            <TableHead className="min-w-[100px] px-4 text-center font-semibold text-gray-500">Metrc Qty</TableHead>
+            <TableHead className="min-w-[100px] px-4 font-semibold text-gray-500">Location</TableHead>
+            <TableHead className="min-w-[110px] px-4 text-center font-semibold text-gray-500">Location Qty</TableHead>
+            <TableHead className="sticky right-0 z-10 w-45 min-w-45 bg-neutral-50 px-4 text-center font-semibold text-gray-500 shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
               {countingMode === "scan" ? "Scan Count" : "Qty On Hand"}
             </TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="text-gray-600">
           {loading &&
             Array.from({ length: 8 }).map((_, i) => (
-              <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+              <TableRow key={`skeleton-${i}`} className="border-gray-200">
                 {Array.from({ length: selectable ? 12 : 11 }).map((__, j) => (
-                  <TableCell key={j}>
+                  <TableCell key={j} className="h-17 px-4">
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
                 ))}
@@ -103,7 +103,7 @@ export default function AuditTable({
             ))}
 
           {!loading && data.length === 0 && (
-            <TableRow className="border-b-0">
+            <TableRow>
               <TableCell colSpan={selectable ? 12 : 11} className="py-10 text-center text-muted-foreground">
                 No packages found.
               </TableCell>
@@ -111,7 +111,7 @@ export default function AuditTable({
           )}
 
           {!loading &&
-            data.map((record, i) => {
+            data.map((record) => {
               const key = rowKeyOf(record);
               const flashing = flashingRows[key];
               const metrcQty = record.metrQuantity;
@@ -124,26 +124,26 @@ export default function AuditTable({
               const adjKey = locId ? `${record.id}-${locId}` : String(record.id);
               const scanCount = scanCounts[record.advertisedId || ""] || 0;
               const manualVal = pendingAdjustments[adjKey]?.inputValue ?? "";
-              const zebra = i % 2 === 1 ? "bg-table-zebra" : "bg-background";
+              const rowBg = "bg-background";
 
               return (
                 <TableRow
                   key={key}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : zebra}`}
+                  className={`border-gray-200 ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : rowBg}`}
                 >
                   {selectable && (
-                    <TableCell>
+                    <TableCell className="h-17 px-4">
                       <Checkbox
                         checked={selectedRowKeys.includes(key)}
                         onCheckedChange={(c) => toggleOne(record, !!c)}
                       />
                     </TableCell>
                   )}
-                  <TableCell className="max-w-[250px] truncate whitespace-normal" title={record.name}>
+                  <TableCell className="h-17 max-w-[250px] truncate whitespace-normal px-4" title={record.name}>
                     <div className="line-clamp-2 text-sm">{record.name ?? "-"}</div>
                   </TableCell>
                   <TableCell
-                    className="max-w-[140px] cursor-pointer truncate text-sm transition-colors hover:text-primary"
+                    className="h-17 max-w-[140px] cursor-pointer truncate px-4 text-sm transition-colors hover:text-primary"
                     title={record.advertisedId ? `${record.advertisedId} (Click to copy)` : ""}
                     onClick={() => {
                       if (record.advertisedId) navigator.clipboard.writeText(record.advertisedId);
@@ -151,9 +151,9 @@ export default function AuditTable({
                   >
                     {record.advertisedId || "-"}
                   </TableCell>
-                  <TableCell className="text-sm">{record.metrcTag || "-"}</TableCell>
+                  <TableCell className="h-17 px-4 text-sm">{record.metrcTag || "-"}</TableCell>
                   <TableCell
-                    className="max-w-[150px] cursor-pointer truncate text-sm transition-colors hover:text-primary"
+                    className="h-17 max-w-[150px] cursor-pointer truncate px-4 text-sm transition-colors hover:text-primary"
                     onClick={() => {
                       const brandName = typeof record.productBrand === "object" ? record.productBrand?.name : record.productBrand;
                       if (brandName) navigator.clipboard.writeText(brandName);
@@ -161,11 +161,11 @@ export default function AuditTable({
                   >
                     {typeof record.productBrand === "object" ? record.productBrand?.name : record.productBrand || "-"}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate text-sm">
+                  <TableCell className="h-17 max-w-[150px] truncate px-4 text-sm">
                     {typeof record.productCategory === "object" ? record.productCategory?.name : record.productCategory || "-"}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate text-sm">{record.supplierName || "-"}</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="h-17 max-w-[150px] truncate px-4 text-sm">{record.supplierName || "-"}</TableCell>
+                  <TableCell className="px-4 text-center">
                     <div className="flex flex-col items-center">
                       <div className="font-medium">
                         {record.quantityLeft || 0} {record.uoMShortForm}
@@ -184,7 +184,7 @@ export default function AuditTable({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="px-4 text-center">
                     {metrcQty == null ? (
                       <span className="text-muted-foreground">-</span>
                     ) : (
@@ -193,7 +193,7 @@ export default function AuditTable({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate text-sm">
+                  <TableCell className="max-w-[150px] truncate px-4 text-sm">
                     {record.rowLocationId
                       ? locationMap[record.rowLocationId] || record.rowLocationId
                       : locationFilter && locationMap[locationFilter]
@@ -212,7 +212,7 @@ export default function AuditTable({
                                 </div>
                               )}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="px-4 text-center">
                     {record.rowLocationId ? (
                       `${record.rowLocationQty ?? 0} ${record.uoMShortForm}`
                     ) : locationFilter ? (
@@ -230,7 +230,7 @@ export default function AuditTable({
                     )}
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-45 min-w-45 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${zebra}`}
+                    className={`sticky right-0 z-10 w-45 min-w-45 px-4 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : rowBg}`}
                   >
                     {countingMode === "scan" ? (
                       scanCount > 0 ? (
