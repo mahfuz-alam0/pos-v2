@@ -869,7 +869,7 @@ export default function ManageInventoriesTable() {
             )}
 
             {displayRows.length > 0 &&
-              displayRows.map((row: any) => (
+              displayRows.map((row: any, i: number) => (
                 <TableRow key={row.id} className="border-gray-200">
                   <TableCell className="pl-3">
                     <Checkbox className="rounded-md" checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
