@@ -212,7 +212,7 @@ export function SalesByTable<T extends { taxBreakdown?: TaxBreakdownItem[] }>({
             {data.map((row, i) => (
               <TableRow
                 key={rowKey(row, i)}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
               >
                 {columns.map((c) => (
                   <TableCell key={c.key} className={c.align === "right" ? "text-right" : ""}>

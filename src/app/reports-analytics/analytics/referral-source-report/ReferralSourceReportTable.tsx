@@ -115,7 +115,7 @@ export default function ReferralSourceReportTable() {
 
               {!loading &&
                 rows.map((row, i) => (
-                  <TableRow key={row._id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                  <TableRow key={row._id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell>{row.label || "N/A"}</TableCell>
                     <TableCell>{row.count ?? 0}</TableCell>
                     <TableCell>{total > 0 ? `${((row.count / total) * 100).toFixed(1)}%` : "N/A"}</TableCell>

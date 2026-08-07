@@ -417,7 +417,7 @@ export default function InventoryOnHandTable() {
           <TableBody>
             {loading && productRows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`s-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={`s-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   {Array.from({ length: 9 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -440,7 +440,7 @@ export default function InventoryOnHandTable() {
               const margin = sp !== 0 ? ((sp - cp) / sp) * 100 : 0;
               const totalCost = row.cost || cp * (row.qtyOnHand || 0);
               return (
-                <TableRow key={row.id || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.id || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell
                     className={`max-w-45 cursor-pointer truncate ${renderCellHighlight(selectedFilter === row.categoryName && filterType === "category")}`}
                     title={row.categoryName}
@@ -524,7 +524,7 @@ export default function InventoryOnHandTable() {
           <TableBody>
             {loading && packageRows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`s-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={`s-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   {Array.from({ length: 7 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -546,7 +546,7 @@ export default function InventoryOnHandTable() {
                 ? Math.floor(Math.abs(Date.now() - new Date(row.createdAt).getTime()) / 86400000)
                 : null;
               return (
-                <TableRow key={row.packageId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.packageId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="text-center">{row.expiryDate || "N/A"}</TableCell>
                   <TableCell className="max-w-100 truncate" title={row.productName}>
                     {row.productName}
@@ -729,7 +729,7 @@ export default function InventoryOnHandTable() {
                   </TableRow>
                 )}
                 {filteredTagRows.map((t, i) => (
-                  <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                  <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell>{t.topTag}</TableCell>
                     <TableCell className="text-right">${t.cost}</TableCell>
                   </TableRow>
@@ -758,7 +758,7 @@ export default function InventoryOnHandTable() {
                   </TableRow>
                 )}
                 {brandRows.map((b, i) => (
-                  <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                  <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell>{b.brand}</TableCell>
                     <TableCell className="text-right">{b.percentCost}</TableCell>
                   </TableRow>

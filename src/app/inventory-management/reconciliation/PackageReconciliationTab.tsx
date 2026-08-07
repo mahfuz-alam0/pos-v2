@@ -221,7 +221,7 @@ export default function PackageReconciliationTab() {
               {loading &&
                 rows.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                  <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -242,7 +242,7 @@ export default function PackageReconciliationTab() {
                 rows.map((row: any, i) => (
                   <TableRow
                     key={row.id}
-                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""} ${
+                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""} ${
                       String(row.id) === selectedId ? "outline outline-primary" : ""
                     }`}
                     onClick={() => openAdjustment(row.id)}

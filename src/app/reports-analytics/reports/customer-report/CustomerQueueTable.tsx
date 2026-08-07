@@ -224,7 +224,7 @@ export default function CustomerQueueTable() {
                     </TableRow>
                   )}
                   {rows.map((row, i) => (
-                    <TableRow key={row._id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                    <TableRow key={row._id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>{`${row.firstName || ""} ${row.lastName || ""}`.trim()}</TableCell>
                       <TableCell>{row.enqueued ? format(new Date(row.enqueued), "yyyy-MM-dd HH:mm:ss") : "N/A"}</TableCell>
                       <TableCell>{row.dequeued ? format(new Date(row.dequeued), "yyyy-MM-dd HH:mm:ss") : "N/A"}</TableCell>

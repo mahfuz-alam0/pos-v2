@@ -337,7 +337,7 @@ export default function CustomerPurchaseHistoryTable() {
                       </TableRow>
                     )}
                     {summaryRows.map((row, i) => (
-                      <TableRow key={row.customerTypeId ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                      <TableRow key={row.customerTypeId ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                         <TableCell>{row.shopName || "All Stores"}</TableCell>
                         <TableCell>{row.customerTypeName || "N/A"}</TableCell>
                         <TableCell>{row.description || "N/A"}</TableCell>
@@ -420,7 +420,7 @@ export default function CustomerPurchaseHistoryTable() {
                     {rows.map((row, i) => (
                       <TableRow
                         key={`${row._id || "row"}-${row.customerId || "cust"}-${row.dateOfPurchase || ""}-${row.productName || ""}-${i}`}
-                        className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                        className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                       >
                         <TableCell>{row.shopName || "-"}</TableCell>
                         <TableCell>{`${row.firstName || ""} ${row.lastName || ""}`.trim()}</TableCell>

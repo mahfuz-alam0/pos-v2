@@ -327,7 +327,7 @@ export default function SalesSummaryTab({
             <TableBody>
               {loading && eodData.length === 0 && <SkeletonRows columns={4} rows={6} />}
               {eodData.map((row, i) => (
-                <TableRow key={row.key} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.key} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="font-medium">{row.metric}</TableCell>
                   <TableCell className="text-right">{renderMetricValue(row.marijuana, row, "marijuana", fmtVal, fmtPct)}</TableCell>
                   <TableCell className="text-right">{renderMetricValue(row.nonMarijuana, row, "nonMarijuana", fmtVal, fmtPct)}</TableCell>
@@ -362,7 +362,7 @@ export default function SalesSummaryTab({
               </TableRow>
             )}
             {taxData.map((row, i) => (
-              <TableRow key={row.taxName + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+              <TableRow key={row.taxName + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                 <TableCell>{row.taxName || "-"}</TableCell>
                 <TableCell className="text-right">{fmtPct(row.taxRate)}</TableCell>
                 <TableCell className="text-right">{fmtVal(row.totalTax)}</TableCell>
@@ -390,7 +390,7 @@ export default function SalesSummaryTab({
                 </TableRow>
               )}
               {categoryData.map((row, i) => (
-                <TableRow key={row.categoryName + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.categoryName + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell>{row.categoryName}</TableCell>
                   <TableCell className="text-right">{fmtVal(row.netSales)}</TableCell>
                   <TableCell className="text-right">{fmtPct(row.grossMargin)}</TableCell>
@@ -419,7 +419,7 @@ export default function SalesSummaryTab({
                 </TableRow>
               )}
               {tagData.map((row, i) => (
-                <TableRow key={(row.tagName || row.name || "") + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={(row.tagName || row.name || "") + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell>{row.tagName || row.name || "N/A"}</TableCell>
                   <TableCell className="text-right">{fmtVal(row.netSales)}</TableCell>
                   <TableCell className="text-right">{fmtPct(row.grossMargin)}</TableCell>
@@ -451,7 +451,7 @@ export default function SalesSummaryTab({
               </TableRow>
             )}
             {brandData.map((row, i) => (
-              <TableRow key={row.brandName + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+              <TableRow key={row.brandName + i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                 <TableCell>{row.brandName || "N/A"}</TableCell>
                 <TableCell className="text-right">{fmtVal(row.netSales)}</TableCell>
                 <TableCell className="text-right">{fmtPct(row.returnsPercentage)}</TableCell>
@@ -490,7 +490,7 @@ export default function SalesSummaryTab({
                 </TableRow>
               )}
               {productData.map((row, i) => (
-                <TableRow key={row.productId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.productId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell>{row.productName}</TableCell>
                   <TableCell>{row.productSKU || "-"}</TableCell>
                   <TableCell>{row.brandName || "-"}</TableCell>

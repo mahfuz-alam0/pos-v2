@@ -213,7 +213,7 @@ export default function CouponsTab() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow
                     key={`skeleton-${i}`}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   >
                     {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
@@ -235,7 +235,7 @@ export default function CouponsTab() {
                 <TableRow
                   key={row.id}
                   data-active={openId === String(row.id)}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                 >
                   <TableCell className="font-medium">
                     <button onClick={() => openDetail(row.id)} className="cursor-pointer text-left text-primary hover:underline">

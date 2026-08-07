@@ -16,7 +16,7 @@ grep -rn '"border\b\|className="[^"]*\bborder\b' <file>
 
 - Page/table wrappers: no `border` + `bg-card` box. Use flat `p-6` page padding (see `ManageInventoriesTable.tsx` root div) and a soft `rounded-xl ring-1 ring-foreground/10` around the table only — never a hard `border`.
 - Segmented toggles (e.g. Regular/Live, Manual/Scan): track is `rounded-lg bg-muted p-0.5` (no `border`), active segment `bg-primary text-primary-foreground`, inactive `text-muted-foreground hover:bg-background/60`, each segment `rounded-[7px]`.
-- Table rows: no `border-b` per row. Use `border-b-0` + `shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]` for a soft 1px divider, plus zebra striping (`i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"`).
+- Table rows: no `border-b` per row. Use `border-b-0` + `shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]` for a soft 1px divider, plus zebra striping via `i % 2 === 1 ? "bg-table-zebra" : ""`. `bg-table-zebra` is a theme-aware utility backed by `--table-zebra` in `globals.css` (light: `#f5f5f4`; dark: `rgba(255,255,255,0.04)`, an overlay so it never blends into `--component-bg`) — never hardcode `bg-stone-100 dark:bg-stone-800` (or any other literal shade pair) for zebra rows again; change the var in one place instead.
 - `Input`, `SelectTrigger`, and outline `Button` DO have an intentional border baked into the shadcn component source (`border-input`) — that's correct and should stay; don't strip it globally.
 
 ## `Select` (`@base-ui/react/select`) — always pass `items`

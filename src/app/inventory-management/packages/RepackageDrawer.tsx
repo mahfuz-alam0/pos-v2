@@ -498,7 +498,7 @@ export default function RepackageDrawer({
                                         .map((loc, i) => (
                                           <tr
                                             key={loc.id}
-                                            className={`shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                                            className={`shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                                           >
                                             <td className="px-3 py-1.5 font-medium">{loc.name}</td>
                                             <td className="px-3 py-1.5 text-center text-muted-foreground">

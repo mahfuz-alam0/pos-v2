@@ -151,7 +151,7 @@ export default function TaxesTable() {
                   <TableRow
                     key={tax.id}
                     onClick={() => openDetails(tax)}
-                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <TableCell className="font-medium text-primary">{tax.name}</TableCell>
                     <TableCell>{tax.classificationName || "-"}</TableCell>

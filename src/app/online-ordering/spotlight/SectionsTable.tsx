@@ -180,7 +180,7 @@ export default function SectionsTable() {
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow
                   key={`skeleton-${i}`}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                 >
                   <TableCell colSpan={3}>
                     <Skeleton className="h-5 w-full" />
@@ -200,7 +200,7 @@ export default function SectionsTable() {
               rows.map((section, i) => (
                 <TableRow
                   key={section.id}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                 >
                   <TableCell>{section.title ?? "-"}</TableCell>
                   <TableCell className="text-center">
