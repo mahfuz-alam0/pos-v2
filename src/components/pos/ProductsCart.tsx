@@ -8,6 +8,7 @@ import {
   Plus,
   Info,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   SplitSquareHorizontal,
   FileText,
@@ -835,7 +836,14 @@ export default function ProductsCart() {
         side="right"
         size={600}>
         <div className="flex h-full flex-col">
-          <div className="border-b border-border px-4 py-3 text-base font-semibold">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-base font-semibold">
+            <button
+              type="button"
+              onClick={() => setDealDrawerOpen(false)}
+              aria-label="Back"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+              <ChevronLeft className="size-5" />
+            </button>
             Available Deals
           </div>
           <div className="flex-1 overflow-auto p-4">
@@ -847,6 +855,9 @@ export default function ProductsCart() {
               <DealCard
                 deals={bulkDeals}
                 productRecord={null}
+                selectedItems={cart.filter((item) =>
+                  selectedKeys.includes(item.key),
+                )}
                 onDealApplied={() => {
                   setDealDrawerOpen(false);
                   setSelectedKeys([]);

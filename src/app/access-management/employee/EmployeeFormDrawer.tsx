@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { UserPlus, X } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 import { useShop } from "@/context/shop-context";
 import { fetchSingleEmployee } from "@/services/employees/getSingle";
@@ -11,8 +13,6 @@ import { updateEmployeeAccount } from "@/services/employees/update";
 import { fetchShopsData } from "@/services/shops/list";
 import { listRegisters } from "@/services/registers/listRegisters";
 import { fetchRolesList } from "@/services/roles/list";
-import { uploadAnySingleFile } from "@/services/storage/uploadFile";
-import { uploadAnyMultipleFiles } from "@/services/storage/uploadMultipleFiles";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, ShopMultiSelect, SingleImageUpload } from "@/components/admin/form-fields";
+import SimpleFileUpload from "@/app/inventory-management/packages/SimpleFileUpload";
 
 interface EmployeeFormDrawerProps {
   open: boolean;
@@ -67,7 +68,6 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingDocs, setUploadingDocs] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +81,7 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
       setLoading(true);
       fetchSingleEmployee(employeeId)
         .then((res) => {
-          const employee = res?.data?.employee ?? res?.data;
+          const employee = res?.data?.account ?? res?.data?.employee ?? res?.data;
           if (!employee) {
             toast.error("Employee not found");
             return;
@@ -92,11 +92,11 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
             useEmailAsUsername: employee.username === employee.email,
             username: employee.username ?? "",
             password: "",
-            phone: employee.phone ?? "",
+            phone: employee.phone?.replace(/^\+/, "") ?? "",
             type: employee.type === "ACCESS_CONTROLLED" ? "ACCESS_CONTROLLED" : "ADMINISTRATION",
             associatedShopIds: employee.associatedShopIds ?? [],
             preferredRegisterId: employee.preferredRegisterId ?? "",
-            roleId: employee.roleId ?? "",
+            roleId: employee.roleId ?? employee.roleInfo?.id ?? "",
             avatarUrl: employee.avatarUrl ?? null,
             documentLinks: employee.documentLinks ?? [],
           });
@@ -122,22 +122,10 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
     fetchRolesList({ limit: 100 }).then((res) => setRoles(res?.data?.roles ?? []));
   }, [open]);
 
-  const handleDocUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setUploadingDocs(true);
-    try {
-      const uploaded = await uploadAnyMultipleFiles(Array.from(files));
-      setValues((v) => ({ ...v, documentLinks: [...v.documentLinks, ...(uploaded ?? []).map((f) => f.downloadUrl)] }));
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to upload documents");
-    } finally {
-      setUploadingDocs(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!values.name.trim()) return toast.error("Please enter a name");
     if (!values.email.trim()) return toast.error("Please enter an email");
+    if (!values.phone.trim()) return toast.error("Please enter a phone number");
     if (!values.useEmailAsUsername && !values.username.trim()) return toast.error("Please enter a username");
     if (mode === "add" && !values.password.trim()) return toast.error("Please enter a password");
     if (values.associatedShopIds.length === 0) return toast.error("Associated Shops is required");
@@ -149,12 +137,11 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
         name: values.name,
         email: values.email,
         username: values.useEmailAsUsername ? values.email : values.username,
-        phone: values.phone,
+        phone: values.phone ? `+${values.phone}` : undefined,
         documentLinks: values.documentLinks,
         avatarUrl: values.avatarUrl,
         associatedShopIds: values.associatedShopIds,
         roleId: values.roleId || undefined,
-        countryCode: "US",
         type: values.type,
       };
 
@@ -236,8 +223,14 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
                 </Field>
               )}
 
-              <Field label="Phone">
-                <Input value={values.phone} onChange={(e) => setValues({ ...values, phone: e.target.value })} placeholder="(555) 123-4567" />
+              <Field label="Phone" required>
+                <PhoneInput
+                  country="us"
+                  enableSearch
+                  value={values.phone}
+                  onChange={(phone) => setValues({ ...values, phone })}
+                  inputClass="!w-full !h-9"
+                />
               </Field>
 
               <Field label="Account Type">
@@ -305,20 +298,10 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
               )}
 
               <Field label="Identification Documents">
-                <input
-                  type="file"
-                  multiple
-                  disabled={uploadingDocs}
-                  onChange={(e) => handleDocUpload(e.target.files)}
-                  className="text-sm"
+                <SimpleFileUpload
+                  files={values.documentLinks.map((url) => ({ url }))}
+                  onChange={(files) => setValues((v) => ({ ...v, documentLinks: files.map((f) => f.url) }))}
                 />
-                {values.documentLinks.length > 0 && (
-                  <ul className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
-                    {values.documentLinks.map((url, i) => (
-                      <li key={i} className="truncate">{url}</li>
-                    ))}
-                  </ul>
-                )}
               </Field>
             </div>
           )}

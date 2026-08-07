@@ -891,7 +891,7 @@ export default function PackagesPage() {
                       <TableCell>{fmtDate(row.archivedAt)}</TableCell>
                     </TableRow>
                   ))
-                  : activeRows.map((row) => (
+                  : activeRows.map((row, i) => (
                     <TableRow
                       key={row.id}
                       className="border-gray-200"
@@ -948,7 +948,9 @@ export default function PackagesPage() {
                       </TableCell>
                       <TableCell className="text-center text-sm text-muted-foreground">{ageInDays(row.createdAt)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{fmtDate(row.updatedAt)}</TableCell>
-                      <TableCell className="w-32 text-center">
+                      <TableCell
+                        className={`sticky right-0 z-10 w-32 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                      >
                         <Button
                           className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
                           variant="outline"

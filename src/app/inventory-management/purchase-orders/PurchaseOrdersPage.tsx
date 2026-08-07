@@ -307,7 +307,7 @@ export default function PurchaseOrdersPage() {
                 </TableRow>
               )}
 
-              {rows.map((row) => (
+              {rows.map((row, i) => (
                 <TableRow
                   key={row.id}
                   className="cursor-pointer border-gray-200"

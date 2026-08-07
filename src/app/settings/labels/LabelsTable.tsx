@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 import { fetchLabels } from "@/services/labels/list";
 import { removeLabel } from "@/services/labels/remove";
@@ -67,13 +67,6 @@ export default function LabelsTable() {
 
   return (
     <div className="flex flex-col gap-4 pt-4">
-      <div className="flex items-center justify-between">
-        <div />
-        <Button onClick={() => router.push("/settings/labels/add")}>
-          <Plus /> Create Custom Package Label
-        </Button>
-      </div>
-
       <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
@@ -102,7 +95,7 @@ export default function LabelsTable() {
               rows.map((label, i) => (
                 <TableRow
                   key={label.id}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                 >
                   <TableCell className="font-medium">{label.name}</TableCell>
                   <TableCell>{LabelFieldMap[label.templateType]?.label ?? label.templateType}</TableCell>

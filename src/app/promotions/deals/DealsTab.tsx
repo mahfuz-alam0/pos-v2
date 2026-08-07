@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { useDebounce } from "@/hooks/useDebounce";
 import { fetchDealsList } from "@/services/deals/list";
 import { removeRegularDeal } from "@/services/deals/regular/remove";
 import { removeBogoDeal } from "@/services/deals/bogo/remove";
 import { removeTieredDeal } from "@/services/deals/tiered/remove";
+import { fetchShopsData } from "@/services/shops/list";
+import { listCustomerTypes } from "@/services/customers/listCustomerTypes";
+import { listCustomerGroups } from "@/services/customers/listCustomerGroups";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
+import { MultiApiSelect } from "@/components/ui/multi-api-select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,20 +45,45 @@ const REMOVERS: Record<DealType, (id: string | number) => Promise<any>> = {
   TIERED: removeTieredDeal,
 };
 
+const DELIVERY_METHOD_OPTIONS = [
+  { id: "IN_STORE", name: "In Store" },
+  { id: "PICK_UP", name: "PickUp" },
+  { id: "DELIVERY", name: "Delivery" },
+];
+
+type DealFilters = {
+  shopIds: string[];
+  customerTypeIds: string[];
+  customerGroupIds: string[];
+  deliveryMethods: string[];
+};
+
+const DEFAULT_FILTERS: DealFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
+
 export default function DealsTab() {
-  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const openId = searchParams.get("id");
-  const openType = searchParams.get("type") as DealType | null;
+  const [openDeal, setOpenDeal] = useState<{ id: string; type: DealType } | null>(() => {
+    const id = searchParams.get("id");
+    const type = searchParams.get("type") as DealType | null;
+    return id && type ? { id, type } : null;
+  });
+  const openId = openDeal?.id ?? null;
+  const openType = openDeal?.type ?? null;
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
+
+  const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
+  const [customerTypes, setCustomerTypes] = useState<{ id: string; name: string }[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<{ id: string; name: string }[]>([]);
 
   const [allRows, setAllRows] = useState<DealRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; dealId: string | null; dealType: DealType | null }>({
+  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit" | "duplicate"; dealId: string | null; dealType: DealType | null }>({
     open: false,
     mode: "add",
     dealId: null,
@@ -67,14 +96,21 @@ export default function DealsTab() {
   const loadDeals = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchDealsList();
+      const params: Record<string, any> = {};
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (filters.shopIds.length) params.shopIds = filters.shopIds;
+      if (filters.customerTypeIds.length) params.customerTypeIds = filters.customerTypeIds;
+      if (filters.customerGroupIds.length) params.customerGroupIds = filters.customerGroupIds;
+      if (filters.deliveryMethods.length) params.deliveryMethods = filters.deliveryMethods;
+
+      const res = await fetchDealsList(params);
       setAllRows(res?.data ?? []);
     } catch (err: any) {
       toast.error(err?.message || "Failed to load deals");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, filters]);
 
   useEffect(() => {
     loadDeals();
@@ -82,30 +118,44 @@ export default function DealsTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, filters]);
 
-  const filtered = useMemo(() => {
-    const term = debouncedSearch.trim().toLowerCase();
-    if (!term) return allRows;
-    return allRows.filter((r) => r.name?.toLowerCase().includes(term));
-  }, [allRows, debouncedSearch]);
+  useEffect(() => {
+    fetchShopsData().then((res) => setShops(res?.data ?? []));
+    listCustomerTypes().then((res) => setCustomerTypes(res?.data?.data?.customerTypes ?? []));
+    listCustomerGroups().then((res) => setCustomerGroups(res?.data?.data?.customerGroups ?? []));
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const hasActiveFilters =
+    debouncedSearch ||
+    filters.shopIds.length > 0 ||
+    filters.customerTypeIds.length > 0 ||
+    filters.customerGroupIds.length > 0 ||
+    filters.deliveryMethods.length > 0;
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilters(DEFAULT_FILTERS);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openDetail = (row: DealRow) => {
+    setOpenDeal({ id: String(row.id), type: row.type });
     const params = new URLSearchParams(searchParams.toString());
-    params.set("id", row.id);
+    params.set("id", String(row.id));
     params.set("type", row.type);
-    router.push(`?${params.toString()}`, { scroll: false });
+    window.history.pushState(null, "", `${pathname}?${params.toString()}`);
   };
 
   const closeDetail = () => {
+    setOpenDeal(null);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
     params.delete("type");
     const qs = params.toString();
-    router.push(qs ? `?${qs}` : ".", { scroll: false });
+    window.history.pushState(null, "", qs ? `${pathname}?${qs}` : pathname);
   };
 
   const handleDelete = async () => {
@@ -138,6 +188,38 @@ export default function DealsTab() {
           </Button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <MultiApiSelect
+            placeholder="Select Delivery Methods"
+            value={filters.deliveryMethods}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, deliveryMethods: ids }))}
+            items={DELIVERY_METHOD_OPTIONS}
+          />
+          <MultiApiSelect
+            placeholder="Select Shops"
+            value={filters.shopIds}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, shopIds: ids }))}
+            items={shops}
+          />
+          <MultiApiSelect
+            placeholder="Select Customer Types"
+            value={filters.customerTypeIds}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, customerTypeIds: ids }))}
+            items={customerTypes}
+          />
+          <MultiApiSelect
+            placeholder="Select Customer Groups"
+            value={filters.customerGroupIds}
+            onChange={(ids) => setFilters((prev) => ({ ...prev, customerGroupIds: ids }))}
+            items={customerGroups}
+          />
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              Reset
+            </Button>
+          )}
+        </div>
+
         <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
           <TableLoadingOverlay show={loading && allRows.length > 0} />
           <Table>
@@ -155,7 +237,7 @@ export default function DealsTab() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow
                     key={`skeleton-${i}`}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   >
                     {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
@@ -177,7 +259,7 @@ export default function DealsTab() {
                 <TableRow
                   key={row.id}
                   data-active={openId === String(row.id)}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                 >
                   <TableCell className="font-medium">
                     <button onClick={() => openDetail(row)} className="cursor-pointer text-left text-primary hover:underline">
@@ -201,6 +283,14 @@ export default function DealsTab() {
                       >
                         <Pencil />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        title="Duplicate"
+                        onClick={() => setDrawer({ open: true, mode: "duplicate", dealId: row.id, dealType: row.type })}
+                      >
+                        <Copy />
+                      </Button>
                       <Button variant="outline" size="icon-sm" onClick={() => setDeleteTarget(row)}>
                         <Trash2 />
                       </Button>
@@ -212,8 +302,8 @@ export default function DealsTab() {
           </Table>
         </div>
 
-        {filtered.length > 0 && (
-          <TablePagination page={page} totalPages={totalPages} totalEntries={filtered.length} pageSize={PAGE_SIZE} loading={loading} onPageChange={setPage} />
+        {allRows.length > 0 && (
+          <TablePagination page={page} totalPages={totalPages} totalEntries={allRows.length} pageSize={PAGE_SIZE} loading={loading} onPageChange={setPage} />
         )}
       </div>
 

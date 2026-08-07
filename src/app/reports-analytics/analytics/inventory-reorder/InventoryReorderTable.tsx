@@ -280,7 +280,7 @@ export default function InventoryReorderTable() {
                   const color = percent <= 25 ? "#ff4d4f" : percent <= 50 ? "#faad14" : percent >= 100 ? "#52c41a" : "#1890ff";
 
                   return (
-                    <TableRow key={row.key ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                    <TableRow key={row.key ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-blue-200 bg-[#E6F7FF] font-medium text-blue-600 dark:border-blue-900 dark:bg-blue-950/40">

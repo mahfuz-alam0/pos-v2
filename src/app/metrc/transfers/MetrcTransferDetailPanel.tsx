@@ -16,7 +16,7 @@ function KeyValueItem({ label, value, alt }: { label: string; value?: React.Reac
   return (
     <div
       className={`flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md px-2 py-1.5 ${
-        alt ? "bg-stone-100 dark:bg-stone-800" : ""
+        alt ? "bg-table-zebra" : ""
       }`}
     >
       <p className="mb-0 shrink-0 font-medium text-muted-foreground">{label}</p>

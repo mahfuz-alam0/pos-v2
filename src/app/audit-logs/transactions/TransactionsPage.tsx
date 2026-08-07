@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 type DateFilter = "all" | "today" | "yesterday" | "custom";
 
@@ -129,6 +129,7 @@ export default function TransactionsPage() {
           <BreadcrumbItem>
             <BreadcrumbPage>Audit Logs</BreadcrumbPage>
           </BreadcrumbItem>
+          <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage>Transactions</BreadcrumbPage>
           </BreadcrumbItem>
@@ -232,7 +233,7 @@ export default function TransactionsPage() {
             {rows.map((row: any, i) => (
               <TableRow
                 key={row.id}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
               >
                 <TableCell className="max-w-62 truncate">{row.id}</TableCell>
                 <TableCell>

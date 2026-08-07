@@ -113,22 +113,22 @@ export default function WelcomeBanner() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-linear-to-br from-[#0a1830] via-[#0d2038] to-[#0a1830] px-5 py-3.5 text-white">
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-linear-to-br from-primary-soft via-surface-alt to-primary-soft px-6 py-5 text-heading">
       <div>
         <div className="text-[22px] font-medium">
           Welcome, <span className="font-semibold">{userDetails?.name || "-"}</span>
         </div>
-        <div className="mt-2 text-[13px] font-medium text-[#7c8db5]">{dateLabel}</div>
+        <div className="mt-1 text-[13px] font-medium text-muted-foreground">{dateLabel}</div>
       </div>
 
       {chips.length > 0 && (
         <div className="flex flex-wrap justify-end gap-3">
           {chips.map((chip) => {
             const content = (
-              <div className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 backdrop-blur-sm">
-                <span className="inline-flex items-center text-[17px] leading-none text-blue-400">{chip.icon}</span>
-                <span className="text-[16px] font-bold text-white">{chip.count}</span>
-                <span className="text-sm text-blue-200">{chip.label}</span>
+              <div className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-primary/30 bg-component-bg px-4 py-2">
+                <span className="inline-flex items-center text-[17px] leading-none text-primary">{chip.icon}</span>
+                <span className="text-[16px] font-bold text-heading">{chip.count}</span>
+                <span className="text-sm text-muted-foreground">{chip.label}</span>
                 <span className="ml-0.5 size-2 rounded-full bg-green-500" />
               </div>
             );

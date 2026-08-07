@@ -290,7 +290,7 @@ export default function CategoryDetailsPanel({ categoryId, onClose, onEdit }: Ca
                             {shops.map((shop, i) => (
                               <TableRow
                                 key={shop.id}
-                                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                               >
                                 <TableCell className="font-medium">{shop.name}</TableCell>
                                 <TableCell className="text-center">

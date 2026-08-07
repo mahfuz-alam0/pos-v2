@@ -941,7 +941,9 @@ export default function ManageInventoriesTable() {
                       title={healthLabel(row.totalQuantity, row.threshold)}
                     />
                   </TableCell>
-                  <TableCell className="w-33 text-center">
+                  <TableCell
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                  >
                     <Button
                       className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
                       onClick={() => setEditPricingId(row.id)}

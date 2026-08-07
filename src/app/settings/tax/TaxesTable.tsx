@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
@@ -110,6 +110,7 @@ export default function TaxesTable() {
               <BreadcrumbItem>
                 <BreadcrumbPage>Settings</BreadcrumbPage>
               </BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Tax Profiles</BreadcrumbPage>
               </BreadcrumbItem>
@@ -150,7 +151,7 @@ export default function TaxesTable() {
                   <TableRow
                     key={tax.id}
                     onClick={() => openDetails(tax)}
-                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <TableCell className="font-medium text-primary">{tax.name}</TableCell>
                     <TableCell>{tax.classificationName || "-"}</TableCell>

@@ -58,7 +58,7 @@ export async function fetchPackagesPage(page: number, search: string) {
   const res = await listMinimalPackages(shopId, null, { page, limit: 30, ...(search ? { search } : {}) } as any);
   const list = res?.data?.data?.packages || res?.data?.packages || [];
   return {
-    items: list.map((p: any) => ({ id: p.id, name: p.advertisedId || p.name || p.id })),
+    items: list.map((p: any) => ({ id: p.id, name: p.name || p.advertisedId || p.id })),
     totalPages: res?.data?.data?.paginationData?.totalPages || res?.data?.paginationData?.totalPages || 1,
   };
 }

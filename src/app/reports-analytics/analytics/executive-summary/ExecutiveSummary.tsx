@@ -363,7 +363,7 @@ export default function ExecutiveSummary() {
                     </TableRow>
                   )}
                   {!isInitialLoading && salesByOrderSource.map((row, i) => (
-                    <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                    <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>{row.orderSource || "-"}</TableCell>
                       <TableCell>{row.onlineType || "N/A"}</TableCell>
                       <TableCell className="text-right">${Number(row.netSales || 0).toFixed(2)}</TableCell>
@@ -426,7 +426,7 @@ export default function ExecutiveSummary() {
                   </TableRow>
                 )}
                 {!isInitialLoading && salesByCategory.map((row, i) => (
-                  <TableRow key={row.categoryId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                  <TableRow key={row.categoryId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell>{row.categoryName || "-"}</TableCell>
                     <TableCell className="text-right">${Number(row.netSales || 0).toFixed(2)}</TableCell>
                     <TableCell className="text-right">{Number(row.grossMargin || 0).toFixed(2)}%</TableCell>
@@ -514,7 +514,7 @@ export default function ExecutiveSummary() {
                   </TableRow>
                 )}
                 {!isInitialLoading && salesByStore.map((row, i) => (
-                  <TableRow key={row.shopId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                  <TableRow key={row.shopId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell>{row.shopName || "-"}</TableCell>
                     <TableCell className="text-right">${Number(row.netSales || 0).toFixed(2)}</TableCell>
                     <TableCell className="text-right">{Number(row.netSalesPercent || 0).toFixed(1)}%</TableCell>

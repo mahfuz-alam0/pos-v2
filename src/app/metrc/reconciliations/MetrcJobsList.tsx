@@ -88,7 +88,7 @@ export default function MetrcJobsList({ jobs, mode, onDelete }: MetrcJobsListPro
       {jobs.map((job, i) => {
         const isOpen = expanded.has(job.id);
         return (
-          <div key={job.id} className={`rounded-lg ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-muted/40"}`}>
+          <div key={job.id} className={`rounded-lg ${i % 2 === 1 ? "bg-table-zebra" : "bg-muted/40"}`}>
             <div className="flex items-center justify-between gap-3 p-3">
               <div className="flex items-center gap-2">
                 {mode === "log" && (

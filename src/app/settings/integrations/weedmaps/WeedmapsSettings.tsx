@@ -12,21 +12,26 @@ import Drawer from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function WeedmapsSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function WeedmapsSettings({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved?: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [merchantId, setMerchantId] = useState("");
   const [menuId, setMenuId] = useState("");
 
   useEffect(() => {
     if (!open) return;
+    setInitialLoading(true);
     const shopId = JSON.parse(localStorage.getItem("shopId") || "null");
-    fetchWeedmapsConfig(shopId).then((res) => {
-      const config = res?.data?.data;
-      if (!config) return;
-      setMerchantId(config.merchantId || "");
-      setMenuId(config.menuId || "");
-    });
+    fetchWeedmapsConfig(shopId)
+      .then((res) => {
+        const config = res?.data?.data;
+        if (!config) return;
+        setMerchantId(config.merchantId || "");
+        setMenuId(config.menuId || "");
+      })
+      .finally(() => setInitialLoading(false));
   }, [open]);
 
   const handleSubmit = async () => {
@@ -40,6 +45,7 @@ export default function WeedmapsSettings({ open, onClose }: { open: boolean; onC
       const shopId = JSON.parse(localStorage.getItem("shopId") || "null");
       await saveWeedmapsConfig({ shopId, merchantId, menuId });
       toast.success("Weedmaps configuration saved successfully!");
+      onSaved?.();
     } catch (err: any) {
       toast.error(err?.message || "Failed to save Weedmaps configuration.");
     } finally {
@@ -66,24 +72,37 @@ export default function WeedmapsSettings({ open, onClose }: { open: boolean; onC
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <p className="mb-4 text-sm text-muted-foreground">Configure your Weedmaps API credentials to sync menu data.</p>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="merchant-id">Merchant ID</Label>
-              <Input id="merchant-id" placeholder="Enter your Weedmaps Merchant ID" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} />
+          {initialLoading ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-9 w-full" />
+              </div>
             </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="merchant-id">Merchant ID</Label>
+                <Input id="merchant-id" placeholder="Enter your Weedmaps Merchant ID" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} />
+              </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="menu-id">Menu ID</Label>
-              <Input id="menu-id" placeholder="Enter your Weedmaps Menu ID" value={menuId} onChange={(e) => setMenuId(e.target.value)} />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="menu-id">Menu ID</Label>
+                <Input id="menu-id" placeholder="Enter your Weedmaps Menu ID" value={menuId} onChange={(e) => setMenuId(e.target.value)} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button onClick={handleSubmit} disabled={loading || initialLoading}>
             {loading ? "Saving..." : "Save Configuration"}
           </Button>
         </div>

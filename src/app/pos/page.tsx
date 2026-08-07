@@ -789,7 +789,7 @@ function TabletPosInner() {
     <TooltipProvider>
       <div className={wrapperClass}>
         {/* ──── TOP BAR ──── */}
-        <div className="flex h-17.5 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-gray-100 px-4 shadow-sm">
+        <div className="flex h-17.5 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-muted px-4 shadow-sm">
           {shopDetails?.label && (
             <span className="flex h-8.25 shrink-0 items-center gap-2 rounded-full bg-secondary px-3.25 text-xs font-bold text-white">
               <span className="inline-block h-2 w-2 rounded-full bg-green-600" />
@@ -797,14 +797,14 @@ function TabletPosInner() {
             </span>
           )}
 
-          <div className="h-8 w-px shrink-0 bg-gray-200" />
+          <div className="h-8 w-px shrink-0 bg-border" />
 
           <Select
             value={deliveryType}
             onValueChange={handleDeliveryTypeChange}
             disabled={hasSale}
           >
-            <SelectTrigger className="h-9! w-26.25 shrink-0 bg-white text-xs">
+            <SelectTrigger className="h-9! w-26.25 shrink-0 bg-card text-xs">
               <SelectValue placeholder="Order Type">
                 {(value) => (
                   <span className="flex items-center">
@@ -867,7 +867,7 @@ function TabletPosInner() {
             </Select>
           )}
 
-          <div className="flex-1 bg-gray-50" />
+          <div className="flex-1" />
 
           <div className="flex items-center gap-1.5">
           <Tooltip>
@@ -896,10 +896,10 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-14 w-14 shrink-0 border-gray-300 bg-white"
+                  className="h-14 w-14 shrink-0"
                   onClick={() => setDocManagerOpen(true)}
                 >
-                  <IdCard className="size-6 text-gray-600" />
+                  <IdCard className="size-6 text-muted-foreground" />
                 </Button>
               }
             />
@@ -950,13 +950,13 @@ function TabletPosInner() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-14 w-14 shrink-0 border-gray-300 bg-white"
+                  className="h-14 w-14 shrink-0"
                   onClick={() => setFullscreen((f) => !f)}
                 >
                   {fullscreen ? (
-                    <Minimize2 className="size-6 text-gray-600"  />
+                    <Minimize2 className="size-6 text-muted-foreground"  />
                   ) : (
-                    <Maximize2 className="size-6 text-gray-600" />
+                    <Maximize2 className="size-6 text-muted-foreground" />
                   )}
                 </Button>
               }
@@ -995,7 +995,7 @@ function TabletPosInner() {
               }`}
             >
             {/* Customer bar */}
-            <div className="flex shrink-0 flex-wrap items-center gap-2 bg-white px-4 py-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2 bg-card px-4 py-2">
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 rounded-lg bg-primary px-2.5 py-2 text-primary-foreground">
@@ -1033,17 +1033,17 @@ function TabletPosInner() {
                               </div>
                             }
                           />
-                          <TooltipContent className="block max-h-75 w-80 max-w-80 overflow-y-auto rounded-lg bg-white p-3 text-left text-foreground shadow-lg">
+                          <TooltipContent className="block max-h-75 w-80 max-w-80 overflow-y-auto rounded-lg bg-popover p-3 text-left text-foreground shadow-lg">
                             {hasCustomerWarning && (
                               <div
-                                className={`rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 ${
+                                className={`rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 dark:border-amber-800 dark:bg-amber-950 ${
                                   hasCustomerNotes ? "mb-2.5" : ""
                                 }`}
                               >
-                                <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase">
+                                <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase dark:text-amber-400">
                                   ⚠ Warning
                                 </div>
-                                <div className="text-xs whitespace-pre-wrap text-amber-800">
+                                <div className="text-xs whitespace-pre-wrap text-amber-800 dark:text-amber-200">
                                   {fullSelectedCustomer?.warningMessage ||
                                     "This customer is flagged for a warning"}
                                 </div>
@@ -1051,22 +1051,22 @@ function TabletPosInner() {
                             )}
                             {(currentNote || currentNoteSubject) && (
                               <div className={previousNotes.length ? "mb-2.5" : ""}>
-                                <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-blue-600 uppercase">
+                                <div className="mb-0.5 text-[10px] font-semibold tracking-wide text-blue-600 uppercase dark:text-blue-400">
                                   Current Note
                                 </div>
                                 {currentNoteSubject && (
-                                  <div className="text-[13px] font-semibold text-gray-800">
+                                  <div className="text-[13px] font-semibold text-foreground">
                                     {currentNoteSubject}
                                   </div>
                                 )}
-                                <div className="text-xs whitespace-pre-wrap text-gray-700">
+                                <div className="text-xs whitespace-pre-wrap text-foreground/80">
                                   {currentNote}
                                 </div>
                               </div>
                             )}
                             {previousNotes.length > 0 && (
                               <div>
-                                <div className="mb-1 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
+                                <div className="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                                   Previous Notes
                                 </div>
                                 <div className="flex flex-col gap-1.5">
@@ -1076,9 +1076,9 @@ function TabletPosInner() {
                                     .map((noteText, idx) => (
                                       <div
                                         key={idx}
-                                        className={`text-xs whitespace-pre-wrap text-gray-600 ${
+                                        className={`text-xs whitespace-pre-wrap text-muted-foreground ${
                                           idx < previousNotes.length - 1
-                                            ? "border-b border-gray-100 pb-1.5"
+                                            ? "border-b border-border pb-1.5"
                                             : ""
                                         }`}
                                       >

@@ -2,39 +2,53 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Truck, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
-import { fetchSingleDeliveryJob } from "@/services/deliveryJobs/getSingle";
-import { updateDeliveryJob } from "@/services/deliveryJobs/update";
 import { fetchDriversList } from "@/services/drivers/list";
 import { fetchVehiclesList } from "@/services/vehicles/list";
+import { createDeliveryJob } from "@/services/deliveryJobs/create";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/admin/form-fields";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface JobFormDrawerProps {
-  open: boolean;
-  jobId: string | number | null;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function toLocalInputValue(iso?: string | null) {
-  if (!iso) return "";
-  const d = new Date(iso);
+function toLocalInputValue(date?: Date | null) {
+  if (!date) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobFormDrawerProps) {
+interface DeliveryOptionsDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  saleId: string | number;
+  // "Standard" just advances the order status normally (same as any other
+  // Next click); "Via new Delivery Job" hands the delivery off to a job
+  // instead, which then drives the order's status on its own.
+  onStandard: () => void;
+  onJobCreated: () => void;
+}
+
+// Ported from the old app's Delivery Options drawer (OrderCard.jsx) — shown
+// instead of the normal Next click when a Packaged & Ready order is a
+// DELIVERY-method order with no delivery job yet.
+export default function DeliveryOptionsDrawer({
+  open,
+  onClose,
+  saleId,
+  onStandard,
+  onJobCreated,
+}: DeliveryOptionsDrawerProps) {
   const { shopId } = useShop();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [option, setOption] = useState<"STANDARD" | "NEW_JOB">("STANDARD");
 
   const [driverId, setDriverId] = useState("");
   const [vehicleId, setVehicleId] = useState("");
@@ -45,11 +59,25 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
   const [drivers, setDrivers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setOption("STANDARD");
+    setDriverId("");
+    setVehicleId("");
+    setDepartureTimestamp(toLocalInputValue(new Date()));
+    setEstimatedArrivalTimestamp("");
+    setPlannedRoute("");
+  }, [open]);
 
   useEffect(() => {
     if (!open || !shopId) return;
     setDropdownLoading(true);
-    Promise.all([fetchDriversList(shopId, { page: 1, limit: 100 }), fetchVehiclesList(shopId, { page: 1, limit: 100 })])
+    Promise.all([
+      fetchDriversList(shopId, { page: 1, limit: 100 }),
+      fetchVehiclesList(shopId, { page: 1, limit: 100 }),
+    ])
       .then(([dRes, vRes]) => {
         setDrivers(dRes?.data ?? []);
         setVehicles(vRes?.data ?? []);
@@ -57,28 +85,13 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
       .finally(() => setDropdownLoading(false));
   }, [open, shopId]);
 
-  useEffect(() => {
-    if (!open || !jobId || !shopId) return;
-    setLoading(true);
-    fetchSingleDeliveryJob(jobId, shopId)
-      .then((res) => {
-        const job = res?.data;
-        if (!job) {
-          toast.error("Delivery job not found");
-          return;
-        }
-        const dew = job.deliveryEstimationWindow || {};
-        setDriverId(job.driverInfo?.id ? String(job.driverInfo.id) : "");
-        setVehicleId(job.vehicleInfo?.id ? String(job.vehicleInfo.id) : "");
-        setDepartureTimestamp(toLocalInputValue(dew.departureTimestamp));
-        setEstimatedArrivalTimestamp(toLocalInputValue(dew.estimatedArrivalTimestamp));
-        setPlannedRoute(dew.plannedRoute || "");
-      })
-      .catch((err: any) => toast.error(err?.message || "Failed to load delivery job"))
-      .finally(() => setLoading(false));
-  }, [open, jobId, shopId]);
+  const handleConfirm = async () => {
+    if (option === "STANDARD") {
+      onClose();
+      onStandard();
+      return;
+    }
 
-  const handleUpdate = async () => {
     if (!driverId) {
       toast.error("Please select a driver");
       return;
@@ -87,21 +100,17 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
       toast.error("Please select a vehicle");
       return;
     }
-    if (!departureTimestamp) {
-      toast.error("Please select departure time");
+    if (!departureTimestamp || !estimatedArrivalTimestamp) {
+      toast.error("Please select departure and estimated arrival times");
       return;
     }
-    if (!estimatedArrivalTimestamp) {
-      toast.error("Please select estimated arrival time");
-      return;
-    }
-    if (!shopId || !jobId) return;
+    if (!shopId) return;
 
-    setSaving(true);
+    setSubmitting(true);
     try {
-      await updateDeliveryJob({
+      await createDeliveryJob({
         shopId,
-        id: jobId,
+        saleId,
         driverId,
         vehicleId,
         deliveryEstimationWindow: {
@@ -110,47 +119,57 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
           plannedRoute: plannedRoute || undefined,
         },
       });
-      toast.success("Delivery job updated successfully");
-      onSaved();
+      toast.success("Delivery job created successfully");
+      onClose();
+      onJobCreated();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update delivery job");
+      toast.error(err?.message || "Failed to create delivery job");
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={640}>
+    <Drawer open={open} onClose={submitting ? undefined : onClose} side="right" size={600}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Truck className="size-4 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">Edit Delivery Job</div>
-            <div className="text-xs leading-tight text-muted-foreground">Update driver, vehicle, and delivery window</div>
-          </div>
-          <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
-            <X className="size-4" />
-          </Button>
+        <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+          <div className="text-base font-semibold">Delivery Options</div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {loading ? (
-            <div className="flex flex-col gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-11 w-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
+          <p className="mb-3 text-sm text-muted-foreground">
+            How would you like to fulfill this delivery?
+          </p>
+
+          <div className="mb-4 flex flex-col gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                checked={option === "STANDARD"}
+                onChange={() => setOption("STANDARD")}
+                className="size-4 shrink-0 accent-primary"
+              />
+              Standard (update order status)
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                checked={option === "NEW_JOB"}
+                onChange={() => setOption("NEW_JOB")}
+                className="size-4 shrink-0 accent-primary"
+              />
+              Via new Delivery Job
+            </label>
+          </div>
+
+          {option === "NEW_JOB" && (
+            <div className="flex flex-col gap-4 border-t border-border pt-4">
               <Field label="Driver" required>
                 <Select
                   items={drivers.map((d) => ({ value: String(d.id), label: d.name }))}
                   value={driverId}
                   onValueChange={(v) => setDriverId(v as string)}
-                  disabled={dropdownLoading}
-                >
+                  disabled={dropdownLoading}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a driver" />
                   </SelectTrigger>
@@ -169,8 +188,7 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
                   items={vehicles.map((v) => ({ value: String(v.id), label: v.name }))}
                   value={vehicleId}
                   onValueChange={(v) => setVehicleId(v as string)}
-                  disabled={dropdownLoading}
-                >
+                  disabled={dropdownLoading}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a vehicle" />
                   </SelectTrigger>
@@ -183,9 +201,6 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
                   </SelectContent>
                 </Select>
               </Field>
-
-              <div className="h-px bg-border" />
-              <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Delivery Window</p>
 
               <Field label="Departure Time" required>
                 <input
@@ -206,18 +221,22 @@ export default function JobFormDrawer({ open, jobId, onClose, onSaved }: JobForm
               </Field>
 
               <Field label="Planned Route">
-                <Input value={plannedRoute} onChange={(e) => setPlannedRoute(e.target.value)} placeholder="e.g. 123 Main St → 456 Oak Ave" />
+                <Input
+                  value={plannedRoute}
+                  onChange={(e) => setPlannedRoute(e.target.value)}
+                  placeholder="e.g. 123 Main St → 456 Oak Ave"
+                />
               </Field>
             </div>
           )}
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleUpdate} disabled={saving || loading}>
-            {saving ? "Saving..." : "Update"}
+          <Button onClick={handleConfirm} disabled={submitting}>
+            {submitting ? "Creating…" : option === "NEW_JOB" ? "Create Job" : "Continue"}
           </Button>
         </div>
       </div>

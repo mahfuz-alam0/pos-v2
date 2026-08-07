@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/admin/form-fields";
-import { MultiApiSelect } from "@/components/ui/multi-api-select";
+import { MultiApiSelect, type MultiApiSelectOption } from "@/components/ui/multi-api-select";
 import {
   TIERED_MEASUREMENT_TYPE_ITEMS,
   TIERED_DEAL_TARGET_ENTITY_ITEMS,
@@ -19,9 +19,11 @@ import type { TieredDealInfoValue } from "./types";
 export function TieredDealFields({
   value,
   onChange,
+  labels,
 }: {
   value: TieredDealInfoValue;
   onChange: (patch: Partial<TieredDealInfoValue>) => void;
+  labels?: Partial<Record<keyof TieredDealInfoValue, MultiApiSelectOption[]>>;
 }) {
   const updateTier = (index: number, patch: Partial<TieredDealInfoValue["tiers"][number]>) => {
     onChange({ tiers: value.tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)) });
@@ -113,30 +115,30 @@ export function TieredDealFields({
 
       {value.targetEntity === "CATEGORIES" && (
         <Field label="Categories" required>
-          <MultiApiSelect placeholder="Select categories" fetchPage={fetchCategoriesPage} value={value.associatedCategoryIds} onChange={(ids) => onChange({ associatedCategoryIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select categories" fetchPage={fetchCategoriesPage} value={value.associatedCategoryIds} onChange={(ids) => onChange({ associatedCategoryIds: ids })} initialLabels={labels?.associatedCategoryIds} triggerClassName="w-full" />
         </Field>
       )}
       {value.targetEntity === "BRANDS" && (
         <Field label="Brands" required>
-          <MultiApiSelect placeholder="Select brands" fetchPage={fetchBrandsPage} value={value.associatedBrandIds} onChange={(ids) => onChange({ associatedBrandIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select brands" fetchPage={fetchBrandsPage} value={value.associatedBrandIds} onChange={(ids) => onChange({ associatedBrandIds: ids })} initialLabels={labels?.associatedBrandIds} triggerClassName="w-full" />
         </Field>
       )}
       {value.targetEntity === "PRODUCTS" && (
         <Field label="Products" required>
-          <MultiApiSelect placeholder="Select products" fetchPage={fetchProductsPage} value={value.associatedProductIds} onChange={(ids) => onChange({ associatedProductIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select products" fetchPage={fetchProductsPage} value={value.associatedProductIds} onChange={(ids) => onChange({ associatedProductIds: ids })} initialLabels={labels?.associatedProductIds} triggerClassName="w-full" />
         </Field>
       )}
       {value.targetEntity === "TAGS" && (
         <Field label="Tags" required>
-          <MultiApiSelect placeholder="Select tags" fetchPage={fetchTagsPage} value={value.associatedTagIds} onChange={(ids) => onChange({ associatedTagIds: ids })} triggerClassName="w-full" />
+          <MultiApiSelect placeholder="Select tags" fetchPage={fetchTagsPage} value={value.associatedTagIds} onChange={(ids) => onChange({ associatedTagIds: ids })} initialLabels={labels?.associatedTagIds} triggerClassName="w-full" />
         </Field>
       )}
 
       <Field label="Product Exceptions">
-        <MultiApiSelect placeholder="Exclude products" fetchPage={fetchProductsPage} value={value.productExceptionIds} onChange={(ids) => onChange({ productExceptionIds: ids })} triggerClassName="w-full" />
+        <MultiApiSelect placeholder="Exclude products" fetchPage={fetchProductsPage} value={value.productExceptionIds} onChange={(ids) => onChange({ productExceptionIds: ids })} initialLabels={labels?.productExceptionIds} triggerClassName="w-full" />
       </Field>
       <Field label="Package Exceptions">
-        <MultiApiSelect placeholder="Exclude packages" fetchPage={fetchPackagesPage} value={value.packageExceptionIds} onChange={(ids) => onChange({ packageExceptionIds: ids })} triggerClassName="w-full" />
+        <MultiApiSelect placeholder="Exclude packages" fetchPage={fetchPackagesPage} value={value.packageExceptionIds} onChange={(ids) => onChange({ packageExceptionIds: ids })} initialLabels={labels?.packageExceptionIds} triggerClassName="w-full" />
       </Field>
 
       <div className="flex items-center justify-between rounded-lg p-3 ring-1 ring-foreground/10">

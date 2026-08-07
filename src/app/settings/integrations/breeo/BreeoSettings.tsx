@@ -21,7 +21,17 @@ type Register = { id: string; name: string };
 
 const emptyTerminal = (): Terminal => ({ registerId: undefined, terminalAccessKey: "" });
 
-export default function BreeoSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function BreeoSettings({
+  open,
+  onClose,
+  onSaved,
+  onStatusToggle,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved?: () => void;
+  onStatusToggle?: (active: boolean) => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [configExists, setConfigExists] = useState(false);
@@ -70,6 +80,7 @@ export default function BreeoSettings({ open, onClose }: { open: boolean; onClos
     try {
       await toggleBreeoStatus({ shopId, activate: checked });
       toast.success(checked ? "Bleaum Digital Pay activated." : "Bleaum Digital Pay deactivated.");
+      onStatusToggle?.(checked);
     } catch (err: any) {
       setIsActive(!checked);
       toast.error(err?.message || "Failed to update status.");
@@ -102,6 +113,7 @@ export default function BreeoSettings({ open, onClose }: { open: boolean; onClos
         setConfigExists(true);
         setIsActive(true);
       }
+      onSaved?.();
     } catch (err: any) {
       toast.error(err?.message || "Failed to save Bleaum Digital Pay configuration.");
     } finally {
