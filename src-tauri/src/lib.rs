@@ -4,6 +4,18 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
+/// Toggle devtools for the calling window. Debug builds only — `open_devtools`
+/// does not exist in release, and shipping an inspector to a POS terminal is worse.
+#[cfg(debug_assertions)]
+#[tauri::command]
+fn toggle_devtools(window: tauri::WebviewWindow) {
+  if window.is_devtools_open() {
+    window.close_devtools();
+  } else {
+    window.open_devtools();
+  }
+}
+
 /// Ask the OS for a free port, then release it for the sidecar to bind.
 /// Racy in theory; in practice nothing else grabs it in the microseconds between.
 fn free_port() -> u16 {
@@ -31,8 +43,12 @@ fn wait_for_server(port: u16, timeout: Duration) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .plugin(tauri_plugin_shell::init())
+  let builder = tauri::Builder::default().plugin(tauri_plugin_shell::init());
+
+  #[cfg(debug_assertions)]
+  let builder = builder.invoke_handler(tauri::generate_handler![toggle_devtools]);
+
+  builder
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -45,7 +61,9 @@ pub fn run() {
       // In dev, `next dev` is already serving on 3000 with hot reload — just point
       // the window at it instead of building and spawning the standalone sidecar.
       if cfg!(debug_assertions) {
-        WebviewWindowBuilder::new(
+        // Only read in debug, where devtools are opened below.
+        #[cfg_attr(not(debug_assertions), allow(unused_variables))]
+        let window = WebviewWindowBuilder::new(
           app,
           "main",
           WebviewUrl::External("http://localhost:3000".parse()?),
@@ -53,7 +71,25 @@ pub fn run() {
         .title("POS")
         .inner_size(1440.0, 900.0)
         .resizable(true)
+        // Cmd/Ctrl+Shift+I toggles devtools, matching the Electron/browser habit.
+        // Injected here so it stays dev-only and out of the app source.
+        .initialization_script(
+          r#"
+          window.addEventListener("keydown", (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "i") {
+              e.preventDefault();
+              window.__TAURI_INTERNALS__?.invoke("toggle_devtools");
+            }
+          });
+          "#,
+        )
         .build()?;
+
+        // `cfg!` above is a runtime check, so this still compiles into release
+        // builds where `open_devtools` does not exist — needs the real attribute.
+        #[cfg(debug_assertions)]
+        window.open_devtools();
+
         return Ok(());
       }
 
