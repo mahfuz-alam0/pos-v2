@@ -168,7 +168,7 @@ export default function SalesDiscountProgressReport() {
                 {rows.map((row, i) => (
                   <TableRow
                     key={row.label}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <TableCell className="font-medium">{row.label}</TableCell>
                     <TableCell className="text-right">{row.value}</TableCell>

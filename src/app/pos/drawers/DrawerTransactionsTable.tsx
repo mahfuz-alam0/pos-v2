@@ -120,7 +120,7 @@ export default function DrawerTransactionsTable({
             {rows.map((row, i) => (
               <TableRow
                 key={row.id}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
               >
                 <TableCell>
                   {row.loggedDate ? new Date(row.loggedDate).toLocaleDateString() : "-"} {row.loggedTime}

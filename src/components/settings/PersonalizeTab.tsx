@@ -111,7 +111,7 @@ function SectionCard({ icon: Icon, title, description, children }) {
   );
 }
 
-export default function PersonalizeTab({ onClose }) {
+export default function PersonalizeTab() {
   const { theme, setTheme, themes, mode, setMode, modes } = useTheme();
   const {
     queueBorder15,
@@ -268,10 +268,7 @@ export default function PersonalizeTab({ onClose }) {
               size="sm"
               variant={printType === "hardware" ? "outline" : "default"}
               suppressHydrationWarning
-              onClick={() => {
-                setPrinterModalOpen(true);
-                onClose?.();
-              }}
+              onClick={() => setPrinterModalOpen(true)}
             >
               {printType === "hardware" ? "Configure" : "Set up"}
             </Button>

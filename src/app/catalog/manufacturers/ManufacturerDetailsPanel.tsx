@@ -254,7 +254,7 @@ export default function ManufacturerDetailsPanel({ brandId, onClose, onEdit }: M
                               {shops.map((shop, i) => (
                                 <TableRow
                                   key={shop.id}
-                                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                                 >
                                   <TableCell className="font-medium">{shop.name}</TableCell>
                                   <TableCell className="text-center">
@@ -324,7 +324,7 @@ export default function ManufacturerDetailsPanel({ brandId, onClose, onEdit }: M
             {(brand?.suppliers ?? []).map((supplier, i) => (
               <TableRow
                 key={supplier.id}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
               >
                 <TableCell>{supplier.name}</TableCell>
                 <TableCell>{supplier.phoneNumber ?? "-"}</TableCell>

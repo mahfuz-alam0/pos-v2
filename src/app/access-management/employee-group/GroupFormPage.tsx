@@ -169,7 +169,7 @@ export default function GroupFormPage({ groupId }: { groupId?: string }) {
                   </TableHeader>
                   <TableBody>
                     {employees.map((e, i) => (
-                      <TableRow key={e.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                      <TableRow key={e.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                         <TableCell>
                           <Checkbox checked={selectedEmployees.includes(String(e.id))} onCheckedChange={() => toggleEmployee(String(e.id))} />
                         </TableCell>

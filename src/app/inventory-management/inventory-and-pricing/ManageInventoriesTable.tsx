@@ -771,7 +771,7 @@ export default function ManageInventoriesTable() {
           <TableBody className="text-foreground/70 [&_td]:py-3.5">
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -790,7 +790,7 @@ export default function ManageInventoriesTable() {
 
             {displayRows.length > 0 &&
               displayRows.map((row: any, i) => (
-                <TableRow key={row.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="pl-3">
                     <Checkbox className="rounded-md" checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
                   </TableCell>
@@ -861,7 +861,9 @@ export default function ManageInventoriesTable() {
                       title={healthLabel(row.totalQuantity, row.threshold)}
                     />
                   </TableCell>
-                  <TableCell className="w-33 text-center">
+                  <TableCell
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                  >
                     <Button
                       className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
                       onClick={() => router.push(`/inventory-management/manage-inventories/edit/${row.id}`)}

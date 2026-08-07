@@ -270,6 +270,7 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
         onClose={() => setActivityOpen(false)}
         domain="CUSTOMER"
         targetId={customerId}
+        zIndex={80}
       />
     </>
   );

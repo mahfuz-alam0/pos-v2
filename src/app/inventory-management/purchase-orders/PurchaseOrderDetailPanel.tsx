@@ -88,7 +88,7 @@ function MetaItem({ icon, label, value }: { icon: React.ReactNode; label: string
       <span className="mt-0.5 shrink-0 text-muted-foreground">{icon}</span>
       <div className="min-w-0">
         <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</p>
-        <p className="mt-0.5 text-sm break-words">{value}</p>
+        <p className="mt-0.5 text-sm wrap-break-word">{value}</p>
       </div>
     </div>
   );
@@ -456,10 +456,10 @@ export default function PurchaseOrderDetailPanel({
                     value={paidPct}
                     className={
                       paidPct >= 100
-                        ? "[&_[data-slot=progress-indicator]]:bg-green-600"
+                        ? "**:data-[slot=progress-indicator]:bg-green-600"
                         : paidPct > 0
-                        ? "[&_[data-slot=progress-indicator]]:bg-blue-600"
-                        : "[&_[data-slot=progress-indicator]]:bg-red-500"
+                        ? "**:data-[slot=progress-indicator]:bg-blue-600"
+                        : "**:data-[slot=progress-indicator]:bg-red-500"
                     }
                   />
                 </div>

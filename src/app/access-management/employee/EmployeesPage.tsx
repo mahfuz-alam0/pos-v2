@@ -251,7 +251,7 @@ export default function EmployeesPage() {
               {rows.map((row, i) => (
                 <TableRow
                   key={row.id}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                 >
                   <TableCell>
                     <button className="text-primary hover:underline" onClick={() => setSelectedId(row.id)}>
@@ -270,7 +270,7 @@ export default function EmployeesPage() {
                     {row.id === liveShift?.employeeId ? <Badge variant="default">Active</Badge> : "-"}
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger

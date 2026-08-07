@@ -140,7 +140,7 @@ export default function SettingsPanel() {
           )}
 
           <TabsContent value="personalize" className="min-h-0 flex-1 overflow-y-auto py-4">
-            <PersonalizeTab onClose={() => setOpen(false)} />
+            <PersonalizeTab />
           </TabsContent>
 
           <TabsContent value="verify" className="min-h-0 flex-1 overflow-y-auto py-4">

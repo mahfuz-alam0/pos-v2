@@ -42,7 +42,7 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
 
   const age = calculateAge(data?.dob);
   const waitColor = waitTime >= queueRedTime ? "#ef4444" : waitTime >= queueYellowTime ? "#f59e0b" : null;
-  const statusBg = isServing ? "#059669" : "#7c3aed";
+  const statusBg = isServing ? "#059669" : "var(--color-primary)";
   const statusLabel = actionLoading ? (isServing ? "Processing…" : "Moving…") : isServing ? "Return to Queue" : "Available";
 
   let cartData = null;
@@ -95,7 +95,7 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
         {data?.avatarUrl ? (
           <img src={data.avatarUrl} alt="" className="size-10 shrink-0 cursor-pointer rounded-full object-cover" />
         ) : (
-          <div className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">
+          <div className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
             {(data?.firstName || "?")[0].toUpperCase()}
           </div>
         )}
@@ -104,7 +104,7 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
             {data?.firstName} {data?.lastName || ""}
           </div>
           {age && (
-            <span className="mt-1 inline-block rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-200">
+            <span className="mt-1 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-medium text-primary">
               {age} yrs{data?.dob ? `, ${new Date(data.dob).getFullYear()}` : ""}
             </span>
           )}

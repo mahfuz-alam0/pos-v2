@@ -106,7 +106,7 @@ export default function FrontDeskQueue({ onCustomerServed }) {
     <div className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="size-4.5 text-violet-500 dark:text-violet-300" />
+          <Users className="size-4.5 text-primary" />
           <h2 className="text-base font-semibold text-foreground">Customer Queue</h2>
           <span className="flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white">
             {queueData.length}
@@ -136,7 +136,7 @@ export default function FrontDeskQueue({ onCustomerServed }) {
           onFocus={() => setQuickFocused(true)}
           onBlur={() => setTimeout(() => setQuickFocused(false), 150)}
           placeholder="Quick check-in — search by name…"
-          className="w-full rounded-lg bg-muted px-3 py-2 text-sm text-foreground outline-none ring-1 ring-foreground/10 placeholder:text-muted-foreground focus:ring-violet-400/50"
+          className="w-full rounded-lg bg-muted px-3 py-2 text-sm text-foreground outline-none ring-1 ring-foreground/10 placeholder:text-muted-foreground focus:ring-primary/50"
         />
         {quickFocused && quickResults.length > 0 && (
           <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg bg-card shadow-lg ring-1 ring-foreground/10">
@@ -160,7 +160,7 @@ export default function FrontDeskQueue({ onCustomerServed }) {
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           placeholder="Search queue…"
-          className="w-full rounded-lg bg-muted py-2 pr-3 pl-8 text-sm text-foreground outline-none ring-1 ring-foreground/10 placeholder:text-muted-foreground focus:ring-violet-400/50"
+          className="w-full rounded-lg bg-muted py-2 pr-3 pl-8 text-sm text-foreground outline-none ring-1 ring-foreground/10 placeholder:text-muted-foreground focus:ring-primary/50"
         />
       </div>
 

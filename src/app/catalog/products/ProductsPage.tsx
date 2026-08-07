@@ -302,7 +302,7 @@ export default function ProductsPage() {
               )}
 
               {data.map((row, i) => (
-                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}>
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell>
                     <Checkbox checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
                   </TableCell>
@@ -355,7 +355,7 @@ export default function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-28 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-28 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger render={<Button variant="outline" size="sm">Actions <ChevronDown className="size-3.5" /></Button>} />

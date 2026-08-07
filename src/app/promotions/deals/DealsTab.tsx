@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { useDebounce } from "@/hooks/useDebounce";
 import { fetchDealsList } from "@/services/deals/list";
@@ -61,10 +61,15 @@ type DealFilters = {
 const DEFAULT_FILTERS: DealFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
 
 export default function DealsTab() {
-  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const openId = searchParams.get("id");
-  const openType = searchParams.get("type") as DealType | null;
+  const [openDeal, setOpenDeal] = useState<{ id: string; type: DealType } | null>(() => {
+    const id = searchParams.get("id");
+    const type = searchParams.get("type") as DealType | null;
+    return id && type ? { id, type } : null;
+  });
+  const openId = openDeal?.id ?? null;
+  const openType = openDeal?.type ?? null;
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -78,7 +83,7 @@ export default function DealsTab() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; dealId: string | null; dealType: DealType | null }>({
+  const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit" | "duplicate"; dealId: string | null; dealType: DealType | null }>({
     open: false,
     mode: "add",
     dealId: null,
@@ -137,18 +142,20 @@ export default function DealsTab() {
   const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openDetail = (row: DealRow) => {
+    setOpenDeal({ id: String(row.id), type: row.type });
     const params = new URLSearchParams(searchParams.toString());
-    params.set("id", row.id);
+    params.set("id", String(row.id));
     params.set("type", row.type);
-    router.push(`?${params.toString()}`, { scroll: false });
+    window.history.pushState(null, "", `${pathname}?${params.toString()}`);
   };
 
   const closeDetail = () => {
+    setOpenDeal(null);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
     params.delete("type");
     const qs = params.toString();
-    router.push(qs ? `?${qs}` : ".", { scroll: false });
+    window.history.pushState(null, "", qs ? `${pathname}?${qs}` : pathname);
   };
 
   const handleDelete = async () => {
@@ -230,7 +237,7 @@ export default function DealsTab() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow
                     key={`skeleton-${i}`}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   >
                     {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
@@ -252,7 +259,7 @@ export default function DealsTab() {
                 <TableRow
                   key={row.id}
                   data-active={openId === String(row.id)}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : ""}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                 >
                   <TableCell className="font-medium">
                     <button onClick={() => openDetail(row)} className="cursor-pointer text-left text-primary hover:underline">
@@ -275,6 +282,14 @@ export default function DealsTab() {
                         onClick={() => setDrawer({ open: true, mode: "edit", dealId: row.id, dealType: row.type })}
                       >
                         <Pencil />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        title="Duplicate"
+                        onClick={() => setDrawer({ open: true, mode: "duplicate", dealId: row.id, dealType: row.type })}
+                      >
+                        <Copy />
                       </Button>
                       <Button variant="outline" size="icon-sm" onClick={() => setDeleteTarget(row)}>
                         <Trash2 />

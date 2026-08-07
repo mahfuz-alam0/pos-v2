@@ -17,13 +17,14 @@ interface ActivityLogDrawerProps {
   onClose: () => void;
   domain: "CLASSIFICATION" | "CATEGORY" | "BRAND" | "CUSTOMER";
   targetId: string | number | null;
+  zIndex?: number;
 }
 
-export default function ActivityLogDrawer({ open, onClose, domain, targetId }: ActivityLogDrawerProps) {
+export default function ActivityLogDrawer({ open, onClose, domain, targetId, zIndex }: ActivityLogDrawerProps) {
   return (
-    <Drawer open={open} onClose={onClose} side="right" size={520}>
+    <Drawer open={open} onClose={onClose} side="right" size={520} {...(zIndex !== undefined ? { zIndex } : {})}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-5 py-4">
+        <div className="flex items-center justify-between px-5 py-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
           <span className="text-base font-semibold">{DOMAIN_LABELS[domain] ?? "Activity"}</span>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="size-4" />

@@ -60,7 +60,7 @@ export default function SalesByCategoryTable({ categoryData }: { categoryData: C
               </tr>
             )}
             {rows.map((item, i) => {
-              const zebra = i % 2 === 1 ? "bg-stone-100 dark:bg-stone-800" : "bg-background";
+              const zebra = i % 2 === 1 ? "bg-table-zebra" : "bg-background";
               return (
                 <tr key={item.categoryId || i} className={zebra}>
                   <td className={`sticky left-0 z-10 px-3 py-2 shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${zebra}`}>{item.categoryName || ""}</td>
