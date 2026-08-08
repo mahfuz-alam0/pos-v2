@@ -9,6 +9,7 @@ import { fetchDeliveryJobsList } from "@/services/deliveryJobs/list";
 import { removeDeliveryJob } from "@/services/deliveryJobs/remove";
 import { retryDeliveryJobMetrcReporting } from "@/services/deliveryJobs/retryMetrcReporting";
 import { changeDeliveryJobStatus } from "@/services/deliveryJobs/changeStatus";
+import { getCurrentUser } from "@/util/use-current-user";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,14 +126,8 @@ function formatDate(v?: string | null) {
 function getIsCaliforniaState() {
   if (typeof window === "undefined") return false;
   if (localStorage.getItem("isCaliforniaState") === "true") return true;
-  try {
-    const orgScopes =
-      JSON.parse(localStorage.getItem("userInfo") || "null")
-        ?.orgFeatureScopes || [];
-    return orgScopes.includes("METRC_CALI") || orgScopes.includes("METRC_CA");
-  } catch {
-    return false;
-  }
+  const orgScopes = getCurrentUser()?.orgFeatureScopes || [];
+  return orgScopes.includes("METRC_CALI") || orgScopes.includes("METRC_CA");
 }
 
 export default function JobsTable() {

@@ -24,6 +24,7 @@ import {
 
 import { getAdminSchedule } from "@/services/chat/getAdminSchedule";
 import { updateAdminSchedule } from "@/services/chat/updateAdminSchedule";
+import { useCurrentUser } from "@/util/use-current-user";
 
 const DAYS = [
   { key: "monday", label: "Monday", short: "MON" },
@@ -77,15 +78,6 @@ const TIMEZONES = [
 ];
 const TIMEZONE_ITEMS = TIMEZONES.flatMap((g) => g.options);
 
-function readCurrentUserId(): string | number | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null")?.id;
-  } catch {
-    return undefined;
-  }
-}
-
 export default function ChatConfigurationForm() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,7 +93,7 @@ export default function ChatConfigurationForm() {
   const [outsideHoursEnabled, setOutsideHoursEnabled] = useState(true);
   const [schedule, setSchedule] = useState<Schedule>(defaultSchedule());
 
-  const userId = readCurrentUserId();
+  const userId = useCurrentUser()?.id;
 
   useEffect(() => {
     if (userId) fetchSchedule();

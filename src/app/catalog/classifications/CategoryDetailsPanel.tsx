@@ -8,6 +8,7 @@ import { fetchSingleCategory } from "@/services/categories/getSingle";
 import { fetchMetrcCategories, fetchMetrcPurchaseCategoryTypes } from "@/services/categories/metrcDatasets";
 import { fetchShopsData } from "@/services/shops/list";
 import { updateEcommStatusCategory } from "@/services/categories/updateEcommStatus";
+import { getCurrentUser } from "@/util/use-current-user";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
@@ -43,11 +44,7 @@ interface ShopRow {
 }
 
 function readOrgFeatureScopes(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null")?.orgFeatureScopes || [];
-  } catch {
-    return [];
-  }
+  return getCurrentUser()?.orgFeatureScopes || [];
 }
 
 interface CategoryDetailsPanelProps {

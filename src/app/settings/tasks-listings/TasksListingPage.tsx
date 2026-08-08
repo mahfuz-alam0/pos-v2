@@ -8,6 +8,7 @@ import { fetchTasksList } from "@/services/tasks/list";
 import { fetchMyTasksList } from "@/services/tasks/listMyTasks";
 import { fetchTaskStatuses } from "@/services/tasks/taskStatuses";
 import { updateTaskStatus } from "@/services/tasks/updateTaskStatus";
+import { getCurrentUser } from "@/util/use-current-user";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,10 +41,7 @@ interface TaskStatus {
 const PAGE_SIZE = 20;
 
 export default function TasksListingPage() {
-  const [isAdmin] = useState(() => {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
-    return userInfo?.type === "SUPER_ADMIN";
-  });
+  const [isAdmin] = useState(() => getCurrentUser()?.type === "SUPER_ADMIN");
 
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);

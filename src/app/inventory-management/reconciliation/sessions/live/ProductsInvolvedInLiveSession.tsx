@@ -10,6 +10,7 @@ import { startProductLiveSession } from "@/services/liveInventory/startProductLi
 import { checkLiveSessionCompatibility } from "@/services/liveInventory/checkLiveSessionCompatibility";
 import { replaceLiveSession } from "@/services/liveInventory/replaceLiveSession";
 import { connectToSocket } from "@/lib/socket";
+import { useCurrentUser } from "@/util/use-current-user";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,15 +39,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-function readUserInfo() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") ?? "null");
-  } catch {
-    return null;
-  }
-}
-
 interface ProductsInvolvedInLiveSessionProps {
   sessionData: any;
   setCountSession: (v: boolean) => void;
@@ -68,7 +60,7 @@ export default function ProductsInvolvedInLiveSession({
   setVisible,
 }: ProductsInvolvedInLiveSessionProps) {
   const { shopId } = useShop();
-  const userInfo = readUserInfo();
+  const userInfo = useCurrentUser();
   const { data: liveSessions } = useLiveSessions(shopId);
 
   const [productsInLiveSession, setProductsInLiveSession] = useState<(string | number)[]>([]);
