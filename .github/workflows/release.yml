@@ -49,9 +49,12 @@ jobs:
           - platform: macos-latest
             target: x86_64-apple-darwin
             args: --target x86_64-apple-darwin --bundles dmg,app
+          # AppImage is omitted: linuxdeploy fails to bundle the `server` resource
+          # directory (a bun sidecar + Next.js standalone tree, not an ELF it can
+          # trace). deb + rpm cover Linux.
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            args: --bundles deb,rpm,appimage
+            args: --bundles deb,rpm
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             args: --bundles nsis,msi
