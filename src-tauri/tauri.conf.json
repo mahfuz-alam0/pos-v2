@@ -18,7 +18,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/node"],
+    "externalBin": ["binaries/bun"],
     "resources": {
       "server": "server"
     },

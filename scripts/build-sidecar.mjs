@@ -20,6 +20,9 @@ const outDir = join(root, "src-tauri", "binaries");
 const serverDir = join(root, "src-tauri", "server");
 
 rmSync(serverDir, { recursive: true, force: true });
+// Wipe stale runtimes too — a leftover `node-<triple>` from an earlier build would
+// otherwise still be bundled, adding ~112MB back to the app.
+rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
 // server.js omits these two by design; copy them so the sidecar can serve assets.
@@ -43,17 +46,19 @@ if (existsSync(join(root, envFile))) {
   console.warn(`No ${envFile} found — server-side env vars will be missing at runtime.`);
 }
 
-// ponytail: ship the local Node binary rather than downloading a pinned one.
+// ponytail: ship the local Bun binary rather than downloading a pinned one.
 // Fine while dev and target arch match; pin a download if you ever cross-compile.
-// Resolved via `which` because this script runs under bun, where process.execPath
-// is the bun binary — the sidecar must be Node, which is what Next.js targets.
-const nodeSrc = execFileSync(process.platform === "win32" ? "where" : "which", ["node"], {
+// Bun over Node purely for bundle size (~60MB vs ~112MB) — both run the Next.js
+// standalone server fine, but Next targets Node officially, so bun compatibility
+// is de-facto. If a Next upgrade breaks the sidecar at launch, swap "bun" back to
+// "node" here and in tauri.conf.json `externalBin` + lib.rs `.sidecar()`.
+const runtimeSrc = execFileSync(process.platform === "win32" ? "where" : "which", ["bun"], {
   encoding: "utf8",
 }).trim().split("\n")[0];
 
-const nodeBin = join(outDir, `node-${triple}${process.platform === "win32" ? ".exe" : ""}`);
-cpSync(nodeSrc, nodeBin);
-chmodSync(nodeBin, 0o755);
+const runtimeBin = join(outDir, `bun-${triple}${process.platform === "win32" ? ".exe" : ""}`);
+cpSync(runtimeSrc, runtimeBin);
+chmodSync(runtimeBin, 0o755);
 
-console.log(`Sidecar node:  ${nodeSrc} -> ${nodeBin}`);
+console.log(`Sidecar bun:   ${runtimeSrc} -> ${runtimeBin}`);
 console.log(`Server files:  ${serverDir}`);

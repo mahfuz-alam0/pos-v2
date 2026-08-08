@@ -117,7 +117,7 @@ pub fn run() {
 
       let (mut rx, child) = app
         .shell()
-        .sidecar("node")?
+        .sidecar("bun")?
         .args([server_dir
           .join("sidecar-entry.mjs")
           .to_string_lossy()
