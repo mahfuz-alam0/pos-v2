@@ -4,8 +4,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
-/// Toggle devtools for the calling window. Debug builds only — `open_devtools`
-/// does not exist in release, and shipping an inspector to a POS terminal is worse.
+/// `open_devtools` does not exist in release builds.
 #[cfg(debug_assertions)]
 #[tauri::command]
 fn toggle_devtools(window: tauri::WebviewWindow) {
@@ -16,8 +15,6 @@ fn toggle_devtools(window: tauri::WebviewWindow) {
   }
 }
 
-/// Mirror the page's `document.title` into the native titlebar, so the window
-/// names the current page instead of a constant "POS".
 #[tauri::command]
 fn set_window_title(window: tauri::WebviewWindow, title: String) {
   let title = title.trim();
@@ -26,9 +23,8 @@ fn set_window_title(window: tauri::WebviewWindow, title: String) {
   }
 }
 
-/// Watches `document.title` and pushes it to the native titlebar. Next.js sets
-/// the title from each page's `metadata` after navigation, so a MutationObserver
-/// on the `<title>` node catches client-side route changes too.
+/// Mirrors `document.title` into the native titlebar. Next.js can swap the whole
+/// `<title>` element on navigation, hence the `<head>` observer re-attaching.
 const TITLE_SYNC_SCRIPT: &str = r#"
 window.addEventListener("DOMContentLoaded", () => {
   const push = () => window.__TAURI_INTERNALS__?.invoke("set_window_title", { title: document.title });
@@ -38,33 +34,33 @@ window.addEventListener("DOMContentLoaded", () => {
     if (el) new MutationObserver(push).observe(el, { childList: true });
   };
   observe();
-  // Next.js can swap the whole <title> element out on navigation, so re-attach
-  // when <head> changes and push whatever the new title is.
   new MutationObserver(() => { push(); observe(); }).observe(document.head, { childList: true });
 });
 "#;
 
-/// Ask the OS for a free port, then release it for the sidecar to bind.
-/// The API sets its session cookie with `SameSite=None; Secure` and echoes
-/// `Access-Control-Allow-Origin` only for allowlisted origins — `http://localhost:3000`
-/// is the one that matches. A random port, or `127.0.0.1` instead of `localhost`,
-/// is a different origin: the preflight comes back without the header, the browser
-/// blocks every `withCredentials` request, and login never gets its cookie.
-/// So the port is fixed rather than allocated, and the webview must use `localhost`.
+const DEVTOOLS_SHORTCUT_SCRIPT: &str = r#"
+window.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "i") {
+    e.preventDefault();
+    window.__TAURI_INTERNALS__?.invoke("toggle_devtools");
+  }
+});
+"#;
+
+/// Fixed, not allocated: the API only sends `Access-Control-Allow-Origin` for
+/// allowlisted origins, and `http://localhost:3000` is the one that matches. Any
+/// other port — or `127.0.0.1` — is a different origin, so every credentialed
+/// request is blocked and login never gets its cookie.
 const SERVER_PORT: u16 = 3000;
 
-/// Whether something is already listening on the port we need.
 fn port_in_use(port: u16) -> bool {
   TcpListener::bind(("127.0.0.1", port)).is_err()
 }
 
-/// Poll until the Next.js server accepts connections, so the webview never
-/// loads before the server is up (which shows a connection-refused page).
+/// Poll until the server accepts connections, so the webview never loads early.
 fn wait_for_server(port: u16, timeout: Duration) -> bool {
   let deadline = Instant::now() + timeout;
   while Instant::now() < deadline {
-    // Actually connect: a successful bind-failure could mean anything, but a
-    // completed TCP handshake means the server is listening.
     if TcpStream::connect(("127.0.0.1", port)).is_ok() {
       return true;
     }
@@ -92,10 +88,8 @@ pub fn run() {
         )?;
       }
 
-      // In dev, `next dev` is already serving on 3000 with hot reload — just point
-      // the window at it instead of building and spawning the standalone sidecar.
+      // In dev, `next dev` already serves on 3000 with hot reload — no sidecar.
       if cfg!(debug_assertions) {
-        // Only read in debug, where devtools are opened below.
         #[cfg_attr(not(debug_assertions), allow(unused_variables))]
         let window = WebviewWindowBuilder::new(
           app,
@@ -105,23 +99,12 @@ pub fn run() {
         .title("POS")
         .inner_size(1440.0, 900.0)
         .resizable(true)
-        // Cmd/Ctrl+Shift+I toggles devtools, matching the Electron/browser habit.
-        // Injected here so it stays dev-only and out of the app source.
-        .initialization_script(
-          r#"
-          window.addEventListener("keydown", (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "i") {
-              e.preventDefault();
-              window.__TAURI_INTERNALS__?.invoke("toggle_devtools");
-            }
-          });
-          "#,
-        )
+        .initialization_script(DEVTOOLS_SHORTCUT_SCRIPT)
         .initialization_script(TITLE_SYNC_SCRIPT)
         .build()?;
 
-        // `cfg!` above is a runtime check, so this still compiles into release
-        // builds where `open_devtools` does not exist — needs the real attribute.
+        // `cfg!` above is a runtime check, so this block still compiles into
+        // release builds where `open_devtools` is absent — needs the attribute.
         #[cfg(debug_assertions)]
         window.open_devtools();
 
@@ -130,9 +113,8 @@ pub fn run() {
 
       let port = SERVER_PORT;
 
-      // Fixed port, so a stale sidecar or another app can hold it. Failing loudly
-      // beats binding elsewhere: any other port is a CORS-blocked origin, which
-      // would surface as an unexplained login failure instead of a startup error.
+      // Fail loudly rather than binding elsewhere: another port is a CORS-blocked
+      // origin, which surfaces as an unexplained login failure.
       if port_in_use(port) {
         eprintln!("Port {port} is already in use — cannot start the POS server.");
         return Err(format!(
@@ -141,7 +123,6 @@ pub fn run() {
         .into());
       }
 
-      // The standalone server tree is bundled as a resource; server.js lives at its root.
       let server_dir = app
         .path()
         .resolve("server", tauri::path::BaseDirectory::Resource)?;
@@ -161,8 +142,7 @@ pub fn run() {
         .env("TAURI_PARENT_PID", std::process::id().to_string())
         .spawn()?;
 
-      // Drain the sidecar's output so its stdout pipe never fills and blocks the
-      // server. Printed rather than logged so failures are visible from a terminal.
+      // Drain the sidecar's output so its stdout pipe never fills and blocks it.
       tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
           match event {
@@ -187,8 +167,7 @@ pub fn run() {
       }
       eprintln!("Next.js sidecar ready on port {port}");
 
-      // `localhost`, not `127.0.0.1` — see SERVER_PORT. The server binds the loopback
-      // IP; only the origin the webview reports has to match the API's allowlist.
+      // `localhost`, not `127.0.0.1` — see SERVER_PORT.
       WebviewWindowBuilder::new(
         app,
         "main",
@@ -205,8 +184,7 @@ pub fn run() {
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
     .run(|app, event| {
-      // Exit fires for every graceful quit path (last window closed, Cmd-Q,
-      // tray quit), unlike a per-window Destroyed handler.
+      // Exit covers every graceful quit path, unlike a per-window Destroyed handler.
       if let tauri::RunEvent::Exit = event {
         if let Some(child) =
           app.try_state::<std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>>()
