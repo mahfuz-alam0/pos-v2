@@ -8,8 +8,43 @@ on:
       - "v*"
   workflow_dispatch:
 
+# tauri-action creates/uploads to a GitHub release; the default GITHUB_TOKEN is
+# read-only unless contents:write is granted here.
+permissions:
+  contents: write
+
 jobs:
+  # Create the release once up front. Without this the four matrix jobs race to
+  # create the same tag and all but one fail.
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.result }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/github-script@v7
+        id: create
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.0-dev-{0}', github.run_number) }}
+          RELEASE_NAME: POS ${{ github.ref_type == 'tag' && github.ref_name || 'dev build' }}
+          IS_PRERELEASE: ${{ github.ref_type != 'tag' }}
+        with:
+          result-encoding: string
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.TAG,
+              name: process.env.RELEASE_NAME,
+              body: "Desktop builds for macOS, Windows and Linux.",
+              draft: true,
+              prerelease: process.env.IS_PRERELEASE === 'true',
+              target_commitish: context.sha,
+            })
+            return data.id
+
   build:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +67,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # webkit2gtk 4.1 is the Tauri v2 webview; libappindicator + librsvg + patchelf
       # are needed by the AppImage bundler, and `rpm` provides rpmbuild for .rpm.
@@ -127,9 +162,21 @@ jobs:
           # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.0-dev-{0}', github.run_number) }}
-          releaseName: POS ${{ github.ref_type == 'tag' && github.ref_name || 'dev build' }}
-          releaseBody: "Desktop builds for macOS, Windows and Linux."
-          releaseDraft: true
-          prerelease: ${{ github.ref_type != 'tag' }}
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+
+  publish-release:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: Number(process.env.RELEASE_ID),
+              draft: false,
+            })
