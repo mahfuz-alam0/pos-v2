@@ -4,18 +4,8 @@ import type { NextRequest } from "next/server";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 const ECOM_URL = process.env.NEXT_PUBLIC_ECCOMMERCE_URL;
 
-// Inlined at build time. Only the sidecar build (NEXT_PUBLIC_TAURI=1) proxies;
-// the web build routes to the API hosts directly and never hits `/proxy/*`.
 const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
 
-// The Tauri app serves the Next sidecar over plain http://localhost, but the API
-// sets its session cookie with `Secure; SameSite=None`. WKWebView (unlike Chrome)
-// gives localhost no exemption and silently drops Secure cookies on http, so login
-// appears to succeed and every following request is unauthenticated.
-//
-// A `rewrites()` entry can't help: it pipes the upstream `Set-Cookie` through
-// verbatim. So proxy the request here instead and rewrite the cookie attributes on
-// the way back — same-origin http cookie in, session preserved.
 function stripSecure(cookie: string) {
   return cookie
     .split(";")
