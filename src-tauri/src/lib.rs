@@ -16,6 +16,34 @@ fn toggle_devtools(window: tauri::WebviewWindow) {
   }
 }
 
+/// Mirror the page's `document.title` into the native titlebar, so the window
+/// names the current page instead of a constant "POS".
+#[tauri::command]
+fn set_window_title(window: tauri::WebviewWindow, title: String) {
+  let title = title.trim();
+  if !title.is_empty() {
+    let _ = window.set_title(title);
+  }
+}
+
+/// Watches `document.title` and pushes it to the native titlebar. Next.js sets
+/// the title from each page's `metadata` after navigation, so a MutationObserver
+/// on the `<title>` node catches client-side route changes too.
+const TITLE_SYNC_SCRIPT: &str = r#"
+window.addEventListener("DOMContentLoaded", () => {
+  const push = () => window.__TAURI_INTERNALS__?.invoke("set_window_title", { title: document.title });
+  push();
+  const observe = () => {
+    const el = document.querySelector("title");
+    if (el) new MutationObserver(push).observe(el, { childList: true });
+  };
+  observe();
+  // Next.js can swap the whole <title> element out on navigation, so re-attach
+  // when <head> changes and push whatever the new title is.
+  new MutationObserver(() => { push(); observe(); }).observe(document.head, { childList: true });
+});
+"#;
+
 /// Ask the OS for a free port, then release it for the sidecar to bind.
 /// The API sets its session cookie with `SameSite=None; Secure` and echoes
 /// `Access-Control-Allow-Origin` only for allowlisted origins — `http://localhost:3000`
@@ -50,7 +78,9 @@ pub fn run() {
   let builder = tauri::Builder::default().plugin(tauri_plugin_shell::init());
 
   #[cfg(debug_assertions)]
-  let builder = builder.invoke_handler(tauri::generate_handler![toggle_devtools]);
+  let builder = builder.invoke_handler(tauri::generate_handler![toggle_devtools, set_window_title]);
+  #[cfg(not(debug_assertions))]
+  let builder = builder.invoke_handler(tauri::generate_handler![set_window_title]);
 
   builder
     .setup(|app| {
@@ -87,6 +117,7 @@ pub fn run() {
           });
           "#,
         )
+        .initialization_script(TITLE_SYNC_SCRIPT)
         .build()?;
 
         // `cfg!` above is a runtime check, so this still compiles into release
@@ -166,6 +197,7 @@ pub fn run() {
       .title("POS")
       .inner_size(1440.0, 900.0)
       .resizable(true)
+      .initialization_script(TITLE_SYNC_SCRIPT)
       .build()?;
 
       Ok(())
