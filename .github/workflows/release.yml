@@ -134,12 +134,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEXT_PUBLIC_TAURI: "1"
-          # macOS signing is intentionally NOT configured. tauri-action runs a
-          # keychain import whenever APPLE_CERTIFICATE is defined — even empty —
-          # which fails the build with "failed to import keychain certificate".
-          # Builds are unsigned: macOS shows a Gatekeeper warning on first launch
-          # (right-click > Open to bypass). To enable signing later, add the
-          # APPLE_* secrets and uncomment the block below.
           # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
