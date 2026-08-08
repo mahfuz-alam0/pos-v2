@@ -17,13 +17,17 @@ fn toggle_devtools(window: tauri::WebviewWindow) {
 }
 
 /// Ask the OS for a free port, then release it for the sidecar to bind.
-/// Racy in theory; in practice nothing else grabs it in the microseconds between.
-fn free_port() -> u16 {
-  TcpListener::bind("127.0.0.1:0")
-    .expect("no free port")
-    .local_addr()
-    .unwrap()
-    .port()
+/// The API sets its session cookie with `SameSite=None; Secure` and echoes
+/// `Access-Control-Allow-Origin` only for allowlisted origins — `http://localhost:3000`
+/// is the one that matches. A random port, or `127.0.0.1` instead of `localhost`,
+/// is a different origin: the preflight comes back without the header, the browser
+/// blocks every `withCredentials` request, and login never gets its cookie.
+/// So the port is fixed rather than allocated, and the webview must use `localhost`.
+const SERVER_PORT: u16 = 3000;
+
+/// Whether something is already listening on the port we need.
+fn port_in_use(port: u16) -> bool {
+  TcpListener::bind(("127.0.0.1", port)).is_err()
 }
 
 /// Poll until the Next.js server accepts connections, so the webview never
@@ -93,7 +97,18 @@ pub fn run() {
         return Ok(());
       }
 
-      let port = free_port();
+      let port = SERVER_PORT;
+
+      // Fixed port, so a stale sidecar or another app can hold it. Failing loudly
+      // beats binding elsewhere: any other port is a CORS-blocked origin, which
+      // would surface as an unexplained login failure instead of a startup error.
+      if port_in_use(port) {
+        eprintln!("Port {port} is already in use — cannot start the POS server.");
+        return Err(format!(
+          "Port {port} is already in use. Close the other POS window or whatever is using it, then reopen."
+        )
+        .into());
+      }
 
       // The standalone server tree is bundled as a resource; server.js lives at its root.
       let server_dir = app
@@ -141,10 +156,12 @@ pub fn run() {
       }
       eprintln!("Next.js sidecar ready on port {port}");
 
+      // `localhost`, not `127.0.0.1` — see SERVER_PORT. The server binds the loopback
+      // IP; only the origin the webview reports has to match the API's allowlist.
       WebviewWindowBuilder::new(
         app,
         "main",
-        WebviewUrl::External(format!("http://127.0.0.1:{port}").parse()?),
+        WebviewUrl::External(format!("http://localhost:{port}").parse()?),
       )
       .title("POS")
       .inner_size(1440.0, 900.0)

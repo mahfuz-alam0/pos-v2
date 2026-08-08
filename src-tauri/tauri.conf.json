@@ -6,7 +6,7 @@
   "build": {
     "frontendDist": "../src-tauri/placeholder",
     "beforeBuildCommand": "bun run build:sidecar",
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "bun run dev:tauri",
     "devUrl": "http://localhost:3000"
   },
   "app": {

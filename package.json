@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
-    "build:sidecar": "next build && node scripts/build-sidecar.mjs",
+    "dev:tauri": "NEXT_PUBLIC_TAURI=1 next dev",
+    "build:sidecar": "NEXT_PUBLIC_TAURI=1 next build && node scripts/build-sidecar.mjs",
     "tauri:build": "tauri build",
     "tauri:dev": "tauri dev"
   },

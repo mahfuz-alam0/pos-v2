@@ -45,13 +45,39 @@ export async function loginWithBackendAndPersist({
   return userInfo;
 }
 
+// Everything tied to the user or their org, cleared on logout so the next cashier
+// on a shared terminal starts clean. Cart/register/shop keys are not here — those
+// belong to resetPosState, which logout also calls.
+//
+// Deliberately NOT cleared: device preferences that outlive any user
+// (`pos-theme`, `pos-mode`, `pos-theme-custom`, `pos-layout-type`,
+// `sidebarCollapsed`, `settingsFabTop`, `bleaum_print_configs`,
+// `printer_preference_*`), and `pos-remember`, which is the opt-in
+// "remember me" store — wiping it would defeat the feature.
+const USER_SCOPED_KEYS = [
+  "userInfo",
+  "ecomm_token",
+  "chatToken",
+  "shopDetails",
+  "customizeSettings",
+  "isCaliforniaState",
+  "measurementPolicy",
+  "shouldSegmentCustomersBasedOnShopScopes",
+  "shareMode",
+  "preferredUserIds",
+  "registerName",
+  "drawerName",
+  // Written by the previous app version; cleared so a stale value can't leak
+  // across users on terminals upgraded in place.
+  "locationShopId",
+];
+
 export function logout() {
   // Clear POS session state so the next login (e.g. a different cashier on a
   // shared terminal) never inherits the previous user's cart/customer/register.
   resetPosState(store.dispatch);
 
-  localStorage.removeItem("userInfo");
-  localStorage.removeItem("ecomm_token");
+  USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key));
 
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
