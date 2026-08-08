@@ -8,40 +8,32 @@ on:
       - "v*"
   workflow_dispatch:
 
-# tauri-action creates/uploads to a GitHub release; the default GITHUB_TOKEN is
-# read-only unless contents:write is granted here.
 permissions:
   contents: write
 
 jobs:
-  # Create the release once up front. Without this the four matrix jobs race to
-  # create the same tag and all but one fail.
   create-release:
     runs-on: ubuntu-latest
     outputs:
-      release_id: ${{ steps.create.outputs.result }}
+      release_id: ${{ steps.create.outputs.release_id }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/github-script@v7
+      - name: Create draft release
         id: create
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.0-dev-{0}', github.run_number) }}
           RELEASE_NAME: POS ${{ github.ref_type == 'tag' && github.ref_name || 'dev build' }}
           IS_PRERELEASE: ${{ github.ref_type != 'tag' }}
-        with:
-          result-encoding: string
-          script: |
-            const { data } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: process.env.TAG,
-              name: process.env.RELEASE_NAME,
-              body: "Desktop builds for macOS, Windows and Linux.",
-              draft: true,
-              prerelease: process.env.IS_PRERELEASE === 'true',
-              target_commitish: context.sha,
-            })
-            return data.id
+        run: |
+          gh api "repos/$GH_REPO/releases" \
+            -f tag_name="$TAG" \
+            -f name="$RELEASE_NAME" \
+            -f body="Desktop builds for macOS, Windows and Linux." \
+            -F draft=true \
+            -F prerelease="$IS_PRERELEASE" \
+            -f target_commitish="$GITHUB_SHA" \
+            --jq '.id' | xargs -I{} echo "release_id={}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: create-release
@@ -69,8 +61,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # webkit2gtk 4.1 is the Tauri v2 webview; libappindicator + librsvg + patchelf
-      # are needed by the AppImage bundler, and `rpm` provides rpmbuild for .rpm.
       - name: Install Linux system deps
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -104,10 +94,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # .env.local is gitignored, but build-sidecar.mjs copies it into the server
-      # bundle (as .env.production) so PIXLAB_API_KEY is readable at runtime.
-      # Rebuild it from repo secrets. NEXT_PUBLIC_* values are inlined into the
-      # client bundle at build time, so they must exist before `next build` runs.
       - name: Write .env.local
         shell: bash
         env:
@@ -132,10 +118,6 @@ jobs:
           done
           printf 'Wrote %s env vars\n' "$(wc -l < .env.local 2>/dev/null || echo 0)"
 
-      # build-sidecar.mjs uses `which bun` and the *host* rust triple. Correct for
-      # every job except Intel Mac, which cross-compiles from an ARM runner — there
-      # the local bun is arm64. Fetch an x64 bun and point the script at it.
-      # Kept outside src-tauri/binaries because the script wipes that directory.
       - name: Fetch x86_64 Bun for Intel Mac cross-build
         if: matrix.target == 'x86_64-apple-darwin'
         run: |
@@ -169,14 +151,9 @@ jobs:
     needs: [create-release, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v7
+      - name: Publish release
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-        with:
-          script: |
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: Number(process.env.RELEASE_ID),
-              draft: false,
-            })
+        run: gh api --method PATCH "repos/$GH_REPO/releases/$RELEASE_ID" -F draft=false
