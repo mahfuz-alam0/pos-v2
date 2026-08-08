@@ -1,0 +1,131 @@
+name: Build desktop apps
+
+on:
+  push:
+    branches:
+      - tauri-2nd-test
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Apple Silicon
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin --bundles dmg,app
+          # Intel Mac
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin --bundles dmg,app
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: --bundles deb,rpm,appimage
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: --bundles nsis,msi
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # webkit2gtk 4.1 is the Tauri v2 webview; libappindicator + librsvg + patchelf
+      # are needed by the AppImage bundler, and `rpm` provides rpmbuild for .rpm.
+      - name: Install Linux system deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            rpm \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # .env.local is gitignored, but build-sidecar.mjs copies it into the server
+      # bundle (as .env.production) so PIXLAB_API_KEY is readable at runtime.
+      # Rebuild it from repo secrets. NEXT_PUBLIC_* values are inlined into the
+      # client bundle at build time, so they must exist before `next build` runs.
+      - name: Write .env.local
+        shell: bash
+        env:
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_ECCOMMERCE_URL: ${{ secrets.NEXT_PUBLIC_ECCOMMERCE_URL }}
+          NEXT_PUBLIC_CHAT_SERVICE_URL: ${{ secrets.NEXT_PUBLIC_CHAT_SERVICE_URL }}
+          NEXT_PUBLIC_CHAT_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_CHAT_CLIENT_ID }}
+          NEXT_PUBLIC_CHAT_ID: ${{ secrets.NEXT_PUBLIC_CHAT_ID }}
+          NEXT_PUBLIC_CHAT_APP_SECRET: ${{ secrets.NEXT_PUBLIC_CHAT_APP_SECRET }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_AES_SECRET: ${{ secrets.NEXT_PUBLIC_AES_SECRET }}
+          NEXT_PUBLIC_ENCRYPTION_KEY: ${{ secrets.NEXT_PUBLIC_ENCRYPTION_KEY }}
+          PIXLAB_API_KEY: ${{ secrets.PIXLAB_API_KEY }}
+        run: |
+          for key in NEXT_PUBLIC_BASE_URL NEXT_PUBLIC_ECCOMMERCE_URL \
+                     NEXT_PUBLIC_CHAT_SERVICE_URL NEXT_PUBLIC_CHAT_CLIENT_ID \
+                     NEXT_PUBLIC_CHAT_ID NEXT_PUBLIC_CHAT_APP_SECRET \
+                     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY NEXT_PUBLIC_AES_SECRET \
+                     NEXT_PUBLIC_ENCRYPTION_KEY PIXLAB_API_KEY; do
+            value="${!key}"
+            [ -n "$value" ] && printf '%s=%s\n' "$key" "$value" >> .env.local
+          done
+          printf 'Wrote %s env vars\n' "$(wc -l < .env.local 2>/dev/null || echo 0)"
+
+      # build-sidecar.mjs uses `which bun` and the *host* rust triple. Correct for
+      # every job except Intel Mac, which cross-compiles from an ARM runner — there
+      # the local bun is arm64. Fetch an x64 bun and point the script at it.
+      # Kept outside src-tauri/binaries because the script wipes that directory.
+      - name: Fetch x86_64 Bun for Intel Mac cross-build
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          curl -fsSL -o bun.zip https://github.com/oven-sh/bun/releases/latest/download/bun-darwin-x64.zip
+          unzip -q bun.zip -d bun-x64
+          chmod +x bun-x64/bun-darwin-x64/bun
+          echo "SIDECAR_BUN=$PWD/bun-x64/bun-darwin-x64/bun" >> "$GITHUB_ENV"
+          echo "SIDECAR_TARGET=x86_64-apple-darwin" >> "$GITHUB_ENV"
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_PUBLIC_TAURI: "1"
+          # Set these two to enable macOS signing + notarization. Without them
+          # the .dmg still builds, but Gatekeeper warns on first launch.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.0-dev-{0}', github.run_number) }}
+          releaseName: POS ${{ github.ref_type == 'tag' && github.ref_name || 'dev build' }}
+          releaseBody: "Desktop builds for macOS, Windows and Linux."
+          releaseDraft: true
+          prerelease: ${{ github.ref_type != 'tag' }}
+          args: ${{ matrix.args }}

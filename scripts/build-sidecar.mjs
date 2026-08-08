@@ -13,8 +13,11 @@ if (!existsSync(standalone)) {
 }
 
 // Tauri resolves sidecars by `<name>-<target-triple>` and strips the suffix when bundling.
-const triple = execFileSync("rustc", ["-vV"], { encoding: "utf8" })
-  .match(/^host: (.+)$/m)[1];
+// SIDECAR_TARGET overrides the host triple when cross-compiling (CI builds the
+// Intel-Mac target from an ARM runner), where `rustc -vV` reports the wrong arch.
+const triple =
+  process.env.SIDECAR_TARGET ??
+  execFileSync("rustc", ["-vV"], { encoding: "utf8" }).match(/^host: (.+)$/m)[1];
 
 const outDir = join(root, "src-tauri", "binaries");
 const serverDir = join(root, "src-tauri", "server");
@@ -38,10 +41,14 @@ cpSync(join(root, "scripts", "sidecar-entry.mjs"), join(serverDir, "sidecar-entr
 // Server-only vars (PIXLAB_API_KEY) are read at runtime, not inlined at build time,
 // so the env file has to ship with the server. Next loads it from the server cwd.
 // NOTE: this puts the key inside the app bundle — readable by anyone with the app.
-const envFile = process.env.SIDECAR_ENV_FILE ?? ".env.production";
+//
+// Source is .env.local (the single env file this project keeps), but it lands as
+// .env.production because server.js hardcodes NODE_ENV=production, and Next
+// deliberately ignores .env.local in production builds.
+const envFile = process.env.SIDECAR_ENV_FILE ?? ".env.local";
 if (existsSync(join(root, envFile))) {
   cpSync(join(root, envFile), join(serverDir, ".env.production"));
-  console.log(`Bundled env: ${envFile}`);
+  console.log(`Bundled env: ${envFile} -> server/.env.production`);
 } else {
   console.warn(`No ${envFile} found — server-side env vars will be missing at runtime.`);
 }
@@ -52,9 +59,20 @@ if (existsSync(join(root, envFile))) {
 // standalone server fine, but Next targets Node officially, so bun compatibility
 // is de-facto. If a Next upgrade breaks the sidecar at launch, swap "bun" back to
 // "node" here and in tauri.conf.json `externalBin` + lib.rs `.sidecar()`.
-const runtimeSrc = execFileSync(process.platform === "win32" ? "where" : "which", ["bun"], {
-  encoding: "utf8",
-}).trim().split("\n")[0];
+// SIDECAR_BUN points at a pre-fetched binary for the target arch; CI sets it when
+// cross-compiling, since the local `bun` is then the wrong architecture.
+const runtimeSrc =
+  process.env.SIDECAR_BUN ??
+  execFileSync(process.platform === "win32" ? "where" : "which", ["bun"], {
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")[0];
+
+if (!existsSync(runtimeSrc)) {
+  console.error(`Bun runtime not found: ${runtimeSrc}`);
+  process.exit(1);
+}
 
 const runtimeBin = join(outDir, `bun-${triple}${process.platform === "win32" ? ".exe" : ""}`);
 cpSync(runtimeSrc, runtimeBin);
