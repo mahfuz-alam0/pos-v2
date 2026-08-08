@@ -3,9 +3,7 @@ name: Build desktop apps
 on:
   push:
     branches:
-      - tauri-2nd-test
-    tags:
-      - "v*"
+      - master
   workflow_dispatch:
 
 permissions:
@@ -17,21 +15,24 @@ jobs:
     outputs:
       release_id: ${{ steps.create.outputs.release_id }}
     steps:
+      - uses: actions/checkout@v5
       - name: Create draft release
         id: create
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v0.0.0-dev-{0}', github.run_number) }}
-          RELEASE_NAME: POS ${{ github.ref_type == 'tag' && github.ref_name || 'dev build' }}
-          IS_PRERELEASE: ${{ github.ref_type != 'tag' }}
+          # A GitHub release always needs a tag, so derive one from package.json
+          # + the run number instead of requiring a manual `git tag`.
+          TAG: v${{ github.run_number }}
+          RUN: ${{ github.run_number }}
         run: |
+          version=$(node -p "require('./package.json').version" 2>/dev/null || echo 0.1.0)
           gh api "repos/$GH_REPO/releases" \
             -f tag_name="$TAG" \
-            -f name="$RELEASE_NAME" \
+            -f name="POS $version (build $RUN)" \
             -f body="Desktop builds for macOS, Windows and Linux." \
             -F draft=true \
-            -F prerelease="$IS_PRERELEASE" \
+            -F prerelease=false \
             -f target_commitish="$GITHUB_SHA" \
             --jq '.id' | xargs -I{} echo "release_id={}" >> "$GITHUB_OUTPUT"
 
