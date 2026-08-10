@@ -222,11 +222,11 @@ export default function PackageReconciliationTab() {
           </div>
         </div>
 
-        <div className="relative -mx-4">
+        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
           <TableLoadingOverlay show={loading && rows.length > 0} />
           <Table>
-            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-              <TableRow className="hover:bg-transparent">
+            <TableHeader className="[&_tr]:border-b-0">
+              <TableRow className="bg-muted/60">
                 <TableHead>Package ID</TableHead>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Date</TableHead>
@@ -234,7 +234,7 @@ export default function PackageReconciliationTab() {
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+            <TableBody>
               {loading &&
                 rows.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
