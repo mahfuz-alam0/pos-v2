@@ -103,7 +103,7 @@ export default function BannersTable() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbPage>Configurations</BreadcrumbPage>
+              <BreadcrumbPage>Online Ordering</BreadcrumbPage>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>

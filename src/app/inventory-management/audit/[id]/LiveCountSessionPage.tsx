@@ -4,14 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Barcode, Maximize, Minimize, Loader2 } from "lucide-react";
+import { Barcode, Camera, Maximize, Minimize, Loader2 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { connectToSocket } from "@/lib/socket";
+import BarcodeScanDialog from "@/components/pos/BarcodeScanDialog";
 import { fetchLiveAuditSessionSummary } from "@/services/auditSessions/getSummary";
 import { fetchSingleLiveAuditSession } from "@/services/auditSessions/getSingleLiveSession";
 import { setAuditSessionCountKvProperty } from "@/services/auditSessions/setCountKvProperty";
 import { markAuditSessionPackageAsDone } from "@/services/auditSessions/markPackageAsDone";
+import { enrollAuditSessionPackage } from "@/services/auditSessions/enrollPackage";
+import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
+import { fetchSingleStorageLocation } from "@/services/storageLocations/getSingle";
 import { createCommittedAuditSession } from "@/services/committedAuditSessions/create";
 
 import { Button } from "@/components/ui/button";
@@ -69,7 +73,9 @@ function readShopIdFromStorage() {
   }
 }
 
-export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPageProps) {
+export default function LiveCountSessionPage({
+  sessionId,
+}: LiveCountSessionPageProps) {
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -86,11 +92,20 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
   const [markingDone, setMarkingDone] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [soldQtyKV, setSoldQtyKV] = useState<Record<string, number>>({});
-  const [returnedQtyKV, setReturnedQtyKV] = useState<Record<string, number>>({});
+  const [returnedQtyKV, setReturnedQtyKV] = useState<Record<string, number>>(
+    {},
+  );
+  const [enrolling, setEnrolling] = useState(false);
+  const [countMethod, setCountMethod] = useState<"SCAN" | "MANUAL" | "EITHER" | null>(null);
+  const [isBlindCount, setIsBlindCount] = useState(false);
+  const [locationName, setLocationName] = useState<string | null>(null);
+  const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
 
   const scanInputRef = useRef<HTMLInputElement>(null);
   const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const saveDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
   const socketRef = useRef<any>(null);
   const packagesRef = useRef<any[]>([]);
 
@@ -136,7 +151,20 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
       const countKV = session.countKV || {};
       const markedAsDoneKV = session.markedAsDoneKV || {};
 
+      if (session.countMethod === "SCAN" || session.countMethod === "MANUAL") {
+        setCountMethod(session.countMethod);
+        setCountingMode(session.countMethod === "SCAN" ? "scan" : "manual");
+      } else {
+        setCountMethod("EITHER");
+      }
+      setIsBlindCount(Boolean(session.isBlindCount));
+
+      // countKV is the one persisted count per package regardless of mode —
+      // seed both manualCounts and scanCounts from it so re-entering a scan
+      // session (or one that toggled modes) shows what was already counted
+      // instead of starting back at 0.
       setManualCounts((prev) => ({ ...prev, ...countKV }));
+      setScanCounts((prev) => ({ ...prev, ...countKV }));
       setDonePackages((prev) => {
         const next = { ...prev };
         Object.entries(markedAsDoneKV).forEach(([k, v]) => {
@@ -158,24 +186,35 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
   }, [sessionId, shopId, fetchSummary, fetchSessionSingle]);
 
   useEffect(() => {
+    const storageLocationId = sessionData?.storageLocationId;
+    if (!storageLocationId || !shopId) return;
+    fetchSingleStorageLocation(storageLocationId, shopId)
+      .then((res) => setLocationName(res?.data?.data?.location?.name ?? null))
+      .catch(() => setLocationName(null));
+  }, [sessionData?.storageLocationId, shopId]);
+
+  const flashRow = useCallback((packageId: string) => {
+    setFlashingRows((prev) => ({ ...prev, [packageId]: true }));
+    setTimeout(() => {
+      setFlashingRows((prev) => {
+        const next = { ...prev };
+        delete next[packageId];
+        return next;
+      });
+    }, 1400);
+  }, []);
+
+  useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
     const shopIdForSocket = shopId || readShopIdFromStorage();
     if (!baseUrl || !shopIdForSocket) return;
 
-    const socket = connectToSocket({ url: `${baseUrl}/platform-sales-status`, shopId: shopIdForSocket });
+    const socket = connectToSocket({
+      url: `${baseUrl}/platform-sales-status`,
+      shopId: shopIdForSocket,
+    });
     socketRef.current = socket;
     if (!socket) return;
-
-    const flashRow = (packageId: string) => {
-      setFlashingRows((prev) => ({ ...prev, [packageId]: true }));
-      setTimeout(() => {
-        setFlashingRows((prev) => {
-          const next = { ...prev };
-          delete next[packageId];
-          return next;
-        });
-      }, 1400);
-    };
 
     const onPackageQuantityEvents = (data: any) => {
       const pkg = packagesRef.current.find((p) => p.id === data.packageId);
@@ -183,7 +222,9 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
     };
 
     const onPlatformSaleEvents = (data: any) => {
-      const pkg = packagesRef.current.find((p) => p.advertisedId === data.advertisedId);
+      const pkg = packagesRef.current.find(
+        (p) => p.advertisedId === data.advertisedId,
+      );
       if (pkg) {
         flashRow(pkg.id);
         toast.info(data.message || `${data.advertisedId} sold`, {
@@ -220,11 +261,11 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, sessionId]);
 
+  // The scan bar is available in both counting modes now, so keep it focused
+  // regardless of which one is active.
   useEffect(() => {
-    if (countingMode === "scan") {
-      const timer = setTimeout(() => scanInputRef.current?.focus(), 150);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => scanInputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
   }, [countingMode]);
 
   useEffect(() => {
@@ -234,10 +275,16 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
   }, [fullscreen]);
 
   const debouncedSave = (packageId: string, value: number) => {
-    if (saveDebounceRef.current[packageId]) clearTimeout(saveDebounceRef.current[packageId]);
+    if (saveDebounceRef.current[packageId])
+      clearTimeout(saveDebounceRef.current[packageId]);
     saveDebounceRef.current[packageId] = setTimeout(async () => {
       try {
-        await setAuditSessionCountKvProperty({ shopId: shopId as string, id: sessionId, packageId, value });
+        await setAuditSessionCountKvProperty({
+          shopId: shopId as string,
+          id: sessionId,
+          packageId,
+          value,
+        });
         toast.success("Count saved", { duration: 1500 });
       } catch {
         toast.error("Failed to save count.");
@@ -248,7 +295,12 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
   const handleMarkAsDone = async (packageId: string) => {
     setMarkingDone((prev) => ({ ...prev, [packageId]: true }));
     try {
-      await markAuditSessionPackageAsDone({ shopId: shopId as string, id: sessionId, packageId, value: true });
+      await markAuditSessionPackageAsDone({
+        shopId: shopId as string,
+        id: sessionId,
+        packageId,
+        value: true,
+      });
       setDonePackages((prev) => ({ ...prev, [packageId]: true }));
       toast.success("Package marked as done");
     } catch {
@@ -275,6 +327,58 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
     return counted - salesQty + returnsQty;
   };
 
+  const bumpScanCount = (packageId: string, label: string) => {
+    const newCount = (scanCounts[packageId] || 0) + 1;
+    setScanCounts((prev) => ({ ...prev, [packageId]: newCount }));
+    debouncedSave(packageId, newCount);
+    flashRow(packageId);
+    toast.success(`✓ ${label} — Count: ${newCount}`);
+  };
+
+  // Not-yet-enrolled packages aren't in `packages` yet, so a scan that misses
+  // locally falls back to a lookup scoped to this session's storage location
+  // (same list-packages-minimal-extended call the Packages page's barcode
+  // search uses, searching by packageName) and, on a match, enrolls it into
+  // the session — mirrors the found-locally path below. The scan bar is
+  // always available regardless of counting mode; only the count-bump is
+  // mode-gated (see handleScan).
+  const handleScanMiss = async (trimmed: string) => {
+    setEnrolling(true);
+    try {
+      const res = await fetchPackagesMinimalExtended(shopId as string, {
+        page: 1,
+        limit: 1,
+        isFinished: false,
+        packageName: trimmed,
+        storageLocationId: sessionData?.storageLocationId,
+      });
+      const match = res?.data?.packages?.[0];
+      if (!match) {
+        toast.warning(`Package not found: "${trimmed}"`);
+        return;
+      }
+
+      await enrollAuditSessionPackage({
+        shopId: shopId as string,
+        id: sessionId,
+        packageId: match.id,
+      });
+      await fetchSummary();
+
+      const label = match.name || match.advertisedId || trimmed;
+      if (countingMode === "scan") {
+        bumpScanCount(match.id, label);
+      } else {
+        flashRow(match.id);
+        toast.success(`${label} added to this session`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || `Failed to enroll "${trimmed}"`);
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const handleScan = (rawValue: string) => {
     const trimmed = rawValue?.trim();
     if (!trimmed) return;
@@ -283,50 +387,41 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
     const found = packages.find(
       (pkg) =>
         (pkg.advertisedId && pkg.advertisedId.toLowerCase() === lower) ||
-        (pkg.metrcTag && pkg.metrcTag.toLowerCase() === lower)
+        (pkg.metrcTag && pkg.metrcTag.toLowerCase() === lower),
     );
-
-    if (found) {
-      const newCount = (scanCounts[found.id] || 0) + 1;
-      setScanCounts((prev) => ({ ...prev, [found.id]: newCount }));
-      debouncedSave(found.id, newCount);
-
-      setFlashingRows((prev) => ({ ...prev, [found.id]: true }));
-      setTimeout(() => {
-        setFlashingRows((prev) => {
-          const next = { ...prev };
-          delete next[found.id];
-          return next;
-        });
-      }, 1400);
-
-      toast.success(`✓ ${found.productName || found.advertisedId} — Count: ${newCount}`);
-    } else {
-      toast.warning(`Package not found: "${trimmed}"`);
-    }
 
     setScanInput("");
     setTimeout(() => scanInputRef.current?.focus(), 60);
-  };
 
-  const handleSubmit = async () => {
-    const packagesCountData = packages
-      .map((pkg) => {
-        const finalQty = getQtyOnHand(pkg);
-        const adjustment = finalQty - (pkg.currentQtySnapshot ?? 0);
-        return { packageId: pkg.id, finalQty, adjustment };
-      })
-      .filter((p) => p.adjustment !== 0)
-      .map(({ packageId, finalQty }) => ({ packageId, finalQty }));
-
-    if (packagesCountData.length === 0) {
-      toast.warning("No packages have a quantity change to submit.");
+    if (found) {
+      // Manual mode: scanning an already-enrolled package is a no-op on the
+      // count (that's driven by the manual number input instead) — just
+      // acknowledge it. Scan mode: bump the count as usual.
+      if (countingMode === "scan") {
+        bumpScanCount(found.id, found.productName || found.advertisedId);
+      } else {
+        flashRow(found.id);
+        toast.info(`${found.productName || found.advertisedId} is already in this session`);
+      }
       return;
     }
 
+    handleScanMiss(trimmed);
+  };
+
+  const handleSubmit = async () => {
+    const packagesCountData = packages.map((pkg) => ({
+      packageId: pkg.id,
+      finalQty: getQtyOnHand(pkg),
+    }));
+
     setSubmitting(true);
     try {
-      await createCommittedAuditSession({ shopId: shopId as string, auditSessionId: sessionId, packagesCountData });
+      await createCommittedAuditSession({
+        shopId: shopId as string,
+        auditSessionId: sessionId,
+        packagesCountData,
+      });
       toast.success("Audit session committed successfully.");
       router.push("/inventory-management/reconciliation");
     } catch (err: any) {
@@ -337,18 +432,27 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
   };
 
   return (
-    <div className={fullscreen ? "fixed inset-0 z-2000 overflow-y-auto bg-background p-3" : ""}>
+    <div
+      className={
+        fullscreen
+          ? "fixed inset-0 z-2000 overflow-y-auto bg-background p-3"
+          : ""
+      }>
       <div className="rounded-lg border bg-card">
         <div className="px-4 pt-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+                  <BreadcrumbLink href="/inventory-management">
+                    Inventory Management
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/inventory-management/audit">Audit</BreadcrumbLink>
+                  <BreadcrumbLink href="/inventory-management/audit">
+                    Audit
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -359,104 +463,171 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
 
             <Tooltip>
               <TooltipTrigger>
-                <Button variant="outline" size="icon" onClick={() => setFullscreen((f) => !f)}>
-                  {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFullscreen((f) => !f)}>
+                  {fullscreen ? (
+                    <Minimize className="size-4" />
+                  ) : (
+                    <Maximize className="size-4" />
+                  )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{fullscreen ? "Exit Fullscreen" : "Fullscreen"}</TooltipContent>
+              <TooltipContent>
+                {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              </TooltipContent>
             </Tooltip>
           </div>
 
           <div className="mb-3 rounded-lg border border-green-300 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-950/30">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-semibold text-green-800 dark:text-green-400">Session Details</span>
+              <span className="text-sm font-semibold text-green-800 dark:text-green-400">
+                Session Details
+              </span>
               <Badge>{packages.length} package(s)</Badge>
             </div>
             <div className="flex flex-wrap items-center gap-6">
               <div className="text-sm">
                 <span className="font-semibold">Started At:</span>{" "}
-                {sessionData?.startedAtISO ? format(new Date(sessionData.startedAtISO), "MMM d, yyyy HH:mm") : "—"}
+                {sessionData?.startedAtISO
+                  ? format(
+                      new Date(sessionData.startedAtISO),
+                      "MMM d, yyyy HH:mm",
+                    )
+                  : "—"}
               </div>
               <div className="text-sm">
                 <span className="font-semibold">Ends At:</span>{" "}
-                {sessionData?.endsAtISO ? format(new Date(sessionData.endsAtISO), "MMM d, yyyy HH:mm") : "—"}
+                {sessionData?.endsAtISO
+                  ? format(new Date(sessionData.endsAtISO), "MMM d, yyyy HH:mm")
+                  : "—"}
               </div>
-              <CountingModeToggle value={countingMode} onChange={setCountingMode} />
-              {countingMode === "manual" && Object.keys(manualCounts).length > 0 && (
-                <Button size="sm" variant="destructive" onClick={() => setManualCounts({})}>
-                  Clear Counts
-                </Button>
+              <div className="text-sm">
+                <span className="font-semibold">Storage Location:</span>{" "}
+                {locationName ?? (sessionData?.storageLocationId ? "…" : "—")}
+              </div>
+              <CountingModeToggle
+                value={countingMode}
+                onChange={setCountingMode}
+                lockedTo={
+                  countMethod === "SCAN" ? "scan" : countMethod === "MANUAL" ? "manual" : null
+                }
+              />
+              {countingMode === "manual" &&
+                Object.keys(manualCounts).length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setManualCounts({})}>
+                    Clear Counts
+                  </Button>
+                )}
+            </div>
+          </div>
+
+          <div className="mb-3 rounded-[10px] border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100 p-3 dark:border-blue-800 dark:from-blue-950/40 dark:to-blue-900/30">
+            <div className="flex flex-wrap items-center gap-3">
+              <Barcode className="size-6 shrink-0 text-blue-600 dark:text-blue-400" />
+              <Input
+                ref={scanInputRef}
+                value={scanInput}
+                disabled={enrolling}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setScanInput(val);
+                  if (scanDebounceRef.current)
+                    clearTimeout(scanDebounceRef.current);
+                  if (val.trim().length >= 5) {
+                    scanDebounceRef.current = setTimeout(
+                      () => handleScan(val),
+                      300,
+                    );
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (scanDebounceRef.current)
+                      clearTimeout(scanDebounceRef.current);
+                    handleScan(scanInput);
+                  }
+                }}
+                placeholder="Scan or type Package ID…"
+                className="min-w-60 flex-1 border-blue-500 bg-background text-[15px]"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={enrolling}
+                aria-label="Scan Barcode / QR Code"
+                title="Scan Barcode / QR Code"
+                className="shrink-0 border-blue-500 bg-background text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950"
+                onClick={() => setBarcodeScanOpen(true)}>
+                <Camera className="size-4" />
+              </Button>
+              {enrolling ? (
+                <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" /> Looking up…
+                </span>
+              ) : countingMode === "scan" && Object.keys(scanCounts).length > 0 ? (
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="whitespace-nowrap rounded-full bg-blue-200 px-3 py-1 text-[13px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    {Object.keys(scanCounts).length} pkg
+                    {Object.keys(scanCounts).length !== 1 ? "s" : ""} ·{" "}
+                    {Object.values(scanCounts).reduce((a, b) => a + b, 0)}{" "}
+                    scanned
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      setScanCounts({});
+                      setFlashingRows({});
+                    }}>
+                    Clear
+                  </Button>
+                </div>
+              ) : (
+                <span className="whitespace-nowrap text-[13px] text-muted-foreground">
+                  {countingMode === "scan" ? "Ready to scan…" : "Scan to add new packages…"}
+                </span>
               )}
             </div>
           </div>
 
-          {countingMode === "scan" && (
-            <div className="mb-3 rounded-[10px] border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100 p-3 dark:border-blue-800 dark:from-blue-950/40 dark:to-blue-900/30">
-              <div className="flex flex-wrap items-center gap-3">
-                <Barcode className="size-6 shrink-0 text-blue-600 dark:text-blue-400" />
-                <Input
-                  ref={scanInputRef}
-                  value={scanInput}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setScanInput(val);
-                    if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
-                    if (val.trim().length >= 5) {
-                      scanDebounceRef.current = setTimeout(() => handleScan(val), 300);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
-                      handleScan(scanInput);
-                    }
-                  }}
-                  placeholder="Scan or type Package ID…"
-                  className="min-w-60 flex-1 border-blue-500 bg-background text-[15px]"
-                />
-                {Object.keys(scanCounts).length > 0 ? (
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="whitespace-nowrap rounded-full bg-blue-200 px-3 py-1 text-[13px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                      {Object.keys(scanCounts).length} pkg{Object.keys(scanCounts).length !== 1 ? "s" : ""} ·{" "}
-                      {Object.values(scanCounts).reduce((a, b) => a + b, 0)} scanned
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        setScanCounts({});
-                        setFlashingRows({});
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="whitespace-nowrap text-[13px] text-muted-foreground">Ready to scan…</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 420px)" }}>
+          <div
+            className="overflow-auto"
+            style={{ maxHeight: "calc(100vh - 420px)" }}>
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow className="bg-muted/60">
                   <TableHead>Package ID</TableHead>
                   <TableHead>Product Name</TableHead>
                   <TableHead>METRC Tag</TableHead>
-                  <TableHead className="text-center">Starting Qty</TableHead>
-                  <TableHead className="text-center">Current Qty</TableHead>
-                  <TableHead className="text-center">{countingMode === "scan" ? "Scan Count" : "Counted Qty"}</TableHead>
-                  <TableHead className="sticky right-[140px] bg-background text-center">Final Counted Qty</TableHead>
-                  <TableHead className="sticky right-0 bg-background text-center">Action</TableHead>
+                  {!isBlindCount && (
+                    <>
+                      <TableHead className="text-center">Starting Qty</TableHead>
+                      <TableHead className="text-center">Current Qty</TableHead>
+                    </>
+                  )}
+                  <TableHead className="text-center">
+                    {countingMode === "scan" ? "Scan Count" : "Counted Qty"}
+                  </TableHead>
+                  {/* Final Counted Qty column — commented out for now */}
+                  {/* <TableHead className="sticky right-[140px] bg-background text-center">
+                    Final Counted Qty
+                  </TableHead> */}
+                  <TableHead className="sticky right-0 bg-background text-center">
+                    Action
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading &&
                   Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={`sk-${i}`}>
-                      {Array.from({ length: 8 }).map((__, j) => (
+                    <TableRow key={`sk-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                      {Array.from({ length: isBlindCount ? 5 : 7 }).map((__, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -465,8 +636,10 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                   ))}
 
                 {!loading && packages.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                  <TableRow className="border-b-0">
+                    <TableCell
+                      colSpan={isBlindCount ? 5 : 7}
+                      className="py-10 text-center text-muted-foreground">
                       No packages in this session.
                     </TableCell>
                   </TableRow>
@@ -477,39 +650,65 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                     const sold = soldQtyKV[pkg.id] || 0;
                     const returned = returnedQtyKV[pkg.id] || 0;
                     const { salesQty, returnsQty } = getCheckedTotals(pkg);
-                    const currentQty = (pkg.currentQtySnapshot ?? 0) - salesQty + returnsQty;
+                    const currentQty =
+                      (pkg.currentQtySnapshot ?? 0) - salesQty + returnsQty;
                     const finalQty = getQtyOnHand(pkg);
                     const isDone = Boolean(donePackages[pkg.id]);
                     const hasEvents = salesQty > 0 || returnsQty > 0;
 
                     return (
-                      <TableRow key={pkg.id} className={`${flashingRows[pkg.id] ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+                      <TableRow
+                        key={pkg.id}
+                        className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${flashingRows[pkg.id] ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                         <TableCell>
-                          <div className="font-mono text-xs">{pkg.advertisedId || "—"}</div>
+                          <div className="font-mono text-xs">
+                            {pkg.advertisedId || "—"}
+                          </div>
                           {(sold > 0 || returned > 0) && (
                             <div className="mt-0.5 flex gap-2 text-[11px]">
-                              {sold > 0 && <span className="text-destructive">Sold: {sold}</span>}
-                              {returned > 0 && <span className="text-green-600">Returned: {returned}</span>}
+                              {sold > 0 && (
+                                <span className="text-destructive">
+                                  Sold: {sold}
+                                </span>
+                              )}
+                              {returned > 0 && (
+                                <span className="text-green-600">
+                                  Returned: {returned}
+                                </span>
+                              )}
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-55 truncate">{pkg.productName}</TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">{pkg.metrcTag || "—"}</TableCell>
-                        <TableCell className="text-center">{pkg.startingCount ?? "—"}</TableCell>
-                        <TableCell className="text-center">
-                          {hasEvents ? (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <span className="underline decoration-dotted">{currentQty}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {pkg.currentQtySnapshot ?? 0} - {salesQty} sold + {returnsQty} returned = {currentQty}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            currentQty
-                          )}
+                        <TableCell className="max-w-55 truncate">
+                          {pkg.productName}
                         </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {pkg.metrcTag || "—"}
+                        </TableCell>
+                        {!isBlindCount && (
+                          <>
+                            <TableCell className="text-center">
+                              {pkg.startingCount ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {hasEvents ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <span className="underline decoration-dotted">
+                                      {currentQty}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {pkg.currentQtySnapshot ?? 0} - {salesQty} sold
+                                    + {returnsQty} returned = {currentQty}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                currentQty
+                              )}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell className="text-center">
                           {countingMode === "scan" ? (
                             (scanCounts[pkg.id] || 0) > 0 ? (
@@ -517,7 +716,9 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                                 ×{scanCounts[pkg.id]}
                               </span>
                             ) : (
-                              <span className="text-sm text-muted-foreground">—</span>
+                              <span className="text-sm text-muted-foreground">
+                                —
+                              </span>
                             )
                           ) : (
                             <Input
@@ -525,46 +726,73 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                               disabled={isDone}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                setManualCounts((prev) => ({ ...prev, [pkg.id]: val }));
+                                setManualCounts((prev) => ({
+                                  ...prev,
+                                  [pkg.id]: val,
+                                }));
                                 const parsed = parseFloat(val);
-                                if (!isNaN(parsed)) debouncedSave(pkg.id, parsed);
+                                if (!isNaN(parsed))
+                                  debouncedSave(pkg.id, parsed);
                               }}
                               placeholder="0"
                               className="mx-auto w-24 text-center"
                             />
                           )}
                         </TableCell>
-                        <TableCell className="sticky right-[140px] bg-background text-center">
+                        {/* Final Counted Qty cell — commented out for now */}
+                        {/* <TableCell className="sticky right-[140px] bg-background text-center">
                           {hasEvents ? (
                             <Tooltip>
                               <TooltipTrigger>
-                                <Badge variant={finalQty >= 0 ? "default" : "destructive"}>{finalQty}</Badge>
+                                <Badge
+                                  variant={
+                                    finalQty >= 0 ? "default" : "destructive"
+                                  }>
+                                  {finalQty}
+                                </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
-                                counted {getCountedQty(pkg)} - {salesQty} sold + {returnsQty} returned = {finalQty}
+                                counted {getCountedQty(pkg)} - {salesQty} sold +{" "}
+                                {returnsQty} returned = {finalQty}
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <Badge variant={finalQty >= 0 ? "default" : "destructive"}>{finalQty}</Badge>
+                            <Badge
+                              variant={
+                                finalQty >= 0 ? "default" : "destructive"
+                              }>
+                              {finalQty}
+                            </Badge>
                           )}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="sticky right-0 bg-background text-center">
                           {isDone ? (
                             <Badge>Done</Badge>
                           ) : (
                             <AlertDialog>
                               <AlertDialogTrigger>
-                                <Button size="sm" disabled={markingDone[pkg.id]}>
-                                  {markingDone[pkg.id] ? <Loader2 className="size-3.5 animate-spin" /> : "Mark as Done"}
+                                <Button
+                                  size="sm"
+                                  disabled={markingDone[pkg.id]}>
+                                  {markingDone[pkg.id] ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    "Mark as Done"
+                                  )}
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Mark this package as done?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Mark this package as done?
+                                  </AlertDialogTitle>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleMarkAsDone(pkg.id)}>Confirm</AlertDialogAction>
+                                  <AlertDialogAction
+                                    onClick={() => handleMarkAsDone(pkg.id)}>
+                                    Confirm
+                                  </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -586,20 +814,34 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Submit this audit session?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    Submit this audit session?
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently record the counted quantities. This action cannot be undone.
+                    This will permanently record the counted quantities. This
+                    action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSubmit}>Submit</AlertDialogAction>
+                  <AlertDialogAction onClick={handleSubmit}>
+                    Submit
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
         </div>
       </div>
+
+      <BarcodeScanDialog
+        open={barcodeScanOpen}
+        onClose={() => setBarcodeScanOpen(false)}
+        onScan={(text) => {
+          setBarcodeScanOpen(false);
+          handleScan(text);
+        }}
+      />
     </div>
   );
 }

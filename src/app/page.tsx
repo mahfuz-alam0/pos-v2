@@ -10,7 +10,7 @@ import TotalRevenueCard from "@/components/dashboard/TotalRevenueCard";
 import PopularTimeCard from "@/components/dashboard/PopularTimeCard";
 import ConversionStats from "@/components/dashboard/ConversionStats";
 import AllStatsTiles from "@/components/dashboard/AllStatsTiles";
-import CustomerQueue from "@/components/dashboard/CustomerQueue";
+import CustomerQueue from "@/components/dashboard/HomeCustomerQueue";
 import EmployeeSalesTodayChart from "@/components/dashboard/EmployeeSalesTodayChart";
 // import SpiffsCampaigns from "@/components/dashboard/SpiffsCampaigns";
 import TaskList from "@/components/dashboard/TaskList";
@@ -33,8 +33,10 @@ export default function Home() {
     <div className="flex flex-col gap-3 p-4">
       <WelcomeBanner />
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <RevenueBreakdownCard />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RevenueBreakdownCard />
+        </div>
         {canViewDashboardStats && <ShopDashboardStats />}
       </div>
 
@@ -46,21 +48,18 @@ export default function Home() {
 
       {canViewDashboardStats && <AllStatsTiles />}
 
-      <CustomerQueue />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr]">
+        <CustomerQueue />
+        <RegistersPanel />
+      </div>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
-        <div className="flex flex-col gap-3">
-          {canViewDashboardStats && (
-            <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
-          )}
-          {/* <SpiffsCampaigns /> */}
-          <TaskList />
-          {hasMetrcReporting && <MetrcAlerts />}
-        </div>
-
-        <div>
-          <RegistersPanel />
-        </div>
+      <div className="flex flex-col gap-3">
+        {canViewDashboardStats && (
+          <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
+        )}
+        <SpiffsCampaigns />
+        <TaskList />
+        {hasMetrcReporting && <MetrcAlerts />}
       </div>
     </div>
   );

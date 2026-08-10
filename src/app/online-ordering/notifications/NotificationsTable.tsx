@@ -168,11 +168,11 @@ export default function NotificationsTable() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbPage>Notification</BreadcrumbPage>
+              <BreadcrumbPage>Online Ordering</BreadcrumbPage>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>My Notification</BreadcrumbPage>
+              <BreadcrumbPage>Notifications</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>

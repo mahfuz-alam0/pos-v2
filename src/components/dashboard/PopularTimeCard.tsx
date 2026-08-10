@@ -63,34 +63,31 @@ export default function PopularTimeCard() {
   const isToday = selectedDay === (new Date().getDay() === 0 ? 7 : new Date().getDay());
 
   return (
-    <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-component-bg shadow-md">
-      <div className="p-3 pb-0">
-        <h2 className="m-0 text-lg font-normal text-text">Popular Times</h2>
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-component-bg shadow-sm">
+      <div className="px-5 pt-4">
+        <h2 className="m-0 text-[15px] font-semibold text-heading">Popular Times</h2>
 
-        <div className="mt-3 flex justify-center">
+        <div className="mt-3 flex rounded-lg bg-muted p-0.5">
           {DAYS_OF_WEEK.map((day, index) => {
             const dayNum = index + 1;
             const active = selectedDay === dayNum;
             return (
-              <div
+              <button
                 key={day}
+                type="button"
                 onClick={() => setSelectedDay(dayNum)}
-                className="relative flex-1 cursor-pointer text-center"
+                className={`flex-1 rounded-[7px] px-1 py-1 text-sm font-medium transition-colors ${
+                  active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
+                }`}
               >
-                <p
-                  className={`m-0 inline-block border-b-2 pb-0.5 text-sm ${
-                    active ? "border-[#2A9D8F] font-bold text-[#2A9D8F]" : "border-transparent text-muted-foreground"
-                  }`}
-                >
-                  {day}
-                </p>
-              </div>
+                {day}
+              </button>
             );
           })}
         </div>
       </div>
 
-      <div className="mt-2 h-27.5 overflow-x-auto">
+      <div className="mt-3 h-27.5 overflow-x-auto px-5 pb-4">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : filteredStats.length !== 0 ? (
@@ -101,10 +98,10 @@ export default function PopularTimeCard() {
                 <div className="flex flex-1 items-end gap-0.5">
                   {filteredStats.map(({ time, sales }, hour) => (
                     <div key={hour} className="group relative h-full flex-1">
-                      <div className="absolute bottom-0 left-1/2 h-full w-2 -translate-x-1/2 overflow-hidden rounded-full" style={{ backgroundColor: "#BDBBBB" }}>
+                      <div className="absolute bottom-0 left-1/2 h-full w-2 -translate-x-1/2 overflow-hidden rounded-full bg-muted">
                         {sales > 0 && (
                           <div
-                            className="absolute inset-x-0 bottom-0 rounded-full bg-[#2A9D8F]"
+                            className="absolute inset-x-0 bottom-0 rounded-full bg-primary"
                             style={{ height: `${Math.max(22, Math.round((sales / maxSales) * 100))}%` }}
                           />
                         )}
@@ -113,11 +110,11 @@ export default function PopularTimeCard() {
                         <span className="absolute -bottom-1.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-red-500" />
                       )}
                       <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex">
-                        <div className="rounded-lg border border-border bg-component-bg p-2.5 whitespace-nowrap shadow">
+                        <div className="rounded-xl border border-border bg-popover p-2.5 whitespace-nowrap shadow-lg">
                           <p className="m-0 text-sm text-orange-500">{time.toUpperCase()}</p>
-                          <p className="m-0 text-sm text-[#2A9D8F]">Sales: {sales}</p>
+                          <p className="m-0 text-sm font-semibold text-primary">Sales: {sales}</p>
                         </div>
-                        <div className="-mt-1 size-2 rotate-45 border-r border-b border-border bg-component-bg" />
+                        <div className="-mt-1 size-2 rotate-45 border-r border-b border-border bg-popover" />
                       </div>
                     </div>
                   ))}

@@ -105,7 +105,7 @@ export default function MediaLinksForm() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbPage>Configurations</BreadcrumbPage>
+              <BreadcrumbPage>Online Ordering</BreadcrumbPage>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>

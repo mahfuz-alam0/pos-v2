@@ -15,15 +15,7 @@ import QrCheckIn from "@/components/settings/QrCheckIn";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 
-// `onCustomerServed`: optional hook fired (in addition to the default
-// refetch) when a queue card is moved to serving — the Front Desk page uses
-// this to hand the customer off into POS; the Dashboard widget leaves it unset.
-// `sidepanel`: fills its container's height with no outer border/padding box
-// (for embedding in a Drawer/tab) instead of the bordered dashboard-widget
-// card. `wide`: keeps that same borderless fit but reverts QueueCard back to
-// the responsive 3-per-row width — for sidepanel hosts wide enough to fit
-// them (e.g. a 60vw POS drawer) as opposed to a narrow one (e.g. the 660px
-// Settings drawer), which stay single-column.
+
 export default function CustomerQueue({
   sidepanel = false,
   wide = false,
@@ -97,7 +89,7 @@ export default function CustomerQueue({
 
         sidepanel
           ? "flex h-full flex-col"
-          : "rounded-xl bg-component-bg shadow-md p-3"
+          : "flex h-full flex-col rounded-xl bg-component-bg shadow-md p-3"
       }>
       <div className="flex flex-wrap items-center justify-between gap-3  py-2 ">
 

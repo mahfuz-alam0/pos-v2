@@ -30,7 +30,7 @@ const TYPE_HREF = {
   Brands: "/catalog/manufacturers",
 };
 
-const PALETTE = ["#E9C46A", "#2A9D8F", "#F4A261", "#f56c6c", "#7265e6", "#ffbf00", "#5b8c00", "#ff7f0e"];
+const PALETTE = ["#2A9D8F", "#E9C46A", "#F4A261", "#f56c6c", "#7265e6", "#ffbf00", "#5b8c00", "#ff7f0e"];
 const ITEMS_PER_PAGE = 3;
 
 function preprocessData(entryKeyMap: Record<string, string>, breakdownData: any[], statsType: string, currentTypeValue: string, factor = 1) {
@@ -86,14 +86,14 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }
   if (!active || !payload || !payload.length) return null;
   const data = payload[0].payload;
   return (
-    <div className="max-w-75 rounded border border-border bg-component-bg p-2.5 shadow">
+    <div className="max-w-75 rounded-xl border border-border bg-popover p-2.5 shadow-lg">
       <p className="m-0 text-sm text-orange-500">{data.name}</p>
       {Object.entries(data).map(
         ([key, value]) =>
           key !== "name" && (
             <div key={key} className="my-0.5 flex items-center justify-between gap-2">
-              <p className="m-0 mr-2 max-w-37.5 truncate text-[#038FDE]">{key}</p>
-              <p className="m-0 whitespace-nowrap text-[#038FDE]">QTY: {value as React.ReactNode}</p>
+              <p className="m-0 mr-2 max-w-37.5 truncate text-muted-foreground">{key}</p>
+              <p className="m-0 whitespace-nowrap font-semibold text-text">QTY: {value as React.ReactNode}</p>
             </div>
           )
       )}
@@ -104,10 +104,10 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }
 function LineIndicator({ title, widthPct, value, color }) {
   return (
     <div className="flex flex-col justify-center gap-3">
-      <p className="m-0 truncate text-sm text-gray-600 dark:text-gray-300" title={title}>{title}</p>
+      <p className="m-0 truncate text-sm font-medium text-text" title={title}>{title}</p>
       <div className="flex items-center">
-        <div className="h-0.5 rounded" style={{ width: `${widthPct * 4}px`, backgroundColor: color }} />
-        <span className="ml-2 text-xs text-muted-foreground">{value}</span>
+        <div className="h-1 rounded-full" style={{ width: `${Math.min(widthPct, 100)}%`, maxWidth: 120, backgroundColor: color }} />
+        <span className="ml-2 text-xs font-semibold text-muted-foreground">{value}</span>
       </div>
     </div>
   );
@@ -177,11 +177,12 @@ export default function RevenueBreakdownCard() {
   const getPredefinedColor = (index) => ["#E9C46A", "#2A9D8F", "#F4A261"][index] || "#FE9E15";
 
   return (
-    <div className="h-full rounded-xl bg-component-bg shadow-md p-3">
-      <div className="flex items-center justify-end gap-3">
+    <div className="flex h-full flex-col rounded-2xl bg-component-bg shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4">
+        <h2 className="m-0 text-[15px] font-semibold text-heading">Revenue Breakdown</h2>
         <div className="relative">
           <select
-            className="w-full appearance-none rounded-md border border-border bg-component-bg py-1.5 pr-6 pl-2 text-sm focus:bg-muted"
+            className="w-full appearance-none rounded-md border border-input bg-component-bg py-1.5 pr-6 pl-2 text-sm text-text focus:bg-muted"
             value={statsDefaultValue}
             onChange={handleTimeChange}
           >
@@ -195,62 +196,72 @@ export default function RevenueBreakdownCard() {
         </div>
       </div>
 
-      <div className="mt-4">
-        <div className="flex flex-col gap-4 md:flex-row">
-          <div className="relative min-w-0 flex-1">
-            {hasChartData ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                  <Tooltip content={<ChartTooltip />} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  {Object.values(entryKeyMap).map((name) => (
-                    <Area key={name} type="monotone" dataKey={name} fillOpacity={1} stroke={colors[name]} fill={colors[name]} />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-50 flex-col items-center justify-center rounded-md bg-surface-alt">
-                <div className="text-muted-foreground">No data available</div>
-                <div className="mt-2 text-sm text-muted-foreground">Try selecting a different time period</div>
-              </div>
-            )}
+      <div className="px-5 pt-3">
+        <div className="flex rounded-lg bg-muted p-0.5">
+          {TYPE_OPTIONS.map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                setCurrentTypeValue(type);
+                setCurrentPage(0);
+              }}
+              className={`flex-1 rounded-[7px] px-3 py-1 text-sm font-medium transition-colors ${
+                currentTypeValue === type
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-background/60"
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
 
-            <div className="mt-4 flex w-full justify-center gap-4">
-              {TYPE_OPTIONS.map((type) => (
-                <label key={type} className="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300">
-                  <input
-                    type="radio"
-                    name="revenue-breakdown-type"
-                    checked={currentTypeValue === type}
-                    onChange={() => {
-                      setCurrentTypeValue(type);
-                      setCurrentPage(0);
-                    }}
-                    className="accent-primary"
+      <div className="flex flex-col gap-4 p-5 pt-4 md:flex-row">
+        <div className="relative min-w-0 flex-1">
+          {hasChartData ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                <Tooltip content={<ChartTooltip />} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                {Object.values(entryKeyMap).map((name) => (
+                  <Area
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    stroke={colors[name]}
+                    strokeWidth={1.5}
+                    fill={colors[name]}
+                    fillOpacity={0.22}
                   />
-                  {type}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {rankingData.length !== 0 && (
-            <div className="w-full shrink-0 md:w-1/4">
-              <ul className="mx-0 mt-3 mb-0 flex list-none flex-col gap-4 p-0">
-                {pageItems.map((item, index) => {
-                  const percentage = totalTimesBought ? ((item.totalTimesBought / totalTimesBought) * 100).toFixed(0) : "0";
-                  const displayName = item.name.length > 20 ? `${item.name.slice(0, 30)}...` : item.name;
-                  const color = getPredefinedColor(index);
-                  return (
-                    <Link href={TYPE_HREF[currentTypeValue]} key={item.id} className="cursor-pointer">
-                      <LineIndicator title={displayName} widthPct={Number(percentage)} value={`${percentage}%`} color={color} />
-                    </Link>
-                  );
-                })}
-              </ul>
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-50 flex-col items-center justify-center rounded-xl bg-surface-alt/60">
+              <div className="text-sm font-medium text-muted-foreground">No data available</div>
+              <div className="mt-1 text-xs text-muted-foreground">Try selecting a different time period</div>
             </div>
           )}
         </div>
+
+        {rankingData.length !== 0 && (
+          <div className="w-full shrink-0 md:w-64">
+            <ul className="mx-0 mt-1 mb-0 flex list-none flex-col gap-5 p-0">
+              {pageItems.map((item, index) => {
+                const percentage = totalTimesBought ? ((item.totalTimesBought / totalTimesBought) * 100).toFixed(0) : "0";
+                const displayName = item.name.length > 20 ? `${item.name.slice(0, 30)}...` : item.name;
+                const color = getPredefinedColor(index);
+                return (
+                  <Link href={TYPE_HREF[currentTypeValue]} key={item.id} className="cursor-pointer">
+                    <LineIndicator title={displayName} widthPct={Number(percentage)} value={`${percentage}%`} color={color} />
+                  </Link>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -108,40 +108,40 @@ export default function StorageLocationsTable() {
   };
 
   return (
-    <div className="flex gap-4 p-3">
-      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-primary">Storage Location</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-primary">Storage Location</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-          <Button
-            className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
-            onClick={() => setDrawer({ open: true, mode: "add", locationId: null })}
-          >
-            Add Storage Location
-          </Button>
-        </div>
+        <Button
+          className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+          onClick={() => setDrawer({ open: true, mode: "add", locationId: null })}
+        >
+          Add Storage Location
+        </Button>
+      </div>
 
-        <div className="relative -mx-4">
-          <Table>
-            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Location Name</TableHead>
-                <TableHead>Default Package Destination</TableHead>
-                <TableHead>Open For Sellable In Physical Store</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <TableLoadingOverlay show={loading && rows.length > 0} />
+        <Table>
+          <TableHeader className="[&_tr]:border-b-0">
+            <TableRow className="bg-muted/60">
+              <TableHead>Location Name</TableHead>
+              <TableHead>Default Package Destination</TableHead>
+              <TableHead>Open For Sellable In Physical Store</TableHead>
+              <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="text-muted-foreground [&_td]:h-12">
               {loading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={`skeleton-${i}`} className="border-b-0">
@@ -154,7 +154,7 @@ export default function StorageLocationsTable() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow>
+                <TableRow className="border-b-0">
                   <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
                     No storage locations found.
                   </TableCell>
@@ -178,7 +178,7 @@ export default function StorageLocationsTable() {
                     </TableCell>
                     <TableCell>{row.openForAcceptingTransfers ? "yes" : "no"}</TableCell>
                     <TableCell>{row.isSellableOnPhysicalStore ? "yes" : "no"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -207,7 +207,6 @@ export default function StorageLocationsTable() {
             loadLocations(1, s);
           }}
         />
-      </div>
 
       <StorageLocationDetails locationId={openId} onClose={closeDetail} />
 

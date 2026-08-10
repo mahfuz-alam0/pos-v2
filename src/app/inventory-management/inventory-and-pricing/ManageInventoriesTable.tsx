@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Switch } from "@/components/ui/switch";
 import { ApiSelect } from "@/components/ui/api-select";
 import {
@@ -577,7 +577,7 @@ export default function ManageInventoriesTable() {
         productIds: selectedRows.map((r: any) => r.productId),
         isFinished: false,
         isInPositiveQuantity: true,
-        limit: 1000,
+        limit: 100,
         page: 1,
       });
       const packages = res?.data?.packages ?? [];
@@ -613,9 +613,9 @@ export default function ManageInventoriesTable() {
   };
 
   return (
-    <div className="flex gap-4 p-3">
-    <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+    <div className="flex flex-col gap-4 p-6">
+    <div className="flex w-full flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -812,15 +812,11 @@ export default function ManageInventoriesTable() {
         </div>
       </div>
 
-      <div className="relative -mx-4">
-        {loading && rows.length > 0 && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
-        )}
-        <Table className="table-fixed text-[13px]">
-          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:font-semibold [&_th]:text-muted-foreground">
-            <TableRow className="hover:bg-transparent">
+      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <TableLoadingOverlay show={loading && rows.length > 0} />
+        <Table>
+          <TableHeader className="[&_tr]:border-b-0">
+            <TableRow className="bg-muted/60">
               <TableHead className="w-[3%] pl-3">
                 <Checkbox
                   className="rounded-md"
@@ -848,10 +844,10 @@ export default function ManageInventoriesTable() {
               </TableHead>
               <TableHead className="w-[9%] text-center">Status</TableHead>
               <TableHead className="w-[8%] text-center">Health</TableHead>
-              <TableHead className="w-[8%] text-center">Action</TableHead>
+              <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-muted-foreground [&_td]:h-18">
+          <TableBody>
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`} className="border-b-0">
