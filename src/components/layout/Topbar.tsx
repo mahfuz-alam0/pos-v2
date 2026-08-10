@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Menu, Megaphone, Monitor, Leaf } from "lucide-react";
+import {
+  ChevronDown,
+  Leaf,
+  MapPin,
+  Megaphone,
+  Menu,
+  Monitor,
+} from "lucide-react";
 import { useSidebar } from "@/context/sidebar-context";
 import { useShop } from "@/context/shop-context";
 import { usePermission } from "@/util/use-permission";
@@ -13,74 +21,137 @@ import LeaflyOrdersDrawer from "./LeaflyOrdersDrawer";
 import RegisterDrawerModal from "@/components/pos/RegisterDrawerModal";
 import { cn } from "@/lib/utils";
 
+const SHOP_PANEL_WIDTH = 300;
+
 function ShopSwitcher() {
   const { shopId, shopDetails, availableShops, selectShop } = useShop();
   const [open, setOpen] = useState(false);
-  const boxRef = useRef(null);
+  const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
+  const [mounted, setMounted] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
+  const [panelEntered, setPanelEntered] = useState(false);
+  const buttonRef = useRef(null);
+  const panelRef = useRef(null);
   const shops = availableShops?.length ? availableShops : shopDetails ? [shopDetails] : [];
   const canSwitch = shops.length > 1;
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     function handleOutside(e) {
-      if (!boxRef.current?.contains(e.target)) setOpen(false);
+      const clickedButton = buttonRef.current?.contains(e.target);
+      const clickedPanel = panelRef.current?.contains(e.target);
+      if (!clickedButton && !clickedPanel) setOpen(false);
     }
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
+  // Drive the left-to-right entrance animation for the dropdown panel
+  useEffect(() => {
+    if (open) {
+      setPanelEntered(false);
+      const raf = requestAnimationFrame(() => setPanelEntered(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setPanelEntered(false);
+  }, [open]);
+
+  function handleToggle() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const left = Math.min(
+        Math.max(8, rect.right - SHOP_PANEL_WIDTH),
+        window.innerWidth - SHOP_PANEL_WIDTH - 8
+      );
+      setPanelPos({ top: rect.bottom + 8, left });
+      setHasOpenedOnce(true);
+    }
+    setOpen((v) => !v);
+  }
+
   return (
-    <div ref={boxRef} className="relative" onClick={() => canSwitch && setOpen((v) => !v)}>
-      <div className="relative ml-auto inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 px-3 backdrop-blur-sm">
-        <div className="h-2 w-2 self-center rounded-full bg-green-400" />
-        <span className="flex items-center truncate text-sm font-medium text-blue-200">
+    <div className="flex justify-center">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleToggle}
+        title={canSwitch ? "Switch location" : undefined}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={cn(
+          "inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary/20 px-3 backdrop-blur-sm",
+          canSwitch ? "" : "opacity-80"
+        )}
+      >
+        <span className="flex items-center justify-center">
+          <MapPin className="size-3.5 text-primary" />
+        </span>
+        <span className="pointer-events-none min-w-0 flex-1 truncate text-sm font-medium text-sidebar-text">
           {shopDetails?.label ? shopDetails.label : "Shop 1"}
         </span>
-        {canSwitch && (
-          <svg
-            className="ml-2 h-5 w-5 shrink-0 text-blue-400"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        )}
-      </div>
+        {canSwitch && <ChevronDown className="pointer-events-none size-3 shrink-0 text-sidebar-text/70" />}
+      </button>
 
-      {open && canSwitch && (
-        <div
-          className="absolute top-full right-0 z-50 mt-1 w-70 overflow-hidden rounded-xl border border-blue-400/30 bg-linear-to-br from-blue-900/90 to-cyan-900/70 backdrop-blur-md"
-          style={{ boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)" }}
-        >
-          {shops.map((option) => (
-            <div
-              key={option.value}
-              className={cn(
-                "group flex cursor-pointer flex-col gap-0.5 px-5 py-3 transition-all duration-150",
-                option.value === shopId
-                  ? "border-l-4 border-green-400 bg-linear-to-r from-green-400/10 to-blue-400/10"
-                  : "hover:bg-blue-800/60"
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                selectShop(option);
-                setOpen(false);
-              }}
-            >
-              <span className="truncate text-base font-bold text-blue-100 group-hover:text-green-300">
-                {option.label}
-              </span>
-              {option.location && (
-                <span className="block truncate text-xs text-blue-200 group-hover:text-green-200">
-                  {option.location}
-                </span>
-              )}
+      {mounted &&
+        hasOpenedOnce &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="overflow-hidden rounded-2xl border border-primary/30 bg-linear-to-br from-sidebar-bg/95 to-sidebar-bg/70 shadow-2xl backdrop-blur-md"
+            style={{
+              position: "fixed",
+              top: panelPos.top,
+              left: panelPos.left,
+              width: SHOP_PANEL_WIDTH,
+              maxWidth: "calc(100vw - 16px)",
+              zIndex: 1050,
+              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.45)",
+              transformOrigin: "top right",
+              transform: panelEntered ? "scale(1)" : "scale(0.95) translateY(-6px)",
+              opacity: panelEntered ? 1 : 0,
+              pointerEvents: panelEntered ? "auto" : "none",
+              transition: "transform 180ms ease, opacity 150ms ease",
+            }}
+          >
+            <div className="flex items-center justify-between border-b border-primary/20 px-5 py-3">
+              <span className="text-sm font-semibold text-sidebar-text">Switch Location</span>
             </div>
-          ))}
-        </div>
-      )}
+            <ul className="py-2">
+              {shops.map((option) => (
+                <li
+                  key={option.value}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-sidebar-bg-hover/50",
+                    option.value === shopId && "bg-primary/10"
+                  )}
+                  onClick={() => {
+                    selectShop(option);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="flex items-center text-base text-sidebar-text">
+                    <MapPin className="size-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-sidebar-text">
+                      {option.label}
+                    </span>
+                    {option.location && (
+                      <span className="block truncate text-xs text-sidebar-text/70">
+                        {option.location}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
@@ -122,17 +193,18 @@ function RegisterSwitcher() {
       <button
         type="button"
         onClick={() => setModalOpen(true)}
-        className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-blue-400/30 bg-linear-to-r from-blue-500/20 to-cyan-500/20 px-3 backdrop-blur-sm"
+        title="Select register"
+        className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary/20 px-3 backdrop-blur-sm"
       >
-        <Monitor className="size-3.5 text-blue-400" />
-        <div className="flex flex-col items-start justify-center gap-0 leading-none">
-          <span className="text-xs leading-tight font-medium text-blue-200">
-            {registerName || "Select Register"}
+        <Monitor className="size-3.5 shrink-0 text-primary" />
+        <span className="pointer-events-none min-w-0 flex-1 truncate text-sm font-medium text-sidebar-text">
+          {registerName || "Select Register"}
+        </span>
+        {drawerName && (
+          <span className="pointer-events-none shrink-0 text-[10px] font-medium text-sidebar-text/70">
+            {drawerName}
           </span>
-          {drawerName && (
-            <span className="text-[9px] leading-tight text-blue-300">{drawerName}</span>
-          )}
-        </div>
+        )}
       </button>
       <RegisterDrawerModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </>

@@ -27,8 +27,7 @@ import {
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
 import { TablePagination } from "@/components/ui/table-pagination";
-
-const PAGE_SIZE = 30;
+import { useSettings } from "@/context/settings-context";
 
 const fmtDate = (d) => {
   if (!d) return "-";
@@ -67,9 +66,11 @@ const calcFinalPrice = (item, misc) => {
 };
 
 export default function ReturnsPage() {
+  const { defaultPageSize } = useSettings();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -149,7 +150,7 @@ export default function ReturnsPage() {
 
   useEffect(() => {
     const filters: { name: string; value: any }[] = [
-      { name: "limit", value: PAGE_SIZE },
+      { name: "limit", value: pageSize },
       { name: "page", value: page },
     ];
     if (selectedCustomerId)
@@ -158,7 +159,7 @@ export default function ReturnsPage() {
       filters.push({ name: "advertisedSaleReturnId", value: returnIdSearch });
     fetchReturns(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCustomerId, returnIdSearch, searchTrigger, page]);
+  }, [selectedCustomerId, returnIdSearch, searchTrigger, page, pageSize]);
 
   const fetchReturns = async (filters) => {
     const requestId = ++requestIdRef.current;
@@ -206,7 +207,7 @@ export default function ReturnsPage() {
       });
       toast.success("This sale has been reported to metrc successfully");
       fetchReturns([
-        { name: "limit", value: PAGE_SIZE },
+        { name: "limit", value: pageSize },
         { name: "page", value: page },
         ...(selectedCustomerId
           ? [{ name: "customerId", value: selectedCustomerId }]
@@ -448,9 +449,24 @@ export default function ReturnsPage() {
             page={page}
             totalPages={totalPages}
             totalEntries={totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             loading={loading}
             onPageChange={setPage}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(1);
+              fetchReturns([
+                { name: "limit", value: s },
+                { name: "page", value: 1 },
+                ...(selectedCustomerId
+                  ? [{ name: "customerId", value: selectedCustomerId }]
+                  : []),
+                ...(returnIdSearch
+                  ? [{ name: "advertisedSaleReturnId", value: returnIdSearch }]
+                  : []),
+              ]);
+            }}
           />
         </div>
       </div>

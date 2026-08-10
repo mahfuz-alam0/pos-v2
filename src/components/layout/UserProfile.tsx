@@ -18,20 +18,12 @@ import {
 import { logout } from "@/util/use-auth";
 import { useLiveShift } from "@/hooks/useLiveShift";
 import { useShareMode } from "@/hooks/useShareMode";
+import { useCurrentUser } from "@/util/use-current-user";
 import { cn } from "@/lib/utils";
 import PinPadModal from "./PinPadModal";
 import TurnOffShareModeModal from "./TurnOffShareModeModal";
 
 const PANEL_WIDTH = 340;
-
-function readUser() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo"));
-  } catch {
-    return null;
-  }
-}
 
 function NotificationsPopover({ open, anchorRef, onClose }) {
   const panelRef = useRef(null);
@@ -92,7 +84,7 @@ export default function UserProfile({ collapsed }) {
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
   const [panelEntered, setPanelEntered] = useState(false);
   const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
-  const [user, setUser] = useState(null);
+  const user = useCurrentUser();
 
   const [clockModalOpen, setClockModalOpen] = useState(false);
   const [shareOnModalOpen, setShareOnModalOpen] = useState(false);
@@ -103,7 +95,6 @@ export default function UserProfile({ collapsed }) {
 
   useEffect(() => {
     setMounted(true);
-    setUser(readUser());
   }, []);
 
   useEffect(() => {

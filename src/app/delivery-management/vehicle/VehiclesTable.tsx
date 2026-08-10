@@ -31,8 +31,8 @@ import {
 import VehicleFormDrawer from "./VehicleFormDrawer";
 import VehicleDetailsPanel from "./VehicleDetailsPanel";
 import ReportToMetrcDrawer from "./ReportToMetrcDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
 
 interface VehicleRow {
   id: string;
@@ -57,6 +57,7 @@ const METRC_STATUS_OPTIONS = [
 ];
 
 export default function VehiclesTable() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const isCaliforniaState = typeof window !== "undefined" && localStorage.getItem("isCaliforniaState") === "true";
 
@@ -67,7 +68,7 @@ export default function VehiclesTable() {
 
   const [rows, setRows] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: defaultPageSize, totalEntries: 0, totalPages: 0 });
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; vehicleId: string | number | null }>({
     open: false,
@@ -80,11 +81,11 @@ export default function VehiclesTable() {
   const [metrcVehicleId, setMetrcVehicleId] = useState<string | number | null>(null);
 
   const loadVehicles = useCallback(
-    async (page = 1, searchTerm = "", activeFilter = "__all__", metrcStatus = "__all__") => {
+    async (page = 1, searchTerm = "", activeFilter = "__all__", metrcStatus = "__all__", size = pagination.limit) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page, limit: size };
         if (searchTerm) params.search = searchTerm;
         if (activeFilter !== "__all__") params.isActive = activeFilter;
         if (metrcStatus !== "__all__") params.metrcReportingStatus = metrcStatus;
@@ -101,7 +102,7 @@ export default function VehiclesTable() {
         );
         const p = res?.paginationData;
         if (p) {
-          setPagination({ page: p.currentPage ?? page, limit: p.limit ?? PAGE_SIZE, totalEntries: p.totalEntries ?? 0, totalPages: p.totalPages ?? 0 });
+          setPagination({ page: p.currentPage ?? page, limit: p.limit ?? size, totalEntries: p.totalEntries ?? 0, totalPages: p.totalPages ?? 0 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load vehicles");
@@ -109,7 +110,7 @@ export default function VehiclesTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pagination.limit]
   );
 
   useEffect(() => {
@@ -282,6 +283,10 @@ export default function VehiclesTable() {
             pageSize={pagination.limit}
             loading={loading}
             onPageChange={(p: number) => loadVehicles(p, debouncedSearch, isActiveFilter, metrcStatusFilter)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(size) =>
+              setPagination((prev) => ({ ...prev, page: 1, limit: size }))
+            }
           />
         )}
       </div>

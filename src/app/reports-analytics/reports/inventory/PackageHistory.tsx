@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchInventoryPackageHistory } from "@/services/reporting/inventoryPackageHistory";
 import { listMinimalPackages } from "@/services/packages/listMinimal";
 import { fetchSingleShop } from "@/services/shops/getSingle";
@@ -37,12 +38,13 @@ function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-function emptyPagination(): InventoryPagination {
-  return { page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 };
+function emptyPagination(size = PAGE_SIZE): InventoryPagination {
+  return { page: 1, pageSize: size, totalEntries: 0, totalPages: 1 };
 }
 
 export default function PackageHistory() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [runReport, setRunReport] = useState(false);
   const [storeInfo, setStoreInfo] = useState<any>({});
@@ -50,7 +52,8 @@ export default function PackageHistory() {
 
   const [rows, setRows] = useState<PackageHistoryRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState(emptyPagination());
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState(() => emptyPagination(defaultPageSize));
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -81,15 +84,15 @@ export default function PackageHistory() {
   );
 
   const fetchDetail = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       if (!packageId) return;
       setLoading(true);
       try {
-        const res = await fetchInventoryPackageHistory({ packageId, page, limit: PAGE_SIZE });
+        const res = await fetchInventoryPackageHistory({ packageId, page, limit: size });
         setRows(res?.data?.data || []);
         const pd = res?.data?.paginationData;
         if (pd) {
-          setPagination({ page: pd.currentPage || page, pageSize: PAGE_SIZE, totalEntries: pd.totalEntries || 0, totalPages: pd.totalPages || 1 });
+          setPagination({ page: pd.currentPage || page, pageSize: size, totalEntries: pd.totalEntries || 0, totalPages: pd.totalPages || 1 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load package history");
@@ -97,7 +100,7 @@ export default function PackageHistory() {
         setLoading(false);
       }
     },
-    [packageId],
+    [packageId, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -180,7 +183,16 @@ export default function PackageHistory() {
       </div>
 
       {runReport && (
-        <PackageHistoryTable data={rows} loading={loading} pagination={pagination} onPageChange={(p) => fetchDetail(p)} />
+        <PackageHistoryTable
+          data={rows}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={(p) => fetchDetail(p)}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchDetail(1, s);
+          }}
+        />
       )}
 
       <PdfExportDrawer

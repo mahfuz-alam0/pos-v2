@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { getApiKey } from "@/services/apiKeys/getApiKey";
 import { generateApiKey } from "@/services/apiKeys/generateApiKey";
 import { getMyPin } from "@/services/profile/getMyPin";
+import { getCurrentUser } from "@/util/use-current-user";
 
 const PLATFORMS = [
   { key: "ios", label: "iOS", platform: "IOS" },
@@ -36,12 +37,7 @@ export default function ApiKeysTab() {
   const [generating, setGenerating] = useState<PlatformKey | null>(null);
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("userInfo") || "null");
-      setOrgId(user?.orgId || "");
-    } catch {
-      setOrgId("");
-    }
+    setOrgId(getCurrentUser()?.orgId || "");
     fetchData();
   }, []);
 

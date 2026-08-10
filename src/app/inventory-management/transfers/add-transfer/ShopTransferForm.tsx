@@ -25,10 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PackagePickerTable, { type PackagePickerRow } from "./PackagePickerTable";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function ShopTransferForm() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -48,6 +50,7 @@ export default function ShopTransferForm() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [selectedRows, setSelectedRows] = useState<(PackagePickerRow & { unitPrice?: number })[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -63,12 +66,12 @@ export default function ShopTransferForm() {
   }, []);
 
   const loadPackages = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
         const params: Record<string, any> = {
-          limit: PAGE_SIZE,
+          limit: size,
           page: targetPage,
           isFinished: false,
           sortByAlpha: 1,
@@ -101,7 +104,7 @@ export default function ShopTransferForm() {
         setLoading(false);
       }
     },
-    [shopId, search, searchBy, categoryId, brandId, packageStatus, packageType]
+    [shopId, search, searchBy, categoryId, brandId, packageStatus, packageType, pageSize]
   );
 
   useEffect(() => {
@@ -374,8 +377,13 @@ export default function ShopTransferForm() {
             page={page}
             totalPages={totalPages}
             totalEntries={totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             onPageChange={loadPackages}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              loadPackages(1, s);
+            }}
           />
         </div>
       </div>

@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { fetchPromoUsages } from "@/services/promoUsage/list";
-
-const PAGE_SIZE = 10;
+import { useSettings } from "@/context/settings-context";
 
 export function UsageHistoryPanel({
   open,
@@ -24,17 +23,19 @@ export function UsageHistoryPanel({
   id: string | number | null;
   title?: string;
 }) {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
-  const load = async (targetPage: number) => {
+  const load = async (targetPage = 1, size = pageSize) => {
     if (!id) return;
     setLoading(true);
     try {
-      const params: any = { promoType, page: targetPage, limit: PAGE_SIZE };
+      const params: any = { promoType, page: targetPage, limit: size };
       if (promoType === "COUPON") params.couponId = id;
       else params.dealId = id;
       const res = await fetchPromoUsages(params);
@@ -103,9 +104,14 @@ export function UsageHistoryPanel({
                 page={page}
                 totalPages={totalPages}
                 totalEntries={totalEntries}
-                pageSize={PAGE_SIZE}
+                pageSize={pageSize}
                 loading={loading}
                 onPageChange={load}
+                pageSizeOptions={[30, 50, 100, 200]}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  load(1, size);
+                }}
               />
             </div>
           )}

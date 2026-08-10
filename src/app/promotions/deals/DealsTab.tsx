@@ -36,8 +36,7 @@ import DealFormDrawer from "./DealFormDrawer";
 import DealDetailsPanel from "./DealDetailsPanel";
 import type { DealRow, DealType } from "./types";
 import { DEAL_TYPE_BADGE_VARIANT } from "@/services/promotions/enums";
-
-const PAGE_SIZE = 10;
+import { useSettings } from "@/context/settings-context";
 
 const REMOVERS: Record<DealType, (id: string | number) => Promise<any>> = {
   REGULAR: removeRegularDeal,
@@ -61,6 +60,7 @@ type DealFilters = {
 const DEFAULT_FILTERS: DealFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
 
 export default function DealsTab() {
+  const { defaultPageSize } = useSettings();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [openDeal, setOpenDeal] = useState<{ id: string; type: DealType } | null>(() => {
@@ -82,6 +82,7 @@ export default function DealsTab() {
   const [allRows, setAllRows] = useState<DealRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit" | "duplicate"; dealId: string | null; dealType: DealType | null }>({
     open: false,
@@ -138,8 +139,8 @@ export default function DealsTab() {
     setFilters(DEFAULT_FILTERS);
   };
 
-  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
-  const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(allRows.length / pageSize));
+  const rows = allRows.slice((page - 1) * pageSize, page * pageSize);
 
   const openDetail = (row: DealRow) => {
     setOpenDeal({ id: String(row.id), type: row.type });
@@ -303,7 +304,19 @@ export default function DealsTab() {
         </div>
 
         {allRows.length > 0 && (
-          <TablePagination page={page} totalPages={totalPages} totalEntries={allRows.length} pageSize={PAGE_SIZE} loading={loading} onPageChange={setPage} />
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalEntries={allRows.length}
+            pageSize={pageSize}
+            loading={loading}
+            onPageChange={setPage}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(1);
+            }}
+          />
         )}
       </div>
 

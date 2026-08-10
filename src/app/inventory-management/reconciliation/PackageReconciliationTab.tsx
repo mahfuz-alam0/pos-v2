@@ -10,7 +10,6 @@ import { useShop } from "@/context/shop-context";
 import { fetchPackageAdjustments } from "@/services/packageAdjustments/list";
 import { fetchPackagesList } from "@/services/packages/list";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -25,8 +24,9 @@ import {
 } from "@/components/ui/table";
 import Drawer from "@/components/ui/Drawer";
 import ReconciliationDetailPanel from "./ReconciliationDetailPanel";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 type DateFilter = "all" | "today" | "yesterday" | "custom";
 
@@ -35,6 +35,7 @@ function toDateStr(date: Date) {
 }
 
 export default function PackageReconciliationTab() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -45,6 +46,7 @@ export default function PackageReconciliationTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
@@ -73,12 +75,12 @@ export default function PackageReconciliationTab() {
   }, [dateFilter, customRange]);
 
   const loadAdjustments = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
         const res = await fetchPackageAdjustments(shopId, {
-          limit: PAGE_SIZE,
+          limit: size,
           page: targetPage,
           ...buildDateParams(),
         });
@@ -93,7 +95,7 @@ export default function PackageReconciliationTab() {
         setLoading(false);
       }
     },
-    [shopId, buildDateParams]
+    [shopId, buildDateParams, pageSize]
   );
 
   useEffect(() => {
@@ -155,19 +157,33 @@ export default function PackageReconciliationTab() {
     <div className="flex gap-4">
       <div className="flex w-full flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-input p-0.5">
-            {(["all", "yesterday", "today", "custom"] as DateFilter[]).map((f) => (
-              <Button
+          <div className="flex h-10 rounded-md border border-border">
+            {(["yesterday", "today", "custom"] as DateFilter[]).map((f, i) => (
+              <button
                 key={f}
-                variant={dateFilter === f ? "default" : "ghost"}
-                size="sm"
-                className="capitalize"
+                type="button"
                 onClick={() => setDateFilter(f)}
+                className={`px-4 text-[15px] capitalize transition-colors ${i !== 0 ? "border-l border-border" : ""} ${
+                  dateFilter === f ? "text-primary ring-1 ring-inset ring-primary" : "text-muted-foreground hover:bg-muted/50"
+                }`}
               >
                 {f}
-              </Button>
+              </button>
             ))}
           </div>
+
+          {dateFilter !== "all" && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFilter("all");
+                setCustomRange(undefined);
+              }}
+              className="h-10 rounded-md border border-border px-4 text-[15px] text-muted-foreground hover:bg-muted/50"
+            >
+              Reset
+            </button>
+          )}
 
           {dateFilter === "custom" && (
             <DateRangePicker value={customRange} onChange={setCustomRange} />
@@ -176,6 +192,7 @@ export default function PackageReconciliationTab() {
           <div className="relative ml-auto w-70">
             <Input
               placeholder="Scan via barcode"
+              className={`h-10 placeholder:text-muted-foreground/60 ${barcodeSearching ? "pr-8" : ""}`}
               value={barcodeValue}
               onChange={(e) => {
                 if (isPastingRef.current) {
@@ -205,11 +222,11 @@ export default function PackageReconciliationTab() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="relative -mx-4">
           <TableLoadingOverlay show={loading && rows.length > 0} />
           <Table>
-            <TableHeader className="[&_tr]:border-b-0">
-              <TableRow className="bg-muted/60">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Package ID</TableHead>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Date</TableHead>
@@ -217,11 +234,11 @@ export default function PackageReconciliationTab() {
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading &&
                 rows.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+                  <TableRow key={`skeleton-${i}`} className="border-b-0">
                     {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -231,7 +248,7 @@ export default function PackageReconciliationTab() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow className="border-b-0">
+                <TableRow>
                   <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                     No package adjustments found.
                   </TableCell>
@@ -271,9 +288,14 @@ export default function PackageReconciliationTab() {
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadAdjustments}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadAdjustments(1, s);
+          }}
         />
       </div>
 

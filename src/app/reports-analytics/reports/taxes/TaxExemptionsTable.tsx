@@ -26,11 +26,13 @@ export default function TaxExemptionsTable({
   loading,
   pagination,
   onPageChange,
+  onPageSizeChange,
 }: {
   data: TaxExemptionRow[];
   loading: boolean;
   pagination: ReportPagination;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }) {
   return (
     <Card className="h-full p-0 shadow-sm ring-0">
@@ -86,6 +88,8 @@ export default function TaxExemptionsTable({
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={onPageChange}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </Card>

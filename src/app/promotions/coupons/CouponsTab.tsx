@@ -31,8 +31,7 @@ import {
 import CouponFormDrawer from "./CouponFormDrawer";
 import CouponDetailsPanel from "./CouponDetailsPanel";
 import type { CouponRow } from "./types";
-
-const PAGE_SIZE = 10;
+import { useSettings } from "@/context/settings-context";
 
 const DELIVERY_METHOD_OPTIONS = [
   { id: "IN_STORE", name: "In Store" },
@@ -50,6 +49,7 @@ type CouponFilters = {
 const DEFAULT_FILTERS: CouponFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
 
 export default function CouponsTab() {
+  const { defaultPageSize } = useSettings();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
@@ -63,6 +63,7 @@ export default function CouponsTab() {
   const [allRows, setAllRows] = useState<CouponRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; couponId: string | null }>({
     open: false,
@@ -118,8 +119,8 @@ export default function CouponsTab() {
     setFilters(DEFAULT_FILTERS);
   };
 
-  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
-  const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(allRows.length / pageSize));
+  const rows = allRows.slice((page - 1) * pageSize, page * pageSize);
 
   const openDetail = (id: string | number) => {
     setOpenId(String(id));
@@ -265,7 +266,19 @@ export default function CouponsTab() {
         </div>
 
         {allRows.length > 0 && (
-          <TablePagination page={page} totalPages={totalPages} totalEntries={allRows.length} pageSize={PAGE_SIZE} loading={loading} onPageChange={setPage} />
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalEntries={allRows.length}
+            pageSize={pageSize}
+            loading={loading}
+            onPageChange={setPage}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(1);
+            }}
+          />
         )}
       </div>
 

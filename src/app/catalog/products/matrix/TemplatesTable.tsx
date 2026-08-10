@@ -26,8 +26,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 
 import TemplateDetailsPanel from "./TemplateDetailsPanel";
 import type { PaginationState, TemplateRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function TemplatesTable({
   refreshKey,
@@ -36,13 +36,14 @@ export default function TemplatesTable({
   refreshKey: number;
   onEdit: (id: string | number) => void;
 }) {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -51,16 +52,16 @@ export default function TemplatesTable({
   const [deleteTarget, setDeleteTarget] = useState<TemplateRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const load = useCallback(async (page = 1, term = "") => {
+  const load = useCallback(async (page = 1, term = "", size = pagination.limit) => {
     setLoading(true);
     try {
-      const res = await fetchProductMatricesList({ page, limit: PAGE_SIZE, ...(term ? { search: term } : {}) });
+      const res = await fetchProductMatricesList({ page, limit: size, ...(term ? { search: term } : {}) });
       setRows(res?.data ?? []);
       const p = res?.paginationData;
       if (p) {
         setPagination({
           page: p.currentPage ?? page,
-          limit: p.limit ?? PAGE_SIZE,
+          limit: p.limit ?? size,
           totalEntries: p.totalEntries ?? 0,
           totalPages: p.totalPages ?? 0,
         });
@@ -70,7 +71,7 @@ export default function TemplatesTable({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.limit]);
 
   useEffect(() => {
     load(1, debouncedSearch);
@@ -180,6 +181,11 @@ export default function TemplatesTable({
             pageSize={pagination.limit}
             loading={loading}
             onPageChange={(p) => load(p, debouncedSearch)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+              load(1, debouncedSearch, s);
+            }}
           />
         )}
       </div>

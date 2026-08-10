@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Percent } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchItemDiscountsApplied } from "@/services/reporting/itemDiscountsApplied";
 import { fetchItemDiscountsByCategory } from "@/services/reporting/itemDiscountsByCategory";
 import { fetchItemDiscountsByProduct } from "@/services/reporting/itemDiscountsByProduct";
@@ -40,12 +41,13 @@ import type {
 
 const PAGE_SIZE = 10;
 
-function emptyPagination(): DiscountsPagination {
-  return { page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 };
+function emptyPagination(size = PAGE_SIZE): DiscountsPagination {
+  return { page: 1, pageSize: size, totalEntries: 0, totalPages: 1 };
 }
 
 export default function Discounts() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
@@ -58,23 +60,29 @@ export default function Discounts() {
 
   const [itemDiscountsData, setItemDiscountsData] = useState<ItemDiscountRow[]>([]);
   const [loadingItemDiscounts, setLoadingItemDiscounts] = useState(false);
-  const [itemDiscountsPagination, setItemDiscountsPagination] = useState(emptyPagination());
+  const [itemDiscountsPagination, setItemDiscountsPagination] = useState(() => emptyPagination(defaultPageSize));
 
   const [categoryDiscountsData, setCategoryDiscountsData] = useState<CategoryDiscountRow[]>([]);
   const [loadingCategoryDiscounts, setLoadingCategoryDiscounts] = useState(false);
-  const [categoryDiscountsPagination, setCategoryDiscountsPagination] = useState(emptyPagination());
+  const [categoryDiscountsPagination, setCategoryDiscountsPagination] = useState(() => emptyPagination(defaultPageSize));
 
   const [productDiscountsData, setProductDiscountsData] = useState<ProductDiscountRow[]>([]);
   const [loadingProductDiscounts, setLoadingProductDiscounts] = useState(false);
-  const [productDiscountsPagination, setProductDiscountsPagination] = useState(emptyPagination());
+  const [productDiscountsPagination, setProductDiscountsPagination] = useState(() => emptyPagination(defaultPageSize));
 
   const [employeeDiscountsData, setEmployeeDiscountsData] = useState<EmployeeDiscountRow[]>([]);
   const [loadingEmployeeDiscounts, setLoadingEmployeeDiscounts] = useState(false);
-  const [employeeDiscountsPagination, setEmployeeDiscountsPagination] = useState(emptyPagination());
+  const [employeeDiscountsPagination, setEmployeeDiscountsPagination] = useState(() => emptyPagination(defaultPageSize));
 
   const [brandDiscountsData, setBrandDiscountsData] = useState<BrandDiscountRow[]>([]);
   const [loadingBrandDiscounts, setLoadingBrandDiscounts] = useState(false);
-  const [brandDiscountsPagination, setBrandDiscountsPagination] = useState(emptyPagination());
+  const [brandDiscountsPagination, setBrandDiscountsPagination] = useState(() => emptyPagination(defaultPageSize));
+
+  const [itemDiscountsPageSize, setItemDiscountsPageSize] = useState(defaultPageSize);
+  const [categoryDiscountsPageSize, setCategoryDiscountsPageSize] = useState(defaultPageSize);
+  const [productDiscountsPageSize, setProductDiscountsPageSize] = useState(defaultPageSize);
+  const [employeeDiscountsPageSize, setEmployeeDiscountsPageSize] = useState(defaultPageSize);
+  const [brandDiscountsPageSize, setBrandDiscountsPageSize] = useState(defaultPageSize);
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -90,13 +98,13 @@ export default function Discounts() {
   const dateRangeLabel = `${format(new Date(startDate), "MMM dd, yyyy")} - ${format(new Date(endDate), "MMM dd, yyyy")}`;
   const exportMetadata = { dateRange: dateRangeLabel };
 
-  const fetchItemDiscounts = async () => {
+  const fetchItemDiscounts = async (page = 1, size = itemDiscountsPageSize) => {
     if (!shopId) return;
     setLoadingItemDiscounts(true);
     try {
       const response = await fetchItemDiscountsApplied({
-        page: itemDiscountsPagination.page,
-        limit: itemDiscountsPagination.pageSize,
+        page,
+        limit: size,
         startDate,
         endDate,
         shopId,
@@ -104,7 +112,7 @@ export default function Discounts() {
       setItemDiscountsData(response?.data?.data || []);
       const pData = response?.data?.paginationData;
       if (pData) {
-        setItemDiscountsPagination((prev) => ({ ...prev, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
+        setItemDiscountsPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
       }
     } catch (error) {
       console.error("Error fetching item discounts:", error);
@@ -113,13 +121,13 @@ export default function Discounts() {
     }
   };
 
-  const fetchCategoryDiscounts = async () => {
+  const fetchCategoryDiscounts = async (page = 1, size = categoryDiscountsPageSize) => {
     if (!shopId) return;
     setLoadingCategoryDiscounts(true);
     try {
       const response = await fetchItemDiscountsByCategory({
-        page: categoryDiscountsPagination.page,
-        limit: categoryDiscountsPagination.pageSize,
+        page,
+        limit: size,
         startDate,
         endDate,
         shopId,
@@ -127,7 +135,7 @@ export default function Discounts() {
       setCategoryDiscountsData(response?.data?.data || []);
       const pData = response?.data?.paginationData;
       if (pData) {
-        setCategoryDiscountsPagination((prev) => ({ ...prev, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
+        setCategoryDiscountsPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
       }
     } catch (error) {
       console.error("Error fetching category discounts:", error);
@@ -136,13 +144,13 @@ export default function Discounts() {
     }
   };
 
-  const fetchProductDiscounts = async () => {
+  const fetchProductDiscounts = async (page = 1, size = productDiscountsPageSize) => {
     if (!shopId) return;
     setLoadingProductDiscounts(true);
     try {
       const response = await fetchItemDiscountsByProduct({
-        page: productDiscountsPagination.page,
-        limit: productDiscountsPagination.pageSize,
+        page,
+        limit: size,
         startDate,
         endDate,
         shopId,
@@ -150,7 +158,7 @@ export default function Discounts() {
       setProductDiscountsData(response?.data?.data || []);
       const pData = response?.data?.paginationData;
       if (pData) {
-        setProductDiscountsPagination((prev) => ({ ...prev, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
+        setProductDiscountsPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
       }
     } catch (error) {
       console.error("Error fetching product discounts:", error);
@@ -159,13 +167,13 @@ export default function Discounts() {
     }
   };
 
-  const fetchEmployeeDiscounts = async () => {
+  const fetchEmployeeDiscounts = async (page = 1, size = employeeDiscountsPageSize) => {
     if (!shopId) return;
     setLoadingEmployeeDiscounts(true);
     try {
       const response = await fetchItemDiscountsByEmployee({
-        page: employeeDiscountsPagination.page,
-        limit: employeeDiscountsPagination.pageSize,
+        page,
+        limit: size,
         startDate,
         endDate,
         shopId,
@@ -173,7 +181,7 @@ export default function Discounts() {
       setEmployeeDiscountsData(response?.data?.data || []);
       const pData = response?.data?.paginationData;
       if (pData) {
-        setEmployeeDiscountsPagination((prev) => ({ ...prev, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
+        setEmployeeDiscountsPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
       }
     } catch (error) {
       console.error("Error fetching employee discounts:", error);
@@ -182,13 +190,13 @@ export default function Discounts() {
     }
   };
 
-  const fetchBrandDiscounts = async () => {
+  const fetchBrandDiscounts = async (page = 1, size = brandDiscountsPageSize) => {
     if (!shopId) return;
     setLoadingBrandDiscounts(true);
     try {
       const response = await fetchItemDiscountsByBrand({
-        page: brandDiscountsPagination.page,
-        limit: brandDiscountsPagination.pageSize,
+        page,
+        limit: size,
         startDate,
         endDate,
         shopId,
@@ -196,7 +204,7 @@ export default function Discounts() {
       setBrandDiscountsData(response?.data?.data || []);
       const pData = response?.data?.paginationData;
       if (pData) {
-        setBrandDiscountsPagination((prev) => ({ ...prev, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
+        setBrandDiscountsPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData.totalEntries, totalPages: pData.totalPages || 1 }));
       }
     } catch (error) {
       console.error("Error fetching brand discounts:", error);
@@ -215,29 +223,29 @@ export default function Discounts() {
   }, [shopId, startDate, endDate]);
 
   useEffect(() => {
-    fetchItemDiscounts();
+    fetchItemDiscounts(itemDiscountsPagination.page, itemDiscountsPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, itemDiscountsPagination.page]);
+  }, [shopId, startDate, endDate, itemDiscountsPagination.page, itemDiscountsPageSize]);
 
   useEffect(() => {
-    fetchCategoryDiscounts();
+    fetchCategoryDiscounts(categoryDiscountsPagination.page, categoryDiscountsPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, categoryDiscountsPagination.page]);
+  }, [shopId, startDate, endDate, categoryDiscountsPagination.page, categoryDiscountsPageSize]);
 
   useEffect(() => {
-    fetchProductDiscounts();
+    fetchProductDiscounts(productDiscountsPagination.page, productDiscountsPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, productDiscountsPagination.page]);
+  }, [shopId, startDate, endDate, productDiscountsPagination.page, productDiscountsPageSize]);
 
   useEffect(() => {
-    fetchEmployeeDiscounts();
+    fetchEmployeeDiscounts(employeeDiscountsPagination.page, employeeDiscountsPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, employeeDiscountsPagination.page]);
+  }, [shopId, startDate, endDate, employeeDiscountsPagination.page, employeeDiscountsPageSize]);
 
   useEffect(() => {
-    fetchBrandDiscounts();
+    fetchBrandDiscounts(brandDiscountsPagination.page, brandDiscountsPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, brandDiscountsPagination.page]);
+  }, [shopId, startDate, endDate, brandDiscountsPagination.page, brandDiscountsPageSize]);
 
   const handleExportCsv = () => {
     exportDiscountsToCsv(exportData, dateRangeLabel, `discounts_report_${format(new Date(), "yyyy-MM-dd")}.csv`);
@@ -278,6 +286,10 @@ export default function Discounts() {
         loading={loadingItemDiscounts}
         pagination={itemDiscountsPagination}
         onPageChange={(page) => setItemDiscountsPagination((p) => ({ ...p, page }))}
+        onPageSizeChange={(s) => {
+          setItemDiscountsPageSize(s);
+          setItemDiscountsPagination((p) => ({ ...p, page: 1 }));
+        }}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -286,12 +298,20 @@ export default function Discounts() {
           loading={loadingCategoryDiscounts}
           pagination={categoryDiscountsPagination}
           onPageChange={(page) => setCategoryDiscountsPagination((p) => ({ ...p, page }))}
+          onPageSizeChange={(s) => {
+            setCategoryDiscountsPageSize(s);
+            setCategoryDiscountsPagination((p) => ({ ...p, page: 1 }));
+          }}
         />
         <DiscountsByProductTable
           data={productDiscountsData}
           loading={loadingProductDiscounts}
           pagination={productDiscountsPagination}
           onPageChange={(page) => setProductDiscountsPagination((p) => ({ ...p, page }))}
+          onPageSizeChange={(s) => {
+            setProductDiscountsPageSize(s);
+            setProductDiscountsPagination((p) => ({ ...p, page: 1 }));
+          }}
         />
       </div>
 
@@ -300,6 +320,10 @@ export default function Discounts() {
         loading={loadingEmployeeDiscounts}
         pagination={employeeDiscountsPagination}
         onPageChange={(page) => setEmployeeDiscountsPagination((p) => ({ ...p, page }))}
+        onPageSizeChange={(s) => {
+          setEmployeeDiscountsPageSize(s);
+          setEmployeeDiscountsPagination((p) => ({ ...p, page: 1 }));
+        }}
       />
 
       <DiscountsByBrandTable
@@ -307,6 +331,10 @@ export default function Discounts() {
         loading={loadingBrandDiscounts}
         pagination={brandDiscountsPagination}
         onPageChange={(page) => setBrandDiscountsPagination((p) => ({ ...p, page }))}
+        onPageSizeChange={(s) => {
+          setBrandDiscountsPageSize(s);
+          setBrandDiscountsPagination((p) => ({ ...p, page: 1 }));
+        }}
       />
 
       <PdfExportDrawer

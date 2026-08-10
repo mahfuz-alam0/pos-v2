@@ -10,24 +10,26 @@ import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagi
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import SessionDetailDrawer from "./SessionDetailDrawer";
+import { useSettings } from "@/context/settings-context";
 
 function money(v: number | undefined) {
   return `$${(v ?? 0).toFixed(2)}`;
 }
 
 export default function DrawerSessionsTable({ drawerId, refreshKey = 0 }: { drawerId: string; refreshKey?: number }) {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [selectedSession, setSelectedSession] = useState<any>(null);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId || !drawerId) return;
       setLoading(true);
       try {
-        const res = await listDrawerSessions({ shopId, drawerId, page, limit: pagination.pageSize });
+        const res = await listDrawerSessions({ shopId, drawerId, page, limit: size });
         setRows(res?.data?.sessions ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -117,6 +119,11 @@ export default function DrawerSessionsTable({ drawerId, refreshKey = 0 }: { draw
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <SessionDetailDrawer

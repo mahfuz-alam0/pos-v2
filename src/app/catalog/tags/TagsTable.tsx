@@ -27,10 +27,11 @@ import {
 
 import TagFormDrawer from "./TagFormDrawer";
 import type { PaginationState, TagRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function TagsTable() {
+  const { defaultPageSize } = useSettings();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
@@ -38,7 +39,7 @@ export default function TagsTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -52,10 +53,10 @@ export default function TagsTable() {
   const [deleteTarget, setDeleteTarget] = useState<TagRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const loadTags = useCallback(async (page = 1, searchTerm = "") => {
+  const loadTags = useCallback(async (page = 1, searchTerm = "", size = pagination.limit) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page, limit: PAGE_SIZE };
+      const params: Record<string, any> = { page, limit: size };
       if (searchTerm) params.search = searchTerm;
       const res = await fetchTagsList(params);
       setRows(res?.data ?? []);
@@ -63,7 +64,7 @@ export default function TagsTable() {
       if (p) {
         setPagination({
           page: p.currentPage ?? page,
-          limit: p.limit ?? PAGE_SIZE,
+          limit: p.limit ?? size,
           totalEntries: p.totalEntries ?? 0,
           totalPages: p.totalPages ?? 0,
         });
@@ -73,7 +74,7 @@ export default function TagsTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.limit]);
 
   useEffect(() => {
     loadTags(1, debouncedSearch);
@@ -196,6 +197,11 @@ export default function TagsTable() {
           pageSize={pagination.limit}
           loading={loading}
           onPageChange={(p) => loadTags(p, debouncedSearch)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+            loadTags(1, debouncedSearch, s);
+          }}
         />
       )}
 

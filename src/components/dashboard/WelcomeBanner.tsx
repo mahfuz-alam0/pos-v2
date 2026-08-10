@@ -8,32 +8,21 @@ import { fetchMyTasksList } from "@/services/tasks/listMyTasks";
 import { fetchPendingPreSales } from "@/services/orderAhead/listPresale";
 import { fetchAnnouncementsList } from "@/services/announcements/list";
 import { useShop } from "@/context/shop-context";
-
-function readUserInfo() {
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") || "null");
-  } catch {
-    return null;
-  }
-}
+import { useCurrentUser } from "@/util/use-current-user";
 
 export default function WelcomeBanner() {
   const { shopId } = useShop();
-  const [userDetails, setUserDetails] = useState(null);
+  const userDetails = useCurrentUser();
   const [taskCount, setTaskCount] = useState(0);
   const [orderCount, setOrderCount] = useState(0);
   const [announcements, setAnnouncements] = useState([]);
-
-  useEffect(() => {
-    setUserDetails(readUserInfo());
-  }, []);
 
   useEffect(() => {
     if (!shopId) return;
 
     (async () => {
       try {
-        const user = readUserInfo();
+        const user = userDetails;
         if (!user) return;
 
         let fetchFn;
@@ -75,7 +64,7 @@ export default function WelcomeBanner() {
         console.error("Error fetching announcements:", err);
       }
     })();
-  }, [shopId]);
+  }, [shopId, userDetails]);
 
   const shopNow = new Date();
   const dateLabel = `Happy ${shopNow.toLocaleDateString("en-US", {

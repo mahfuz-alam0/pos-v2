@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchCustomersPurchaseHistory } from "@/services/reporting/customersPurchaseHistory";
 import { fetchCustomerTypeSummary } from "@/services/reporting/customerTypeSummary";
 import { fetchCategoriesList } from "@/services/categories/list";
@@ -50,8 +51,6 @@ import {
   exportPurchaseHistoryToCsv,
 } from "./exportConfig.purchaseHistory";
 
-const PAGE_SIZE = 30;
-const SUMMARY_PAGE_SIZE = 50;
 
 function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
@@ -59,6 +58,7 @@ function todayStr() {
 
 export default function CustomerPurchaseHistoryTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
     startDate: todayStr(),
@@ -77,11 +77,13 @@ export default function CustomerPurchaseHistoryTable() {
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [summaryRows, setSummaryRows] = useState<any[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryPagination, setSummaryPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [summaryPageSize, setSummaryPageSize] = useState(defaultPageSize);
+  const [summaryPagination, setSummaryPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -116,14 +118,14 @@ export default function CustomerPurchaseHistoryTable() {
   );
 
   const fetchDetail = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchCustomersPurchaseHistory({ ...filters, page, limit: PAGE_SIZE });
+        const res = await fetchCustomersPurchaseHistory({ ...filters, page, limit: size });
         setRows(res?.data ?? []);
         const pd = res?.paginationData;
         if (pd) {
-          setPagination({ page: pd.currentPage || page, totalPages: pd.totalPages || 1, totalEntries: pd.totalEntries || 0 });
+          setPagination({ page: pd.currentPage || page, pageSize: size, totalPages: pd.totalPages || 1, totalEntries: pd.totalEntries || 0 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load purchase history");
@@ -131,16 +133,16 @@ export default function CustomerPurchaseHistoryTable() {
         setLoading(false);
       }
     },
-    [filters],
+    [filters, pageSize],
   );
 
   const fetchSummary = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = summaryPageSize) => {
       setSummaryLoading(true);
       try {
         const res = await fetchCustomerTypeSummary({
           page,
-          limit: SUMMARY_PAGE_SIZE,
+          limit: size,
           startDate: filters.startDate,
           endDate: filters.endDate,
           shopId: filters.shopId,
@@ -149,7 +151,7 @@ export default function CustomerPurchaseHistoryTable() {
         setSummaryRows(res?.data ?? []);
         const pd = res?.paginationData;
         if (pd) {
-          setSummaryPagination({ page: pd.currentPage || page, totalPages: pd.totalPages || 1, totalEntries: pd.totalEntries || 0 });
+          setSummaryPagination({ page: pd.currentPage || page, pageSize: size, totalPages: pd.totalPages || 1, totalEntries: pd.totalEntries || 0 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load customer type summary");
@@ -157,7 +159,7 @@ export default function CustomerPurchaseHistoryTable() {
         setSummaryLoading(false);
       }
     },
-    [filters, selectedCustomerType],
+    [filters, selectedCustomerType, summaryPageSize],
   );
 
   const handleRunReport = async () => {
@@ -355,9 +357,14 @@ export default function CustomerPurchaseHistoryTable() {
               page={summaryPagination.page}
               totalPages={summaryPagination.totalPages}
               totalEntries={summaryPagination.totalEntries}
-              pageSize={SUMMARY_PAGE_SIZE}
+              pageSize={summaryPageSize}
               loading={summaryLoading}
-              onPageChange={(p) => fetchSummary(p)}
+              onPageChange={(p) => fetchSummary(p, summaryPageSize)}
+              pageSizeOptions={[30, 50, 100, 200]}
+              onPageSizeChange={(s) => {
+                setSummaryPageSize(s);
+                fetchSummary(1, s);
+              }}
             />
           </div>
 
@@ -474,9 +481,14 @@ export default function CustomerPurchaseHistoryTable() {
               page={pagination.page}
               totalPages={pagination.totalPages}
               totalEntries={pagination.totalEntries}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               loading={loading}
-              onPageChange={(p) => fetchDetail(p)}
+              onPageChange={(p) => fetchDetail(p, pageSize)}
+              pageSizeOptions={[30, 50, 100, 200]}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                fetchDetail(1, s);
+              }}
             />
           </div>
         </>

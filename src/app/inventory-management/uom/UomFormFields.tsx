@@ -38,7 +38,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label>Measurement Name</Label>
+          <Label className="text-gray-700">Measurement Name</Label>
           <Input
             value={values.name}
             onChange={(e) => onChange({ ...values, name: e.target.value })}
@@ -46,7 +46,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Short Form</Label>
+          <Label className="text-gray-700">Short Form</Label>
           <Input
             value={values.shortForm}
             onChange={(e) => onChange({ ...values, shortForm: e.target.value })}
@@ -56,7 +56,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Application Type</Label>
+        <Label className="text-gray-700">Application Type</Label>
         <Select
           items={{ SELLABLE_STOCK: "Sellable Stock", DISPLAY_STOCK: "Display Stock" }}
           value={values.applicationType || null}
@@ -76,7 +76,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
       {values.applicationType === "DISPLAY_STOCK" ? (
         <>
           <div className="flex flex-col gap-1.5">
-            <Label>Unit of Measurement</Label>
+            <Label className="text-gray-700">Unit of Measurement</Label>
             <ApiSelect
               placeholder="Select unit of measurement"
               value={values.targetUomId ?? null}
@@ -85,7 +85,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Conversion Rate</Label>
+            <Label className="text-gray-700">Conversion Rate</Label>
             <Input
               type="number"
               value={values.conversionRate ?? ""}
@@ -96,7 +96,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
         </>
       ) : (
         <div className="flex flex-col gap-1.5">
-          <Label>Measurement Type</Label>
+          <Label className="text-gray-700">Measurement Type</Label>
           <Select
             items={Object.fromEntries(MEASUREMENT_TYPES.map((t) => [t.value, t.label]))}
             value={values.measurementType || null}
@@ -117,7 +117,7 @@ export default function UomFormFields({ values, onChange, applicationTypeDisable
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label>Description</Label>
+        <Label className="text-gray-700">Description</Label>
         <Textarea
           rows={4}
           value={values.description}

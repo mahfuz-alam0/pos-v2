@@ -6,6 +6,7 @@ import type { DateRange } from "react-day-picker";
 import { ArrowRight, Calendar, Link2, Loader2, Network, User } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useCurrentUser } from "@/util/use-current-user";
 import { fetchOverallActivityLogs } from "@/services/activityLogs/list";
 import { fetchSingleActivityLog } from "@/services/activityLogs/getSingle";
 
@@ -130,15 +131,6 @@ function getYesterdayRange() {
   return { fromDate: str, toDate: str };
 }
 
-function readCurrentUserId(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo") ?? "null")?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function renderValue(val: unknown) {
   if (val === null || val === undefined) {
     return <span className="text-xs text-muted-foreground italic">null</span>;
@@ -242,7 +234,7 @@ function DetailDialog({
   }, [open, logId, shopId]);
 
   const changeLog = detail?.changeLog ?? [];
-  const currentUserId = readCurrentUserId();
+  const currentUserId = useCurrentUser()?.id ?? null;
   const creatorLabel = detail && detail.creatorId === currentUserId ? "You" : detail?.creatorName;
 
   return (
@@ -349,7 +341,7 @@ function LogCard({
   log: ActivityLogEntry;
   onDetails: (id: string) => void;
 }) {
-  const currentUserId = readCurrentUserId();
+  const currentUserId = useCurrentUser()?.id ?? null;
   const creatorLabel = log.creatorId === currentUserId ? "You" : log.creatorName;
   const hasCompanion = !!log.companionDomain;
 

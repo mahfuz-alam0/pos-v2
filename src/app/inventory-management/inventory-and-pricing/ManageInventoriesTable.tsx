@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronRight, ChevronsUpDown, Info, Loader2 } from "lucide-react";
+import { CalendarIcon, ChevronsUpDown, Info, Loader2, X } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 
 import { useShop } from "@/context/shop-context";
@@ -12,6 +12,7 @@ import { checkIsOpenForSellableStores } from "@/services/inventories/checkOpenFo
 import { fetchBrandsList } from "@/services/brands/list";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchPackagesList } from "@/services/packages/list";
+import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
 import { fetchWeedmapsConfig } from "@/services/weedmaps/getConfigs";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
 import { fetchLeaflyConfig } from "@/services/leafly/getConfig";
@@ -51,9 +52,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import InventoryDetailsDrawer from "./InventoryDetailsDrawer";
+import { useSettings } from "@/context/settings-context";
+import EditInventoryForm from "./edit/[id]/EditInventoryForm";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
+
+const OPTIMIZE_TAB_CLASS =
+  "h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary";
 
 function healthColor(totalQuantity, threshold) {
   if (totalQuantity > threshold) return "bg-[#497E05]";
@@ -104,6 +118,7 @@ const emptyFilters: {
 };
 
 export default function ManageInventoriesTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -112,6 +127,7 @@ export default function ManageInventoriesTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [isOpenForSellableStore, setIsOpenForSellableStore] = useState(true);
 
   const [searchInput, setSearchInput] = useState("");
@@ -139,6 +155,7 @@ export default function ManageInventoriesTable() {
   const [exportProgress, setExportProgress] = useState("");
 
   const [detailsInventoryId, setDetailsInventoryId] = useState(null);
+  const [editPricingId, setEditPricingId] = useState(null);
 
   const [selectedRows, setSelectedRows] = useState([]);
   const [mergeOpen, setMergeOpen] = useState(false);
@@ -150,13 +167,14 @@ export default function ManageInventoriesTable() {
   const [optimizeRange, setOptimizeRange] = useState<DateRange | undefined>();
   const [optimizeLoading, setOptimizeLoading] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
 
   const loadInventories = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: size, page: targetPage };
         if (search) params.search = search;
         if (categoryId) params.categoryIds = [categoryId];
         if (brandId) params.brandIds = [brandId];
@@ -185,7 +203,7 @@ export default function ManageInventoriesTable() {
         setLoading(false);
       }
     },
-    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice]
+    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice, pageSize]
   );
 
   useEffect(() => {
@@ -368,7 +386,7 @@ export default function ManageInventoriesTable() {
     if (totalPages <= 1) return rows;
     let allData: any[] = [];
     for (let p = 1; p <= totalPages; p++) {
-      const params: Record<string, any> = { limit: PAGE_SIZE, page: p };
+      const params: Record<string, any> = { limit: pageSize, page: p };
       if (search) params.search = search;
       if (categoryId) params.categoryIds = [categoryId];
       if (brandId) params.brandIds = [brandId];
@@ -549,16 +567,67 @@ export default function ManageInventoriesTable() {
     setOptimizeProgress("");
   };
 
+  // Selected rows here are products, but the transfer form picks by package —
+  // resolve each selected product to its packages so they land pre-checked
+  // once the user picks a source location that holds them.
+  const handleTransferSelected = async () => {
+    setTransferLoading(true);
+    try {
+      const res = await fetchPackagesMinimalExtended(shopId, {
+        productIds: selectedRows.map((r: any) => r.productId),
+        isFinished: false,
+        isInPositiveQuantity: true,
+        limit: 1000,
+        page: 1,
+      });
+      const packages = res?.data?.packages ?? [];
+      if (packages.length === 0) {
+        toast.error("No transferable packages found for the selected products");
+        return;
+      }
+
+      // Pick whichever storage location holds the most of the selected
+      // packages' quantity, so it can be pre-picked as Source Storage —
+      // the transfer picker only auto-checks packages once a source is set.
+      const qtyByLocation = new Map<string, number>();
+      packages.forEach((pkg: any) => {
+        Object.entries(pkg.storageLocationBreakdown ?? {}).forEach(([locationId, qty]) => {
+          qtyByLocation.set(locationId, (qtyByLocation.get(locationId) ?? 0) + (Number(qty) || 0));
+        });
+      });
+      const bestLocationId = [...qtyByLocation.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+
+      const packageIds = packages.map((pkg: any) => pkg.id);
+      const params = new URLSearchParams({
+        transferType: "within-storage-locations",
+        packageIds: packageIds.join(","),
+      });
+      if (bestLocationId) params.set("sourceLocationId", bestLocationId);
+
+      router.push(`/inventory-management/transfers/add-transfer?${params.toString()}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load packages for transfer");
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
   return (
-    <div className="p-6">
-    <div className="flex flex-col gap-4 rounded-xl bg-card p-6 shadow-md">
-      <div className="-mx-6 flex items-center justify-between border-b border-border/70 px-6 pb-4">
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <span>Inventory Management</span>
-          <ChevronRight className="size-3.5" />
-          <span className="font-normal text-primary">Manage Inventories</span>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="flex gap-4 p-3">
+    <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-primary">Manage Inventories</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
           <Button
             className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
             onClick={() => setOptimizeOpen(true)}
@@ -585,6 +654,14 @@ export default function ManageInventoriesTable() {
               >
                 Bulk Edit ({selectedRows.length} product{selectedRows.length === 1 ? "" : "s"} selected)
               </Button>
+              <Button
+                variant="outline"
+                className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                disabled={transferLoading}
+                onClick={handleTransferSelected}
+              >
+                {transferLoading ? "Loading..." : `Transfer (${selectedRows.length} product${selectedRows.length === 1 ? "" : "s"} selected)`}
+              </Button>
             </>
           )}
         </div>
@@ -598,146 +675,152 @@ export default function ManageInventoriesTable() {
         </div>
       )}
 
-      <div className="-ml-3 flex flex-wrap items-center gap-2">
-        <Input
-          placeholder="Search"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="h-9 w-45"
-        />
-
-        <div className="relative w-64">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Input
-            placeholder="Scan via barcode"
-            value={barcodeInput}
-            onChange={(e) => onBarcodeChange(e.target.value)}
-            className={`h-9 ${barcodeSearching ? "pr-8" : ""}`}
+            placeholder="Search"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="h-10 w-38 placeholder:text-muted-foreground/60"
           />
-          {barcodeSearching && (
-            <Loader2 className="absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+
+          <div className="relative w-52">
+            <Input
+              placeholder="Scan via barcode"
+              value={barcodeInput}
+              onChange={(e) => onBarcodeChange(e.target.value)}
+              className={`h-10 placeholder:text-muted-foreground/60 ${barcodeSearching ? "pr-8" : ""}`}
+            />
+            {barcodeSearching && (
+              <Loader2 className="absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
+
+          <Select
+            items={{ true: "Active", false: "Inactive" }}
+            value={filters.isActive === "" ? null : String(filters.isActive)}
+            onValueChange={(v) =>
+              setFilters((f) => ({ ...f, isActive: v === "all" ? "" : v === "true" }))
+            }
+          >
+            <SelectTrigger className="h-10! w-40">
+              <SelectValue className="text-muted-foreground/60" placeholder="Is Inventory Active" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">Active</SelectItem>
+              <SelectItem value="false">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.productProfile === "" ? null : filters.productProfile}
+            onValueChange={(v) => setFilters((f) => ({ ...f, productProfile: v }))}
+          >
+            <SelectTrigger className="h-10! w-48">
+              <SelectValue className="text-muted-foreground/60" placeholder="Package Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="REGULAR">REGULAR</SelectItem>
+              <SelectItem value="CANNABIS">CANNABIS</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <ApiSelect
+            placeholder="Brand"
+            value={brandId}
+            onChange={(v) => setBrandId(v)}
+            fetchPage={fetchBrandPage}
+            triggerClassName="h-10 w-38 [&_.text-muted-foreground]:text-muted-foreground/60"
+          />
+
+          <ApiSelect
+            placeholder="Category"
+            value={categoryId}
+            onChange={(v) => setCategoryId(v)}
+            fetchPage={fetchCategoryPage}
+            triggerClassName="h-10 w-38 [&_.text-muted-foreground]:text-muted-foreground/60"
+          />
+
+          <Select
+            value={storageLocationId ?? "all"}
+            onValueChange={(v) => setStorageLocationId(v === "all" ? null : v)}
+          >
+            <SelectTrigger className="h-10! w-52">
+              <SelectValue className="text-muted-foreground/60" placeholder="Select Location">
+                {(value: string) =>
+                  value === "all"
+                    ? "All Storage Locations"
+                    : storageLocationOptions.find((l: any) => l.id === value)?.name ?? "Select Location"
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Storage Locations</SelectItem>
+              {storageLocationOptions.map((location: any) => (
+                <SelectItem key={location.id} value={location.id}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="outline" className="h-9! rounded! px-3.5! text-[14px]! font-medium!" onClick={clearAllFilters}>
+              Clear Filters
+            </Button>
           )}
         </div>
 
-        <Select
-          value={filters.isActive === "" ? null : String(filters.isActive)}
-          onValueChange={(v) =>
-            setFilters((f) => ({ ...f, isActive: v === "all" ? "" : v === "true" }))
-          }
-        >
-          <SelectTrigger className="h-9! w-40">
-            <SelectValue placeholder="Is Inventory Active" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.productProfile === "" ? null : filters.productProfile}
-          onValueChange={(v) => setFilters((f) => ({ ...f, productProfile: v }))}
-        >
-          <SelectTrigger className="h-9! w-40">
-            <SelectValue placeholder="Package Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="REGULAR">REGULAR</SelectItem>
-            <SelectItem value="CANNABIS">CANNABIS</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <ApiSelect
-          placeholder="Select Brand"
-          value={brandId}
-          onChange={(v) => setBrandId(v)}
-          fetchPage={fetchBrandPage}
-          triggerClassName="h-9"
-        />
-
-        <ApiSelect
-          placeholder="Select Category"
-          value={categoryId}
-          onChange={(v) => setCategoryId(v)}
-          fetchPage={fetchCategoryPage}
-          triggerClassName="h-9"
-        />
-
-        <Select
-          value={storageLocationId ?? "all"}
-          onValueChange={(v) => setStorageLocationId(v === "all" ? null : v)}
-        >
-          <SelectTrigger className="h-9! w-45">
-            <SelectValue placeholder="Select Location">
-              {(value: string) =>
-                value === "all"
-                  ? "All Storage Locations"
-                  : storageLocationOptions.find((l: any) => l.id === value)?.name ?? "Select Location"
+        <div className="flex flex-wrap items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" disabled={!rows.length || exporting}>
+                  {exporting && <Loader2 className="animate-spin" />}
+                  Export
+                </Button>
               }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Storage Locations</SelectItem>
-            {storageLocationOptions.map((location: any) => (
-              <SelectItem key={location.id} value={location.id}>
-                {location.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {vmIntegrated && (
-          <div className="flex items-center gap-2 whitespace-nowrap" title="Show Weedmaps menu items only">
-            <Switch
-              checked={filters.isAssociatedWithWM}
-              onCheckedChange={(v) => setFilters((f) => ({ ...f, isAssociatedWithWM: v }))}
             />
-            <span className="text-sm text-muted-foreground">Weedmaps</span>
-          </div>
-        )}
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={exportToCSV}>CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToXLS}>Excel</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF}>PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        {leaflyIntegrated && (
-          <div className="flex items-center gap-2 whitespace-nowrap" title="Show Leafly menu items only">
-            <Switch
-              checked={filters.isPushedToLeafly}
-              onCheckedChange={(v) => setFilters((f) => ({ ...f, isPushedToLeafly: v }))}
-            />
-            <span className="text-sm text-muted-foreground">Leafly</span>
-          </div>
-        )}
+          {exportProgress && <span className="text-xs text-muted-foreground">{exportProgress}</span>}
 
-        {exportProgress && <span className="text-xs text-muted-foreground">{exportProgress}</span>}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" disabled={!rows.length || exporting}>
-                {exporting && <Loader2 className="animate-spin" />}
-                Export
-              </Button>
-            }
-          />
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={exportToCSV}>CSV</DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToXLS}>Excel</DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToPDF}>PDF</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          {vmIntegrated && (
+            <div className="flex items-center gap-2 whitespace-nowrap" title="Show Weedmaps menu items only">
+              <Switch
+                checked={filters.isAssociatedWithWM}
+                onCheckedChange={(v) => setFilters((f) => ({ ...f, isAssociatedWithWM: v }))}
+              />
+              <span className="text-sm text-muted-foreground">Weedmaps</span>
+            </div>
+          )}
 
-        {hasActiveFilters && (
-          <Button variant="outline" onClick={clearAllFilters}>
-            Clear Filters
-          </Button>
-        )}
+          {leaflyIntegrated && (
+            <div className="flex items-center gap-2 whitespace-nowrap" title="Show Leafly menu items only">
+              <Switch
+                checked={filters.isPushedToLeafly}
+                onCheckedChange={(v) => setFilters((f) => ({ ...f, isPushedToLeafly: v }))}
+              />
+              <span className="text-sm text-muted-foreground">Leafly</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="relative -mx-6 overflow-hidden ring-1 ring-foreground/10">
+      <div className="relative -mx-4">
         {loading && rows.length > 0 && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
         )}
-        <Table className="table-fixed">
-          <TableHeader className="[&_tr]:border-b-0 [&_th]:h-14">
-            <TableRow className="bg-muted/60">
+        <Table className="table-fixed text-[13px]">
+          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:font-semibold [&_th]:text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[3%] pl-3">
                 <Checkbox
                   className="rounded-md"
@@ -768,10 +851,10 @@ export default function ManageInventoriesTable() {
               <TableHead className="w-[8%] text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-foreground/70 [&_td]:py-3.5">
+          <TableBody className="text-muted-foreground [&_td]:h-18">
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+                <TableRow key={`skeleton-${i}`} className="border-b-0">
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -781,7 +864,7 @@ export default function ManageInventoriesTable() {
               ))}
 
             {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
+              <TableRow>
                 <TableCell colSpan={10} className="py-10 text-center text-muted-foreground">
                   No inventory items found.
                 </TableCell>
@@ -789,7 +872,7 @@ export default function ManageInventoriesTable() {
             )}
 
             {displayRows.length > 0 &&
-              displayRows.map((row: any, i) => (
+              displayRows.map((row: any, i: number) => (
                 <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="pl-3">
                     <Checkbox className="rounded-md" checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
@@ -866,7 +949,7 @@ export default function ManageInventoriesTable() {
                   >
                     <Button
                       className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-                      onClick={() => router.push(`/inventory-management/manage-inventories/edit/${row.id}`)}
+                      onClick={() => setEditPricingId(row.id)}
                     >
                       Edit Pricing
                     </Button>
@@ -881,21 +964,37 @@ export default function ManageInventoriesTable() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={loadInventories}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadInventories(1, s);
+        }}
       />
     </div>
 
       <Drawer open={optimizeOpen} onClose={closeOptimizeDrawer} side="right" size={480}>
         <div className="flex h-full flex-col">
-          <div className="border-b px-5 py-4 text-base font-semibold">Optimize</div>
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex items-center justify-between border-b border-border p-4">
+            <h3 className="text-base font-semibold">Optimize</h3>
+            <Button variant="outline" size="icon" onClick={closeOptimizeDrawer} disabled={optimizeLoading}>
+              <X className="size-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
             <Tabs value={optimizeTab} onValueChange={(v) => setOptimizeTab(v as string)}>
-              <TabsList>
-                <TabsTrigger value="pricing">Optimize Pricing</TabsTrigger>
-                <TabsTrigger value="optimize">Optimize</TabsTrigger>
-              </TabsList>
+              <div className="border-b border-border">
+                <TabsList variant="line" className="h-auto gap-7 p-0">
+                  <TabsTrigger value="pricing" className={OPTIMIZE_TAB_CLASS}>
+                    Optimize Pricing
+                  </TabsTrigger>
+                  <TabsTrigger value="optimize" className={OPTIMIZE_TAB_CLASS}>
+                    Optimize
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="pricing">
                 <div className="flex flex-col gap-5 pt-4">
@@ -919,12 +1018,19 @@ export default function ManageInventoriesTable() {
                     </label>
                     <Popover>
                       <PopoverTrigger
-                        className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+                        className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
                         disabled={optimizeLoading}
                       >
-                        {optimizeRange?.from && optimizeRange?.to
-                          ? `${optimizeRange.from.toLocaleDateString()} - ${optimizeRange.to.toLocaleDateString()}`
-                          : <span className="text-muted-foreground">Select date range</span>}
+                        <span className="flex items-center gap-2">
+                          <span className={optimizeRange?.from ? "" : "text-muted-foreground/60"}>
+                            {optimizeRange?.from ? optimizeRange.from.toLocaleDateString() : "Start date"}
+                          </span>
+                          <span className="text-muted-foreground/60">→</span>
+                          <span className={optimizeRange?.to ? "" : "text-muted-foreground/60"}>
+                            {optimizeRange?.to ? optimizeRange.to.toLocaleDateString() : "End date"}
+                          </span>
+                        </span>
+                        <CalendarIcon className="size-4 text-muted-foreground" />
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
@@ -985,7 +1091,11 @@ export default function ManageInventoriesTable() {
                         ecommerce store.
                       </p>
                     </div>
-                    <Button className="w-fit" onClick={optimizeEcommToday} disabled={optimizeLoading}>
+                    <Button
+                      className="h-9! w-fit rounded! px-3.5! text-[14px]! font-medium!"
+                      onClick={optimizeEcommToday}
+                      disabled={optimizeLoading}
+                    >
                       {optimizeLoading && <Loader2 className="animate-spin" />}
                       {optimizeLoading ? "Optimising..." : "Optimise"}
                     </Button>
@@ -1007,11 +1117,17 @@ export default function ManageInventoriesTable() {
             </Tabs>
           </div>
           {optimizeTab === "pricing" && (
-            <div className="flex justify-end gap-2 border-t bg-muted/30 p-4">
-              <Button variant="outline" onClick={closeOptimizeDrawer} disabled={optimizeLoading}>
+            <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+              <Button
+                variant="outline"
+                className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+                onClick={closeOptimizeDrawer}
+                disabled={optimizeLoading}
+              >
                 Cancel
               </Button>
               <Button
+                className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
                 onClick={optimizeEcommAvailability}
                 disabled={!optimizeRange?.from || !optimizeRange?.to || optimizeLoading}
               >
@@ -1023,6 +1139,12 @@ export default function ManageInventoriesTable() {
       </Drawer>
 
       <InventoryDetailsDrawer inventoryId={detailsInventoryId} onClose={() => setDetailsInventoryId(null)} />
+
+      <Drawer open={!!editPricingId} onClose={() => setEditPricingId(null)} side="right" size="80%">
+        <div className="h-full overflow-y-auto">
+          {editPricingId && <EditInventoryForm inventoryId={editPricingId} onClose={() => setEditPricingId(null)} />}
+        </div>
+      </Drawer>
 
       <MergeProductsDrawer
         open={mergeOpen}

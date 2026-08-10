@@ -222,7 +222,7 @@ export default function SpiffsCampaigns() {
                         {unitLabel} / {fmtValue(campaign.goalValue, campaign.goalType)}
                         {unitLabel} · {Math.round((campaign.value / campaign.goalValue) * 100)}%
                       </span>
-                      <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                      <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                         <div
                           className={`h-full rounded-full bg-primary ${percent > 0 ? "min-w-1" : ""}`}
                           style={{ width: `${percent}%` }}

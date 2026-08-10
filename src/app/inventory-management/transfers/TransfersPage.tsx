@@ -63,6 +63,9 @@ import type { DateRange } from "react-day-picker";
 
 const DEFAULT_PAGINATION: PaginationState = { limit: 30, page: 1, totalEntries: 0, totalPages: 0 };
 
+const TAB_LABEL_CLASS =
+  "h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary";
+
 function fmtDate(value?: string) {
   if (!value) return "-";
   return new Date(value).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" }).replace(/\//g, ".");
@@ -317,29 +320,24 @@ export default function TransfersPage() {
     }
   };
 
-  const anyDetailOpen = Boolean(withinDetail || shopDetail);
-
   return (
-    <div className="p-6">
-      <div className="flex gap-4">
-        <div className={anyDetailOpen ? "flex w-2/3 flex-col rounded-xl bg-card shadow-md" : "flex w-full flex-col rounded-xl bg-card shadow-md"}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-6 py-4">
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/inventory-management" className="text-muted-foreground">
-                    Inventory
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="font-normal text-primary">Transfers</BreadcrumbPage>
+                  <BreadcrumbPage className="font-medium text-primary">Transfers</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
 
             <Button
-              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
               render={
                 <Link href={{ pathname: "/inventory-management/transfers/add-transfer", query: { transferType: activeTab } }} />
               }
@@ -348,7 +346,7 @@ export default function TransfersPage() {
             </Button>
           </div>
 
-          <div className="flex flex-col gap-4 px-4 pt-3 pb-6">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1.5">
                 <div className="inline-flex h-10 rounded-md border border-input">
@@ -394,46 +392,54 @@ export default function TransfersPage() {
               </Select>
             </div>
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TransferTab)} className="mt-4">
-              <TabsList variant="line">
-                <TabsTrigger value="within-storage-locations">Within Storage Locations</TabsTrigger>
-                <TabsTrigger value="with-in-shops">Within Shops</TabsTrigger>
-                <TabsTrigger value="supplier-specific">Supplier Specific</TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TransferTab)}>
+              <div className="border-b border-border">
+                <TabsList variant="line" className="h-auto gap-7 p-0">
+                  <TabsTrigger value="within-storage-locations" className={TAB_LABEL_CLASS}>
+                    Within Storage Locations
+                  </TabsTrigger>
+                  <TabsTrigger value="with-in-shops" className={TAB_LABEL_CLASS}>
+                    Within Shops
+                  </TabsTrigger>
+                  <TabsTrigger value="supplier-specific" className={TAB_LABEL_CLASS}>
+                    Supplier Specific
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </Tabs>
 
             {activeTab === "within-storage-locations" && (
               <>
-                <div className="relative overflow-hidden rounded-t-lg">
+                <div className="relative -mx-4">
                   <TableLoadingOverlay show={withinLoading && withinRows.length > 0} />
                   <Table>
-                    <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Initiated By</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Source Location</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Destination Location</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Date Created</TableHead>
+                    <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Transfer ID</TableHead>
+                        <TableHead>Initiated By</TableHead>
+                        <TableHead>Source Location</TableHead>
+                        <TableHead>Destination Location</TableHead>
+                        <TableHead>Date Created</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_td]:py-4.5">
+                    <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
                       {withinLoading && withinRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
-                          <TableRow key={`sk-${i}`} className="border-b border-border">
+                          <TableRow key={`sk-${i}`} className="border-b-0">
                             {Array.from({ length: 5 }).map((__, j) => (
                               <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                             ))}
                           </TableRow>
                         ))}
                       {!withinLoading && withinRows.length === 0 && (
-                        <TableRow className="border-b border-border">
+                        <TableRow className="border-b-0">
                           <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                             No transfers found.
                           </TableCell>
                         </TableRow>
                       )}
-                      {withinRows.map((row) => (
-                        <TableRow key={row.id} className="border-b border-border">
+                      {withinRows.map((row, i) => (
+                        <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                           <TableCell>
                             <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
                               {row.advertisedId}
@@ -455,44 +461,46 @@ export default function TransfersPage() {
                   pageSize={withinPagination.limit}
                   loading={withinLoading}
                   onPageChange={(p) => loadWithin(p, withinPagination.limit)}
+                  pageSizeOptions={[30, 50, 100, 200]}
+                  onPageSizeChange={(s) => loadWithin(1, s)}
                 />
               </>
             )}
 
             {activeTab === "with-in-shops" && (
               <>
-                <div className="relative overflow-hidden rounded-t-lg">
+                <div className="relative -mx-4">
                   <TableLoadingOverlay show={shopLoading && shopRows.length > 0} />
                   <Table>
-                    <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Created At</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Status</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Type</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Source Location</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Destination Location</TableHead>
-                        <TableHead className="h-12 text-center font-semibold text-muted-foreground">Action</TableHead>
+                    <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Transfer ID</TableHead>
+                        <TableHead>Created At</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Source Location</TableHead>
+                        <TableHead>Destination Location</TableHead>
+                        <TableHead className="text-center">Action</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_td]:py-4.5">
+                    <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
                       {shopLoading && shopRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
-                          <TableRow key={`sk-${i}`} className="border-b border-border">
+                          <TableRow key={`sk-${i}`} className="border-b-0">
                             {Array.from({ length: 7 }).map((__, j) => (
                               <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                             ))}
                           </TableRow>
                         ))}
                       {!shopLoading && shopRows.length === 0 && (
-                        <TableRow className="border-b border-border">
+                        <TableRow className="border-b-0">
                           <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                             No transfers found.
                           </TableCell>
                         </TableRow>
                       )}
-                      {shopRows.map((row) => (
-                        <TableRow key={row.id} className="border-b border-border">
+                      {shopRows.map((row, i) => (
+                        <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                           <TableCell>
                             <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
                               {row.advertisedId}
@@ -536,47 +544,49 @@ export default function TransfersPage() {
                   pageSize={shopPagination.limit}
                   loading={shopLoading}
                   onPageChange={(p) => loadShopTransfers(p, shopPagination.limit)}
+                  pageSizeOptions={[30, 50, 100, 200]}
+                  onPageSizeChange={(s) => loadShopTransfers(1, s)}
                 />
               </>
             )}
 
             {activeTab === "supplier-specific" && (
               <>
-                <div className="relative overflow-hidden rounded-t-lg">
+                <div className="relative -mx-4">
                   <TableLoadingOverlay show={supplierLoading && supplierRows.length > 0} />
                   <Table>
-                    <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50 h-12">
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Transfer ID</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Created At</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Supplier</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Status</TableHead>
-                        <TableHead className="h-12 font-semibold text-muted-foreground">Type</TableHead>
-                        <TableHead className="h-12 text-right font-semibold text-muted-foreground">Total Price</TableHead>
-                        <TableHead className="h-12 text-center font-semibold text-muted-foreground">Number of Packages</TableHead>
-                        <TableHead className="sticky right-0 z-10 h-12 w-40 bg-muted/50 text-center font-semibold text-muted-foreground">
+                    <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Transfer ID</TableHead>
+                        <TableHead>Created At</TableHead>
+                        <TableHead>Supplier</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Total Price</TableHead>
+                        <TableHead className="text-center">Number of Packages</TableHead>
+                        <TableHead className="sticky right-0 z-10 w-40 bg-muted/60 text-center">
                           Action
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_td]:py-4.5">
+                    <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
                       {supplierLoading && supplierRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
-                          <TableRow key={`sk-${i}`} className="border-b border-border">
+                          <TableRow key={`sk-${i}`} className="border-b-0">
                             {Array.from({ length: 8 }).map((__, j) => (
                               <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                             ))}
                           </TableRow>
                         ))}
                       {!supplierLoading && supplierRows.length === 0 && (
-                        <TableRow className="border-b border-border">
+                        <TableRow className="border-b-0">
                           <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                             No transfers found.
                           </TableCell>
                         </TableRow>
                       )}
-                      {supplierRows.map((row) => (
-                        <TableRow key={row.id} className="border-b border-border">
+                      {supplierRows.map((row, i) => (
+                        <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                           <TableCell>
                             <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
                               {row.advertisedId}
@@ -600,7 +610,7 @@ export default function TransfersPage() {
                           </TableCell>
                           <TableCell className="text-right">${(row.totalPrice || 0).toLocaleString()}</TableCell>
                           <TableCell className="text-center">{row.numberOfPackages || 0}</TableCell>
-                          <TableCell className="sticky right-0 z-10 w-40 bg-card text-center">
+                          <TableCell className={`sticky right-0 z-10 w-40 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
                             {!row.isTransit ? (
                               <AlertDialog>
                                 <AlertDialogTrigger>
@@ -640,19 +650,20 @@ export default function TransfersPage() {
                   pageSize={supplierPagination.limit}
                   loading={supplierLoading}
                   onPageChange={(p) => loadSupplierTransfers(p, supplierPagination.limit)}
+                  pageSizeOptions={[30, 50, 100, 200]}
+                  onPageSizeChange={(s) => loadSupplierTransfers(1, s)}
                 />
               </>
             )}
           </div>
         </div>
 
-        {withinDetail && (
-          <WithinLocationDetailPanel transfer={withinDetail} onClose={closeDetail} />
-        )}
-        {shopDetail && (
-          <ShopTransferDetailPanel transfer={shopDetail} onClose={closeDetail} />
-        )}
-      </div>
+      {withinDetail && (
+        <WithinLocationDetailPanel transfer={withinDetail} onClose={closeDetail} />
+      )}
+      {shopDetail && (
+        <ShopTransferDetailPanel transfer={shopDetail} onClose={closeDetail} />
+      )}
     </div>
   );
 }

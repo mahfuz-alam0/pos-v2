@@ -10,12 +10,14 @@ import {
   Palette,
   Timer,
   Printer,
+  Rows3,
 } from "lucide-react";
 import { useTheme } from "@/context/theme-context";
 import { useSettings } from "@/context/settings-context";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PrinterSelectionModal from "./PrinterSelectionModal";
 
@@ -119,11 +121,13 @@ export default function PersonalizeTab() {
     queueYellowTime,
     queueRedTime,
     printType,
+    defaultPageSize,
     setQueueBorder15,
     setQueueBorder20,
     setQueueYellowTime,
     setQueueRedTime,
     setPrintType,
+    setDefaultPageSize,
   } = useSettings();
   const [printerModalOpen, setPrinterModalOpen] = useState(false);
 
@@ -243,6 +247,32 @@ export default function PersonalizeTab() {
             </span>
             <Switch checked={queueBorder20} onCheckedChange={setQueueBorder20} />
           </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        icon={Rows3}
+        title="Table Defaults"
+        description="Choose the default number of rows shown per page across tables."
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-text">Default rows per page</span>
+          <Select
+            items={[30, 50, 100, 200].map((s) => ({ value: String(s), label: `${s} rows` }))}
+            value={String(defaultPageSize)}
+            onValueChange={(v) => setDefaultPageSize(Number(v))}
+          >
+            <SelectTrigger className="h-9 w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[30, 50, 100, 200].map((s) => (
+                <SelectItem key={s} value={String(s)}>
+                  {s} rows
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </SectionCard>
 

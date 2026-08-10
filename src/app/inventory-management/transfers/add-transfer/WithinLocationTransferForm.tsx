@@ -24,24 +24,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PackagePickerTable, { type PackagePickerRow } from "./PackagePickerTable";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function WithinLocationTransferForm({
   preSelectedPackageIds,
+  preSelectedSourceId,
 }: {
   /** Packages picked in bulk from the Packages list before landing here (old
    * app: index.js's "Transfer (N)" bulk button). Auto-checked as soon as a
    * matching row shows up under whichever source location the user picks —
    * the picker's own location-scoped search stays the source of truth. */
   preSelectedPackageIds?: string[];
+  /** Storage location holding the most of the bulk-picked packages above —
+   * pre-picked as Source Storage so those packages auto-check immediately
+   * instead of waiting on a manual source pick. */
+  preSelectedSourceId?: string;
 } = {}) {
   const router = useRouter();
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [locations, setLocations] = useState<any[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
-  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [sourceId, setSourceId] = useState<string | null>(preSelectedSourceId ?? null);
   const [destinationId, setDestinationId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
@@ -58,6 +65,7 @@ export default function WithinLocationTransferForm({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [selectedRows, setSelectedRows] = useState<PackagePickerRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -81,12 +89,12 @@ export default function WithinLocationTransferForm({
   }, [sourceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPackages = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId || !sourceId) return;
       setLoading(true);
       try {
         const params: Record<string, any> = {
-          limit: PAGE_SIZE,
+          limit: size,
           page: targetPage,
           isFinished: false,
           isImported: true,
@@ -143,7 +151,7 @@ export default function WithinLocationTransferForm({
         setLoading(false);
       }
     },
-    [shopId, sourceId, debouncedSearch, searchBy, categoryId, brandId, packageStatus, packageType] // eslint-disable-line react-hooks/exhaustive-deps
+    [shopId, sourceId, debouncedSearch, searchBy, categoryId, brandId, packageStatus, packageType, pageSize] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   useEffect(() => {
@@ -447,8 +455,13 @@ export default function WithinLocationTransferForm({
               page={page}
               totalPages={totalPages}
               totalEntries={totalEntries}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               onPageChange={loadPackages}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                loadPackages(1, s);
+              }}
             />
           )}
         </div>

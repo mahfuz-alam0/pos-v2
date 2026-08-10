@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchAuditSessions } from "@/services/auditSessions/list";
 import { fetchEmployeesList } from "@/services/employees/list";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
 
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
@@ -30,10 +28,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import AuditSessionDetailDrawer from "./AuditSessionDetailDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function AuditSessionsTab() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,6 +44,7 @@ export default function AuditSessionsTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);
@@ -53,11 +54,11 @@ export default function AuditSessionsTab() {
   const openSessionId = searchParams.get("adjustmentId");
 
   const loadSessions = useCallback(
-    async (targetPage = 1, employeeId = employeeFilter, storageLocationId = locationFilter) => {
+    async (targetPage = 1, employeeId = employeeFilter, storageLocationId = locationFilter, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: size, page: targetPage };
         if (employeeId) params.employeeId = employeeId;
         if (storageLocationId) params.storageLocationId = storageLocationId;
         const res = await fetchAuditSessions(shopId, params);
@@ -71,7 +72,7 @@ export default function AuditSessionsTab() {
         setLoading(false);
       }
     },
-    [shopId, employeeFilter, locationFilter]
+    [shopId, employeeFilter, locationFilter, pageSize]
   );
 
   useEffect(() => {
@@ -111,7 +112,7 @@ export default function AuditSessionsTab() {
             loadSessions(1, v, locationFilter);
           }}
         >
-          <SelectTrigger className="w-55">
+          <SelectTrigger className="h-10! w-55">
             <SelectValue placeholder="Filter by Employee" />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +131,7 @@ export default function AuditSessionsTab() {
             loadSessions(1, employeeFilter, v);
           }}
         >
-          <SelectTrigger className="w-55">
+          <SelectTrigger className="h-10! w-55">
             <SelectValue placeholder="Filter by Storage Location" />
           </SelectTrigger>
           <SelectContent>
@@ -141,31 +142,28 @@ export default function AuditSessionsTab() {
             ))}
           </SelectContent>
         </Select>
-
-        <Button className="ml-auto" onClick={() => router.push("/inventory-management/reconciliation/sessions/new")}>
-          <Plus /> Start Session
-        </Button>
       </div>
 
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+      <div className="relative -mx-4">
         <TableLoadingOverlay show={loading && rows.length > 0} />
         <Table>
-          <TableHeader className="[&_tr]:border-b-0">
-            <TableRow className="bg-muted/60">
+          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
               <TableHead>Storage Location</TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Started At</TableHead>
               <TableHead>Ended At</TableHead>
               <TableHead className="text-center">Approved</TableHead>
               <TableHead className="text-center">Rejected</TableHead>
+              <TableHead>Created At</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
             {loading &&
               rows.length === 0 &&
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                  {Array.from({ length: 6 }).map((__, j) => (
+                <TableRow key={`skeleton-${i}`} className="border-b-0">
+                  {Array.from({ length: 7 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
@@ -174,8 +172,8 @@ export default function AuditSessionsTab() {
               ))}
 
             {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                   No audit sessions found.
                 </TableCell>
               </TableRow>
@@ -193,11 +191,12 @@ export default function AuditSessionsTab() {
                   <TableCell>{row.startedAtDate ? new Date(row.startedAtDate).toLocaleString() : "-"}</TableCell>
                   <TableCell>{row.endedAtDate ? new Date(row.endedAtDate).toLocaleString() : "-"}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary">{row.approvedCount ?? 0}</Badge>
+                    <Badge variant="secondary" className="bg-[#F5FCED] text-green-700">{row.approvedCount ?? 0}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge variant="destructive">{row.rejectedCount ?? 0}</Badge>
                   </TableCell>
+                  <TableCell>{row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}</TableCell>
                 </TableRow>
               ))}
           </TableBody>
@@ -208,9 +207,14 @@ export default function AuditSessionsTab() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => loadSessions(p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadSessions(1, employeeFilter, locationFilter, s);
+        }}
       />
 
       <AuditSessionDetailDrawer

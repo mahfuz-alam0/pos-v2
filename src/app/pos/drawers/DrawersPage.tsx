@@ -27,6 +27,7 @@ import {
 import DrawerDetailsPanel from "./DrawerDetailsPanel";
 import DeleteDrawerDrawer from "./DeleteDrawerDrawer";
 import DrawerFormDrawer from "./DrawerFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 interface DrawerRow {
   id: string;
@@ -38,13 +39,14 @@ interface DrawerRow {
 }
 
 export default function DrawersPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<DrawerRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [registers, setRegisters] = useState<{ id: string; name: string }[]>([]);
   const [registerFilter, setRegisterFilter] = useState(searchParams.get("registerId") || "__all__");
@@ -59,11 +61,11 @@ export default function DrawersPage() {
   const [formDrawerId, setFormDrawerId] = useState<string | null>(null);
 
   const loadDrawers = useCallback(
-    async (page = 1, registerId = registerFilter) => {
+    async (page = 1, registerId = registerFilter, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, unknown> = { page, limit: pagination.pageSize };
+        const params: Record<string, unknown> = { page, limit: size };
         if (registerId !== "__all__") params.registerId = registerId;
         const res = await fetchDrawersList(shopId as string, params);
         const drawers = res?.data?.data?.drawers ?? [];
@@ -262,6 +264,11 @@ export default function DrawersPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadDrawers(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            loadDrawers(1, registerFilter, s);
+          }}
         />
       </div>
 

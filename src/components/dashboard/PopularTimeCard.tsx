@@ -63,39 +63,41 @@ export default function PopularTimeCard() {
   const isToday = selectedDay === (new Date().getDay() === 0 ? 7 : new Date().getDay());
 
   return (
-    <div className="relative flex h-full min-w-0 flex-col rounded-xl bg-component-bg shadow-md p-3">
-      <h2 className="m-0 text-lg font-normal text-text">Popular Times</h2>
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-component-bg shadow-md">
+      <div className="p-3 pb-0">
+        <h2 className="m-0 text-lg font-normal text-text">Popular Times</h2>
 
-      <div className="mt-3 flex justify-center">
-        {DAYS_OF_WEEK.map((day, index) => {
-          const dayNum = index + 1;
-          const active = selectedDay === dayNum;
-          return (
-            <div
-              key={day}
-              onClick={() => setSelectedDay(dayNum)}
-              className="relative flex-1 cursor-pointer text-center"
-            >
-              <p
-                className={`m-0 inline-block border-b-2 pb-0.5 text-sm ${
-                  active ? "border-[#2A9D8F] font-bold text-[#2A9D8F]" : "border-transparent text-muted-foreground"
-                }`}
+        <div className="mt-3 flex justify-center">
+          {DAYS_OF_WEEK.map((day, index) => {
+            const dayNum = index + 1;
+            const active = selectedDay === dayNum;
+            return (
+              <div
+                key={day}
+                onClick={() => setSelectedDay(dayNum)}
+                className="relative flex-1 cursor-pointer text-center"
               >
-                {day}
-              </p>
-            </div>
-          );
-        })}
+                <p
+                  className={`m-0 inline-block border-b-2 pb-0.5 text-sm ${
+                    active ? "border-[#2A9D8F] font-bold text-[#2A9D8F]" : "border-transparent text-muted-foreground"
+                  }`}
+                >
+                  {day}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-2 h-27.5">
+      <div className="mt-2 h-27.5 overflow-x-auto">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : filteredStats.length !== 0 ? (
           (() => {
             const maxSales = Math.max(1, ...filteredStats.map((d) => d.sales));
             return (
-              <div className="flex h-full flex-col">
+              <div className="flex h-full min-w-120 flex-col">
                 <div className="flex flex-1 items-end gap-0.5">
                   {filteredStats.map(({ time, sales }, hour) => (
                     <div key={hour} className="group relative h-full flex-1">

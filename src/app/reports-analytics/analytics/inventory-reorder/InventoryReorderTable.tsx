@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { AlertTriangle, ShieldCheck, Info } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchInventoryReorder } from "@/services/reporting/inventoryReorder";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchSuppliersList } from "@/services/suppliers/list";
@@ -51,18 +52,24 @@ const PAGE_SIZE = 50;
 const DAY_OPTIONS = [7, 14, 30, 60, 90];
 const MARGIN_OPTIONS = [5, 10, 15, 20, 25, 30];
 
+const HEALTH_COLORS = {
+  critical: "border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400",
+  warning: "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400",
+  healthy: "border-green-200 bg-[#F5FCED] text-green-600 dark:border-green-900 dark:bg-green-950/40 dark:text-green-400",
+};
+
 function daysRemainingBadge(value: any) {
   if (value === 0 || value === "0") {
     return (
-      <Badge variant="destructive">
+      <Badge variant="outline" className={HEALTH_COLORS.critical}>
         <AlertTriangle /> Out of Stock
       </Badge>
     );
   }
-  const variant = value <= 3 ? "destructive" : value <= 7 ? "outline" : "secondary";
+  const level = value <= 3 ? "critical" : value <= 7 ? "warning" : "healthy";
   return (
-    <Badge variant={variant}>
-      {value <= 7 ? <AlertTriangle /> : <ShieldCheck />}
+    <Badge variant="outline" className={HEALTH_COLORS[level]}>
+      {level !== "healthy" ? <AlertTriangle /> : <ShieldCheck />}
       {value != null ? `${Number(value).toFixed(2)} Days` : "-"}
     </Badge>
   );
@@ -70,10 +77,12 @@ function daysRemainingBadge(value: any) {
 
 export default function InventoryReorderTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [selectedDays, setSelectedDays] = useState(7);
   const [categoryId, setCategoryId] = useState<string | number | null>(null);
@@ -86,13 +95,13 @@ export default function InventoryReorderTable() {
   const filterInfo = `Replenish ${selectedDays} days · Safety margin ${safetyMargin}% · Generated ${format(new Date(), "MMM dd, yyyy")}`;
 
   const fetchData = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
         const params: Record<string, any> = {
           page,
-          limit: PAGE_SIZE,
+          limit: size,
           replenishDays: selectedDays,
           safetyMargin,
         };
@@ -104,6 +113,7 @@ export default function InventoryReorderTable() {
         if (res?.paginationData) {
           setPagination({
             page: res.paginationData.currentPage || page,
+            pageSize: size,
             totalPages: res.paginationData.totalPages || 1,
             totalEntries: res.paginationData.totalEntries || 0,
           });
@@ -114,7 +124,7 @@ export default function InventoryReorderTable() {
         setLoading(false);
       }
     },
-    [shopId, selectedDays, safetyMargin, categoryId, supplierId],
+    [shopId, selectedDays, safetyMargin, categoryId, supplierId, pageSize],
   );
 
   useEffect(() => {
@@ -171,7 +181,7 @@ export default function InventoryReorderTable() {
         </div>
       </Card>
 
-      <Card className="gap-2 border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-900 dark:bg-blue-950/20">
+      <Card className="gap-2 border-blue-200 bg-[#E6F7FF] p-4 text-sm dark:border-blue-900 dark:bg-blue-950/20">
         <div className="flex items-start gap-2">
           <Info className="mt-0.5 size-4 shrink-0 text-blue-600 dark:text-blue-400" />
           <div className="space-y-2">
@@ -277,13 +287,18 @@ export default function InventoryReorderTable() {
                     <TableRow key={row.key ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-blue-200 bg-blue-50 font-medium text-blue-600 dark:border-blue-900 dark:bg-blue-950/40">
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-blue-200 bg-[#E6F7FF] font-medium text-blue-600 dark:border-blue-900 dark:bg-blue-950/40">
                             {i + 1}
                           </div>
                           <div className="flex min-w-0 flex-col">
                             <span className="truncate text-sm font-semibold">{row.productName}</span>
                             <div className="mt-1 flex items-center gap-2">
-                              <Badge variant="secondary">{row.categoryName}</Badge>
+                              <Badge
+                                variant="outline"
+                                className="border-blue-200 bg-[#E6F7FF] text-blue-600 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400"
+                              >
+                                {row.categoryName}
+                              </Badge>
                               <span className="truncate text-xs text-muted-foreground">{row.supplierName}</span>
                             </div>
                           </div>
@@ -313,7 +328,7 @@ export default function InventoryReorderTable() {
                       <TableCell className="text-center">{daysRemainingBadge(row.daysRemaining)}</TableCell>
                       <TableCell className="text-center">
                         {row.qtyNeeded > 0 ? (
-                          <span className="inline-block rounded-lg border border-blue-100 bg-blue-50 px-3 py-1 font-bold text-blue-600 dark:border-blue-900 dark:bg-blue-950/40">
+                          <span className="inline-block rounded-lg border border-blue-100 bg-[#E6F7FF] px-3 py-1 font-bold text-blue-600 dark:border-blue-900 dark:bg-blue-950/40">
                             {Number(row.qtyNeeded).toFixed(2)}
                           </span>
                         ) : (
@@ -331,9 +346,14 @@ export default function InventoryReorderTable() {
           page={pagination.page}
           totalPages={pagination.totalPages}
           totalEntries={pagination.totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
-          onPageChange={(p) => fetchData(p)}
+          onPageChange={(p) => fetchData(p, pageSize)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchData(1, s);
+          }}
         />
       </Card>
 

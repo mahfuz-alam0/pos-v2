@@ -27,10 +27,11 @@ import {
 
 import StrainFormDrawer from "./StrainFormDrawer";
 import type { PaginationState, StrainRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function StrainsTable() {
+  const { defaultPageSize } = useSettings();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
@@ -38,7 +39,7 @@ export default function StrainsTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -52,10 +53,10 @@ export default function StrainsTable() {
   const [deleteTarget, setDeleteTarget] = useState<StrainRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const loadStrains = useCallback(async (page = 1, searchTerm = "") => {
+  const loadStrains = useCallback(async (page = 1, searchTerm = "", size = pagination.limit) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page, limit: PAGE_SIZE };
+      const params: Record<string, any> = { page, limit: size };
       if (searchTerm) params.search = searchTerm;
       const res = await fetchStrainsList(params);
       setRows(res?.data ?? []);
@@ -63,7 +64,7 @@ export default function StrainsTable() {
       if (p) {
         setPagination({
           page: p.currentPage ?? page,
-          limit: p.limit ?? PAGE_SIZE,
+          limit: p.limit ?? size,
           totalEntries: p.totalEntries ?? 0,
           totalPages: p.totalPages ?? 0,
         });
@@ -73,7 +74,7 @@ export default function StrainsTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.limit]);
 
   useEffect(() => {
     loadStrains(1, debouncedSearch);
@@ -210,6 +211,11 @@ export default function StrainsTable() {
           pageSize={pagination.limit}
           loading={loading}
           onPageChange={(p) => loadStrains(p, debouncedSearch)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+            loadStrains(1, debouncedSearch, s);
+          }}
         />
       )}
 

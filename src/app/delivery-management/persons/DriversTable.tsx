@@ -32,8 +32,8 @@ import {
 import DriverFormDrawer from "./DriverFormDrawer";
 import DriverDetailsPanel from "./DriverDetailsPanel";
 import ReportToMetrcDrawer from "./ReportToMetrcDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
 
 interface DriverRow {
   id: string;
@@ -57,6 +57,7 @@ const METRC_STATUS_OPTIONS = [
 ];
 
 export default function DriversTable() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const isCaliforniaState = typeof window !== "undefined" && localStorage.getItem("isCaliforniaState") === "true";
 
@@ -68,7 +69,7 @@ export default function DriversTable() {
 
   const [rows, setRows] = useState<DriverRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: defaultPageSize, totalEntries: 0, totalPages: 0 });
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; driverId: string | number | null }>({
     open: false,
@@ -89,11 +90,11 @@ export default function DriversTable() {
   }, []);
 
   const loadDrivers = useCallback(
-    async (page = 1, searchTerm = "", filterField = "", metrcStatus = "all") => {
+    async (page = 1, searchTerm = "", filterField = "", metrcStatus = "all", size = pagination.limit) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page, limit: size };
         if (searchTerm && filterField) {
           params.searchFieldName = filterField;
           params.searchFiledValue = searchTerm;
@@ -112,7 +113,7 @@ export default function DriversTable() {
         );
         const p = res?.paginationData;
         if (p) {
-          setPagination({ page: p.currentPage ?? page, limit: p.limit ?? PAGE_SIZE, totalEntries: p.totalEntries ?? 0, totalPages: p.totalPages ?? 0 });
+          setPagination({ page: p.currentPage ?? page, limit: p.limit ?? size, totalEntries: p.totalEntries ?? 0, totalPages: p.totalPages ?? 0 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load drivers");
@@ -120,7 +121,7 @@ export default function DriversTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pagination.limit]
   );
 
   useEffect(() => {
@@ -295,6 +296,10 @@ export default function DriversTable() {
             pageSize={pagination.limit}
             loading={loading}
             onPageChange={(p: number) => loadDrivers(p, debouncedSearch, selectedFilter, metrcStatusFilter)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(size) =>
+              setPagination((prev) => ({ ...prev, page: 1, limit: size }))
+            }
           />
         )}
       </div>

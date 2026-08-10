@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
@@ -29,8 +29,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import StorageLocationDetails from "./StorageLocationDetails";
 import StorageLocationDrawer from "./StorageLocationDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 interface StorageLocationRow {
   id: string | number;
@@ -41,6 +42,7 @@ interface StorageLocationRow {
 }
 
 export default function StorageLocationsTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -52,6 +54,7 @@ export default function StorageLocationsTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
     open: false,
     mode: "add",
@@ -59,11 +62,11 @@ export default function StorageLocationsTable() {
   });
 
   const loadLocations = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: PAGE_SIZE });
+        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: size });
         const locations = res?.data?.data?.locations ?? [];
         setRows(
           locations.map((location) => ({
@@ -84,7 +87,7 @@ export default function StorageLocationsTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   useEffect(() => {
@@ -105,43 +108,43 @@ export default function StorageLocationsTable() {
   };
 
   return (
-    <div className="flex gap-4 p-6">
-      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
-        <div className="flex items-center justify-between">
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-primary">Storage Location</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium text-primary">Storage Location</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
 
-          <Button onClick={() => setDrawer({ open: true, mode: "add", locationId: null })}>
-            <Plus /> Add Storage Location
+          <Button
+            className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+            onClick={() => setDrawer({ open: true, mode: "add", locationId: null })}
+          >
+            Add Storage Location
           </Button>
         </div>
 
-        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="relative -mx-4">
           <Table>
-            <TableHeader className="[&_tr]:border-b-0">
-              <TableRow className="bg-muted/60">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Location Name</TableHead>
                 <TableHead>Default Package Destination</TableHead>
                 <TableHead>Open For Sellable In Physical Store</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow
-                    key={`skeleton-${i}`}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
-                  >
+                  <TableRow key={`skeleton-${i}`} className="border-b-0">
                     {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -151,7 +154,7 @@ export default function StorageLocationsTable() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow className="border-b-0">
+                <TableRow>
                   <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
                     No storage locations found.
                   </TableCell>
@@ -195,15 +198,18 @@ export default function StorageLocationsTable() {
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadLocations}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadLocations(1, s);
+          }}
         />
       </div>
 
-      {openId && (
-        <StorageLocationDetails locationId={openId} onClose={closeDetail} />
-      )}
+      <StorageLocationDetails locationId={openId} onClose={closeDetail} />
 
       <StorageLocationDrawer
         open={drawer.open}

@@ -8,6 +8,7 @@ import { fetchTasksList } from "@/services/tasks/list";
 import { fetchMyTasksList } from "@/services/tasks/listMyTasks";
 import { fetchTaskStatuses } from "@/services/tasks/taskStatuses";
 import { updateTaskStatus } from "@/services/tasks/updateTaskStatus";
+import { getCurrentUser } from "@/util/use-current-user";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import TaskItem from "./TaskItem";
 import TaskDetailsPanel from "./TaskDetailsPanel";
 import AddTaskDrawer from "./AddTaskDrawer";
+import { useSettings } from "@/context/settings-context";
 
 interface Task {
   id: string;
@@ -37,13 +39,9 @@ interface TaskStatus {
   colorCode?: string;
 }
 
-const PAGE_SIZE = 20;
-
 export default function TasksListingPage() {
-  const [isAdmin] = useState(() => {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
-    return userInfo?.type === "SUPER_ADMIN";
-  });
+  const { defaultPageSize } = useSettings();
+  const [isAdmin] = useState(() => getCurrentUser()?.type === "SUPER_ADMIN");
 
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);
@@ -51,7 +49,7 @@ export default function TasksListingPage() {
   const [loading, setLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
-  const [pagination, setPagination] = useState({ pageSize: PAGE_SIZE, total: 0, current: 1 });
+  const [pagination, setPagination] = useState({ pageSize: defaultPageSize, total: 0, current: 1 });
 
   const tasks = useMemo(() => {
     return allTasks.filter((task) => {
@@ -70,10 +68,10 @@ export default function TasksListingPage() {
     }
   };
 
-  const fetchDataAsync = async (page: number) => {
+  const fetchDataAsync = async (page = 1, size = pagination.pageSize) => {
     setLoading(true);
     try {
-      const result = isAdmin ? await fetchTasksList(PAGE_SIZE, page) : await fetchMyTasksList(PAGE_SIZE, page);
+      const result = isAdmin ? await fetchTasksList(size, page) : await fetchMyTasksList(size, page);
       setAllTasks(result?.data?.data?.tasks || []);
       setPagination((prev) => ({ ...prev, total: result?.data?.data?.paginationData?.totalEntries ?? 0, current: page }));
     } catch {
@@ -163,6 +161,11 @@ export default function TasksListingPage() {
               pageSize={pagination.pageSize}
               loading={loading}
               onPageChange={fetchDataAsync}
+              pageSizeOptions={[30, 50, 100, 200]}
+              onPageSizeChange={(size) => {
+                setPagination((prev) => ({ ...prev, pageSize: size, current: 1 }));
+                fetchDataAsync(1, size);
+              }}
             />
           )}
         </Card>

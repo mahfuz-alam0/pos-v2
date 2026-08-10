@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import DeliveryProfileDetailsPanel from "./DeliveryProfileDetailsPanel";
 import DeliveryProfileFormDrawer from "./DeliveryProfileFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const ALL_REGIONS = ["CALIFORNIA", "MICHIGAN"];
 
@@ -31,11 +32,12 @@ interface DeliveryProfileRow {
 }
 
 export default function DeliveryProfilesPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<DeliveryProfileRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
 
@@ -48,11 +50,11 @@ export default function DeliveryProfilesPage() {
   const canAddMore = availableRegions.length > 0;
 
   const loadProfiles = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchDeliveryProfilesList(shopId as string, { page, limit: pagination.pageSize });
+        const res = await fetchDeliveryProfilesList(shopId as string, { page, limit: size });
         const profiles = res?.data ?? [];
         setRows(
           profiles.map((p: any) => ({
@@ -65,7 +67,7 @@ export default function DeliveryProfilesPage() {
         const pd = res?.paginationData ?? {};
         setPagination((prev) => ({
           current: pd.currentPage ?? page,
-          pageSize: pd.limit ?? prev.pageSize,
+          pageSize: pd.limit ?? size,
           total: pd.totalEntries ?? 0,
           totalPages: pd.totalPages ?? 1,
         }));
@@ -194,6 +196,8 @@ export default function DeliveryProfilesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadProfiles(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(size) => loadProfiles(1, size)}
         />
       </div>
 

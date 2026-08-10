@@ -4,17 +4,9 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { fetchShopsData } from "@/services/shops/list";
 import { PUBLIC_PATHS } from "@/components/auth/AuthGuard";
+import { getCurrentUser } from "@/util/use-current-user";
 
 const ShopContext = createContext(null);
-
-function readUserInfo() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(localStorage.getItem("userInfo"));
-  } catch {
-    return null;
-  }
-}
 
 function readStoredShop() {
   if (typeof window === "undefined") return { id: null, details: null };
@@ -49,7 +41,7 @@ export function ShopProvider({ children }) {
     if (isPublicPath || initialized.current) return;
     initialized.current = true;
 
-    const userInfo = readUserInfo();
+    const userInfo = getCurrentUser();
     if (!userInfo) {
       // AuthGuard will redirect to /signin — nothing to initialize.
       setShopReady(true);
@@ -71,23 +63,6 @@ export function ShopProvider({ children }) {
           ...shop,
         }));
 
-        const stored = readStoredShop();
-        const shopExists =
-          stored.id && modifiedData.some((shop) => shop.value === stored.id);
-
-        if (shopExists && stored.details) {
-          setShopId(stored.id);
-          setShopDetails(stored.details);
-          setShopReady(true);
-          return;
-        }
-
-        if (modifiedData.length === 0) {
-          console.warn("No shops available from API.");
-          setShopReady(true);
-          return;
-        }
-
         const associatedShopIds = userInfo?.associatedShopIds || [];
         const userAssociatedShops =
           associatedShopIds.length > 0
@@ -96,6 +71,23 @@ export function ShopProvider({ children }) {
 
         if (userAssociatedShops.length === 0) {
           console.warn("User has no accessible shops.");
+          setShopReady(true);
+          return;
+        }
+
+        // Always surface the full shop list to the topbar switcher so the
+        // dropdown stays openable across reloads — not just on first run.
+        if (userAssociatedShops.length > 1) {
+          setAvailableShops(userAssociatedShops);
+        }
+
+        const stored = readStoredShop();
+        const shopExists =
+          stored.id && userAssociatedShops.some((shop) => shop.value === stored.id);
+
+        if (shopExists && stored.details) {
+          setShopId(stored.id);
+          setShopDetails(stored.details);
           setShopReady(true);
           return;
         }

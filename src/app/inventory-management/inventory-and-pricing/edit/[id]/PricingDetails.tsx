@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
+import { ExternalLink, Package } from "lucide-react";
 
 import { fetchAssociatedUoms } from "@/services/uom/listAssociated";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,17 +60,37 @@ export default function PricingDetails({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-4">
-        {TABS.map((tab) => (
-          <label key={tab.value} className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              checked={selectedTab === tab.value}
-              onChange={() => setSelectedTab(tab.value)}
-            />
+      <div className="flex w-full overflow-hidden rounded-lg border border-border text-sm font-medium">
+        {TABS.map((tab, idx) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setSelectedTab(tab.value)}
+            className={`flex-1 py-2.5 text-center transition-colors ${idx === 0 ? "border-r border-border" : ""} ${
+              selectedTab === tab.value ? "bg-muted text-foreground" : "bg-background text-muted-foreground hover:bg-muted/40"
+            }`}
+          >
             {tab.label}
-          </label>
+          </button>
         ))}
+      </div>
+
+      <p className="text-sm font-semibold">Pricing Details</p>
+
+      <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+        <div className="flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground">
+          <Package className="size-4" />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs font-medium text-muted-foreground">PRODUCT NAME</span>
+          <Link
+            href={`/catalog/products?id=${inventoryData?.productId}`}
+            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {inventoryData?.productName}
+            <ExternalLink className="size-3.5" />
+          </Link>
+        </div>
       </div>
 
       {selectedTab === "general" ? (

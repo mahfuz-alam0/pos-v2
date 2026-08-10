@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchAuditSession } from "@/services/auditSessions/getSingle";
@@ -87,10 +87,16 @@ export default function AuditSessionDetailDrawer({
   };
 
   return (
-    <Drawer open={!!sessionId} onClose={onClose} side="right" size={900}>
-      <div className="flex h-full flex-col gap-3 overflow-y-auto p-4">
-        <h2 className="text-base font-semibold">Audit Session Details</h2>
+    <Drawer open={!!sessionId} onClose={onClose} side="right" size="80%">
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <h2 className="text-base font-semibold">Audit Session Details</h2>
+          <Button variant="outline" size="icon" onClick={onClose}>
+            <X className="size-4" />
+          </Button>
+        </div>
 
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
         {loading && (
           <div className="flex justify-center py-10">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -100,7 +106,7 @@ export default function AuditSessionDetailDrawer({
         {!loading && session && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-950/30">
-              <span className="text-sm text-green-800 dark:text-green-400">
+              <span className="text-sm font-semibold text-green-800 dark:text-green-400">
                 {session.employee?.name || session.employee?.email || "-"}
               </span>
               <span className="text-sm text-green-800 dark:text-green-400">
@@ -116,19 +122,23 @@ export default function AuditSessionDetailDrawer({
               </span>
             </div>
 
-            <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/40 px-3.5 py-2.5">
+            <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
               <span className="text-sm font-semibold">
                 {selectedIds.length} package{selectedIds.length === 1 ? "" : "s"} selected for approval
               </span>
-              <Button size="sm" disabled={selectedIds.length === 0} onClick={() => setApproveOpen(true)}>
+              <Button
+                className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+                disabled={selectedIds.length === 0}
+                onClick={() => setApproveOpen(true)}
+              >
                 Approve &amp; Reconcile ({selectedIds.length})
               </Button>
             </div>
 
-            <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="relative -mx-4">
               <Table>
-                <TableHeader>
-                  <TableRow className="border-b-0 bg-muted/60">
+                <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+                  <TableRow className="hover:bg-transparent">
                     <TableHead className="w-8">
                       <Checkbox
                         checked={
@@ -139,7 +149,6 @@ export default function AuditSessionDetailDrawer({
                         onCheckedChange={(c) => toggleAll(!!c)}
                       />
                     </TableHead>
-                    <TableHead className="w-6" />
                     <TableHead>Package ID</TableHead>
                     <TableHead>Product Name</TableHead>
                     <TableHead>METRC Tag</TableHead>
@@ -149,8 +158,8 @@ export default function AuditSessionDetailDrawer({
                     <TableHead className="text-center">Review Status</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {(session.packagesData || []).map((pkg: any) => {
+                <TableBody className="text-muted-foreground [&_td]:h-14 [&_td]:px-4">
+                  {(session.packagesData || []).map((pkg: any, i: number) => {
                     const salesQty = sumQty(pkg.saleEvents);
                     const returnsQty = sumQty(pkg.saleReturnEvents);
                     const expandable = (pkg.saleEvents || []).length > 0 || (pkg.saleReturnEvents || []).length > 0;
@@ -158,7 +167,7 @@ export default function AuditSessionDetailDrawer({
                     const status = reviewStatus(pkg.id);
                     return (
                       <>
-                        <TableRow key={pkg.id} className="border-b-0">
+                        <TableRow key={pkg.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                           <TableCell>
                             <Checkbox
                               checked={selectedIds.includes(pkg.id)}
@@ -166,26 +175,49 @@ export default function AuditSessionDetailDrawer({
                               onCheckedChange={(c) => toggleOne(pkg.id, !!c)}
                             />
                           </TableCell>
-                          <TableCell>
-                            {expandable && (
-                              <button onClick={() => setExpandedId(expanded ? null : pkg.id)}>
-                                {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                              </button>
-                            )}
+                          <TableCell className="font-mono text-xs text-primary">
+                            <span className="inline-flex items-center gap-1">
+                              {expandable && (
+                                <button onClick={() => setExpandedId(expanded ? null : pkg.id)} className="text-muted-foreground">
+                                  {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                                </button>
+                              )}
+                              {pkg.advertisedId || "—"}
+                            </span>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">{pkg.advertisedId || "—"}</TableCell>
                           <TableCell>{pkg.productName}</TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{pkg.metrcTag || "—"}</TableCell>
                           <TableCell className="text-center">{pkg.currentQtySnapshot ?? "—"}</TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="secondary">{pkg.adjustedQty ?? 0}</Badge>
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                (pkg.adjustedQty ?? 0) < 0
+                                  ? "bg-pink-100 text-pink-700"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {pkg.adjustedQty ?? 0}
+                            </span>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Badge variant={pkg.finalQty >= 0 ? "default" : "destructive"}>{pkg.finalQty ?? "—"}</Badge>
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                pkg.finalQty >= 0 ? "bg-green-100 text-green-700" : "bg-destructive/10 text-destructive"
+                              }`}
+                            >
+                              {pkg.finalQty ?? "—"}
+                            </span>
                           </TableCell>
                           <TableCell className="text-center">
                             <Badge
-                              variant={status === "Approved" ? "default" : status === "Rejected" ? "destructive" : "secondary"}
+                              variant="outline"
+                              className={
+                                status === "Approved"
+                                  ? "border-green-300 text-green-700"
+                                  : status === "Rejected"
+                                    ? "border-destructive/40 text-destructive"
+                                    : "border-border text-muted-foreground"
+                              }
                             >
                               {status}
                             </Badge>
@@ -193,7 +225,7 @@ export default function AuditSessionDetailDrawer({
                         </TableRow>
                         {expanded && (
                           <TableRow key={`${pkg.id}-expand`} className="border-b-0 bg-muted/20">
-                            <TableCell colSpan={9}>
+                            <TableCell colSpan={8}>
                               <div className="flex gap-10 px-2 py-2 text-xs">
                                 <div>
                                   <div className="mb-1 font-semibold uppercase text-muted-foreground">Sales</div>
@@ -247,6 +279,7 @@ export default function AuditSessionDetailDrawer({
         {!loading && !session && sessionId && (
           <div className="py-10 text-center text-muted-foreground">No data found.</div>
         )}
+        </div>
       </div>
 
       {session && (

@@ -21,11 +21,13 @@ export default function TaxDetailsTable({
   loading,
   pagination,
   onPageChange,
+  onPageSizeChange,
 }: {
   data: TaxDetailRow[];
   loading: boolean;
   pagination: ReportPagination;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }) {
   const taxNames = useMemo(() => {
     const names = new Set<string>();
@@ -122,6 +124,8 @@ export default function TaxDetailsTable({
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={onPageChange}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </Card>

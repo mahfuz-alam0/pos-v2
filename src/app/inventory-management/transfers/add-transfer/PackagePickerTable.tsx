@@ -41,6 +41,8 @@ export default function PackagePickerTable({
   totalEntries,
   pageSize,
   onPageChange,
+  pageSizeOptions,
+  onPageSizeChange,
 }: {
   rows: PackagePickerRow[];
   loading: boolean;
@@ -55,6 +57,8 @@ export default function PackagePickerTable({
   totalEntries: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (size: number) => void;
 }) {
   const allSelected = rows.length > 0 && rows.every((r) => selectedIds.includes(r.id));
 
@@ -137,7 +141,16 @@ export default function PackagePickerTable({
         </Table>
       </div>
       <div className="px-4 pb-4">
-        <TablePagination page={page} totalPages={totalPages} totalEntries={totalEntries} pageSize={pageSize} loading={loading} onPageChange={onPageChange} />
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalEntries={totalEntries}
+          pageSize={pageSize}
+          loading={loading}
+          onPageChange={onPageChange}
+          pageSizeOptions={pageSizeOptions}
+          onPageSizeChange={onPageSizeChange}
+        />
       </div>
     </div>
   );

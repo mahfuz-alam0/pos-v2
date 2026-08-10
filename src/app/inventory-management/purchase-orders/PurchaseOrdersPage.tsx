@@ -34,8 +34,9 @@ import {
 
 import PurchaseOrderDetailPanel from "./PurchaseOrderDetailPanel";
 import type { PurchaseOrderRow, SupplierOption } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 const STATUS_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   OPEN: "default",
@@ -62,6 +63,7 @@ function fmtDate(value?: string) {
 }
 
 export default function PurchaseOrdersPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -79,6 +81,7 @@ export default function PurchaseOrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [metrcIdInput, setMetrcIdInput] = useState("");
   const debouncedMetrcId = useDebounce(metrcIdInput, 300);
@@ -106,11 +109,11 @@ export default function PurchaseOrdersPage() {
   }, [dateFilter, customRange]);
 
   const loadPurchaseOrders = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page: targetPage, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page: targetPage, limit: size };
         if (debouncedMetrcId) params.metrcId = debouncedMetrcId;
         if (debouncedProductName) params.productName = debouncedProductName;
         if (supplierId) params.supplierId = supplierId;
@@ -133,7 +136,7 @@ export default function PurchaseOrdersPage() {
         setLoading(false);
       }
     },
-    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange]
+    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange, pageSize]
   );
 
   useEffect(() => {
@@ -160,24 +163,23 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex w-full flex-col gap-4">
-        <div>
-          <h1 className="mb-1 text-2xl font-normal text-text">Purchase Orders</h1>
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <Breadcrumb>
-            <BreadcrumbList className="text-sm">
+            <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
+                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Purchase Orders</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium text-primary">Purchase Orders</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
 
-        <div className="flex flex-col gap-5 rounded-xl bg-card p-6 shadow-sm">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <Select
               items={[
@@ -275,10 +277,10 @@ export default function PurchaseOrdersPage() {
 
           {dateFilter === "custom" && <DateRangePicker value={customRange} onChange={setCustomRange} />}
 
-          <div className="overflow-hidden rounded-lg">
+          <div className="relative -mx-4">
           <Table>
-            <TableHeader className="[&_tr]:border-b-0 [&_th]:h-14 [&_th]:px-4">
-              <TableRow style={{ backgroundColor: "#FAFAFA" }}>
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Transfer ID</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Status</TableHead>
@@ -288,10 +290,10 @@ export default function PurchaseOrdersPage() {
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-foreground/70 [&_td]:px-4 [&_td]:py-3.5">
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading && rows.length === 0 &&
                 Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={`sk-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                  <TableRow key={`sk-${i}`} className="border-b-0">
                     {Array.from({ length: 7 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -301,7 +303,7 @@ export default function PurchaseOrdersPage() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow className="border-b-0">
+                <TableRow>
                   <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     No purchase orders found.
                   </TableCell>
@@ -351,9 +353,14 @@ export default function PurchaseOrdersPage() {
             page={page}
             totalPages={totalPages}
             totalEntries={totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             loading={loading}
             onPageChange={loadPurchaseOrders}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              loadPurchaseOrders(1, s);
+            }}
           />
         </div>
       </div>
