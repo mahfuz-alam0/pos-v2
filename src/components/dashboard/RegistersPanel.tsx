@@ -45,15 +45,15 @@ export default function RegistersPanel() {
   };
 
   return (
-    <div className="rounded-xl bg-component-bg shadow-md">
+    <div className="flex h-full flex-col rounded-xl bg-component-bg shadow-md">
       <div className="border-b border-border px-4 py-5.5">
         <h2 className="m-0 text-lg font-normal text-text">Registers</h2>
       </div>
 
       {loading ? (
-        <div className="p-3 py-6 text-center text-muted-foreground">Loading…</div>
+        <div className="flex flex-1 items-center justify-center p-3 py-6 text-center text-muted-foreground">Loading…</div>
       ) : (
-        <div className="px-1 py-3">
+        <div className="flex-1 px-1 py-3">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-alt text-left text-xs text-muted-foreground">

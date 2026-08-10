@@ -48,21 +48,18 @@ export default function Home() {
 
       {canViewDashboardStats && <AllStatsTiles />}
 
-      <CustomerQueue />
-
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
-        <div className="flex flex-col gap-3">
-          {canViewDashboardStats && (
-            <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
-          )}
-          <SpiffsCampaigns />
-          <TaskList />
-          {hasMetrcReporting && <MetrcAlerts />}
-        </div>
+        <CustomerQueue />
+        <RegistersPanel />
+      </div>
 
-        <div>
-          <RegistersPanel />
-        </div>
+      <div className="flex flex-col gap-3">
+        {canViewDashboardStats && (
+          <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
+        )}
+        <SpiffsCampaigns />
+        <TaskList />
+        {hasMetrcReporting && <MetrcAlerts />}
       </div>
     </div>
   );
