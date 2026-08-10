@@ -855,6 +855,9 @@ export default function ProductsCart() {
               <DealCard
                 deals={bulkDeals}
                 productRecord={null}
+                selectedItems={cart.filter((item) =>
+                  selectedKeys.includes(item.key),
+                )}
                 onDealApplied={() => {
                   setDealDrawerOpen(false);
                   setSelectedKeys([]);

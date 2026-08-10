@@ -102,34 +102,36 @@ export default function TotalRevenueCard() {
   const averageGrowth = useMemo(() => Math.round(calculateAverageGrowth(stats)), [stats]);
 
   return (
-    <div className="relative flex h-full min-w-0 flex-col rounded-xl bg-component-bg shadow-md p-3">
-      <div className="flex flex-row items-center gap-3">
-        <h2 className="m-0 text-lg font-normal text-text">Total Revenue</h2>
-        <div className="ml-auto truncate">
-          <select
-            className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
-            value={currentValue}
-            onChange={handleTimeChange}
-          >
-            {TIME_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-component-bg shadow-md">
+      <div className="p-3 pb-0">
+        <div className="flex flex-row items-center gap-3">
+          <h2 className="m-0 text-lg font-normal text-text">Total Revenue</h2>
+          <div className="ml-auto truncate">
+            <select
+              className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
+              value={currentValue}
+              onChange={handleTimeChange}
+            >
+              {TIME_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-2">
+          <h2 className="text-xs font-medium xl:text-sm">
+            ${totalRevenue.toLocaleString()}
+            <span className={`ml-2 text-sm font-semibold ${averageGrowth < 0 ? "text-red-500" : "text-green-600"}`}>
+              {averageGrowth}%
+            </span>
+          </h2>
         </div>
       </div>
 
-      <div className="mt-2">
-        <h2 className="text-xs font-medium xl:text-sm">
-          ${totalRevenue.toLocaleString()}
-          <span className={`ml-2 text-sm font-semibold ${averageGrowth < 0 ? "text-red-500" : "text-green-600"}`}>
-            {averageGrowth}%
-          </span>
-        </h2>
-      </div>
-
-      <div className="mt-2 h-35">
+      <div className="mt-2 h-35 flex-1">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : (

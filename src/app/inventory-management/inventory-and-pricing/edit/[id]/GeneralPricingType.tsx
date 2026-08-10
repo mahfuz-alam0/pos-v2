@@ -44,9 +44,7 @@ export default function GeneralPricingType({
 }) {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [isTieredPricingApplicable, setIsTieredPricingApplicable] = useState(true);
-  const [tiers, setTiers] = useState([
-    { unitAmount: 0, offAmount: 0, displayUoMId: targetUoMId, displayUoM: null, postTaxPrice: 0, previewPrice: 0 },
-  ]);
+  const [tiers, setTiers] = useState([]);
   const [unitPerEach, setUnitPerEach] = useState(data?.unitPrice ?? 0);
   const [unitPreviewPrice, setUnitPreviewPrice] = useState(0);
   const [unitPricePostTax, setUnitPricePostTax] = useState(0);
@@ -327,36 +325,38 @@ export default function GeneralPricingType({
               <CardContent className="flex flex-col gap-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label>Purchase Amount</Label>
+                    <Label className="text-muted-foreground">Purchase Amount</Label>
                     <div className="flex items-center gap-2">
-                      <Input value={1} disabled className="w-full" />
+                      <Input value={1} disabled className="h-9 w-full" />
                       <span className="text-sm text-muted-foreground">
                         {uomData.find((u) => u.id === targetUoMId)?.shortForm}
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label>Per {uomData.find((u) => u.id === targetUoMId)?.name || "Unit"}</Label>
+                    <Label className="text-muted-foreground">Per {uomData.find((u) => u.id === targetUoMId)?.name || "Unit"}</Label>
                     <Input
                       type="number"
                       min={0}
                       step={0.1}
+                      className="h-9"
                       value={unitPerEach}
                       onChange={(e) => handleUnitPerEachChange(e.target.value)}
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label>Total Price</Label>
+                    <Label className="text-muted-foreground">Total Price</Label>
                     <Input
                       type="number"
                       min={0}
                       step={0.1}
+                      className="h-9"
                       value={unitPreviewPrice}
                       onChange={(e) => handleUnitPreviewPriceChange(e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm text-muted-foreground">
                   <span>Pre Tax: ${(unitPreviewPrice || 0).toFixed(2)}</span>
                   <span>Post Tax: ${(unitPricePostTax || unitPreviewPrice || 0).toFixed(2)}</span>
                 </div>
@@ -375,16 +375,16 @@ export default function GeneralPricingType({
 
       <div className="flex flex-col gap-3">
         {tiers.map((tier, index) => (
-          <Card key={index}>
+          <Card key={index} className="overflow-visible">
             <CardContent className="relative flex flex-col gap-2">
               {editMode && (
                 <Button
                   variant="destructive"
-                  size="sm"
-                  className="absolute top-2 right-2"
+                  size="icon-sm"
+                  className="absolute -top-3 right-2 z-10"
                   onClick={() => removeTier(index)}
                 >
-                  <Trash2 className="size-4" /> Delete
+                  <Trash2 className="size-3.5" />
                 </Button>
               )}
               <div className="grid grid-cols-3 gap-3">
@@ -446,14 +446,14 @@ export default function GeneralPricingType({
         ))}
 
         {editMode && !useExistingPricing && (
-          <Button onClick={addTier} className="w-fit">Add Tier</Button>
+          <Button onClick={addTier} className="h-9! w-fit rounded! px-3.5! text-[14px]! font-normal!">Add Tier</Button>
         )}
       </div>
 
       {editMode && (
-        <Card>
+        <Card className="bg-[#F9FAFB]">
           <CardContent className="flex flex-col gap-3">
-            <label className="flex items-center gap-2 text-sm font-medium">
+            <label className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
               <Checkbox checked={useExistingPricing} onCheckedChange={(c) => setUseExistingPricing(!!c)} />
               Apply Pricing Template
             </label>
@@ -498,7 +498,7 @@ export default function GeneralPricingType({
 
       {editMode && (
         <div className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={submitLoading}>
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleSubmit} disabled={submitLoading}>
             {submitLoading ? "Saving..." : "Save Pricing Details"}
           </Button>
         </div>

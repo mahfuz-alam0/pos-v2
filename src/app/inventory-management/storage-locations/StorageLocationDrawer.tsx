@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MapPin, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { createStorageLocation } from "@/services/storageLocations/create";
@@ -162,26 +162,23 @@ export default function StorageLocationDrawer({
     !values.isSellableOnPhysicalStore;
 
   return (
-    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={440}>
+    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={600}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <MapPin className="size-4 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <div>
+            <h3 className="text-base font-semibold">
               {mode === "add" ? "Add Storage Location" : "Edit Storage Location"}
-            </div>
-            <div className="text-xs text-muted-foreground leading-tight">
+            </h3>
+            <p className="text-xs text-muted-foreground">
               {mode === "add" ? "Create a new storage location" : "Update location details"}
-            </div>
+            </p>
           </div>
-          <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="icon" onClick={onClose} disabled={saving}>
             <X className="size-4" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="flex flex-col gap-4">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -267,7 +264,7 @@ export default function StorageLocationDrawer({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

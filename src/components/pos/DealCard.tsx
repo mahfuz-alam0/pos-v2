@@ -25,11 +25,22 @@ import DealDetails from "./DealDetails";
  * Props:
  *   deals          — array of applicable regular-deal objects.
  *   productRecord  — the cart line this card is scoped to (per-row usage);
- *                     null for the bulk "apply to selected items" drawer,
- *                     which intentionally matches by product only.
+ *                     null for the bulk "apply to selected items" drawer.
+ *   selectedItems  — bulk mode only: the selected cart records (each with
+ *                     id/productId/appMaintainedId). When set, Apply/Remove
+ *                     writes one applicableRegularDeals entry per selected
+ *                     item instead of just the deal row's own single
+ *                     product/package — ported from products-cart.js's bulk
+ *                     "Apply"/"Remove" handlers (selectedItems.map(...)).
  *   onDealApplied  — optional callback fired after a successful apply.
  */
-export default function DealCard({ deals = [], productRecord, onDealApplied }) {
+export default function DealCard({
+  deals = [],
+  productRecord,
+  selectedItems = [],
+  onDealApplied,
+}) {
+  const isBulk = !productRecord && selectedItems?.length > 0;
   const [dealStates, setDealStates] = useState({});
   const [visible, setVisible] = useState(false);
   const [deal, setDealDetails] = useState(null);
@@ -61,18 +72,32 @@ export default function DealCard({ deals = [], productRecord, onDealApplied }) {
       ? ad.appMaintainedId === productRecord.appMaintainedId
       : true);
 
+  // Bulk mode: "applied" means at least one selected item already has this
+  // deal (matches products-cart.js's isDealApplied === selectedItems.some(...)).
+  const isDealAppliedToAnySelected = (dealId) =>
+    selectedItems.some((item) =>
+      appliedDeals.some(
+        (ad) =>
+          ad.dealId === dealId &&
+          (ad.packageId === item.id ||
+            (item.appMaintainedId && ad.appMaintainedId === item.appMaintainedId))
+      )
+    );
+
   useEffect(() => {
     const dealStatesMap = {};
     deals.forEach((d) => {
       const { dealId, packageId, productId } = d;
-      const isApplied = appliedDeals.some((ad) =>
-        matchesRecord(ad, dealId, packageId, productId)
-      );
+      const isApplied = isBulk
+        ? isDealAppliedToAnySelected(dealId)
+        : appliedDeals.some((ad) =>
+            matchesRecord(ad, dealId, packageId, productId)
+          );
       dealStatesMap[dealId] = { applied: isApplied, dealInfo: d };
     });
     setDealStates(dealStatesMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quoteBody, productRecord?.appMaintainedId]);
+  }, [quoteBody, productRecord?.appMaintainedId, selectedItems]);
 
   const handleCancel = () => setVisible(false);
   const handleShowDealDetails = (item) => {
@@ -84,17 +109,28 @@ export default function DealCard({ deals = [], productRecord, onDealApplied }) {
     const dealId = item.dealId;
     setDealStates((prev) => ({ ...prev, [dealId]: { loading: true } }));
 
-    const applyDeal = {
-      packageId: item.packageId,
-      productId: item.productId,
-      dealId: item.dealId,
-      ...(productRecord?.appMaintainedId
-        ? { appMaintainedId: productRecord.appMaintainedId }
-        : {}),
-    };
+    const newEntries = isBulk
+      ? selectedItems.map((sel) => ({
+          packageId: sel.id,
+          productId: sel.productId,
+          dealId: item.dealId,
+          ...(sel.appMaintainedId
+            ? { appMaintainedId: sel.appMaintainedId }
+            : {}),
+        }))
+      : [
+          {
+            packageId: item.packageId,
+            productId: item.productId,
+            dealId: item.dealId,
+            ...(productRecord?.appMaintainedId
+              ? { appMaintainedId: productRecord.appMaintainedId }
+              : {}),
+          },
+        ];
     const updatedApplicableDeals = [
       ...(quoteBody?.applicableRegularDeals || []),
-      applyDeal,
+      ...newEntries,
     ];
 
     dispatch(
@@ -128,25 +164,44 @@ export default function DealCard({ deals = [], productRecord, onDealApplied }) {
     const dealId = item.dealId;
     setDealStates((prev) => ({ ...prev, [dealId]: { removing: true } }));
 
-    const removeDeal = {
-      packageId: item.packageId,
-      productId: item.productId,
-      dealId: item.dealId,
-    };
-    // Matches the old logic exactly: filter on dealId + productId (not
-    // packageId) — plus appMaintainedId when this card is scoped to one
-    // specific cart line, so removing from one row doesn't also drop the
-    // deal from a duplicate line for the same product.
-    const updatedApplicableDeals = quoteBody?.applicableRegularDeals?.filter(
-      (d) =>
-        !(
-          d.dealId === removeDeal.dealId &&
-          d.productId === removeDeal.productId &&
-          (productRecord?.appMaintainedId
-            ? d.appMaintainedId === productRecord.appMaintainedId
-            : true)
-        )
-    );
+    let updatedApplicableDeals;
+    if (isBulk) {
+      // Drop every applicableRegularDeals entry for this deal that belongs
+      // to any of the selected items (matched on packageId or
+      // appMaintainedId), same as products-cart.js's bulk Remove.
+      const selectedItemIds = selectedItems.map((i) => i.id);
+      const selectedItemAppIds = selectedItems
+        .map((i) => i.appMaintainedId)
+        .filter(Boolean);
+      updatedApplicableDeals = quoteBody?.applicableRegularDeals?.filter(
+        (d) =>
+          !(
+            d.dealId === item.dealId &&
+            (selectedItemIds.includes(d.packageId) ||
+              selectedItemAppIds.includes(d.appMaintainedId))
+          )
+      );
+    } else {
+      const removeDeal = {
+        packageId: item.packageId,
+        productId: item.productId,
+        dealId: item.dealId,
+      };
+      // Matches the old logic exactly: filter on dealId + productId (not
+      // packageId) — plus appMaintainedId when this card is scoped to one
+      // specific cart line, so removing from one row doesn't also drop the
+      // deal from a duplicate line for the same product.
+      updatedApplicableDeals = quoteBody?.applicableRegularDeals?.filter(
+        (d) =>
+          !(
+            d.dealId === removeDeal.dealId &&
+            d.productId === removeDeal.productId &&
+            (productRecord?.appMaintainedId
+              ? d.appMaintainedId === productRecord.appMaintainedId
+              : true)
+          )
+      );
+    }
 
     dispatch(
       updateSalesDetail({ applicableRegularDeals: updatedApplicableDeals })

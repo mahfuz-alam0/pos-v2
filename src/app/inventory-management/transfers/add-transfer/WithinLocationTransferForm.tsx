@@ -30,12 +30,17 @@ const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function WithinLocationTransferForm({
   preSelectedPackageIds,
+  preSelectedSourceId,
 }: {
   /** Packages picked in bulk from the Packages list before landing here (old
    * app: index.js's "Transfer (N)" bulk button). Auto-checked as soon as a
    * matching row shows up under whichever source location the user picks —
    * the picker's own location-scoped search stays the source of truth. */
   preSelectedPackageIds?: string[];
+  /** Storage location holding the most of the bulk-picked packages above —
+   * pre-picked as Source Storage so those packages auto-check immediately
+   * instead of waiting on a manual source pick. */
+  preSelectedSourceId?: string;
 } = {}) {
   const router = useRouter();
   const { shopId } = useShop();
@@ -43,7 +48,7 @@ export default function WithinLocationTransferForm({
 
   const [locations, setLocations] = useState<any[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
-  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [sourceId, setSourceId] = useState<string | null>(preSelectedSourceId ?? null);
   const [destinationId, setDestinationId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
 
