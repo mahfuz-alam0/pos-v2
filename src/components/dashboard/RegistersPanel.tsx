@@ -41,6 +41,14 @@ export default function RegistersPanel() {
   const [startDrawer, setStartDrawer] = useState<DrawerRow | null>(null);
   const [closeDrawer, setCloseDrawer] = useState<DrawerRow | null>(null);
 
+  // Track the active drawer id in state (instead of reading localStorage during render,
+  // which breaks server-side rendering and triggers Fast Refresh full reloads).
+  const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedDrawerId(localStorage.getItem("drawerId"));
+  }, []);
+
   const fetchRegisters = async () => {
     if (!shopId) return;
     setLoading(true);
@@ -98,6 +106,7 @@ export default function RegistersPanel() {
     localStorage.setItem("registerId", selectedRegister.id);
     localStorage.setItem("registerName", selectedRegister.name);
     localStorage.setItem("drawerId", drawer.id);
+    setSelectedDrawerId(drawer.id);
     localStorage.setItem("drawerName", drawer.name);
     window.dispatchEvent(
       new CustomEvent("registerDrawerSelected", {
@@ -201,7 +210,7 @@ export default function RegistersPanel() {
                         </>
                       )}
 
-                      {isOpen && String(localStorage.getItem("drawerId")) === String(drawer.id) && (
+                      {isOpen && selectedDrawerId === String(drawer.id) && (
                         <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
                       )}
                     </div>
