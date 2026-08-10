@@ -107,7 +107,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     if (user?.type === "ACCESS_CONTROLLED") return;
-    fetchEmployeesList({ limit: 1000 }).then((res) => setEmployeeOptions(res?.data?.employees ?? []));
+    fetchEmployeesList({ limit: 100 }).then((res) => setEmployeeOptions(res?.data?.employees ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.type]);
 

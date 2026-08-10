@@ -577,7 +577,7 @@ export default function ManageInventoriesTable() {
         productIds: selectedRows.map((r: any) => r.productId),
         isFinished: false,
         isInPositiveQuantity: true,
-        limit: 1000,
+        limit: 100,
         page: 1,
       });
       const packages = res?.data?.packages ?? [];
