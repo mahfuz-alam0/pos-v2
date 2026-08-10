@@ -7,6 +7,7 @@ import { useShop } from "@/context/shop-context";
 import { useSettings } from "@/context/settings-context";
 import { fetchCustomerQueueList, clearCustomerQueue } from "@/services/customerQueue/list";
 import { updateQueueStatus } from "@/services/customerQueue/updateStatus";
+import type { CustomerQueueItem, QueueCartLineItem, QueueCartMetaData } from "@/services/customerQueue/types";
 import { connectToSocket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import QuickCheckIn from "./QuickCheckIn";
@@ -15,7 +16,7 @@ import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 
 function calculateWaitTime(updatedAt) {
-  if (!updatedAt) return "0";
+  if (!updatedAt) return 0;
   return Math.floor((Date.now() - new Date(updatedAt).getTime()) / (1000 * 60));
 }
 
@@ -40,12 +41,12 @@ function isDobBefore(dateStr) {
 export default function HomeCustomerQueue({ onCustomerServed = null }) {
   const { shopId } = useShop();
   const { queueBorder15, queueBorder20, queueYellowTime, queueRedTime } = useSettings();
-  const [queueData, setQueueData] = useState([]);
+  const [queueData, setQueueData] = useState<CustomerQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
-  const [detailsRecord, setDetailsRecord] = useState(null);
+  const [detailsRecord, setDetailsRecord] = useState<CustomerQueueItem | null>(null);
   const socketRef = useRef(null);
 
   const fetchQueue = async () => {
@@ -192,6 +193,15 @@ function QueueRow({
   onRemove,
   onServe,
   onOpenDetails,
+}: {
+  data: CustomerQueueItem;
+  queueBorder15: boolean;
+  queueBorder20: boolean;
+  queueYellowTime: number;
+  queueRedTime: number;
+  onRemove?: (record: CustomerQueueItem) => void;
+  onServe?: (record: CustomerQueueItem) => void;
+  onOpenDetails?: (record: CustomerQueueItem) => void;
 }) {
   const { shopId } = useShop();
   const [waitTime, setWaitTime] = useState(calculateWaitTime(data?.updatedAt));
@@ -218,15 +228,15 @@ function QueueRow({
   })();
 
   // ── Cart data ──────────────────────────────────────────────────────
-  let cartData = null;
+  let cartData: QueueCartMetaData | null = null;
   try {
     if (data?.cartMetaDataJsonString) {
-      cartData = JSON.parse(data.cartMetaDataJsonString);
+      cartData = JSON.parse(data.cartMetaDataJsonString) as QueueCartMetaData;
       if (!cartData?.lineItems?.length) cartData = null;
     }
   } catch {}
 
-  const cartItems = cartData?.lineItems || [];
+  const cartItems: QueueCartLineItem[] = cartData?.lineItems || [];
   const cartSubtotal = cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.purchaseQuantity || 1), 0);
   const hasDeals = cartData?.applicableRegularDeals?.length > 0 || !!cartData?.couponId;
   const hasMiscDiscount = !!cartData?.miscDiscount;
