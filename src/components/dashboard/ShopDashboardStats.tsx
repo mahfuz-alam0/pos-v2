@@ -138,7 +138,7 @@ export default function ShopDashboardStats() {
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4">
+        <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-px bg-border sm:grid-cols-4">
           <StatBlock label="Fulfilled Net Sales" value={stats?.fulfilledNetSales} />
           <StatBlock label="Fulfilled Gross Sales" value={stats?.fulfilledGrossSales} />
           <StatBlock label="All Net Sales" value={stats?.allNetSales} />
