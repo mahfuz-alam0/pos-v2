@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +32,9 @@ interface AuditTableProps {
   selectable?: boolean;
   selectedRowKeys?: (string | number)[];
   onSelectionChange?: (keys: (string | number)[], rows: AuditPackageRow[]) => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export default function AuditTable({
@@ -45,7 +50,31 @@ export default function AuditTable({
   selectable = false,
   selectedRowKeys = [],
   onSelectionChange,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: AuditTableProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
+
+  // Infinite scroll — the sentinel row sits right after the last data row;
+  // once it's within 300px of the scroll container's bottom edge, load the
+  // next 200-row page and append (guarded on loadingMore so a fast
+  // re-intersection during an in-flight fetch doesn't double-request).
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || loadingMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onLoadMore();
+      },
+      { root: scrollRef.current, rootMargin: "300px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, loadingMore]);
+
   const allSelected = data.length > 0 && data.every((r) => selectedRowKeys.includes(rowKeyOf(r)));
 
   const toggleAll = (checked: boolean) => {
@@ -66,9 +95,12 @@ export default function AuditTable({
   };
 
   return (
-    <div className="overflow-auto *:data-[slot=table-container]:overflow-visible" style={{ maxHeight: "calc(100vh - 420px)" }}>
+    <div
+      ref={scrollRef}
+      className="overflow-auto *:data-[slot=table-container]:overflow-visible"
+      style={{ maxHeight: "calc(100vh - 280px)" }}>
       <Table className="text-[13px]">
-        <TableHeader className="sticky top-0 z-10 bg-muted/60 [&_tr]:border-b-0">
+        <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b-0">
           <TableRow className="hover:bg-transparent">
             {selectable && (
               <TableHead className="w-8 px-4">
@@ -85,7 +117,7 @@ export default function AuditTable({
             <TableHead className="min-w-[100px] px-4 text-center font-semibold text-muted-foreground">Metrc Qty</TableHead>
             <TableHead className="min-w-[100px] px-4 font-semibold text-muted-foreground">Location</TableHead>
             <TableHead className="min-w-[110px] px-4 text-center font-semibold text-muted-foreground">Location Qty</TableHead>
-            <TableHead className="sticky right-0 z-10 w-45 min-w-45 bg-muted/60 px-4 text-center font-semibold text-muted-foreground shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
+            <TableHead className="sticky right-0 z-20 w-45 min-w-45 bg-muted px-4 text-center font-semibold text-muted-foreground shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
               {countingMode === "scan" ? "Scan Count" : "Qty On Hand"}
             </TableHead>
           </TableRow>
@@ -255,6 +287,18 @@ export default function AuditTable({
                 </TableRow>
               );
             })}
+
+          {!loading && hasMore && (
+            <TableRow ref={sentinelRef} className="border-b-0 hover:bg-transparent">
+              <TableCell colSpan={selectable ? 12 : 11} className="py-4 text-center">
+                {loadingMore && (
+                  <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" /> Loading more…
+                  </span>
+                )}
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

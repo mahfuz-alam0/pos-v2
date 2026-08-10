@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Maximize, Minimize, Download } from "lucide-react";
+import { Maximize, Minimize, MoreHorizontal, Plus } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
@@ -16,7 +16,6 @@ import { fetchPackageIdsBeingCounted } from "@/services/auditSessions/packageIds
 import { removeLiveAuditSession as removeLiveAuditSessionApi } from "@/services/auditSessions/removeLiveAuditSession";
 
 import { Button } from "@/components/ui/button";
-import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,7 +39,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 import CountingModeToggle from "./CountingModeToggle";
@@ -48,14 +46,19 @@ import ScanModeBar from "./ScanModeBar";
 import AuditFilterBar from "./AuditFilterBar";
 import AuditTable from "./AuditTable";
 import AdjustPackagesDrawer from "./AdjustPackagesDrawer";
-import StartLiveSessionDrawer from "./StartLiveSessionDrawer";
+import AddLiveSessionDrawer from "./AddLiveSessionDrawer";
+import ScanOnlyAuditView from "./ScanOnlyAuditView";
 import LiveCartDrawer from "./LiveCartDrawer";
 import SessionsListDrawer from "./SessionsListDrawer";
 import { exportAuditToCSV, exportAuditToXLS } from "./auditExport";
 import PdfExportDrawer from "@/components/ui/pdf-export-drawer";
-import { buildAuditPdfHtml, getAuditMetadata, AUDIT_PDF_COLUMN_CONFIG, AUDIT_PDF_SECTIONS } from "@/lib/reporting/inventoryAuditPdf";
+import {
+  buildAuditPdfHtml,
+  getAuditMetadata,
+  AUDIT_PDF_COLUMN_CONFIG,
+  AUDIT_PDF_SECTIONS,
+} from "@/lib/reporting/inventoryAuditPdf";
 import { useCurrentUser } from "@/util/use-current-user";
-import { useSettings } from "@/context/settings-context";
 
 import type {
   AuditFilters,
@@ -65,6 +68,14 @@ import type {
   StorageLocation,
   SupplierOption,
 } from "./types";
+
+const AUDIT_PAGE_SIZE = 200;
+
+function rowKeyOf(record: AuditPackageRow) {
+  return record.rowLocationId
+    ? `${record.id}-${record.rowLocationId}`
+    : String(record.id);
+}
 
 const DEFAULT_FILTERS: AuditFilters = {
   searchText: "",
@@ -78,20 +89,33 @@ const DEFAULT_FILTERS: AuditFilters = {
   isOutOfStockToggle: false,
 };
 
-function expandPackages(packages: AuditPackageRow[], locationFilter?: string | null) {
+function expandPackages(
+  packages: AuditPackageRow[],
+  locationFilter?: string | null,
+) {
   return packages.flatMap((pkg) => {
     const breakdown = pkg.storageLocationBreakdown || {};
     const locIds = Object.keys(breakdown);
 
     if (locationFilter) {
-      return [{ ...pkg, rowLocationId: locationFilter, rowLocationQty: breakdown[locationFilter] ?? 0 }];
+      return [
+        {
+          ...pkg,
+          rowLocationId: locationFilter,
+          rowLocationQty: breakdown[locationFilter] ?? 0,
+        },
+      ];
     }
 
     if (locIds.length === 0) {
       return [{ ...pkg, rowLocationId: null, rowLocationQty: null }];
     }
 
-    return locIds.map((locId) => ({ ...pkg, rowLocationId: locId, rowLocationQty: breakdown[locId] ?? 0 }));
+    return locIds.map((locId) => ({
+      ...pkg,
+      rowLocationId: locId,
+      rowLocationQty: breakdown[locId] ?? 0,
+    }));
   });
 }
 
@@ -105,10 +129,17 @@ function buildQueryParams(filters: AuditFilters, page: number, limit: number) {
 
   if (filters.searchText) {
     const searchValue = filters.searchText.includes(",")
-      ? filters.searchText.split(",").map((s) => s.trim()).filter(Boolean)
+      ? filters.searchText
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
       : filters.searchText;
     const searchParamName =
-      filters.searchType === "metrcTags" ? "metrcTags" : filters.searchType === "packageName" ? "packageName" : "advertisedIds";
+      filters.searchType === "metrcTags"
+        ? "metrcTags"
+        : filters.searchType === "packageName"
+          ? "packageName"
+          : "advertisedIds";
     params[searchParamName] = searchValue;
   }
 
@@ -119,7 +150,8 @@ function buildQueryParams(filters: AuditFilters, page: number, limit: number) {
   if (filters.isActiveFilter !== "") params.isActive = filters.isActiveFilter;
 
   if (filters.discrepancyFilter === "YES") params.hasMETRCDiscrepancy = true;
-  else if (filters.discrepancyFilter === "NO") params.hasNoMETRCDiscrepancy = true;
+  else if (filters.discrepancyFilter === "NO")
+    params.hasNoMETRCDiscrepancy = true;
 
   if (filters.isOutOfStockToggle) params.isInStock = false;
 
@@ -127,14 +159,19 @@ function buildQueryParams(filters: AuditFilters, page: number, limit: number) {
 }
 
 export default function AuditPage() {
-  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId, shopDetails } = useShop();
   const currentUserId = useCurrentUser()?.id;
 
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [data, setData] = useState<AuditPackageRow[]>([]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: AUDIT_PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
 
   const [locationMap, setLocationMap] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<StorageLocation[]>([]);
@@ -142,14 +179,16 @@ export default function AuditPage() {
 
   const [filters, setFilters] = useState<AuditFilters>(DEFAULT_FILTERS);
   const [fullscreen, setFullscreen] = useState(false);
-  const [viewMode, setViewMode] = useState<"regular" | "live">("regular");
+  const [viewMode, setViewMode] = useState<"table" | "scanOnly">("table");
   const [countingMode, setCountingMode] = useState<"manual" | "scan">("manual");
 
   const [scanCounts, setScanCounts] = useState<Record<string, number>>({});
   const [flashingRows, setFlashingRows] = useState<Record<string, boolean>>({});
   const [scanInput, setScanInput] = useState("");
 
-  const [pendingAdjustments, setPendingAdjustments] = useState<Record<string, PendingAdjustment>>({});
+  const [pendingAdjustments, setPendingAdjustments] = useState<
+    Record<string, PendingAdjustment>
+  >({});
   const [isAdjustDrawerOpen, setIsAdjustDrawerOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
@@ -157,13 +196,18 @@ export default function AuditPage() {
   const [mySession, setMySession] = useState<LiveAuditSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
 
-  const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>(
+    [],
+  );
   const [selectedRows, setSelectedRows] = useState<AuditPackageRow[]>([]);
-  const [isLiveSessionDrawerOpen, setIsLiveSessionDrawerOpen] = useState(false);
+  const [isAddLiveSessionDrawerOpen, setIsAddLiveSessionDrawerOpen] =
+    useState(false);
   const [isSelecting200, setIsSelecting200] = useState(false);
 
   const [filterCountedPackages, setFilterCountedPackages] = useState(false);
-  const [countedPackageKeys, setCountedPackageKeys] = useState<Set<string>>(new Set());
+  const [countedPackageKeys, setCountedPackageKeys] = useState<Set<string>>(
+    new Set(),
+  );
   const [countedPackagesLoading, setCountedPackagesLoading] = useState(false);
 
   const [isSessionsListOpen, setIsSessionsListOpen] = useState(false);
@@ -171,8 +215,11 @@ export default function AuditPage() {
   const [sessionsListLoading, setSessionsListLoading] = useState(false);
 
   const [isLiveCartOpen, setIsLiveCartOpen] = useState(false);
-  const [liveCartSession, setLiveCartSession] = useState<LiveAuditSession | null>(null);
-  const [liveCartPackages, setLiveCartPackages] = useState<AuditPackageRow[]>([]);
+  const [liveCartSession, setLiveCartSession] =
+    useState<LiveAuditSession | null>(null);
+  const [liveCartPackages, setLiveCartPackages] = useState<AuditPackageRow[]>(
+    [],
+  );
 
   const [exporting, setExporting] = useState(false);
   const [showPdfDrawer, setShowPdfDrawer] = useState(false);
@@ -182,9 +229,11 @@ export default function AuditPage() {
   const validAdjustments = useMemo(
     () =>
       Object.values(pendingAdjustments).filter(
-        (item) => item.newQty !== item.originalQty || (item.metrcQty != null && item.newQty !== item.metrcQty)
+        (item) =>
+          item.newQty !== item.originalQty ||
+          (item.metrcQty != null && item.newQty !== item.metrcQty),
       ),
-    [pendingAdjustments]
+    [pendingAdjustments],
   );
 
   const fetchFilterOptions = async () => {
@@ -193,7 +242,8 @@ export default function AuditPage() {
         fetchStorageLocations(shopId as string),
         fetchSuppliersList({ limit: 100 }),
       ]);
-      const finalLocations: StorageLocation[] = locRes?.data?.data?.locations || [];
+      const finalLocations: StorageLocation[] =
+        locRes?.data?.data?.locations || [];
       const locMap: Record<string, string> = {};
       finalLocations.forEach((loc: any) => {
         locMap[loc.id || loc._id] = loc.name;
@@ -206,13 +256,23 @@ export default function AuditPage() {
     }
   };
 
-  const fetchData = async (page = 1, limit = 100, overrideFilters: AuditFilters | null = null, overrideFilterCounted: boolean | null = null) => {
-    setLoading(true);
+  const fetchData = async (
+    page = 1,
+    limit = AUDIT_PAGE_SIZE,
+    overrideFilters: AuditFilters | null = null,
+    overrideFilterCounted: boolean | null = null,
+    append = false,
+  ) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     try {
       const activeFilters = overrideFilters || filters;
       const params = buildQueryParams(activeFilters, page, limit);
 
-      const shouldFilterCounted = overrideFilterCounted !== null ? overrideFilterCounted : filterCountedPackages;
+      const shouldFilterCounted =
+        overrideFilterCounted !== null
+          ? overrideFilterCounted
+          : filterCountedPackages;
       if (shouldFilterCounted) {
         try {
           const res = await fetchPackageIdsBeingCounted(shopId as string);
@@ -227,8 +287,15 @@ export default function AuditPage() {
       const res = await fetchPackagesMinimalExtended(shopId as string, params);
       const packages: AuditPackageRow[] = res?.data?.packages || [];
       const paginationData = res?.data?.paginationData || {};
+      const expanded = expandPackages(packages, activeFilters.location);
 
-      setData(expandPackages(packages, activeFilters.location));
+      setData((prev) => {
+        if (!append) return expanded;
+        // Defensive dedupe against duplicate rows if the sentinel
+        // re-intersects while a fetch is already in flight.
+        const seen = new Set(prev.map(rowKeyOf));
+        return [...prev, ...expanded.filter((r) => !seen.has(rowKeyOf(r)))];
+      });
       setPagination({
         current: paginationData.currentPage || page,
         total: paginationData.totalEntries || 0,
@@ -238,12 +305,19 @@ export default function AuditPage() {
     } catch (err) {
       console.error("Error fetching audit packages:", err);
     } finally {
-      setLoading(false);
+      if (append) setLoadingMore(false);
+      else setLoading(false);
     }
   };
 
+  const handleLoadMore = () => {
+    if (loading || loadingMore) return;
+    if (pagination.current >= pagination.totalPages) return;
+    fetchData(pagination.current + 1, AUDIT_PAGE_SIZE, null, null, true);
+  };
+
   const fetchAllAuditData = async (maxRecords?: number) => {
-    const PAGE_SIZE = 100;
+    const PAGE_SIZE = AUDIT_PAGE_SIZE;
     const CONCURRENCY = 5;
 
     let excludedPackageIds: string[] | undefined;
@@ -269,18 +343,27 @@ export default function AuditPage() {
 
     const first = await fetchPage(1);
     const totalPages = first.paginationData.totalPages || 1;
-    const pagesByNumber = new Map<number, AuditPackageRow[]>([[1, first.packages]]);
+    const pagesByNumber = new Map<number, AuditPackageRow[]>([
+      [1, first.packages],
+    ]);
 
-    const remainingPages = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => i + 2);
+    const remainingPages = Array.from(
+      { length: Math.max(0, totalPages - 1) },
+      (_, i) => i + 2,
+    );
     for (let i = 0; i < remainingPages.length; i += CONCURRENCY) {
       const batch = remainingPages.slice(i, i + CONCURRENCY);
       const results = await Promise.all(batch.map((page) => fetchPage(page)));
-      batch.forEach((page, idx) => pagesByNumber.set(page, results[idx].packages));
+      batch.forEach((page, idx) =>
+        pagesByNumber.set(page, results[idx].packages),
+      );
     }
 
     let allData: AuditPackageRow[] = [];
     for (let page = 1; page <= totalPages; page++) {
-      allData = allData.concat(expandPackages(pagesByNumber.get(page) || [], filters.location));
+      allData = allData.concat(
+        expandPackages(pagesByNumber.get(page) || [], filters.location),
+      );
       if (maxRecords && allData.length >= maxRecords) break;
     }
 
@@ -314,15 +397,23 @@ export default function AuditPage() {
 
   const getSessionTimeRemaining = () => {
     if (!mySession) return null;
-    const endTime = mySession.endsAt || mySession.expiresAt || mySession.endTime || mySession.end || mySession.endsAtISO;
+    const endTime =
+      mySession.endsAt ||
+      mySession.expiresAt ||
+      mySession.endTime ||
+      mySession.end ||
+      mySession.endsAtISO;
     if (!endTime) return null;
-    return Math.max(0, Math.round((new Date(endTime).getTime() - Date.now()) / 60000));
+    return Math.max(
+      0,
+      Math.round((new Date(endTime).getTime() - Date.now()) / 60000),
+    );
   };
 
   useEffect(() => {
     if (!shopId) return;
     fetchFilterOptions();
-    fetchData(1, 100);
+    fetchData(1, AUDIT_PAGE_SIZE);
     fetchSessionInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
@@ -357,7 +448,7 @@ export default function AuditPage() {
     setScanCounts({});
     setFlashingRows({});
     setScanInput("");
-    fetchData(1, 100, DEFAULT_FILTERS);
+    fetchData(1, AUDIT_PAGE_SIZE, DEFAULT_FILTERS);
   };
 
   const handleCountingModeChange = (mode: "manual" | "scan") => {
@@ -370,7 +461,9 @@ export default function AuditPage() {
     const locIds = Object.keys(found.storageLocationBreakdown || {});
     if (!locId && locIds.length === 1) locId = locIds[0];
     const adjKey = locId ? `${found.id}-${locId}` : `${found.id}`;
-    const originalQty = locId ? found.storageLocationBreakdown?.[locId] || 0 : found.quantityLeft || 0;
+    const originalQty = locId
+      ? found.storageLocationBreakdown?.[locId] || 0
+      : found.quantityLeft || 0;
 
     setPendingAdjustments((prev) => ({
       ...prev,
@@ -395,18 +488,29 @@ export default function AuditPage() {
     if (!trimmed) return;
 
     const lower = trimmed.toLowerCase();
-    let found = data.find((pkg) => pkg.advertisedId && pkg.advertisedId.toLowerCase() === lower);
+    let found = data.find(
+      (pkg) => pkg.advertisedId && pkg.advertisedId.toLowerCase() === lower,
+    );
 
     if (!found && trimmed.length >= 5) {
       const last5 = lower.slice(-5);
-      found = data.find((pkg) => pkg.advertisedId && pkg.advertisedId.toLowerCase().slice(-5) === last5);
+      found = data.find(
+        (pkg) =>
+          pkg.advertisedId &&
+          pkg.advertisedId.toLowerCase().slice(-5) === last5,
+      );
     }
 
     if (found) {
-      const rowKey = found.rowLocationId ? `${found.id}-${found.rowLocationId}` : `${found.id}`;
+      const rowKey = found.rowLocationId
+        ? `${found.id}-${found.rowLocationId}`
+        : `${found.id}`;
       const newCount = (scanCounts[found.advertisedId || ""] || 0) + 1;
 
-      setScanCounts((prev) => ({ ...prev, [found!.advertisedId || ""]: newCount }));
+      setScanCounts((prev) => ({
+        ...prev,
+        [found!.advertisedId || ""]: newCount,
+      }));
       stagePendingAdjustment(found, newCount);
 
       setFlashingRows((prev) => ({ ...prev, [rowKey]: true }));
@@ -418,7 +522,9 @@ export default function AuditPage() {
         });
       }, 1400);
 
-      toast.success(`✓ ${found.name || found.advertisedId} — Count: ${newCount}`);
+      toast.success(
+        `✓ ${found.name || found.advertisedId} — Count: ${newCount}`,
+      );
     } else {
       toast.warning(`Package not found in current view: "${trimmed}"`);
     }
@@ -432,7 +538,10 @@ export default function AuditPage() {
     setPendingAdjustments((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((k) => {
-        if (next[k]?.inputValue && scanCounts[next[k]?.advertisedId || ""] !== undefined) {
+        if (
+          next[k]?.inputValue &&
+          scanCounts[next[k]?.advertisedId || ""] !== undefined
+        ) {
           delete next[k];
         }
       });
@@ -440,9 +549,15 @@ export default function AuditPage() {
     });
   };
 
-  const handleQtyChange = (val: string, record: AuditPackageRow, locId: string | null) => {
+  const handleQtyChange = (
+    val: string,
+    record: AuditPackageRow,
+    locId: string | null,
+  ) => {
     const key = locId ? `${record.id}-${locId}` : `${record.id}`;
-    const originalQty = locId ? record.storageLocationBreakdown?.[locId] || 0 : record.quantityLeft || 0;
+    const originalQty = locId
+      ? record.storageLocationBreakdown?.[locId] || 0
+      : record.quantityLeft || 0;
 
     if (val === "" || isNaN(parseFloat(val))) {
       setPendingAdjustments((prev) => {
@@ -478,12 +593,19 @@ export default function AuditPage() {
     });
   };
 
+  const handleFilterCountedToggle = (checked: boolean) => {
+    setFilterCountedPackages(checked);
+    fetchData(1, pagination.pageSize, null, checked);
+  };
+
   const handleSelect200 = async () => {
     setIsSelecting200(true);
     try {
       const allData = await fetchAllAuditData(200);
       const toSelect = allData.slice(0, 200);
-      const keys = toSelect.map((r) => (r.rowLocationId ? `${r.id}-${r.rowLocationId}` : r.id));
+      const keys = toSelect.map((r) =>
+        r.rowLocationId ? `${r.id}-${r.rowLocationId}` : r.id,
+      );
       setSelectedRowKeys(keys);
       setSelectedRows(toSelect);
     } catch {
@@ -491,11 +613,6 @@ export default function AuditPage() {
     } finally {
       setIsSelecting200(false);
     }
-  };
-
-  const handleFilterCountedToggle = (checked: boolean) => {
-    setFilterCountedPackages(checked);
-    fetchData(1, pagination.pageSize, null, checked);
   };
 
   const fetchSessionsList = async () => {
@@ -517,8 +634,14 @@ export default function AuditPage() {
   };
 
   const handleOpenLiveCart = (session: LiveAuditSession) => {
-    const sessionPackageIds = new Set(Object.keys(session.countKV || {}).filter((k) => k !== "string"));
-    const matched = data.filter((r) => sessionPackageIds.has(r.id) || sessionPackageIds.has(r.advertisedId || ""));
+    const sessionPackageIds = new Set(
+      Object.keys(session.countKV || {}).filter((k) => k !== "string"),
+    );
+    const matched = data.filter(
+      (r) =>
+        sessionPackageIds.has(r.id) ||
+        sessionPackageIds.has(r.advertisedId || ""),
+    );
     setLiveCartSession(session);
     setLiveCartPackages(matched);
     setIsLiveCartOpen(true);
@@ -529,7 +652,7 @@ export default function AuditPage() {
       toast.warning("No data available to export");
       return;
     }
- 
+
     setExporting(true);
     try {
       if (type === "csv") {
@@ -557,12 +680,19 @@ export default function AuditPage() {
   };
 
   return (
-    <div className={fullscreen ? "fixed inset-0 z-2000 overflow-y-auto bg-background p-6" : "flex flex-col gap-4 p-6"}>
+    <div
+      className={
+        fullscreen
+          ? "fixed inset-0 z-2000 overflow-y-auto bg-background p-6"
+          : "flex flex-col gap-4 p-6"
+      }>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+              <BreadcrumbLink href="/inventory-management">
+                Inventory Management
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -573,183 +703,248 @@ export default function AuditPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex overflow-hidden rounded-lg bg-muted p-0.5">
-            {(["regular", "live"] as const).map((mode) => (
+            {(
+              [
+                { key: "scanOnly", label: "Scan Only" },
+                { key: "table", label: "Table" },
+              ] as const
+            ).map((mode) => (
               <button
-                key={mode}
+                key={mode.key}
                 type="button"
-                onClick={() => setViewMode(mode)}
-                className={`rounded-[7px] px-3 py-1 text-sm capitalize transition-colors ${viewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"}`}
-              >
-                {mode}
+                onClick={() => setViewMode(mode.key)}
+                className={`rounded-[7px] px-3 py-1 text-sm transition-colors ${viewMode === mode.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"}`}>
+                {mode.label}
               </button>
             ))}
           </div>
 
-          <CountingModeToggle value={countingMode} onChange={handleCountingModeChange} />
+          {viewMode === "table" && (
+            <CountingModeToggle
+              value={countingMode}
+              onChange={handleCountingModeChange}
+            />
+          )}
 
-          {validAdjustments.length > 0 && (
-            <Button className="bg-green-600 font-semibold hover:bg-green-700" onClick={() => setIsAdjustDrawerOpen(true)}>
+          {viewMode === "table" && validAdjustments.length > 0 && (
+            <Button
+              size="sm"
+              className="bg-green-600 font-semibold hover:bg-green-700"
+              onClick={() => setIsAdjustDrawerOpen(true)}>
               Adjust ({validAdjustments.length})
             </Button>
           )}
 
-          <div className="mx-1 h-6 w-px bg-border" />
+          {!sessionLoading && sessionCount !== null && sessionCount > 0 && (
+            <button
+              onClick={handleOpenSessionsList}
+              className="flex items-center gap-1.5 rounded-full border border-yellow-300 bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400">
+              <span className="size-2 rounded-full bg-yellow-500" />
+              {sessionCount} session{sessionCount !== 1 ? "s" : ""} in progress
+            </button>
+          )}
+
+          {mySession && (
+            <Button
+              size="sm"
+              className="bg-green-500 hover:bg-green-600"
+              onClick={() =>
+                router.push(`/inventory-management/audit/${mySession.id}`)
+              }>
+              Continue My Session
+              {getSessionTimeRemaining() !== null &&
+                ` (${getSessionTimeRemaining()}m left)`}
+            </Button>
+          )}
+
+          <Button
+            size="sm"
+            disabled={!filters.location || selectedRowKeys.length === 0}
+            onClick={() => setIsAddLiveSessionDrawerOpen(true)}>
+            Add Live Session
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="outline" disabled={!data || data.length === 0 || exporting} />}>
-              <Download className="size-4" />
-              Export
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="More actions"
+                />
+              }>
+              <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => handleExport("csv")}>Export to CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("xls")}>Export to Excel</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("pdf")}>Export to PDF</DropdownMenuItem>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                disabled={!data || data.length === 0 || exporting}
+                onClick={() => handleExport("csv")}>
+                Export to CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!data || data.length === 0 || exporting}
+                onClick={() => handleExport("xls")}>
+                Export to Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!data || data.length === 0 || exporting}
+                onClick={() => handleExport("pdf")}>
+                Export to PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setIsResetConfirmOpen(true)}>
+                Reset Filters
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
-            <AlertDialogTrigger>
-              <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                Reset
-              </Button>
-            </AlertDialogTrigger>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setFullscreen((f) => !f)}>
+            {fullscreen ? (
+              <Minimize className="size-4" />
+            ) : (
+              <Maximize className="size-4" />
+            )}
+          </Button>
+
+          <AlertDialog
+            open={isResetConfirmOpen}
+            onOpenChange={setIsResetConfirmOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset Filters</AlertDialogTitle>
-                <AlertDialogDescription>Are you sure you want to reset all filters?</AlertDialogDescription>
+                <AlertDialogDescription>
+                  Are you sure you want to reset all filters?
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={executeReset}>Reset</AlertDialogAction>
+                <AlertDialogAction onClick={executeReset}>
+                  Reset
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-
-          {viewMode === "live" && !sessionLoading && sessionCount !== null && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleOpenSessionsList}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                  sessionCount > 0
-                    ? "border-yellow-300 bg-yellow-100 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400"
-                    : "border-border bg-muted text-muted-foreground"
-                }`}
-              >
-                <span className={`size-2 rounded-full ${sessionCount > 0 ? "bg-yellow-500" : "bg-muted-foreground"}`} />
-                {sessionCount} session{sessionCount !== 1 ? "s" : ""} in progress
-              </button>
-
-              {mySession ? (
-                <Button
-                  className="bg-green-500 hover:bg-green-600"
-                  onClick={() => router.push(`/inventory-management/audit/${mySession.id}`)}
-                >
-                  Go to Live Count Session
-                  {getSessionTimeRemaining() !== null && ` (${getSessionTimeRemaining()} min left)`}
-                </Button>
-              ) : (
-                selectedRowKeys.length > 0 && (
-                  <Button disabled={!filters.location} onClick={() => setIsLiveSessionDrawerOpen(true)}>
-                    Start Live Count Session ({selectedRowKeys.length})
-                  </Button>
-                )
-              )}
-            </div>
-          )}
-
-          <Button variant="outline" size="icon" onClick={() => setFullscreen((f) => !f)}>
-            {fullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
-          </Button>
         </div>
       </div>
 
-      <AuditFilterBar
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        locations={locations}
-        suppliers={suppliers}
-        filterCountedPackages={filterCountedPackages}
-        countedPackagesLoading={countedPackagesLoading}
-        countedPackageCount={countedPackageKeys.size}
-        onFilterCountedToggle={handleFilterCountedToggle}
-        viewMode={viewMode}
-      />
-
-      {countingMode === "scan" && (
-        <ScanModeBar
-          value={scanInput}
-          onChange={setScanInput}
-          onScan={handleScan}
-          scanCounts={scanCounts}
-          onClear={handleClearScanCounts}
-        />
-      )}
-
-      {(viewMode === "live" || selectedRowKeys.length > 0) && (
-        <div className="flex items-center gap-2">
-          {viewMode === "live" && (
-            <Button size="sm" variant="outline" onClick={handleSelect200} disabled={data.length === 0 || isSelecting200}>
-              {isSelecting200 ? "Selecting..." : "Select 200 Packages"}
-            </Button>
-          )}
-          {selectedRowKeys.length > 0 && (
-            <>
-              <span className="text-xs font-semibold text-blue-600">
-                {selectedRowKeys.length} package{selectedRowKeys.length !== 1 ? "s" : ""} selected
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setSelectedRowKeys([]);
-                  setSelectedRows([]);
-                }}
-              >
-                Clear
-              </Button>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <AuditTable
-          data={data}
-          loading={loading || countedPackagesLoading}
-          locationMap={locationMap}
-          locationFilter={filters.location}
-          countingMode={countingMode}
-          scanCounts={scanCounts}
-          flashingRows={flashingRows}
-          pendingAdjustments={pendingAdjustments}
-          onQtyChange={handleQtyChange}
-          selectable={viewMode === "live"}
-          selectedRowKeys={selectedRowKeys}
-          onSelectionChange={(keys, rows) => {
-            setSelectedRowKeys(keys);
-            setSelectedRows((prev) => {
-              const rowMap = new Map<string, AuditPackageRow>(
-                prev.map((r) => [r.rowLocationId ? `${r.id}-${r.rowLocationId}` : String(r.id), r])
-              );
-              rows.forEach((r) => rowMap.set(r.rowLocationId ? `${r.id}-${r.rowLocationId}` : String(r.id), r));
-              return keys.map((k) => rowMap.get(String(k))).filter(Boolean) as AuditPackageRow[];
-            });
+      {viewMode === "scanOnly" ? (
+        <ScanOnlyAuditView
+          shopId={shopId as string}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          locations={locations}
+          suppliers={suppliers}
+          filterCountedPackages={filterCountedPackages}
+          countedPackagesLoading={countedPackagesLoading}
+          countedPackageCount={countedPackageKeys.size}
+          onFilterCountedToggle={handleFilterCountedToggle}
+          onSubmitted={() => {
+            fetchData(1, pagination.pageSize);
+            fetchSessionInfo();
           }}
         />
-      </div>
+      ) : (
+        <>
+          <AuditFilterBar
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            locations={locations}
+            suppliers={suppliers}
+            filterCountedPackages={filterCountedPackages}
+            countedPackagesLoading={countedPackagesLoading}
+            countedPackageCount={countedPackageKeys.size}
+            onFilterCountedToggle={handleFilterCountedToggle}
+          />
 
-      {countingMode !== "scan" && (
-        <TablePagination
-          page={pagination.current}
-          totalPages={pagination.totalPages}
-          totalEntries={pagination.total}
-          pageSize={pagination.pageSize}
-          loading={loading}
-          onPageChange={(p: number) => fetchData(p, pagination.pageSize)}
-          pageSizeOptions={[30, 50, 100, 200]}
-          onPageSizeChange={(s) => fetchData(1, s)}
-        />
+          {countingMode === "scan" && (
+            <ScanModeBar
+              value={scanInput}
+              onChange={setScanInput}
+              onScan={handleScan}
+              scanCounts={scanCounts}
+              onClear={handleClearScanCounts}
+            />
+          )}
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSelect200}
+              disabled={data.length === 0 || isSelecting200}>
+              {isSelecting200 ? "Selecting..." : "Select 200 Packages"}
+            </Button>
+            {selectedRowKeys.length > 0 && (
+              <>
+                <span className="text-xs font-semibold text-blue-600">
+                  {selectedRowKeys.length} package
+                  {selectedRowKeys.length !== 1 ? "s" : ""} selected
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedRowKeys([]);
+                    setSelectedRows([]);
+                  }}>
+                  Clear
+                </Button>
+              </>
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <AuditTable
+              data={data}
+              loading={loading || countedPackagesLoading}
+              locationMap={locationMap}
+              locationFilter={filters.location}
+              countingMode={countingMode}
+              scanCounts={scanCounts}
+              flashingRows={flashingRows}
+              pendingAdjustments={pendingAdjustments}
+              selectable
+              selectedRowKeys={selectedRowKeys}
+              onSelectionChange={(keys, rows) => {
+                setSelectedRowKeys(keys);
+                setSelectedRows((prev) => {
+                  const rowMap = new Map<string, AuditPackageRow>(
+                    prev.map((r) => [
+                      r.rowLocationId
+                        ? `${r.id}-${r.rowLocationId}`
+                        : String(r.id),
+                      r,
+                    ]),
+                  );
+                  rows.forEach((r) =>
+                    rowMap.set(
+                      r.rowLocationId
+                        ? `${r.id}-${r.rowLocationId}`
+                        : String(r.id),
+                      r,
+                    ),
+                  );
+                  return keys
+                    .map((k) => rowMap.get(String(k)))
+                    .filter(Boolean) as AuditPackageRow[];
+                });
+              }}
+              onQtyChange={handleQtyChange}
+              hasMore={pagination.current < pagination.totalPages}
+              loadingMore={loadingMore}
+              onLoadMore={handleLoadMore}
+            />
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            Showing {data.length} of {pagination.total} package
+            {pagination.total !== 1 ? "s" : ""}
+          </div>
+        </>
       )}
 
       <AdjustPackagesDrawer
@@ -764,14 +959,16 @@ export default function AuditPage() {
         }}
       />
 
-      <StartLiveSessionDrawer
-        open={isLiveSessionDrawerOpen}
-        onClose={() => setIsLiveSessionDrawerOpen(false)}
+      <AddLiveSessionDrawer
+        open={isAddLiveSessionDrawerOpen}
+        onClose={() => setIsAddLiveSessionDrawerOpen(false)}
         selectedRows={selectedRows}
-        locationMap={locationMap}
-        locationId={filters.location}
+        locationId={filters.location || ""}
+        locationName={
+          filters.location ? locationMap[filters.location] : undefined
+        }
         onCreated={() => {
-          setIsLiveSessionDrawerOpen(false);
+          setIsAddLiveSessionDrawerOpen(false);
           setSelectedRowKeys([]);
           setSelectedRows([]);
           fetchSessionInfo();
@@ -788,8 +985,7 @@ export default function AuditPage() {
         currentUserId={currentUserId}
         onDismissed={() => {
           fetchSessionInfo();
-          fetchData(pagination.current, pagination.pageSize);
-          if (filterCountedPackages) fetchData(pagination.current, pagination.pageSize, null, true);
+          fetchData(1, AUDIT_PAGE_SIZE, null, filterCountedPackages || null);
         }}
       />
 

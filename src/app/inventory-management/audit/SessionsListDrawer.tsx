@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { useShop } from "@/context/shop-context";
+import { usePermission } from "@/util/use-permission";
 import { removeLiveAuditSession } from "@/services/auditSessions/removeLiveAuditSession";
 
 import Drawer from "@/components/ui/Drawer";
@@ -52,7 +53,9 @@ export default function SessionsListDrawer({
 }: SessionsListDrawerProps) {
   const router = useRouter();
   const { shopId } = useShop();
+  const { hasRole } = usePermission();
   const [dismissingId, setDismissingId] = useState<string | number | null>(null);
+  const canStartAny = hasRole("BOTH");
 
   const handleDismiss = async (session: LiveAuditSession) => {
     setDismissingId(session.id);
@@ -157,9 +160,11 @@ export default function SessionsListDrawer({
                     </div>
 
                     <div className="flex gap-2 border-t px-4 py-2.5">
-                      {currentUserId === session.userId && (
+                      {(currentUserId === session.userId ||
+                        currentUserId === session.assignedToId ||
+                        canStartAny) && (
                         <Button size="sm" onClick={() => router.push(`/inventory-management/audit/${session.id}`)}>
-                          Go to Live Count Session
+                          Start Now
                         </Button>
                       )}
 
@@ -169,7 +174,7 @@ export default function SessionsListDrawer({
                             Dismiss Session
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent zIndex={1010}>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Dismiss this session?</AlertDialogTitle>
                             <AlertDialogDescription>

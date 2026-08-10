@@ -3,8 +3,15 @@ import { handleApiError } from "@/services/handleApiError";
 
 export async function createLiveAuditSession(body: {
   shopId: string | number;
-  packageIds: (string | number)[];
+  packageIds?: (string | number)[];
   storageLocationId?: string | number;
+  assignedToId?: string | number;
+  isBlindCount?: boolean;
+  countMethod?: "SCAN" | "MANUAL" | "EITHER";
+  shouldCreateTask?: boolean;
+  dueDate?: string;
+  notes?: string;
+  startImmediately?: boolean;
 }) {
   try {
     const { data } = await api.post("/audit-sessions/create", body);
