@@ -759,7 +759,7 @@ export default function AuditPage() {
 
           <Button
             size="sm"
-            disabled={!filters.location || selectedRowKeys.length === 0}
+            disabled={!filters.location}
             onClick={() => setIsAddLiveSessionDrawerOpen(true)}>
             Add Live Session
           </Button>
