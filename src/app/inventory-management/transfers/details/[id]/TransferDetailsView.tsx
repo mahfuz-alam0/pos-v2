@@ -311,7 +311,7 @@ export default function TransferDetailsView({ id }: { id: string }) {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/inventory-management">Inventory</BreadcrumbLink>
+            <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

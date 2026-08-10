@@ -183,11 +183,11 @@ export default function MetrcConfigurationPage() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage>Settings</BreadcrumbPage>
+            <BreadcrumbPage>METRC</BreadcrumbPage>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Metrc Configuration</BreadcrumbPage>
+            <BreadcrumbPage>METRC Configuration</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>

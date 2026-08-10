@@ -741,15 +741,11 @@ export default function InventoryOnHandTable() {
         <Breadcrumb>
           <BreadcrumbList className="text-[14px]">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/inventory-management">Insights</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="font-medium text-primary">Inventory On Hand</BreadcrumbPage>
+              <BreadcrumbPage className="font-medium text-primary">Inventory Levels</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
