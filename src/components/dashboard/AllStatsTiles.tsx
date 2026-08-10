@@ -41,15 +41,6 @@ export default function AllStatsTiles() {
 
         const value = (result) => (result.status === "fulfilled" ? (result.value?.data?.data ?? 0) : 0);
 
-        console.log("[AllStatsTiles] settled results:", {
-          inventoryStats,
-          customersStats,
-          tasksStats,
-          employeeStats,
-          salesStats,
-          dealStats,
-        });
-
         setStats({
           products: value(inventoryStats),
           customers: value(customersStats),
@@ -67,20 +58,26 @@ export default function AllStatsTiles() {
   }, [shopId]);
 
   return (
-    <div className="flex w-full flex-wrap justify-center gap-3 md:flex-nowrap">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       {TILES.map((tile) => {
         const Icon = tile.icon;
         const value = loading ? "-" : stats[tile.key];
         return (
-          <Link href={tile.href} key={tile.key} className="w-[calc(50%-0.5rem)] md:w-1/6">
-            <div
-              className="flex h-full min-h-22 items-center gap-3 rounded-xl p-3 text-white shadow-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: tile.color, opacity: loading ? 0.6 : 1 }}
-            >
-              <Icon className="size-8 shrink-0 opacity-90 xl:size-9" />
+          <Link
+            href={tile.href}
+            key={tile.key}
+            className="rounded-2xl bg-component-bg p-4 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${tile.color}1f` }}
+              >
+                <Icon className="size-5" style={{ color: tile.color }} />
+              </div>
               <div className="min-w-0">
-                <h3 className="m-0 text-sm font-semibold xl:text-2xl">{value}</h3>
-                <p className="m-0 text-xs xl:text-sm">{tile.label}</p>
+                <h3 className="m-0 text-2xl font-bold leading-none text-heading">{value}</h3>
+                <p className="m-0 mt-1 text-xs font-medium text-muted-foreground">{tile.label}</p>
               </div>
             </div>
           </Link>
