@@ -27,8 +27,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 
 import AttributeDetailsPanel from "./AttributeDetailsPanel";
 import type { AttributeRow, PaginationState } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function AttributesTable({
   refreshKey,
@@ -37,13 +37,14 @@ export default function AttributesTable({
   refreshKey: number;
   onEdit: (id: string | number) => void;
 }) {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<AttributeRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });

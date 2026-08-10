@@ -27,6 +27,7 @@ import {
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { useSettings } from "@/context/settings-context";
 
 const fmtDate = (d) => {
   if (!d) return "-";
@@ -65,10 +66,11 @@ const calcFinalPrice = (item, misc) => {
 };
 
 export default function ReturnsPage() {
+  const { defaultPageSize } = useSettings();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);

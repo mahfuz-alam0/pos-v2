@@ -41,6 +41,7 @@ import ReconcilePackageDrawer from "./ReconcilePackageDrawer";
 import { CleanupPackagesDrawer, CleanupPreferencesDrawer } from "./CleanupDrawer";
 import { exportPackagesToCSV, exportPackagesToXLS } from "./packagesExport";
 import type { BrandOption, CategoryOption, PackageFilters, PackageRow, PackageTab, StorageLocationOption } from "./types";
+import { useSettings } from "@/context/settings-context";
 
 const DEFAULT_FILTERS: PackageFilters = {
   searchText: "",
@@ -104,6 +105,7 @@ function buildQueryParams(tab: PackageTab, filters: PackageFilters, page: number
 }
 
 export default function PackagesPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -122,7 +124,7 @@ export default function PackagesPage() {
   const [rows, setRows] = useState<PackageRow[]>([]);
   const [archivedRows, setArchivedRows] = useState<PackageRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [brands, setBrands] = useState<BrandOption[]>([]);

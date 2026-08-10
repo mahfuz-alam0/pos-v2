@@ -25,6 +25,7 @@ import CustomerDetailDrawer from "@/components/front-desk/CustomerDetailDrawer";
 import CheckInsTable from "./CheckInsTable";
 import MergeCustomersDrawer from "./MergeCustomersDrawer";
 import BulkUploadDrawer from "./BulkUploadDrawer";
+import { useSettings } from "@/context/settings-context";
 
 function formatAge(dob?: string) {
   if (!dob || Number.isNaN(Date.parse(dob))) return null;
@@ -33,6 +34,7 @@ function formatAge(dob?: string) {
 }
 
 export default function CustomersTable() {
+  const { defaultPageSize } = useSettings();
   const [mainTab, setMainTab] = useState<"customers" | "checkins">("customers");
 
   const [filterOptions, setFilterOptions] = useState<{ queryFieldName: string; displayName: string }[]>([]);
@@ -50,7 +52,7 @@ export default function CustomersTable() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalEntries, setTotalEntries] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 

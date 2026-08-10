@@ -33,8 +33,8 @@ import NotificationDetailsPanel from "./NotificationDetailsPanel";
 import NotificationSettingsTable from "./NotificationSettingsTable";
 import ComposeNotificationDrawer from "./ComposeNotificationDrawer";
 import type { EntityOption, NotificationRow, PendingNotification } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
 
 function formatDate(date?: string) {
   if (!date) return "-";
@@ -49,9 +49,10 @@ function formatDate(date?: string) {
 }
 
 export default function NotificationsTable() {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: defaultPageSize, totalEntries: 0, totalPages: 0 });
 
   const [selected, setSelected] = useState<NotificationRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<NotificationRow | null>(null);

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import DeliveryProfileDetailsPanel from "./DeliveryProfileDetailsPanel";
 import DeliveryProfileFormDrawer from "./DeliveryProfileFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const ALL_REGIONS = ["CALIFORNIA", "MICHIGAN"];
 
@@ -31,11 +32,12 @@ interface DeliveryProfileRow {
 }
 
 export default function DeliveryProfilesPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<DeliveryProfileRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
 

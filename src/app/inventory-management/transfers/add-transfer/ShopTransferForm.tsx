@@ -25,10 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PackagePickerTable, { type PackagePickerRow } from "./PackagePickerTable";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function ShopTransferForm() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -48,7 +50,7 @@ export default function ShopTransferForm() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [selectedRows, setSelectedRows] = useState<(PackagePickerRow & { unitPrice?: number })[]>([]);
   const [submitting, setSubmitting] = useState(false);

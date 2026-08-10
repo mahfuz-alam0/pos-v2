@@ -42,6 +42,7 @@ import MergeProductsDrawer from "./MergeProductsDrawer";
 import ActivityLogDrawer from "./ActivityLogDrawer";
 import ProductDetailsPanel from "./ProductDetailsPanel";
 import type { PaginationState, ProductFilters, ProductRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
 const DEFAULT_FILTERS: ProductFilters = { search: "", brandIds: null, categoryIds: null, tagIds: null };
 
@@ -62,10 +63,11 @@ export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("id");
+  const { defaultPageSize } = useSettings();
 
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState<PaginationState>({ limit: 50, page: 1, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState<PaginationState>({ limit: defaultPageSize, page: 1, totalEntries: 0, totalPages: 0 });
 
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 500);

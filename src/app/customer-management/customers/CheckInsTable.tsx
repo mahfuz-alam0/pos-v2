@@ -10,6 +10,7 @@ import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagi
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSettings } from "@/context/settings-context";
 
 const ORDER_FILTER_ITEMS = [
   { value: "all", label: "All Check-ins" },
@@ -40,10 +41,11 @@ interface CheckInsTableProps {
 }
 
 export default function CheckInsTable({ onRowClick }: CheckInsTableProps) {
+  const { defaultPageSize } = useSettings();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [total, setTotal] = useState(0);
   const [orderFilter, setOrderFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);

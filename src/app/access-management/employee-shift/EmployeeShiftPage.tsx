@@ -36,6 +36,7 @@ import LiveShiftControl from "./LiveShiftControl";
 import ShiftFormDrawer from "./ShiftFormDrawer";
 import TotalWorkHoursDrawer from "./TotalWorkHoursDrawer";
 import DeleteShiftDrawer from "./DeleteShiftDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const DATE_FILTERS = ["All", "Today", "Yesterday", "Custom"] as const;
 type DateFilter = (typeof DATE_FILTERS)[number];
@@ -57,12 +58,13 @@ function hoursWorked(row: any) {
 }
 
 export default function EmployeeShiftPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const { user } = usePermission();
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [liveShift, setLiveShift] = useState<any>(null);
 
   const [formOpen, setFormOpen] = useState(false);

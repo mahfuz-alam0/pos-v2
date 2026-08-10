@@ -18,6 +18,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import TaskItem from "./TaskItem";
 import TaskDetailsPanel from "./TaskDetailsPanel";
 import AddTaskDrawer from "./AddTaskDrawer";
+import { useSettings } from "@/context/settings-context";
 
 interface Task {
   id: string;
@@ -39,6 +40,7 @@ interface TaskStatus {
 }
 
 export default function TasksListingPage() {
+  const { defaultPageSize } = useSettings();
   const [isAdmin] = useState(() => getCurrentUser()?.type === "SUPER_ADMIN");
 
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -47,7 +49,7 @@ export default function TasksListingPage() {
   const [loading, setLoading] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
-  const [pagination, setPagination] = useState({ pageSize: 20, total: 0, current: 1 });
+  const [pagination, setPagination] = useState({ pageSize: defaultPageSize, total: 0, current: 1 });
 
   const tasks = useMemo(() => {
     return allTasks.filter((task) => {

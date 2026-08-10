@@ -27,6 +27,7 @@ import {
 import DrawerDetailsPanel from "./DrawerDetailsPanel";
 import DeleteDrawerDrawer from "./DeleteDrawerDrawer";
 import DrawerFormDrawer from "./DrawerFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 interface DrawerRow {
   id: string;
@@ -38,13 +39,14 @@ interface DrawerRow {
 }
 
 export default function DrawersPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<DrawerRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [registers, setRegisters] = useState<{ id: string; name: string }[]>([]);
   const [registerFilter, setRegisterFilter] = useState(searchParams.get("registerId") || "__all__");

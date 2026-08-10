@@ -10,16 +10,18 @@ import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagi
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import SessionDetailDrawer from "./SessionDetailDrawer";
+import { useSettings } from "@/context/settings-context";
 
 function money(v: number | undefined) {
   return `$${(v ?? 0).toFixed(2)}`;
 }
 
 export default function DrawerSessionsTable({ drawerId, refreshKey = 0 }: { drawerId: string; refreshKey?: number }) {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [selectedSession, setSelectedSession] = useState<any>(null);
 
   const load = useCallback(

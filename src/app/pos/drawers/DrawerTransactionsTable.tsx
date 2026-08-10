@@ -11,6 +11,7 @@ import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagi
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import EditTransactionDrawer from "./EditTransactionDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const EVENT_LABELS: Record<string, string> = {
   CASH_WITHDRAWAL: "Cash Withdrawal",
@@ -41,10 +42,11 @@ export default function DrawerTransactionsTable({
   refreshKey = 0,
   onChanged,
 }: DrawerTransactionsTableProps) {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [editTarget, setEditTarget] = useState<any>(null);
 
   const load = useCallback(

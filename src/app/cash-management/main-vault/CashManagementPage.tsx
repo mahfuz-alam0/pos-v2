@@ -18,6 +18,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import VaultTransactionDetails from "./VaultTransactionDetails";
 import VaultActionDialog from "./VaultActionDialog";
 import TransferFromDrawerDialog from "./TransferFromDrawerDialog";
+import { useSettings } from "@/context/settings-context";
 
 type DateRangeFilter = "ALL" | "WEEK" | "MONTH" | "YEAR" | "CUSTOM";
 
@@ -42,11 +43,12 @@ function toISODate(date: Date) {
 }
 
 export default function CashManagementPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("ALL");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);

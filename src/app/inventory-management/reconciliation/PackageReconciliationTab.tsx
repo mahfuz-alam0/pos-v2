@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import Drawer from "@/components/ui/Drawer";
 import ReconciliationDetailPanel from "./ReconciliationDetailPanel";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
@@ -35,6 +36,7 @@ function toDateStr(date: Date) {
 }
 
 export default function PackageReconciliationTab() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -45,7 +47,7 @@ export default function PackageReconciliationTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();

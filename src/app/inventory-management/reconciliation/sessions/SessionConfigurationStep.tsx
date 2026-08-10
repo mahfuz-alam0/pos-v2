@@ -46,6 +46,7 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import LiveSessionTimer from "./live/LiveSessionTimer";
 import SessionPhaseOne from "./live/SessionPhaseOne";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
@@ -93,6 +94,7 @@ interface SessionConfigurationStepProps {
 }
 
 export default function SessionConfigurationStep({ mode, sessionId }: SessionConfigurationStepProps) {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
   const userInfo = useCurrentUser();
@@ -103,7 +105,7 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [search, setSearch] = useState("");
   const [brandId, setBrandId] = useState<string | number | null>(null);

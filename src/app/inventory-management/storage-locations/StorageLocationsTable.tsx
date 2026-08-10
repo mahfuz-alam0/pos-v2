@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import StorageLocationDetails from "./StorageLocationDetails";
 import StorageLocationDrawer from "./StorageLocationDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
@@ -41,6 +42,7 @@ interface StorageLocationRow {
 }
 
 export default function StorageLocationsTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -52,7 +54,7 @@ export default function StorageLocationsTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
     open: false,
     mode: "add",

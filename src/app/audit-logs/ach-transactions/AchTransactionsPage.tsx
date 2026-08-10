@@ -14,6 +14,7 @@ import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagi
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useSettings } from "@/context/settings-context";
 
 const STATUS_OPTIONS = [
   { value: "__all__", label: "Select Status" },
@@ -22,6 +23,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AchTransactionsPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [status, setStatus] = useState("");
@@ -29,7 +31,7 @@ export default function AchTransactionsPage() {
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const loadTransactions = useCallback(
     async (page = 1, pageSize = pagination.pageSize) => {

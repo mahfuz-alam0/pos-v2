@@ -32,6 +32,7 @@ import { Field } from "@/components/admin/form-fields";
 import EmployeeDetailPanel from "./EmployeeDetailPanel";
 import DeleteEmployeeDrawer from "./DeleteEmployeeDrawer";
 import EmployeeFormDrawer from "./EmployeeFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMINISTRATION: "Administration",
@@ -52,12 +53,13 @@ function formatPhone(phone?: string) {
 }
 
 export default function EmployeesPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const { user } = usePermission();
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [search, setSearch] = useState("");
   const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
   const [employeeFilter, setEmployeeFilter] = useState("");

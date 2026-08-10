@@ -30,10 +30,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import AuditSessionDetailDrawer from "./AuditSessionDetailDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function AuditSessionsTab() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,7 +46,7 @@ export default function AuditSessionsTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);

@@ -52,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import InventoryDetailsDrawer from "./InventoryDetailsDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
@@ -104,6 +105,7 @@ const emptyFilters: {
 };
 
 export default function ManageInventoriesTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -112,7 +114,7 @@ export default function ManageInventoriesTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [isOpenForSellableStore, setIsOpenForSellableStore] = useState(true);
 
   const [searchInput, setSearchInput] = useState("");

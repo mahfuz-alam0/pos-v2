@@ -36,6 +36,7 @@ import DealFormDrawer from "./DealFormDrawer";
 import DealDetailsPanel from "./DealDetailsPanel";
 import type { DealRow, DealType } from "./types";
 import { DEAL_TYPE_BADGE_VARIANT } from "@/services/promotions/enums";
+import { useSettings } from "@/context/settings-context";
 
 const REMOVERS: Record<DealType, (id: string | number) => Promise<any>> = {
   REGULAR: removeRegularDeal,
@@ -59,6 +60,7 @@ type DealFilters = {
 const DEFAULT_FILTERS: DealFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
 
 export default function DealsTab() {
+  const { defaultPageSize } = useSettings();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [openDeal, setOpenDeal] = useState<{ id: string; type: DealType } | null>(() => {
@@ -80,7 +82,7 @@ export default function DealsTab() {
   const [allRows, setAllRows] = useState<DealRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit" | "duplicate"; dealId: string | null; dealType: DealType | null }>({
     open: false,

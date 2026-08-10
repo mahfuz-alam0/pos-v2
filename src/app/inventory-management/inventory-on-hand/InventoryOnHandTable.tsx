@@ -36,6 +36,7 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
@@ -131,6 +132,7 @@ function StatCard({
 type FilterType = "category" | "brand" | "product" | null;
 
 export default function InventoryOnHandTable() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [activeTab, setActiveTab] = useState<"products" | "packages">("products");
@@ -154,7 +156,7 @@ export default function InventoryOnHandTable() {
 
   const [productPagination, setProductPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
   const [packagePagination, setPackagePagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [stats, setStats] = useState({
     categoryCount: 0,

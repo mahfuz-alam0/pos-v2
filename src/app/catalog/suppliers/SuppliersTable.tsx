@@ -30,10 +30,11 @@ import {
 import SupplierFormDrawer from "./SupplierFormDrawer";
 import SupplierDetailsPanel from "./SupplierDetailsPanel";
 import type { PaginationState, SupplierRow, SupplierTypeOption } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function SuppliersTable() {
+  const { defaultPageSize } = useSettings();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [supplierTypeId, setSupplierTypeId] = useState<string>("all");
@@ -43,7 +44,7 @@ export default function SuppliersTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });

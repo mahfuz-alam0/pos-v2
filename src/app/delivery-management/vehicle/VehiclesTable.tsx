@@ -31,8 +31,8 @@ import {
 import VehicleFormDrawer from "./VehicleFormDrawer";
 import VehicleDetailsPanel from "./VehicleDetailsPanel";
 import ReportToMetrcDrawer from "./ReportToMetrcDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
 
 interface VehicleRow {
   id: string;
@@ -57,6 +57,7 @@ const METRC_STATUS_OPTIONS = [
 ];
 
 export default function VehiclesTable() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const isCaliforniaState = typeof window !== "undefined" && localStorage.getItem("isCaliforniaState") === "true";
 
@@ -67,7 +68,7 @@ export default function VehiclesTable() {
 
   const [rows, setRows] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: defaultPageSize, totalEntries: 0, totalPages: 0 });
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; vehicleId: string | number | null }>({
     open: false,

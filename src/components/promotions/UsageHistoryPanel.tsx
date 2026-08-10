@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { fetchPromoUsages } from "@/services/promoUsage/list";
+import { useSettings } from "@/context/settings-context";
 
 export function UsageHistoryPanel({
   open,
@@ -22,12 +23,13 @@ export function UsageHistoryPanel({
   id: string | number | null;
   title?: string;
 }) {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const load = async (targetPage = 1, size = pageSize) => {
     if (!id) return;

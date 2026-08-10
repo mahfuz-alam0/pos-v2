@@ -26,6 +26,7 @@ import RegisterDetailsPanel from "./RegisterDetailsPanel";
 import ManageHardwareDialog from "./ManageHardwareDialog";
 import DeleteRegisterDrawer from "./DeleteRegisterDrawer";
 import RegisterFormDrawer from "./RegisterFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 interface RegisterRow {
   id: string;
@@ -35,11 +36,12 @@ interface RegisterRow {
 }
 
 export default function RegistersPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<RegisterRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [selectedRegister, setSelectedRegister] = useState<any>(null);
 

@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchCustomersPurchaseHistory } from "@/services/reporting/customersPurchaseHistory";
 import { fetchCustomerTypeSummary } from "@/services/reporting/customerTypeSummary";
 import { fetchCategoriesList } from "@/services/categories/list";
@@ -50,8 +51,6 @@ import {
   exportPurchaseHistoryToCsv,
 } from "./exportConfig.purchaseHistory";
 
-const PAGE_SIZE = 30;
-const SUMMARY_PAGE_SIZE = 50;
 
 function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
@@ -59,6 +58,7 @@ function todayStr() {
 
 export default function CustomerPurchaseHistoryTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
     startDate: todayStr(),
@@ -77,13 +77,13 @@ export default function CustomerPurchaseHistoryTable() {
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const [pagination, setPagination] = useState({ page: 1, pageSize: PAGE_SIZE, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [summaryRows, setSummaryRows] = useState<any[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryPageSize, setSummaryPageSize] = useState(SUMMARY_PAGE_SIZE);
-  const [summaryPagination, setSummaryPagination] = useState({ page: 1, pageSize: SUMMARY_PAGE_SIZE, totalPages: 1, totalEntries: 0 });
+  const [summaryPageSize, setSummaryPageSize] = useState(defaultPageSize);
+  const [summaryPagination, setSummaryPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);

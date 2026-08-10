@@ -29,11 +29,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import RoleFormDrawer from "./RoleFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 export default function RolesPage() {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);

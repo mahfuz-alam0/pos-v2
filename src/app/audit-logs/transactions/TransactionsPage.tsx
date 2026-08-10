@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useSettings } from "@/context/settings-context";
 
 type DateFilter = "all" | "today" | "yesterday" | "custom";
 
@@ -32,6 +33,7 @@ function startOfDayInShopTz(date: Date) {
 }
 
 export default function TransactionsPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [employees, setEmployees] = useState<{ id: string | number; name: string }[]>([]);
@@ -47,7 +49,7 @@ export default function TransactionsPage() {
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   useEffect(() => {
     fetchEmployeesList({ limit: 100 }).then((res) => setEmployees(res?.data?.employees ?? []));

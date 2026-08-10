@@ -34,6 +34,7 @@ import {
 
 import PurchaseOrderDetailPanel from "./PurchaseOrderDetailPanel";
 import type { PurchaseOrderRow, SupplierOption } from "./types";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
@@ -62,6 +63,7 @@ function fmtDate(value?: string) {
 }
 
 export default function PurchaseOrdersPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -79,7 +81,7 @@ export default function PurchaseOrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [metrcIdInput, setMetrcIdInput] = useState("");
   const debouncedMetrcId = useDebounce(metrcIdInput, 300);

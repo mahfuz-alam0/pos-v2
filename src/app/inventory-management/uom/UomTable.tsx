@@ -19,10 +19,12 @@ import {
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import UomFormDrawer from "./UomFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function UomTable() {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -30,7 +32,7 @@ export default function UomTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
-  const [pageSize, setPageSize] = useState(30);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const loadUoms = useCallback(async (targetPage = 1, size = pageSize) => {
     setLoading(true);

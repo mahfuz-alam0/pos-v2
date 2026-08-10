@@ -31,6 +31,7 @@ import {
 import CouponFormDrawer from "./CouponFormDrawer";
 import CouponDetailsPanel from "./CouponDetailsPanel";
 import type { CouponRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
 const DELIVERY_METHOD_OPTIONS = [
   { id: "IN_STORE", name: "In Store" },
@@ -48,6 +49,7 @@ type CouponFilters = {
 const DEFAULT_FILTERS: CouponFilters = { shopIds: [], customerTypeIds: [], customerGroupIds: [], deliveryMethods: [] };
 
 export default function CouponsTab() {
+  const { defaultPageSize } = useSettings();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
@@ -61,7 +63,7 @@ export default function CouponsTab() {
   const [allRows, setAllRows] = useState<CouponRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; couponId: string | null }>({
     open: false,

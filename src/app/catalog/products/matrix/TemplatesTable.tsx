@@ -26,8 +26,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 
 import TemplateDetailsPanel from "./TemplateDetailsPanel";
 import type { PaginationState, TemplateRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function TemplatesTable({
   refreshKey,
@@ -36,13 +36,14 @@ export default function TemplatesTable({
   refreshKey: number;
   onEdit: (id: string | number) => void;
 }) {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });

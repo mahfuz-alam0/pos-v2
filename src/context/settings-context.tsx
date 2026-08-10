@@ -16,11 +16,20 @@ const DEFAULTS = {
   defaultPageSize: 30,
 };
 
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
+
+function sanitize(next) {
+  const size = Number(next?.defaultPageSize);
+  if (!Number.isFinite(size)) return next;
+  const valid = PAGE_SIZE_OPTIONS.includes(size);
+  return { ...next, defaultPageSize: valid ? size : DEFAULTS.defaultPageSize };
+}
+
 function readStored() {
   if (typeof window === "undefined") return DEFAULTS;
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return saved ? { ...DEFAULTS, ...saved } : DEFAULTS;
+    return saved ? sanitize({ ...DEFAULTS, ...saved }) : DEFAULTS;
   } catch {
     return DEFAULTS;
   }

@@ -29,10 +29,11 @@ import {
 import ManufacturerFormDrawer from "./ManufacturerFormDrawer";
 import ManufacturerDetailsPanel from "./ManufacturerDetailsPanel";
 import type { BrandRow, PaginationState } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function ManufacturersTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("id");
@@ -44,7 +45,7 @@ export default function ManufacturersTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });

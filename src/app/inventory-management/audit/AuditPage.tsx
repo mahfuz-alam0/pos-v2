@@ -55,6 +55,7 @@ import { exportAuditToCSV, exportAuditToXLS } from "./auditExport";
 import PdfExportDrawer from "@/components/ui/pdf-export-drawer";
 import { buildAuditPdfHtml, getAuditMetadata, AUDIT_PDF_COLUMN_CONFIG, AUDIT_PDF_SECTIONS } from "@/lib/reporting/inventoryAuditPdf";
 import { useCurrentUser } from "@/util/use-current-user";
+import { useSettings } from "@/context/settings-context";
 
 import type {
   AuditFilters,
@@ -126,13 +127,14 @@ function buildQueryParams(filters: AuditFilters, page: number, limit: number) {
 }
 
 export default function AuditPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId, shopDetails } = useShop();
   const currentUserId = useCurrentUser()?.id;
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AuditPackageRow[]>([]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [locationMap, setLocationMap] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<StorageLocation[]>([]);

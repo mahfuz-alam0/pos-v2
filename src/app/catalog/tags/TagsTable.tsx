@@ -27,10 +27,11 @@ import {
 
 import TagFormDrawer from "./TagFormDrawer";
 import type { PaginationState, TagRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function TagsTable() {
+  const { defaultPageSize } = useSettings();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
 
@@ -38,7 +39,7 @@ export default function TagsTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
