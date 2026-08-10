@@ -37,7 +37,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 type Filter = { name: string; value: any };
 
@@ -154,6 +154,7 @@ export default function InventoryOnHandTable() {
 
   const [productPagination, setProductPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
   const [packagePagination, setPackagePagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(50);
 
   const [stats, setStats] = useState({
     categoryCount: 0,
@@ -220,11 +221,11 @@ export default function InventoryOnHandTable() {
   );
 
   const fetchProducts = useCallback(
-    async (filters: Filter[], page = 1) => {
+    async (filters: Filter[], page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = { limit: PAGE_SIZE, page, ...filtersToParams(filters) };
+        const params = { limit: size, page, ...filtersToParams(filters) };
         const res = await fetchInventoryOnHandByProduct(shopId, params);
         if (res?.tableData) {
           setProductRows(res.tableData);
@@ -242,15 +243,15 @@ export default function InventoryOnHandTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   const fetchPackages = useCallback(
-    async (filters: Filter[], page = 1) => {
+    async (filters: Filter[], page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = { limit: PAGE_SIZE, page, ...filtersToParams(filters) };
+        const params = { limit: size, page, ...filtersToParams(filters) };
         const res = await fetchInventoryOnHandByPackage(shopId, params);
         if (res?.tableData) {
           setPackageRows(res.tableData);
@@ -268,7 +269,7 @@ export default function InventoryOnHandTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   const applyFilters = useCallback(() => {
@@ -496,9 +497,14 @@ export default function InventoryOnHandTable() {
         page={productPagination.page}
         totalPages={productPagination.totalPages}
         totalEntries={productPagination.totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => fetchProducts(activeFilters, p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          fetchProducts(activeFilters, 1, s);
+        }}
       />
       </div>
     );
@@ -586,9 +592,14 @@ export default function InventoryOnHandTable() {
         page={packagePagination.page}
         totalPages={packagePagination.totalPages}
         totalEntries={packagePagination.totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => fetchPackages(activeFilters, p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          fetchPackages(activeFilters, 1, s);
+        }}
       />
       </div>
     );

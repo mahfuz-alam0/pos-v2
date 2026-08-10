@@ -11,8 +11,6 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const PAGE_SIZE = 20;
-
 const ORDER_FILTER_ITEMS = [
   { value: "all", label: "All Check-ins" },
   { value: "true", label: "Order Placed" },
@@ -45,18 +43,19 @@ export default function CheckInsTable({ onRowClick }: CheckInsTableProps) {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [orderFilter, setOrderFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const fetchData = useCallback(
-    async (p: number, filter: string, range?: DateRange) => {
+    async (p: number, filter: string, range?: DateRange, size = pageSize) => {
       setLoading(true);
       try {
         const isOrderPlaced = filter === "all" ? null : filter === "true";
         const res = await getQueuedCustomers({
           page: p,
-          limit: PAGE_SIZE,
+          limit: size,
           isOrderPlaced,
           startDate: range?.from ? range.from.toISOString().slice(0, 10) : undefined,
           endDate: range?.to ? range.to.toISOString().slice(0, 10) : undefined,
@@ -71,7 +70,7 @@ export default function CheckInsTable({ onRowClick }: CheckInsTableProps) {
         setLoading(false);
       }
     },
-    []
+    [pageSize]
   );
 
   useEffect(() => {
@@ -80,7 +79,7 @@ export default function CheckInsTable({ onRowClick }: CheckInsTableProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderFilter, dateRange]);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="flex flex-col gap-4">
@@ -177,11 +176,17 @@ export default function CheckInsTable({ onRowClick }: CheckInsTableProps) {
           page={page}
           totalPages={totalPages}
           totalEntries={total}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={(p) => {
             setPage(p);
             fetchData(p, orderFilter, dateRange);
+          }}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+            fetchData(1, orderFilter, dateRange, size);
           }}
         />
       )}

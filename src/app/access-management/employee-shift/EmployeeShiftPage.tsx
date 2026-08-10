@@ -91,11 +91,11 @@ export default function EmployeeShiftPage() {
   }, []);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, unknown> = { shopId, page, limit: pagination.pageSize };
+        const params: Record<string, unknown> = { shopId, page, limit: size };
         if (employeeId) params.employeeId = employeeId;
         if (filterShopId) params.shopId = filterShopId;
         if (approvalStatus) params.isApproved = approvalStatus === "approved";
@@ -388,6 +388,11 @@ export default function EmployeeShiftPage() {
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <ShiftFormDrawer

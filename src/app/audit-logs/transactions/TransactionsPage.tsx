@@ -59,11 +59,11 @@ export default function TransactionsPage() {
   }, [shopId]);
 
   const loadTransactions = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, unknown> = { shopId, page, limit: pagination.pageSize };
+        const params: Record<string, unknown> = { shopId, page, limit: size };
         if (employeeFilter) params.userId = employeeFilter;
         if (drawerFilter) params.drawerId = drawerFilter;
         if (startDate) params.fromDate = startDate;
@@ -266,6 +266,11 @@ export default function TransactionsPage() {
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => loadTransactions(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          loadTransactions(1, s);
+        }}
       />
     </div>
   );

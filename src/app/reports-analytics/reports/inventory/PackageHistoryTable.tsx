@@ -9,11 +9,13 @@ export default function PackageHistoryTable({
   loading,
   pagination,
   onPageChange,
+  onPageSizeChange,
 }: {
   data: PackageHistoryRow[];
   loading: boolean;
   pagination: InventoryPagination;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }) {
   const totalQuantityChange = data.reduce((sum, r) => sum + (Number(r.packageQuantityChange) || 0), 0);
   const totalPackageTotal = data.reduce((sum, r) => sum + (Number(r.packageTotal) || 0), 0);
@@ -89,6 +91,8 @@ export default function PackageHistoryTable({
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={onPageChange}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   );

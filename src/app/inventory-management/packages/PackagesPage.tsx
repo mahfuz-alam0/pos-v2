@@ -965,7 +965,7 @@ export default function PackagesPage() {
           loading={loading}
           onPageChange={(p: number) => loadPackages(p, pagination.pageSize)}
           compact
-          pageSizeOptions={[50, 100, 200]}
+          pageSizeOptions={[30, 50, 100, 200]}
           onPageSizeChange={(size) => loadPackages(1, size)}
         />
       </div>

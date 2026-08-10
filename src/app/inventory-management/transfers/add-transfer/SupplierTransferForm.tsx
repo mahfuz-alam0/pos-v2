@@ -37,7 +37,7 @@ import {
 import Drawer from "@/components/ui/Drawer";
 import PackagePickerTable, { type PackagePickerRow } from "./PackagePickerTable";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 interface PackageEntry {
   id: string;
@@ -138,6 +138,7 @@ export default function SupplierTransferForm() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
   const [selectedRows, setSelectedRows] = useState<(PackagePickerRow & { unitPrice?: number })[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -166,11 +167,11 @@ export default function SupplierTransferForm() {
   }, []);
 
   const loadPackages = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage, isFinished: false, sortByAlpha: 1 };
+        const params: Record<string, any> = { limit: size, page: targetPage, isFinished: false, sortByAlpha: 1 };
         if (search) params.packageName = search;
         const res = await fetchPackagesMinimalExtended(shopId, params);
         setRows(res?.data?.packages ?? []);
@@ -184,7 +185,7 @@ export default function SupplierTransferForm() {
         setLoading(false);
       }
     },
-    [shopId, search]
+    [shopId, search, pageSize]
   );
 
   useEffect(() => {
@@ -719,8 +720,13 @@ export default function SupplierTransferForm() {
               page={page}
               totalPages={totalPages}
               totalEntries={totalEntries}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               onPageChange={loadPackages}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                loadPackages(1, s);
+              }}
             />
           </div>
 

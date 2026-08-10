@@ -86,16 +86,16 @@ export default function ProductsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const loadProducts = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.limit) => {
       setLoading(true);
       try {
-        const params = buildParams({ ...filters, search: debouncedSearch }, page, pagination.limit);
+        const params = buildParams({ ...filters, search: debouncedSearch }, page, size);
         const res = await fetchProductsList(params);
         const products = res?.data ?? [];
         setData(products);
         const pd = res?.paginationData ?? {};
         setPagination({
-          limit: pd.limit ?? pagination.limit,
+          limit: pd.limit ?? size,
           page: pd.currentPage ?? page,
           totalEntries: pd.totalEntries ?? products.length,
           totalPages: pd.totalPages ?? 1,
@@ -381,6 +381,11 @@ export default function ProductsPage() {
           pageSize={pagination.limit}
           loading={loading}
           onPageChange={handlePageChange}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+            loadProducts(1, s);
+          }}
         />
       </div>
 

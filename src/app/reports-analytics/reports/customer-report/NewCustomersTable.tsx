@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchNewCustomers } from "@/services/reporting/newCustomers";
 import { listCustomerGroups } from "@/services/customers/listCustomerGroups";
 import { listCustomerTypes } from "@/services/customers/listCustomerTypes";
@@ -55,6 +56,7 @@ function todayStr() {
 
 export default function NewCustomersTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
     startDate: todayStr(),
@@ -71,7 +73,8 @@ export default function NewCustomersTable() {
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -93,12 +96,12 @@ export default function NewCustomersTable() {
   }, [shopId]);
 
   const fetchData = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       setLoading(true);
       try {
         const res = await fetchNewCustomers({
           page,
-          limit: PAGE_SIZE,
+          limit: size,
           startDate: selectedDate.startDate || "",
           endDate: selectedDate.endDate || "",
           shopId: shopId || "",
@@ -108,7 +111,7 @@ export default function NewCustomersTable() {
         setRows(res?.data ?? []);
         const pd = res?.paginationData;
         if (pd) {
-          setPagination({ page: pd.currentPage || page, totalPages: pd.totalPages || 1, totalEntries: pd.totalEntries || 0 });
+          setPagination({ page: pd.currentPage || page, pageSize: size, totalPages: pd.totalPages || 1, totalEntries: pd.totalEntries || 0 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load new customers");
@@ -116,7 +119,7 @@ export default function NewCustomersTable() {
         setLoading(false);
       }
     },
-    [shopId, selectedDate, selectedGroup, selectedType],
+    [shopId, selectedDate, selectedGroup, selectedType, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -286,9 +289,14 @@ export default function NewCustomersTable() {
             page={pagination.page}
             totalPages={pagination.totalPages}
             totalEntries={pagination.totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             loading={loading}
-            onPageChange={(p) => fetchData(p)}
+            onPageChange={(p) => fetchData(p, pageSize)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              fetchData(1, s);
+            }}
           />
         </div>
       )}

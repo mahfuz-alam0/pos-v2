@@ -31,6 +31,7 @@ import {
   money,
   pct,
 } from "./salesByShared";
+import { useSettings } from "@/context/settings-context";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   EMPLOYEE_SECTIONS,
@@ -48,12 +49,13 @@ function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-function emptyPagination(): ReportPagination {
-  return { page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 };
+function emptyPagination(size = PAGE_SIZE): ReportPagination {
+  return { page: 1, pageSize: size, totalEntries: 0, totalPages: 1 };
 }
 
 export default function SalesByEmployeeReport() {
   const { shopId: defaultShopId } = useShop();
+  const { defaultPageSize } = useSettings();
   const shops = useShops();
   const fetchCategoryPage = useCategoryPageFetcher();
   const fetchProductPage = useProductPageFetcher();
@@ -72,7 +74,8 @@ export default function SalesByEmployeeReport() {
   const [runReport, setRunReport] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<SalesByEmployeeRow[]>([]);
-  const [pagination, setPagination] = useState(emptyPagination());
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState(() => emptyPagination(defaultPageSize));
   const [storeInfo, setStoreInfo] = useState<any>({});
 
   const [pdfOpen, setPdfOpen] = useState(false);
@@ -95,15 +98,15 @@ export default function SalesByEmployeeReport() {
   };
 
   const fetchDetail = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchSalesByEmployee(buildFilters({ page, limit: PAGE_SIZE }));
+        const res = await fetchSalesByEmployee(buildFilters({ page, limit: size }));
         setRows(res?.data?.data ?? []);
         const pd = res?.data?.paginationData;
         setPagination({
           page: pd?.currentPage || page,
-          pageSize: PAGE_SIZE,
+          pageSize: size,
           totalEntries: pd?.totalEntries || 0,
           totalPages: pd?.totalPages || 1,
         });
@@ -114,7 +117,7 @@ export default function SalesByEmployeeReport() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedShopId, startDate, endDate, categoryId, productId, deliveryMethod, source],
+    [selectedShopId, startDate, endDate, categoryId, productId, deliveryMethod, source, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -252,6 +255,11 @@ export default function SalesByEmployeeReport() {
           loading={loading}
           pagination={pagination}
           onPageChange={(p) => fetchDetail(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchDetail(1, s);
+          }}
           rowKey={(r, i) => `${r.createdEmployeeName || r.employeeId}-${i}`}
           columns={[
             { key: "createdEmployeeName", label: "Employee", total: () => "TOTAL" },

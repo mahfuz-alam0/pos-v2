@@ -188,6 +188,8 @@ export default function MetrcTransferListPage() {
           pageSize={pagination.limit}
           loading={loading}
           onPageChange={(p: number) => loadTransfers(p, pagination.limit)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => loadTransfers(1, s)}
         />
       </div>
 

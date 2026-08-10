@@ -26,8 +26,6 @@ import CheckInsTable from "./CheckInsTable";
 import MergeCustomersDrawer from "./MergeCustomersDrawer";
 import BulkUploadDrawer from "./BulkUploadDrawer";
 
-const PAGE_SIZE = 20;
-
 function formatAge(dob?: string) {
   if (!dob || Number.isNaN(Date.parse(dob))) return null;
   const years = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
@@ -52,6 +50,7 @@ export default function CustomersTable() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [totalEntries, setTotalEntries] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -80,10 +79,10 @@ export default function CustomersTable() {
   }, []);
 
   const loadCustomers = useCallback(
-    async (p = 1) => {
+    async (p = 1, size = pageSize) => {
       setLoading(true);
       try {
-        const params: Record<string, any> = { page: p, isRemarksPending: remarksPendingOnly };
+        const params: Record<string, any> = { page: p, limit: size, isRemarksPending: remarksPendingOnly };
         if (debouncedSearch.trim()) {
           if (selectedFilterField === "medLicense") {
             params.medLicense = debouncedSearch.trim();
@@ -107,7 +106,7 @@ export default function CustomersTable() {
         setLoading(false);
       }
     },
-    [debouncedSearch, selectedFilterField, customerGroupId, scopedShopId, shouldSegmentByShop, remarksPendingOnly]
+    [debouncedSearch, selectedFilterField, customerGroupId, scopedShopId, shouldSegmentByShop, remarksPendingOnly, pageSize]
   );
 
   useEffect(() => {
@@ -337,9 +336,15 @@ export default function CustomersTable() {
                 page={page}
                 totalPages={totalPages}
                 totalEntries={totalEntries}
-                pageSize={PAGE_SIZE}
+                pageSize={pageSize}
                 loading={loading}
                 onPageChange={(p) => loadCustomers(p)}
+                pageSizeOptions={[30, 50, 100, 200]}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                  loadCustomers(1, size);
+                }}
               />
             )}
           </>

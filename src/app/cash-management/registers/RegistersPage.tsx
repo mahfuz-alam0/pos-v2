@@ -54,11 +54,11 @@ export default function RegistersPage() {
   const [formRegisterId, setFormRegisterId] = useState<string | null>(null);
 
   const loadRegisters = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchRegistersList(shopId as string, { page, limit: pagination.pageSize });
+        const res = await fetchRegistersList(shopId as string, { page, limit: size });
         const registers = res?.data?.data?.registers ?? [];
         setRows(
           registers.map((r: any) => ({ id: r.id, name: r.name, isOpen: r.isOpen, version: r.version }))
@@ -235,6 +235,11 @@ export default function RegistersPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadRegisters(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            loadRegisters(1, s);
+          }}
         />
       </div>
 

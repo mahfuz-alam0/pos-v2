@@ -175,11 +175,12 @@ export default function JobsTable() {
       driverId = "",
       advertisedSaleId = "",
       metrcStatus = "__all__",
+      size = pagination.limit,
     ) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page, limit: size };
         if (status !== "__all__") params.status = status;
         if (driverId) params.driverId = driverId;
         if (advertisedSaleId) params.advertisedSaleId = advertisedSaleId;
@@ -191,7 +192,7 @@ export default function JobsTable() {
         if (p) {
           setPagination({
             page: p.currentPage ?? page,
-            limit: p.limit ?? PAGE_SIZE,
+            limit: p.limit ?? size,
             totalEntries: p.totalEntries ?? 0,
             totalPages: p.totalPages ?? 0,
           });
@@ -202,7 +203,7 @@ export default function JobsTable() {
         setLoading(false);
       }
     },
-    [shopId],
+    [shopId, pagination.limit],
   );
 
   useEffect(() => {
@@ -644,6 +645,11 @@ export default function JobsTable() {
                 metrcStatusFilter,
               )
             }
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(size) => {
+              setPagination((prev) => ({ ...prev, page: 1, limit: size }));
+              loadJobs(1, statusFilter, driverIdFilter, saleIdFilter, metrcStatusFilter, size);
+            }}
           />
         )}
       </div>

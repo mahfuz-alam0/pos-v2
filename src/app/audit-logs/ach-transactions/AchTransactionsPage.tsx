@@ -159,6 +159,8 @@ export default function AchTransactionsPage() {
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => loadTransactions(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => loadTransactions(1, s)}
       />
     </div>
   );

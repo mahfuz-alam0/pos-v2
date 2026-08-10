@@ -48,11 +48,11 @@ export default function DeliveryProfilesPage() {
   const canAddMore = availableRegions.length > 0;
 
   const loadProfiles = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchDeliveryProfilesList(shopId as string, { page, limit: pagination.pageSize });
+        const res = await fetchDeliveryProfilesList(shopId as string, { page, limit: size });
         const profiles = res?.data ?? [];
         setRows(
           profiles.map((p: any) => ({
@@ -65,7 +65,7 @@ export default function DeliveryProfilesPage() {
         const pd = res?.paginationData ?? {};
         setPagination((prev) => ({
           current: pd.currentPage ?? page,
-          pageSize: pd.limit ?? prev.pageSize,
+          pageSize: pd.limit ?? size,
           total: pd.totalEntries ?? 0,
           totalPages: pd.totalPages ?? 1,
         }));
@@ -194,6 +194,8 @@ export default function DeliveryProfilesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadProfiles(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(size) => loadProfiles(1, size)}
         />
       </div>
 

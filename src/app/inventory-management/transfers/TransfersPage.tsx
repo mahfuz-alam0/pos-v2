@@ -455,6 +455,8 @@ export default function TransfersPage() {
                   pageSize={withinPagination.limit}
                   loading={withinLoading}
                   onPageChange={(p) => loadWithin(p, withinPagination.limit)}
+                  pageSizeOptions={[30, 50, 100, 200]}
+                  onPageSizeChange={(s) => loadWithin(1, s)}
                 />
               </>
             )}
@@ -536,6 +538,8 @@ export default function TransfersPage() {
                   pageSize={shopPagination.limit}
                   loading={shopLoading}
                   onPageChange={(p) => loadShopTransfers(p, shopPagination.limit)}
+                  pageSizeOptions={[30, 50, 100, 200]}
+                  onPageSizeChange={(s) => loadShopTransfers(1, s)}
                 />
               </>
             )}
@@ -640,6 +644,8 @@ export default function TransfersPage() {
                   pageSize={supplierPagination.limit}
                   loading={supplierLoading}
                   onPageChange={(p) => loadSupplierTransfers(p, supplierPagination.limit)}
+                  pageSizeOptions={[30, 50, 100, 200]}
+                  onPageSizeChange={(s) => loadSupplierTransfers(1, s)}
                 />
               </>
             )}

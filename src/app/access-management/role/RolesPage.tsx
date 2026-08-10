@@ -40,10 +40,10 @@ export default function RolesPage() {
   const [editTarget, setEditTarget] = useState<any>(null);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchRolesList({ page, limit: pagination.pageSize });
+        const res = await fetchRolesList({ page, limit: size });
         setRows(res?.data?.roles ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -178,6 +178,11 @@ export default function RolesPage() {
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>

@@ -745,6 +745,8 @@ export default function AuditPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => fetchData(p, pagination.pageSize)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => fetchData(1, s)}
         />
       )}
 

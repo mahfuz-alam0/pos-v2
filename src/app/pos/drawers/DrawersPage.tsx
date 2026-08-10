@@ -59,11 +59,11 @@ export default function DrawersPage() {
   const [formDrawerId, setFormDrawerId] = useState<string | null>(null);
 
   const loadDrawers = useCallback(
-    async (page = 1, registerId = registerFilter) => {
+    async (page = 1, registerId = registerFilter, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, unknown> = { page, limit: pagination.pageSize };
+        const params: Record<string, unknown> = { page, limit: size };
         if (registerId !== "__all__") params.registerId = registerId;
         const res = await fetchDrawersList(shopId as string, params);
         const drawers = res?.data?.data?.drawers ?? [];
@@ -262,6 +262,11 @@ export default function DrawersPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadDrawers(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            loadDrawers(1, registerFilter, s);
+          }}
         />
       </div>
 

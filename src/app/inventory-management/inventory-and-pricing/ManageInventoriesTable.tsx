@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import InventoryDetailsDrawer from "./InventoryDetailsDrawer";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 function healthColor(totalQuantity, threshold) {
   if (totalQuantity > threshold) return "bg-[#497E05]";
@@ -112,6 +112,7 @@ export default function ManageInventoriesTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
   const [isOpenForSellableStore, setIsOpenForSellableStore] = useState(true);
 
   const [searchInput, setSearchInput] = useState("");
@@ -152,11 +153,11 @@ export default function ManageInventoriesTable() {
   const [optimizeProgress, setOptimizeProgress] = useState("");
 
   const loadInventories = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: size, page: targetPage };
         if (search) params.search = search;
         if (categoryId) params.categoryIds = [categoryId];
         if (brandId) params.brandIds = [brandId];
@@ -185,7 +186,7 @@ export default function ManageInventoriesTable() {
         setLoading(false);
       }
     },
-    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice]
+    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice, pageSize]
   );
 
   useEffect(() => {
@@ -368,7 +369,7 @@ export default function ManageInventoriesTable() {
     if (totalPages <= 1) return rows;
     let allData: any[] = [];
     for (let p = 1; p <= totalPages; p++) {
-      const params: Record<string, any> = { limit: PAGE_SIZE, page: p };
+      const params: Record<string, any> = { limit: pageSize, page: p };
       if (search) params.search = search;
       if (categoryId) params.categoryIds = [categoryId];
       if (brandId) params.brandIds = [brandId];
@@ -881,9 +882,14 @@ export default function ManageInventoriesTable() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={loadInventories}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadInventories(1, s);
+        }}
       />
     </div>
 

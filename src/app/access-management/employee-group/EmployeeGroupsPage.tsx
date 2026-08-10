@@ -34,10 +34,10 @@ export default function EmployeeGroupsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchEmployeeGroupsList({ page, limit: pagination.pageSize });
+        const res = await fetchEmployeeGroupsList({ page, limit: size });
         setRows(res?.data?.userGroups ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -181,6 +181,11 @@ export default function EmployeeGroupsPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => load(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            load(1, s);
+          }}
         />
       </div>
 

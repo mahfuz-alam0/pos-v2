@@ -23,11 +23,11 @@ export default function DrawerSessionsTable({ drawerId, refreshKey = 0 }: { draw
   const [selectedSession, setSelectedSession] = useState<any>(null);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId || !drawerId) return;
       setLoading(true);
       try {
-        const res = await listDrawerSessions({ shopId, drawerId, page, limit: pagination.pageSize });
+        const res = await listDrawerSessions({ shopId, drawerId, page, limit: size });
         setRows(res?.data?.sessions ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -117,6 +117,11 @@ export default function DrawerSessionsTable({ drawerId, refreshKey = 0 }: { draw
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <SessionDetailDrawer

@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { AlertTriangle, ShieldCheck, Info } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchInventoryReorder } from "@/services/reporting/inventoryReorder";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchSuppliersList } from "@/services/suppliers/list";
@@ -70,10 +71,12 @@ function daysRemainingBadge(value: any) {
 
 export default function InventoryReorderTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [selectedDays, setSelectedDays] = useState(7);
   const [categoryId, setCategoryId] = useState<string | number | null>(null);
@@ -86,13 +89,13 @@ export default function InventoryReorderTable() {
   const filterInfo = `Replenish ${selectedDays} days · Safety margin ${safetyMargin}% · Generated ${format(new Date(), "MMM dd, yyyy")}`;
 
   const fetchData = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
         const params: Record<string, any> = {
           page,
-          limit: PAGE_SIZE,
+          limit: size,
           replenishDays: selectedDays,
           safetyMargin,
         };
@@ -104,6 +107,7 @@ export default function InventoryReorderTable() {
         if (res?.paginationData) {
           setPagination({
             page: res.paginationData.currentPage || page,
+            pageSize: size,
             totalPages: res.paginationData.totalPages || 1,
             totalEntries: res.paginationData.totalEntries || 0,
           });
@@ -114,7 +118,7 @@ export default function InventoryReorderTable() {
         setLoading(false);
       }
     },
-    [shopId, selectedDays, safetyMargin, categoryId, supplierId],
+    [shopId, selectedDays, safetyMargin, categoryId, supplierId, pageSize],
   );
 
   useEffect(() => {
@@ -331,9 +335,14 @@ export default function InventoryReorderTable() {
           page={pagination.page}
           totalPages={pagination.totalPages}
           totalEntries={pagination.totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
-          onPageChange={(p) => fetchData(p)}
+          onPageChange={(p) => fetchData(p, pageSize)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchData(1, s);
+          }}
         />
       </Card>
 

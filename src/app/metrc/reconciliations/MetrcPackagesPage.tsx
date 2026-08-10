@@ -619,6 +619,8 @@ export default function MetrcPackagesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadPackages(p, pagination.pageSize)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => loadPackages(1, s)}
         />
       </div>
 

@@ -35,7 +35,7 @@ import {
 import PurchaseOrderDetailPanel from "./PurchaseOrderDetailPanel";
 import type { PurchaseOrderRow, SupplierOption } from "./types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 const STATUS_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   OPEN: "default",
@@ -79,6 +79,7 @@ export default function PurchaseOrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
 
   const [metrcIdInput, setMetrcIdInput] = useState("");
   const debouncedMetrcId = useDebounce(metrcIdInput, 300);
@@ -106,11 +107,11 @@ export default function PurchaseOrdersPage() {
   }, [dateFilter, customRange]);
 
   const loadPurchaseOrders = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page: targetPage, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page: targetPage, limit: size };
         if (debouncedMetrcId) params.metrcId = debouncedMetrcId;
         if (debouncedProductName) params.productName = debouncedProductName;
         if (supplierId) params.supplierId = supplierId;
@@ -133,7 +134,7 @@ export default function PurchaseOrdersPage() {
         setLoading(false);
       }
     },
-    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange]
+    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange, pageSize]
   );
 
   useEffect(() => {
@@ -351,9 +352,14 @@ export default function PurchaseOrdersPage() {
             page={page}
             totalPages={totalPages}
             totalEntries={totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             loading={loading}
             onPageChange={loadPurchaseOrders}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              loadPurchaseOrders(1, s);
+            }}
           />
         </div>
       </div>

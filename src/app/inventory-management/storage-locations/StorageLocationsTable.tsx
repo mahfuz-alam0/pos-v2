@@ -30,7 +30,7 @@ import {
 import StorageLocationDetails from "./StorageLocationDetails";
 import StorageLocationDrawer from "./StorageLocationDrawer";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 interface StorageLocationRow {
   id: string | number;
@@ -52,6 +52,7 @@ export default function StorageLocationsTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
     open: false,
     mode: "add",
@@ -59,11 +60,11 @@ export default function StorageLocationsTable() {
   });
 
   const loadLocations = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: PAGE_SIZE });
+        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: size });
         const locations = res?.data?.data?.locations ?? [];
         setRows(
           locations.map((location) => ({
@@ -84,7 +85,7 @@ export default function StorageLocationsTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   useEffect(() => {
@@ -195,9 +196,14 @@ export default function StorageLocationsTable() {
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadLocations}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadLocations(1, s);
+          }}
         />
       </div>
 

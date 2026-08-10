@@ -20,7 +20,7 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import UomFormDrawer from "./UomFormDrawer";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function UomTable() {
   const [rows, setRows] = useState([]);
@@ -30,11 +30,12 @@ export default function UomTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
 
-  const loadUoms = useCallback(async (targetPage = 1) => {
+  const loadUoms = useCallback(async (targetPage = 1, size = pageSize) => {
     setLoading(true);
     try {
-      const res = await fetchUomList({ page: targetPage, limit: PAGE_SIZE });
+      const res = await fetchUomList({ page: targetPage, limit: size });
       setRows(res?.data?.data?.uoms ?? []);
       const pagination = res?.data?.data?.paginationData;
       setTotalPages(pagination?.totalPages ?? 1);
@@ -45,7 +46,7 @@ export default function UomTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
     loadUoms(1);
@@ -149,9 +150,14 @@ export default function UomTable() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={loadUoms}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadUoms(1, s);
+        }}
       />
 
       <UomFormDrawer

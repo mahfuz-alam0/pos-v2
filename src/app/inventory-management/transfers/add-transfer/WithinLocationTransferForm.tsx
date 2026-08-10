@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import PackagePickerTable, { type PackagePickerRow } from "./PackagePickerTable";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function WithinLocationTransferForm({
   preSelectedPackageIds,
@@ -58,6 +58,7 @@ export default function WithinLocationTransferForm({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
 
   const [selectedRows, setSelectedRows] = useState<PackagePickerRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -81,12 +82,12 @@ export default function WithinLocationTransferForm({
   }, [sourceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPackages = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId || !sourceId) return;
       setLoading(true);
       try {
         const params: Record<string, any> = {
-          limit: PAGE_SIZE,
+          limit: size,
           page: targetPage,
           isFinished: false,
           isImported: true,
@@ -143,7 +144,7 @@ export default function WithinLocationTransferForm({
         setLoading(false);
       }
     },
-    [shopId, sourceId, debouncedSearch, searchBy, categoryId, brandId, packageStatus, packageType] // eslint-disable-line react-hooks/exhaustive-deps
+    [shopId, sourceId, debouncedSearch, searchBy, categoryId, brandId, packageStatus, packageType, pageSize] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   useEffect(() => {
@@ -447,8 +448,13 @@ export default function WithinLocationTransferForm({
               page={page}
               totalPages={totalPages}
               totalEntries={totalEntries}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               onPageChange={loadPackages}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                loadPackages(1, s);
+              }}
             />
           )}
         </div>

@@ -48,7 +48,7 @@ export default function DrawerTransactionsTable({
   const [editTarget, setEditTarget] = useState<any>(null);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId || !drawerId) return;
       setLoading(true);
       try {
@@ -57,7 +57,7 @@ export default function DrawerTransactionsTable({
           drawerId,
           forActiveSessionOnly,
           page,
-          limit: pagination.pageSize,
+          limit: size,
         });
         setRows(res?.data?.activities ?? []);
         const pd = res?.data?.paginationData ?? {};
@@ -157,6 +157,11 @@ export default function DrawerTransactionsTable({
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <EditTransactionDrawer

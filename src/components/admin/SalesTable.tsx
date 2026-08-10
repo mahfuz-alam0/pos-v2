@@ -679,6 +679,13 @@ export default function SalesTable() {
         pageSize={paginationData.limit}
         loading={loading}
         onPageChange={changePage}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          // buildFilters depends on paginationData.limit, and the fetch useEffect
+          // is keyed on buildFilters — setting the state here lets that effect
+          // refetch at page 1 with the new limit.
+          setPaginationData((prev) => ({ ...prev, limit: s, page: 1 }));
+        }}
       />
 
       <Drawer open={detailOpen} onClose={() => { setDetailOpen(false); setDetailOrder(null); }} side="right" size={540} className="overflow-auto">

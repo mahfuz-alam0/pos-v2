@@ -29,11 +29,13 @@ export default function HourOfDayTable({
   loading,
   pagination,
   onPageChange,
+  onPageSizeChange,
 }: {
   data: HourOfDayRow[];
   loading: boolean;
   pagination: DayAndTimePagination;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
@@ -129,6 +131,8 @@ export default function HourOfDayTable({
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={onPageChange}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </Card>

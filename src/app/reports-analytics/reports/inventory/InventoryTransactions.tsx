@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchInventoryTransactions } from "@/services/reporting/inventoryTransactions";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchProductsList } from "@/services/products/list";
@@ -47,12 +48,13 @@ function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-function emptyPagination(): InventoryPagination {
-  return { page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 };
+function emptyPagination(size = PAGE_SIZE): InventoryPagination {
+  return { page: 1, pageSize: size, totalEntries: 0, totalPages: 1 };
 }
 
 export default function InventoryTransactions() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
     startDate: todayStr(),
@@ -70,7 +72,8 @@ export default function InventoryTransactions() {
 
   const [rows, setRows] = useState<InventoryTransactionRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState(emptyPagination());
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState(() => emptyPagination(defaultPageSize));
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -108,15 +111,15 @@ export default function InventoryTransactions() {
   };
 
   const fetchDetail = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchInventoryTransactions({ ...filters, page, limit: PAGE_SIZE });
+        const res = await fetchInventoryTransactions({ ...filters, page, limit: size });
         setRows(res?.data?.data || []);
         const pd = res?.data?.paginationData;
         if (pd) {
-          setPagination({ page: pd.currentPage || page, pageSize: PAGE_SIZE, totalEntries: pd.totalEntries || 0, totalPages: pd.totalPages || 1 });
+          setPagination({ page: pd.currentPage || page, pageSize: size, totalEntries: pd.totalEntries || 0, totalPages: pd.totalPages || 1 });
         }
       } catch (err: any) {
         toast.error(err?.message || "Failed to load inventory transactions");
@@ -125,7 +128,7 @@ export default function InventoryTransactions() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [shopId, startDate, endDate, categoryId, productId, roomId, transactionType],
+    [shopId, startDate, endDate, categoryId, productId, roomId, transactionType, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -263,7 +266,16 @@ export default function InventoryTransactions() {
       </div>
 
       {runReport && (
-        <InventoryTransactionsTable data={rows} loading={loading} pagination={pagination} onPageChange={(p) => fetchDetail(p)} />
+        <InventoryTransactionsTable
+          data={rows}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={(p) => fetchDetail(p)}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchDetail(1, s);
+          }}
+        />
       )}
 
       <PdfExportDrawer

@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/table";
 import AuditSessionDetailDrawer from "./AuditSessionDetailDrawer";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function AuditSessionsTab() {
   const router = useRouter();
@@ -44,6 +44,7 @@ export default function AuditSessionsTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);
@@ -53,11 +54,11 @@ export default function AuditSessionsTab() {
   const openSessionId = searchParams.get("adjustmentId");
 
   const loadSessions = useCallback(
-    async (targetPage = 1, employeeId = employeeFilter, storageLocationId = locationFilter) => {
+    async (targetPage = 1, employeeId = employeeFilter, storageLocationId = locationFilter, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: size, page: targetPage };
         if (employeeId) params.employeeId = employeeId;
         if (storageLocationId) params.storageLocationId = storageLocationId;
         const res = await fetchAuditSessions(shopId, params);
@@ -71,7 +72,7 @@ export default function AuditSessionsTab() {
         setLoading(false);
       }
     },
-    [shopId, employeeFilter, locationFilter]
+    [shopId, employeeFilter, locationFilter, pageSize]
   );
 
   useEffect(() => {
@@ -208,9 +209,14 @@ export default function AuditSessionsTab() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => loadSessions(p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadSessions(1, employeeFilter, locationFilter, s);
+        }}
       />
 
       <AuditSessionDetailDrawer

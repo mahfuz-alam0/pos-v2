@@ -528,7 +528,7 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
             "Opening Drawer" header exactly (icon + label left, running
             total right, updates as denominations/flat cash are entered). */}
         {step === "start" && (
-          <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-white">
+          <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-white">
             <div className="flex items-center gap-2">
               <LayoutGrid className="size-3.5 text-white/80" />
               <span className="text-xs font-medium uppercase tracking-wider text-white/80">

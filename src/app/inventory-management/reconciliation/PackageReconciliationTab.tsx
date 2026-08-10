@@ -26,7 +26,7 @@ import {
 import Drawer from "@/components/ui/Drawer";
 import ReconciliationDetailPanel from "./ReconciliationDetailPanel";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 type DateFilter = "all" | "today" | "yesterday" | "custom";
 
@@ -45,6 +45,7 @@ export default function PackageReconciliationTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
@@ -73,12 +74,12 @@ export default function PackageReconciliationTab() {
   }, [dateFilter, customRange]);
 
   const loadAdjustments = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
         const res = await fetchPackageAdjustments(shopId, {
-          limit: PAGE_SIZE,
+          limit: size,
           page: targetPage,
           ...buildDateParams(),
         });
@@ -93,7 +94,7 @@ export default function PackageReconciliationTab() {
         setLoading(false);
       }
     },
-    [shopId, buildDateParams]
+    [shopId, buildDateParams, pageSize]
   );
 
   useEffect(() => {
@@ -271,9 +272,14 @@ export default function PackageReconciliationTab() {
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadAdjustments}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadAdjustments(1, s);
+          }}
         />
       </div>
 

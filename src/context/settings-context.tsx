@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 const SettingsContext = createContext(null);
 
@@ -13,6 +13,7 @@ const DEFAULTS = {
   queueYellowTime: 15,
   queueRedTime: 20,
   printType: "browser",
+  defaultPageSize: 30,
 };
 
 function readStored() {
@@ -26,11 +27,7 @@ function readStored() {
 }
 
 export function SettingsProvider({ children }) {
-  const [settings, setSettings] = useState(DEFAULTS);
-
-  useEffect(() => {
-    setSettings(readStored());
-  }, []);
+  const [settings, setSettings] = useState(() => readStored());
 
   function persist(next) {
     setSettings(next);
@@ -49,6 +46,7 @@ export function SettingsProvider({ children }) {
     setQueueYellowTime: (v) => update({ queueYellowTime: v }),
     setQueueRedTime: (v) => update({ queueRedTime: v }),
     setPrintType: (v) => update({ printType: v }),
+    setDefaultPageSize: (v) => update({ defaultPageSize: v }),
   };
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
