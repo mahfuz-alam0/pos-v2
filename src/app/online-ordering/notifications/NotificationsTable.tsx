@@ -33,8 +33,8 @@ import NotificationDetailsPanel from "./NotificationDetailsPanel";
 import NotificationSettingsTable from "./NotificationSettingsTable";
 import ComposeNotificationDrawer from "./ComposeNotificationDrawer";
 import type { EntityOption, NotificationRow, PendingNotification } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
 
 function formatDate(date?: string) {
   if (!date) return "-";
@@ -49,9 +49,10 @@ function formatDate(date?: string) {
 }
 
 export default function NotificationsTable() {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: defaultPageSize, totalEntries: 0, totalPages: 0 });
 
   const [selected, setSelected] = useState<NotificationRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<NotificationRow | null>(null);
@@ -67,10 +68,10 @@ export default function NotificationsTable() {
 
   const [composeOpen, setComposeOpen] = useState(false);
 
-  const loadNotifications = useCallback(async (page = 1, entity = entityId) => {
+  const loadNotifications = useCallback(async (page = 1, entity = entityId, size = pagination.limit) => {
     setLoading(true);
     try {
-      const res = await listNotifications({ page, limit: PAGE_SIZE, businessEntityId: entity });
+      const res = await listNotifications({ page, limit: size, businessEntityId: entity });
       const body = res?.data?.data;
       setRows(
         (body?.notifications ?? []).map((n: any): NotificationRow => ({
@@ -89,7 +90,7 @@ export default function NotificationsTable() {
       const p = res?.data?.paginationData;
       setPagination({
         page: p?.currentPage ?? page,
-        limit: p?.limit ?? PAGE_SIZE,
+        limit: p?.limit ?? size,
         totalEntries: p?.totalEntries ?? 0,
         totalPages: p?.totalPages ?? 0,
       });
@@ -98,7 +99,7 @@ export default function NotificationsTable() {
     } finally {
       setLoading(false);
     }
-  }, [entityId]);
+  }, [entityId, pagination.limit]);
 
   const loadPending = useCallback(async (showLoading = false) => {
     if (showLoading) setPendingLoading(true);
@@ -138,7 +139,7 @@ export default function NotificationsTable() {
       await removeNotification(deleteTarget.id);
       toast.success("Notification deleted successfully");
       setDeleteTarget(null);
-      loadNotifications(pagination.page);
+      loadNotifications(pagination.page, entityId, pagination.limit);
     } catch (err: any) {
       toast.error(err?.message || "Failed to delete notification");
     } finally {
@@ -351,6 +352,8 @@ export default function NotificationsTable() {
                     pageSize={pagination.limit}
                     loading={loading}
                     onPageChange={(p) => loadNotifications(p)}
+                    pageSizeOptions={[30, 50, 100, 200]}
+                    onPageSizeChange={(size) => loadNotifications(1, entityId, size)}
                   />
                 </div>
               )}

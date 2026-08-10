@@ -11,11 +11,13 @@ export default function InventoryTransactionsTable({
   loading,
   pagination,
   onPageChange,
+  onPageSizeChange,
 }: {
   data: InventoryTransactionRow[];
   loading: boolean;
   pagination: InventoryPagination;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }) {
   const totalQuantity = data.reduce((sum, r) => sum + (Number(r.quanitiy) || 0), 0);
   const totalCost = data.reduce((sum, r) => sum + (Number(r.totalCost) || 0), 0);
@@ -93,6 +95,8 @@ export default function InventoryTransactionsTable({
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={onPageChange}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   );

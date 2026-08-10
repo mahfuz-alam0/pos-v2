@@ -32,6 +32,7 @@ import { Field } from "@/components/admin/form-fields";
 import EmployeeDetailPanel from "./EmployeeDetailPanel";
 import DeleteEmployeeDrawer from "./DeleteEmployeeDrawer";
 import EmployeeFormDrawer from "./EmployeeFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMINISTRATION: "Administration",
@@ -52,12 +53,13 @@ function formatPhone(phone?: string) {
 }
 
 export default function EmployeesPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const { user } = usePermission();
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [search, setSearch] = useState("");
   const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
   const [employeeFilter, setEmployeeFilter] = useState("");
@@ -75,10 +77,10 @@ export default function EmployeesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchEmployeesList({ page, limit: pagination.pageSize, search });
+        const res = await fetchEmployeesList({ page, limit: size, search });
         setRows(res?.data?.employees ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -309,6 +311,11 @@ export default function EmployeesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => load(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            load(1, s);
+          }}
         />
       </div>
 

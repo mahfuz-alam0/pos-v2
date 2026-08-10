@@ -36,6 +36,7 @@ import LiveShiftControl from "./LiveShiftControl";
 import ShiftFormDrawer from "./ShiftFormDrawer";
 import TotalWorkHoursDrawer from "./TotalWorkHoursDrawer";
 import DeleteShiftDrawer from "./DeleteShiftDrawer";
+import { useSettings } from "@/context/settings-context";
 
 const DATE_FILTERS = ["All", "Today", "Yesterday", "Custom"] as const;
 type DateFilter = (typeof DATE_FILTERS)[number];
@@ -57,12 +58,13 @@ function hoursWorked(row: any) {
 }
 
 export default function EmployeeShiftPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
   const { user } = usePermission();
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [liveShift, setLiveShift] = useState<any>(null);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -91,11 +93,11 @@ export default function EmployeeShiftPage() {
   }, []);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, unknown> = { shopId, page, limit: pagination.pageSize };
+        const params: Record<string, unknown> = { shopId, page, limit: size };
         if (employeeId) params.employeeId = employeeId;
         if (filterShopId) params.shopId = filterShopId;
         if (approvalStatus) params.isApproved = approvalStatus === "approved";
@@ -388,6 +390,11 @@ export default function EmployeeShiftPage() {
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <ShiftFormDrawer

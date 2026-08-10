@@ -29,21 +29,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import RoleFormDrawer from "./RoleFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
 export default function RolesPage() {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchRolesList({ page, limit: pagination.pageSize });
+        const res = await fetchRolesList({ page, limit: size });
         setRows(res?.data?.roles ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -178,6 +180,11 @@ export default function RolesPage() {
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={(p: number) => load(p)}
+        pageSizeOptions={[30, 50, 100, 200]}
+        onPageSizeChange={(s) => {
+          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+          load(1, s);
+        }}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>

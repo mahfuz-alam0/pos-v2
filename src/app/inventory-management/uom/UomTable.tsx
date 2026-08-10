@@ -26,10 +26,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import UomFormDrawer from "./UomFormDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function UomTable() {
+  const { defaultPageSize } = useSettings();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -37,11 +39,12 @@ export default function UomTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
-  const loadUoms = useCallback(async (targetPage = 1) => {
+  const loadUoms = useCallback(async (targetPage = 1, size = pageSize) => {
     setLoading(true);
     try {
-      const res = await fetchUomList({ page: targetPage, limit: PAGE_SIZE });
+      const res = await fetchUomList({ page: targetPage, limit: size });
       setRows(res?.data?.data?.uoms ?? []);
       const pagination = res?.data?.data?.paginationData;
       setTotalPages(pagination?.totalPages ?? 1);
@@ -52,7 +55,7 @@ export default function UomTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
     loadUoms(1);
@@ -97,8 +100,8 @@ export default function UomTable() {
 
         <div className="relative -mx-4">
           <Table>
-            <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-              <TableRow className="border-gray-200 hover:bg-transparent">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Name</TableHead>
                 <TableHead className="text-center">Short Form</TableHead>
                 <TableHead className="text-center">Application Type</TableHead>
@@ -106,10 +109,10 @@ export default function UomTable() {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading &&
                 Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                  <TableRow key={`skeleton-${i}`} className="border-b-0">
                     {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -128,7 +131,7 @@ export default function UomTable() {
 
               {!loading &&
                 rows.map((row: any, i) => (
-                  <TableRow key={row.id} className="border-gray-200">
+                  <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell className="font-medium">
                       {row.systemGeneratedIdentifier ? (
                         row.name
@@ -166,9 +169,14 @@ export default function UomTable() {
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadUoms}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadUoms(1, s);
+          }}
         />
       </div>
 

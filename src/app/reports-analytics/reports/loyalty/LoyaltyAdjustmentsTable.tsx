@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { fetchLoyaltyAdjustments } from "@/services/reporting/loyaltyAdjustments";
 import { fetchSingleShop } from "@/services/shops/getSingle";
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 
 import { Button } from "@/components/ui/button";
 import { DateRangeSelector, type SelectedDateResult } from "@/components/ui/date-range-selector";
@@ -42,6 +43,7 @@ const PAGE_SIZE = 20;
 
 export default function LoyaltyAdjustmentsTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
@@ -54,7 +56,8 @@ export default function LoyaltyAdjustmentsTable() {
   const [storeInfo, setStoreInfo] = useState<any>({});
   const [rows, setRows] = useState<LoyaltyAdjustmentRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: defaultPageSize, totalPages: 1, totalEntries: 0 });
 
   const [pdfOpen, setPdfOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -63,11 +66,11 @@ export default function LoyaltyAdjustmentsTable() {
   const endDate = selectedDate.endDate ?? startDate;
 
   const fetchData = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       setLoading(true);
       try {
         const [res, shopRes] = await Promise.all([
-          fetchLoyaltyAdjustments({ page, limit: PAGE_SIZE, startDate, endDate }),
+          fetchLoyaltyAdjustments({ page, limit: size, startDate, endDate }),
           shopId ? fetchSingleShop(shopId) : Promise.resolve(null),
         ]);
         setRows(res?.data?.data ?? []);
@@ -76,6 +79,7 @@ export default function LoyaltyAdjustmentsTable() {
         if (pd) {
           setPagination({
             page: pd.currentPage || page,
+            pageSize: size,
             totalPages: pd.totalPages || 1,
             totalEntries: pd.totalEntries || 0,
           });
@@ -86,7 +90,7 @@ export default function LoyaltyAdjustmentsTable() {
         setLoading(false);
       }
     },
-    [startDate, endDate, shopId],
+    [startDate, endDate, shopId, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -195,9 +199,14 @@ export default function LoyaltyAdjustmentsTable() {
             page={pagination.page}
             totalPages={pagination.totalPages}
             totalEntries={pagination.totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             loading={loading}
-            onPageChange={(p) => fetchData(p)}
+            onPageChange={(p) => fetchData(p, pageSize)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              fetchData(1, s);
+            }}
           />
         </div>
       )}

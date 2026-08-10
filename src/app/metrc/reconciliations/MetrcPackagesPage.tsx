@@ -29,6 +29,7 @@ import type { PackageRow, StorageLocationOption } from "@/app/inventory-manageme
 import SyncPackagesButton from "./SyncPackagesButton";
 import MetrcActivityDrawer from "./MetrcActivityDrawer";
 import BulkReconcileDialog from "./BulkReconcileDialog";
+import { useSettings } from "@/context/settings-context";
 
 type MetrcTab = "unFinish" | "finishPackages" | "finishedPackages" | "conversions";
 
@@ -86,6 +87,7 @@ function buildParams(tab: MetrcTab, filters: MetrcFilters, page: number, limit: 
 }
 
 export default function MetrcPackagesPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -94,7 +96,7 @@ export default function MetrcPackagesPage() {
   const [tab, setTab] = useState<MetrcTab>("unFinish");
   const [rows, setRows] = useState<PackageRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 100, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [filters, setFilters] = useState<MetrcFilters>(DEFAULT_FILTERS);
   const debouncedSearchText = useDebounce(filters.searchText, 300);
@@ -619,6 +621,8 @@ export default function MetrcPackagesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadPackages(p, pagination.pageSize)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => loadPackages(1, s)}
         />
       </div>
 

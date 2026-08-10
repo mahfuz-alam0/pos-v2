@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AlertTriangle, ChevronDown, Loader2 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchDeliveryJobsList } from "@/services/deliveryJobs/list";
 import { removeDeliveryJob } from "@/services/deliveryJobs/remove";
 import { retryDeliveryJobMetrcReporting } from "@/services/deliveryJobs/retryMetrcReporting";
@@ -68,8 +69,6 @@ import JobDetailsPanel from "./JobDetailsPanel";
 import JobFormDrawer from "./JobFormDrawer";
 import StatusChangeDrawer from "./StatusChangeDrawer";
 
-const PAGE_SIZE = 30;
-
 const STATUS_OPTIONS = [
   { value: "__all__", label: "All" },
   { value: "WAITING_TO_START", label: "Waiting to Start" },
@@ -132,6 +131,7 @@ function getIsCaliforniaState() {
 
 export default function JobsTable() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
   const isCaliforniaState = getIsCaliforniaState();
 
   const [statusFilter, setStatusFilter] = useState("__all__");
@@ -143,7 +143,7 @@ export default function JobsTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -175,11 +175,12 @@ export default function JobsTable() {
       driverId = "",
       advertisedSaleId = "",
       metrcStatus = "__all__",
+      size = pagination.limit,
     ) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page, limit: size };
         if (status !== "__all__") params.status = status;
         if (driverId) params.driverId = driverId;
         if (advertisedSaleId) params.advertisedSaleId = advertisedSaleId;
@@ -191,7 +192,7 @@ export default function JobsTable() {
         if (p) {
           setPagination({
             page: p.currentPage ?? page,
-            limit: p.limit ?? PAGE_SIZE,
+            limit: p.limit ?? size,
             totalEntries: p.totalEntries ?? 0,
             totalPages: p.totalPages ?? 0,
           });
@@ -202,7 +203,7 @@ export default function JobsTable() {
         setLoading(false);
       }
     },
-    [shopId],
+    [shopId, pagination.limit],
   );
 
   useEffect(() => {
@@ -644,6 +645,11 @@ export default function JobsTable() {
                 metrcStatusFilter,
               )
             }
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(size) => {
+              setPagination((prev) => ({ ...prev, page: 1, limit: size }));
+              loadJobs(1, statusFilter, driverIdFilter, saleIdFilter, metrcStatusFilter, size);
+            }}
           />
         )}
       </div>

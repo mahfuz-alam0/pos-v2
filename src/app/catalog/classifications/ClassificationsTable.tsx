@@ -28,10 +28,11 @@ import {
 import ClassificationFormDrawer from "./ClassificationFormDrawer";
 import ClassificationDetailsPanel from "./ClassificationDetailsPanel";
 import type { ClassificationRow, PaginationState } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function ClassificationsTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("id");
@@ -40,7 +41,7 @@ export default function ClassificationsTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -54,16 +55,16 @@ export default function ClassificationsTable() {
   const [deleteTarget, setDeleteTarget] = useState<ClassificationRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const loadClassifications = useCallback(async (page = 1) => {
+  const loadClassifications = useCallback(async (page = 1, size = pagination.limit) => {
     setLoading(true);
     try {
-      const res = await fetchClassificationsList({ page, limit: PAGE_SIZE });
+      const res = await fetchClassificationsList({ page, limit: size });
       setRows(res?.data ?? []);
       const p = res?.paginationData;
       if (p) {
         setPagination({
           page: p.currentPage ?? page,
-          limit: p.limit ?? PAGE_SIZE,
+          limit: p.limit ?? size,
           totalEntries: p.totalEntries ?? 0,
           totalPages: p.totalPages ?? 0,
         });
@@ -73,7 +74,7 @@ export default function ClassificationsTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.limit]);
 
   useEffect(() => {
     loadClassifications(1);
@@ -213,6 +214,11 @@ export default function ClassificationsTable() {
             pageSize={pagination.limit}
             loading={loading}
             onPageChange={(p) => loadClassifications(p)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+              loadClassifications(1, s);
+            }}
           />
         )}
       </div>

@@ -34,8 +34,9 @@ import {
 
 import PurchaseOrderDetailPanel from "./PurchaseOrderDetailPanel";
 import type { PurchaseOrderRow, SupplierOption } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 const STATUS_BADGE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   OPEN: "default",
@@ -62,6 +63,7 @@ function fmtDate(value?: string) {
 }
 
 export default function PurchaseOrdersPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -79,6 +81,7 @@ export default function PurchaseOrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [metrcIdInput, setMetrcIdInput] = useState("");
   const debouncedMetrcId = useDebounce(metrcIdInput, 300);
@@ -106,11 +109,11 @@ export default function PurchaseOrdersPage() {
   }, [dateFilter, customRange]);
 
   const loadPurchaseOrders = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { page: targetPage, limit: PAGE_SIZE };
+        const params: Record<string, any> = { page: targetPage, limit: size };
         if (debouncedMetrcId) params.metrcId = debouncedMetrcId;
         if (debouncedProductName) params.productName = debouncedProductName;
         if (supplierId) params.supplierId = supplierId;
@@ -133,7 +136,7 @@ export default function PurchaseOrdersPage() {
         setLoading(false);
       }
     },
-    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange]
+    [shopId, debouncedMetrcId, debouncedProductName, supplierId, status, paymentStatus, dateRange, pageSize]
   );
 
   useEffect(() => {
@@ -276,8 +279,8 @@ export default function PurchaseOrdersPage() {
 
           <div className="relative -mx-4">
           <Table>
-            <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-              <TableRow className="border-gray-200 hover:bg-transparent">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Transfer ID</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Status</TableHead>
@@ -287,10 +290,10 @@ export default function PurchaseOrdersPage() {
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading && rows.length === 0 &&
                 Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={`sk-${i}`} className="border-gray-200">
+                  <TableRow key={`sk-${i}`} className="border-b-0">
                     {Array.from({ length: 7 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -310,7 +313,7 @@ export default function PurchaseOrdersPage() {
               {rows.map((row, i) => (
                 <TableRow
                   key={row.id}
-                  className="cursor-pointer border-gray-200"
+                  className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   onClick={() => openRow(row.id)}
                 >
                   <TableCell>
@@ -350,9 +353,14 @@ export default function PurchaseOrdersPage() {
             page={page}
             totalPages={totalPages}
             totalEntries={totalEntries}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             loading={loading}
             onPageChange={loadPurchaseOrders}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              loadPurchaseOrders(1, s);
+            }}
           />
         </div>
       </div>

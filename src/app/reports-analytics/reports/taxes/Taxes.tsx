@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Receipt, ShieldCheck } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { useSettings } from "@/context/settings-context";
 import { fetchProductTaxDetail } from "@/services/reporting/productTaxDetail";
 import { fetchProductTaxDetailExemption } from "@/services/reporting/productTaxDetailExemption";
 import { listCategories } from "@/services/classifications/listCategories";
@@ -50,12 +51,13 @@ const REPORTS = [
   { key: "exemptions", title: "Tax Exemptions", icon: ShieldCheck, description: "View tax exemptions down to the product level, including tax type, location, and employee who performed the exemption." },
 ] as const;
 
-function emptyPagination(): ReportPagination {
-  return { page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 };
+function emptyPagination(size = PAGE_SIZE): ReportPagination {
+  return { page: 1, pageSize: size, totalEntries: 0, totalPages: 1 };
 }
 
 function TaxDetailsReport() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({ startDate: todayStr, endDate: todayStr, timeEnabled: false });
@@ -69,7 +71,8 @@ function TaxDetailsReport() {
   const [data, setData] = useState<TaxDetailRow[]>([]);
   const [summary, setSummary] = useState<TaxDetailSummary | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState(emptyPagination());
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState(() => emptyPagination(defaultPageSize));
   const [ranReport, setRanReport] = useState(false);
 
   const [pdfOpen, setPdfOpen] = useState(false);
@@ -78,13 +81,13 @@ function TaxDetailsReport() {
   const dateRangeLabel = `${format(new Date(startDate), "MMM dd, yyyy")} - ${format(new Date(endDate), "MMM dd, yyyy")}`;
   const exportData = { data, summary };
 
-  const fetchData = async (page: number) => {
+  const fetchData = async (page: number, size: number = pageSize) => {
     if (!shopId) return;
     setLoading(true);
     try {
       const response = await fetchProductTaxDetail({
         page,
-        limit: PAGE_SIZE,
+        limit: size,
         startDate,
         endDate,
         shopId,
@@ -95,7 +98,7 @@ function TaxDetailsReport() {
       setData(response?.data?.data || []);
       setSummary(response?.data?.summary || null);
       const pData = response?.data?.paginationData;
-      setPagination((prev) => ({ ...prev, page, totalEntries: pData?.totalEntries || 0, totalPages: pData?.totalPages || 1 }));
+      setPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData?.totalEntries || 0, totalPages: pData?.totalPages || 1 }));
     } catch (error) {
       console.error("Error fetching tax details:", error);
     } finally {
@@ -154,7 +157,18 @@ function TaxDetailsReport() {
       </Card>
 
       {ranReport && <TaxBreakdownSummary data={data} summary={summary} />}
-      {ranReport && <TaxDetailsTable data={data} loading={loading} pagination={pagination} onPageChange={handlePageChange} />}
+      {ranReport && (
+        <TaxDetailsTable
+          data={data}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchData(1, s);
+          }}
+        />
+      )}
 
       <PdfExportDrawer
         open={pdfOpen}
@@ -232,6 +246,7 @@ function BrandFilterSelect({ value, onChange }: { value: string | number | null;
 }
 
 function TaxExemptionsReport() {
+  const { defaultPageSize } = useSettings();
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({ startDate: todayStr, endDate: todayStr, timeEnabled: false });
   const startDate = selectedDate.startDate ?? todayStr;
@@ -243,7 +258,8 @@ function TaxExemptionsReport() {
 
   const [data, setData] = useState<TaxExemptionRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState(emptyPagination());
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState(() => emptyPagination(defaultPageSize));
   const [ranReport, setRanReport] = useState(false);
 
   const [pdfOpen, setPdfOpen] = useState(false);
@@ -255,12 +271,12 @@ function TaxExemptionsReport() {
     listCustomerTypes().then((res) => setCustomerTypes(res?.data?.customerTypes || []));
   }, []);
 
-  const fetchData = async (page: number) => {
+  const fetchData = async (page: number, size: number = pageSize) => {
     setLoading(true);
     try {
       const response = await fetchProductTaxDetailExemption({
         page,
-        limit: PAGE_SIZE,
+        limit: size,
         startDate,
         endDate,
         ...(customerTypeId ? { customerTypeId } : {}),
@@ -268,7 +284,7 @@ function TaxExemptionsReport() {
       });
       setData(response?.data?.data || []);
       const pData = response?.data?.paginationData;
-      setPagination((prev) => ({ ...prev, page, totalEntries: pData?.totalEntries || 0, totalPages: pData?.totalPages || 1 }));
+      setPagination((prev) => ({ ...prev, page, pageSize: size, totalEntries: pData?.totalEntries || 0, totalPages: pData?.totalPages || 1 }));
     } catch (error) {
       console.error("Error fetching tax exemptions:", error);
     } finally {
@@ -347,7 +363,18 @@ function TaxExemptionsReport() {
         </div>
       </Card>
 
-      {ranReport && <TaxExemptionsTable data={data} loading={loading} pagination={pagination} onPageChange={handlePageChange} />}
+      {ranReport && (
+        <TaxExemptionsTable
+          data={data}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchData(1, s);
+          }}
+        />
+      )}
 
       <PdfExportDrawer
         open={pdfOpen}

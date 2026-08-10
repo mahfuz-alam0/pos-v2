@@ -23,21 +23,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import GroupDetailPanel from "./GroupDetailPanel";
 import DeleteGroupDrawer from "./DeleteGroupDrawer";
+import { useSettings } from "@/context/settings-context";
 
 export default function EmployeeGroupsPage() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const load = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchEmployeeGroupsList({ page, limit: pagination.pageSize });
+        const res = await fetchEmployeeGroupsList({ page, limit: size });
         setRows(res?.data?.userGroups ?? []);
         const pd = res?.data?.paginationData ?? {};
         setPagination((prev) => ({
@@ -181,6 +183,11 @@ export default function EmployeeGroupsPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => load(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            load(1, s);
+          }}
         />
       </div>
 

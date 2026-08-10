@@ -61,9 +61,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import InventoryDetailsDrawer from "./InventoryDetailsDrawer";
+import { useSettings } from "@/context/settings-context";
 import EditInventoryForm from "./edit/[id]/EditInventoryForm";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 const OPTIMIZE_TAB_CLASS =
   "h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary";
@@ -117,6 +118,7 @@ const emptyFilters: {
 };
 
 export default function ManageInventoriesTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
 
@@ -125,6 +127,7 @@ export default function ManageInventoriesTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [isOpenForSellableStore, setIsOpenForSellableStore] = useState(true);
 
   const [searchInput, setSearchInput] = useState("");
@@ -167,11 +170,11 @@ export default function ManageInventoriesTable() {
   const [transferLoading, setTransferLoading] = useState(false);
 
   const loadInventories = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: size, page: targetPage };
         if (search) params.search = search;
         if (categoryId) params.categoryIds = [categoryId];
         if (brandId) params.brandIds = [brandId];
@@ -200,7 +203,7 @@ export default function ManageInventoriesTable() {
         setLoading(false);
       }
     },
-    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice]
+    [shopId, search, categoryId, brandId, storageLocationId, filters, sortByAlpha, sortByPrice, pageSize]
   );
 
   useEffect(() => {
@@ -383,7 +386,7 @@ export default function ManageInventoriesTable() {
     if (totalPages <= 1) return rows;
     let allData: any[] = [];
     for (let p = 1; p <= totalPages; p++) {
-      const params: Record<string, any> = { limit: PAGE_SIZE, page: p };
+      const params: Record<string, any> = { limit: pageSize, page: p };
       if (search) params.search = search;
       if (categoryId) params.categoryIds = [categoryId];
       if (brandId) params.brandIds = [brandId];
@@ -816,8 +819,8 @@ export default function ManageInventoriesTable() {
           </div>
         )}
         <Table className="table-fixed text-[13px]">
-          <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:font-semibold [&_th]:text-gray-500">
-            <TableRow className="border-gray-200 hover:bg-transparent">
+          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:font-semibold [&_th]:text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[3%] pl-3">
                 <Checkbox
                   className="rounded-md"
@@ -848,10 +851,10 @@ export default function ManageInventoriesTable() {
               <TableHead className="w-[8%] text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-gray-600 [&_td]:h-18">
+          <TableBody className="text-muted-foreground [&_td]:h-18">
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                <TableRow key={`skeleton-${i}`} className="border-b-0">
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -870,7 +873,7 @@ export default function ManageInventoriesTable() {
 
             {displayRows.length > 0 &&
               displayRows.map((row: any, i: number) => (
-                <TableRow key={row.id} className="border-gray-200">
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="pl-3">
                     <Checkbox className="rounded-md" checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
                   </TableCell>
@@ -961,9 +964,14 @@ export default function ManageInventoriesTable() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={loadInventories}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadInventories(1, s);
+        }}
       />
     </div>
 

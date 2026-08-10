@@ -46,8 +46,9 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import LiveSessionTimer from "./live/LiveSessionTimer";
 import SessionPhaseOne from "./live/SessionPhaseOne";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 interface SessionState {
   assignedToId: string;
@@ -93,6 +94,7 @@ interface SessionConfigurationStepProps {
 }
 
 export default function SessionConfigurationStep({ mode, sessionId }: SessionConfigurationStepProps) {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const { shopId } = useShop();
   const userInfo = useCurrentUser();
@@ -103,6 +105,7 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [search, setSearch] = useState("");
   const [brandId, setBrandId] = useState<string | number | null>(null);
@@ -190,12 +193,12 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
   }, [shopId, mode]);
 
   const loadProducts = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId || !sessionState.storageLocationId) return;
       setLoading(true);
       try {
         const params: Record<string, any> = {
-          limit: PAGE_SIZE,
+          limit: size,
           page: targetPage,
           storageLocationId: sessionState.storageLocationId,
         };
@@ -218,7 +221,7 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
         setLoading(false);
       }
     },
-    [shopId, sessionState.storageLocationId, sessionState.isNotLive, search, categoryId, brandId, excludeInSession, productsInSession, mode]
+    [shopId, sessionState.storageLocationId, sessionState.isNotLive, search, categoryId, brandId, excludeInSession, productsInSession, mode, pageSize]
   );
 
   useEffect(() => {
@@ -550,9 +553,14 @@ export default function SessionConfigurationStep({ mode, sessionId }: SessionCon
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadProducts}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadProducts(1, s);
+          }}
         />
       )}
 

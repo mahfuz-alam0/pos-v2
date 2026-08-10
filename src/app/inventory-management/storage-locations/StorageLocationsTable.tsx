@@ -29,8 +29,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import StorageLocationDetails from "./StorageLocationDetails";
 import StorageLocationDrawer from "./StorageLocationDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 interface StorageLocationRow {
   id: string | number;
@@ -41,6 +42,7 @@ interface StorageLocationRow {
 }
 
 export default function StorageLocationsTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { shopId } = useShop();
@@ -52,6 +54,7 @@ export default function StorageLocationsTable() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [drawer, setDrawer] = useState<{ open: boolean; mode: "add" | "edit"; locationId: string | number | null }>({
     open: false,
     mode: "add",
@@ -59,11 +62,11 @@ export default function StorageLocationsTable() {
   });
 
   const loadLocations = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: PAGE_SIZE });
+        const res = await fetchStorageLocations(shopId, { page: targetPage, limit: size });
         const locations = res?.data?.data?.locations ?? [];
         setRows(
           locations.map((location) => ({
@@ -84,7 +87,7 @@ export default function StorageLocationsTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   useEffect(() => {
@@ -130,18 +133,18 @@ export default function StorageLocationsTable() {
 
         <div className="relative -mx-4">
           <Table>
-            <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-              <TableRow className="border-gray-200 hover:bg-transparent">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Location Name</TableHead>
                 <TableHead>Default Package Destination</TableHead>
                 <TableHead>Open For Sellable In Physical Store</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                  <TableRow key={`skeleton-${i}`} className="border-b-0">
                     {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -159,11 +162,11 @@ export default function StorageLocationsTable() {
               )}
 
               {!loading &&
-                rows.map((row) => (
+                rows.map((row, i) => (
                   <TableRow
                     key={row.id}
                     data-active={openId === String(row.id)}
-                    className="border-gray-200 data-[active=true]:bg-muted/40"
+                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] data-[active=true]:bg-muted/40 ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   >
                     <TableCell className="font-medium">
                       <button
@@ -195,9 +198,14 @@ export default function StorageLocationsTable() {
           page={page}
           totalPages={totalPages}
           totalEntries={totalEntries}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           loading={loading}
           onPageChange={loadLocations}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            loadLocations(1, s);
+          }}
         />
       </div>
 

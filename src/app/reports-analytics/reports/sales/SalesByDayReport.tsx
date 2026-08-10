@@ -19,6 +19,7 @@ import PdfExportDrawer from "@/components/ui/pdf-export-drawer";
 import ExcelExportDrawer from "@/components/ui/excel-export-drawer";
 
 import { useShop, SalesByTable, money, pct } from "./salesByShared";
+import { useSettings } from "@/context/settings-context";
 import {
   DAY_SECTIONS,
   DAY_COLUMN_CONFIG,
@@ -35,12 +36,13 @@ function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-function emptyPagination(): ReportPagination {
-  return { page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 };
+function emptyPagination(size = PAGE_SIZE): ReportPagination {
+  return { page: 1, pageSize: size, totalEntries: 0, totalPages: 1 };
 }
 
 export default function SalesByDayReport() {
   const { shopId } = useShop();
+  const { defaultPageSize } = useSettings();
 
   const [selectedDate, setSelectedDate] = useState<SelectedDateResult>({
     startDate: todayStr(),
@@ -51,7 +53,8 @@ export default function SalesByDayReport() {
   const [runReport, setRunReport] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<SalesByDayRow[]>([]);
-  const [pagination, setPagination] = useState(emptyPagination());
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const [pagination, setPagination] = useState(() => emptyPagination(defaultPageSize));
   const [storeInfo, setStoreInfo] = useState<any>({});
 
   const [pdfOpen, setPdfOpen] = useState(false);
@@ -70,15 +73,15 @@ export default function SalesByDayReport() {
   };
 
   const fetchDetail = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pageSize) => {
       setLoading(true);
       try {
-        const res = await fetchSalesByDate(buildFilters({ page, limit: PAGE_SIZE }));
+        const res = await fetchSalesByDate(buildFilters({ page, limit: size }));
         setRows(res?.data?.data ?? []);
         const pd = res?.data?.paginationData;
         setPagination({
           page: pd?.currentPage || page,
-          pageSize: PAGE_SIZE,
+          pageSize: size,
           totalEntries: pd?.totalEntries || 0,
           totalPages: pd?.totalPages || 1,
         });
@@ -89,7 +92,7 @@ export default function SalesByDayReport() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [shopId, startDate, endDate],
+    [shopId, startDate, endDate, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -185,6 +188,11 @@ export default function SalesByDayReport() {
           loading={loading}
           pagination={pagination}
           onPageChange={(p) => fetchDetail(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            fetchDetail(1, s);
+          }}
           rowKey={(r, i) => `${r.date}-${i}`}
           columns={[
             {

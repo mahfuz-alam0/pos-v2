@@ -18,6 +18,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import VaultTransactionDetails from "./VaultTransactionDetails";
 import VaultActionDialog from "./VaultActionDialog";
 import TransferFromDrawerDialog from "./TransferFromDrawerDialog";
+import { useSettings } from "@/context/settings-context";
 
 type DateRangeFilter = "ALL" | "WEEK" | "MONTH" | "YEAR" | "CUSTOM";
 
@@ -42,11 +43,12 @@ function toISODate(date: Date) {
 }
 
 export default function CashManagementPage() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 30, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("ALL");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
@@ -65,13 +67,13 @@ export default function CashManagementPage() {
   }, [shopId]);
 
   const loadTransactions = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
         const res = await fetchVaultTransactions(shopId as string, {
           page,
-          limit: pagination.pageSize,
+          limit: size,
           ...appliedFilters,
         });
         setRows(res?.data?.activities ?? []);
@@ -233,6 +235,11 @@ export default function CashManagementPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => loadTransactions(p)}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            loadTransactions(1, s);
+          }}
         />
       </div>
 

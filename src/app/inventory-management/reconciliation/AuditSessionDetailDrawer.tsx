@@ -137,8 +137,8 @@ export default function AuditSessionDetailDrawer({
 
             <div className="relative -mx-4">
               <Table>
-                <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-                  <TableRow className="border-gray-200 hover:bg-transparent">
+                <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+                  <TableRow className="hover:bg-transparent">
                     <TableHead className="w-8">
                       <Checkbox
                         checked={
@@ -158,8 +158,8 @@ export default function AuditSessionDetailDrawer({
                     <TableHead className="text-center">Review Status</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody className="text-gray-600 [&_td]:h-14 [&_td]:px-4">
-                  {(session.packagesData || []).map((pkg: any) => {
+                <TableBody className="text-muted-foreground [&_td]:h-14 [&_td]:px-4">
+                  {(session.packagesData || []).map((pkg: any, i: number) => {
                     const salesQty = sumQty(pkg.saleEvents);
                     const returnsQty = sumQty(pkg.saleReturnEvents);
                     const expandable = (pkg.saleEvents || []).length > 0 || (pkg.saleReturnEvents || []).length > 0;
@@ -167,7 +167,7 @@ export default function AuditSessionDetailDrawer({
                     const status = reviewStatus(pkg.id);
                     return (
                       <>
-                        <TableRow key={pkg.id} className="border-gray-200">
+                        <TableRow key={pkg.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                           <TableCell>
                             <Checkbox
                               checked={selectedIds.includes(pkg.id)}
@@ -216,7 +216,7 @@ export default function AuditSessionDetailDrawer({
                                   ? "border-green-300 text-green-700"
                                   : status === "Rejected"
                                     ? "border-destructive/40 text-destructive"
-                                    : "border-gray-300 text-gray-600"
+                                    : "border-border text-muted-foreground"
                               }
                             >
                               {status}
@@ -224,7 +224,7 @@ export default function AuditSessionDetailDrawer({
                           </TableCell>
                         </TableRow>
                         {expanded && (
-                          <TableRow key={`${pkg.id}-expand`} className="border-gray-200 bg-muted/20">
+                          <TableRow key={`${pkg.id}-expand`} className="border-b-0 bg-muted/20">
                             <TableCell colSpan={8}>
                               <div className="flex gap-10 px-2 py-2 text-xs">
                                 <div>

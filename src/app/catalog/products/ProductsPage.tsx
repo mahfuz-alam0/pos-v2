@@ -42,6 +42,7 @@ import MergeProductsDrawer from "./MergeProductsDrawer";
 import ActivityLogDrawer from "./ActivityLogDrawer";
 import ProductDetailsPanel from "./ProductDetailsPanel";
 import type { PaginationState, ProductFilters, ProductRow } from "./types";
+import { useSettings } from "@/context/settings-context";
 
 const DEFAULT_FILTERS: ProductFilters = { search: "", brandIds: null, categoryIds: null, tagIds: null };
 
@@ -62,10 +63,11 @@ export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("id");
+  const { defaultPageSize } = useSettings();
 
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState<PaginationState>({ limit: 50, page: 1, totalEntries: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState<PaginationState>({ limit: defaultPageSize, page: 1, totalEntries: 0, totalPages: 0 });
 
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -86,16 +88,16 @@ export default function ProductsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const loadProducts = useCallback(
-    async (page = 1) => {
+    async (page = 1, size = pagination.limit) => {
       setLoading(true);
       try {
-        const params = buildParams({ ...filters, search: debouncedSearch }, page, pagination.limit);
+        const params = buildParams({ ...filters, search: debouncedSearch }, page, size);
         const res = await fetchProductsList(params);
         const products = res?.data ?? [];
         setData(products);
         const pd = res?.paginationData ?? {};
         setPagination({
-          limit: pd.limit ?? pagination.limit,
+          limit: pd.limit ?? size,
           page: pd.currentPage ?? page,
           totalEntries: pd.totalEntries ?? products.length,
           totalPages: pd.totalPages ?? 1,
@@ -381,6 +383,11 @@ export default function ProductsPage() {
           pageSize={pagination.limit}
           loading={loading}
           onPageChange={handlePageChange}
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+            loadProducts(1, s);
+          }}
         />
       </div>
 

@@ -157,15 +157,19 @@ export function SalesByTable<T extends { taxBreakdown?: TaxBreakdownItem[] }>({
   loading,
   pagination,
   onPageChange,
+  onPageSizeChange,
   columns,
   rowKey,
+  pageSizeOptions,
 }: {
   data: T[];
   loading: boolean;
   pagination: ReportPagination;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
   columns: SalesByColumn<T>[];
   rowKey: (row: T, i: number) => string;
+  pageSizeOptions?: number[];
 }) {
   const taxNames = useUniqueTaxNames(data);
 
@@ -236,6 +240,8 @@ export function SalesByTable<T extends { taxBreakdown?: TaxBreakdownItem[] }>({
         pageSize={pagination.pageSize}
         loading={loading}
         onPageChange={onPageChange}
+        pageSizeOptions={pageSizeOptions}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   );

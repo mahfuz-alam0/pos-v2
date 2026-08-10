@@ -43,7 +43,7 @@ export default function ScanModeBar({ value, onChange, onScan, scanCounts, onCle
             }
           }}
           placeholder="Scan or type Package ID…"
-          className="min-w-60 flex-1 border-blue-500 bg-white text-[15px] dark:bg-background"
+          className="min-w-60 flex-1 border-blue-500 bg-background text-[15px]"
         />
         {packageCount > 0 ? (
           <div className="flex shrink-0 items-center gap-2">

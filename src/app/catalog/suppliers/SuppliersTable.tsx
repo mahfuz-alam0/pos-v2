@@ -30,10 +30,11 @@ import {
 import SupplierFormDrawer from "./SupplierFormDrawer";
 import SupplierDetailsPanel from "./SupplierDetailsPanel";
 import type { PaginationState, SupplierRow, SupplierTypeOption } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function SuppliersTable() {
+  const { defaultPageSize } = useSettings();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [supplierTypeId, setSupplierTypeId] = useState<string>("all");
@@ -43,7 +44,7 @@ export default function SuppliersTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -62,10 +63,10 @@ export default function SuppliersTable() {
     fetchSupplierTypes().then((res) => setSupplierTypes(res?.data ?? []));
   }, []);
 
-  const loadSuppliers = useCallback(async (page = 1, searchTerm = "", typeId = "all") => {
+  const loadSuppliers = useCallback(async (page = 1, searchTerm = "", typeId = "all", size = pagination.limit) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page, limit: PAGE_SIZE };
+      const params: Record<string, any> = { page, limit: size };
       if (searchTerm) params.search = searchTerm;
       if (typeId && typeId !== "all") params.supplierTypeId = typeId;
       const res = await fetchSuppliersList(params);
@@ -74,7 +75,7 @@ export default function SuppliersTable() {
       if (p) {
         setPagination({
           page: p.currentPage ?? page,
-          limit: p.limit ?? PAGE_SIZE,
+          limit: p.limit ?? size,
           totalEntries: p.totalEntries ?? 0,
           totalPages: p.totalPages ?? 0,
         });
@@ -84,7 +85,7 @@ export default function SuppliersTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.limit]);
 
   useEffect(() => {
     loadSuppliers(1, debouncedSearch, supplierTypeId);
@@ -235,6 +236,11 @@ export default function SuppliersTable() {
             pageSize={pagination.limit}
             loading={loading}
             onPageChange={(p) => loadSuppliers(p, debouncedSearch, supplierTypeId)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+              loadSuppliers(1, debouncedSearch, supplierTypeId, s);
+            }}
           />
         )}
       </div>

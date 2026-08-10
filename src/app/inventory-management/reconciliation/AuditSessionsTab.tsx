@@ -28,10 +28,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import AuditSessionDetailDrawer from "./AuditSessionDetailDrawer";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 export default function AuditSessionsTab() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,6 +44,7 @@ export default function AuditSessionsTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalEntries, setTotalEntries] = useState(0);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);
@@ -51,11 +54,11 @@ export default function AuditSessionsTab() {
   const openSessionId = searchParams.get("adjustmentId");
 
   const loadSessions = useCallback(
-    async (targetPage = 1, employeeId = employeeFilter, storageLocationId = locationFilter) => {
+    async (targetPage = 1, employeeId = employeeFilter, storageLocationId = locationFilter, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params: Record<string, any> = { limit: PAGE_SIZE, page: targetPage };
+        const params: Record<string, any> = { limit: size, page: targetPage };
         if (employeeId) params.employeeId = employeeId;
         if (storageLocationId) params.storageLocationId = storageLocationId;
         const res = await fetchAuditSessions(shopId, params);
@@ -69,7 +72,7 @@ export default function AuditSessionsTab() {
         setLoading(false);
       }
     },
-    [shopId, employeeFilter, locationFilter]
+    [shopId, employeeFilter, locationFilter, pageSize]
   );
 
   useEffect(() => {
@@ -144,8 +147,8 @@ export default function AuditSessionsTab() {
       <div className="relative -mx-4">
         <TableLoadingOverlay show={loading && rows.length > 0} />
         <Table>
-          <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-            <TableRow className="border-gray-200 hover:bg-transparent">
+          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
               <TableHead>Storage Location</TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Started At</TableHead>
@@ -155,11 +158,11 @@ export default function AuditSessionsTab() {
               <TableHead>Created At</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+          <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
             {loading &&
               rows.length === 0 &&
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                <TableRow key={`skeleton-${i}`} className="border-b-0">
                   {Array.from({ length: 7 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -177,10 +180,10 @@ export default function AuditSessionsTab() {
             )}
 
             {rows.length > 0 &&
-              rows.map((row: any) => (
+              rows.map((row: any, i) => (
                 <TableRow
                   key={row.id}
-                  className="cursor-pointer border-gray-200"
+                  className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   onClick={() => openSession(row.id)}
                 >
                   <TableCell>{row.storageLocation?.name || "-"}</TableCell>
@@ -204,9 +207,14 @@ export default function AuditSessionsTab() {
         page={page}
         totalPages={totalPages}
         totalEntries={totalEntries}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => loadSessions(p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          loadSessions(1, employeeFilter, locationFilter, s);
+        }}
       />
 
       <AuditSessionDetailDrawer

@@ -29,10 +29,11 @@ import {
 import ManufacturerFormDrawer from "./ManufacturerFormDrawer";
 import ManufacturerDetailsPanel from "./ManufacturerDetailsPanel";
 import type { BrandRow, PaginationState } from "./types";
+import { useSettings } from "@/context/settings-context";
 
-const PAGE_SIZE = 10;
 
 export default function ManufacturersTable() {
+  const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const openId = searchParams.get("id");
@@ -44,7 +45,7 @@ export default function ManufacturersTable() {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    limit: PAGE_SIZE,
+    limit: defaultPageSize,
     totalEntries: 0,
     totalPages: 0,
   });
@@ -58,10 +59,10 @@ export default function ManufacturersTable() {
   const [deleteTarget, setDeleteTarget] = useState<BrandRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const loadBrands = useCallback(async (page = 1, searchTerm = "") => {
+  const loadBrands = useCallback(async (page = 1, searchTerm = "", size = pagination.limit) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page, limit: PAGE_SIZE };
+      const params: Record<string, any> = { page, limit: size };
       if (searchTerm) params.search = searchTerm;
       const res = await fetchBrandsList(params);
       setRows(res?.data ?? []);
@@ -69,7 +70,7 @@ export default function ManufacturersTable() {
       if (p) {
         setPagination({
           page: p.currentPage ?? page,
-          limit: p.limit ?? PAGE_SIZE,
+          limit: p.limit ?? size,
           totalEntries: p.totalEntries ?? 0,
           totalPages: p.totalPages ?? 0,
         });
@@ -79,7 +80,7 @@ export default function ManufacturersTable() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.limit]);
 
   useEffect(() => {
     loadBrands(1, debouncedSearch);
@@ -225,6 +226,11 @@ export default function ManufacturersTable() {
             pageSize={pagination.limit}
             loading={loading}
             onPageChange={(p) => loadBrands(p, debouncedSearch)}
+            pageSizeOptions={[30, 50, 100, 200]}
+            onPageSizeChange={(s) => {
+              setPagination((prev) => ({ ...prev, limit: s, page: 1 }));
+              loadBrands(1, debouncedSearch, s);
+            }}
           />
         )}
       </div>

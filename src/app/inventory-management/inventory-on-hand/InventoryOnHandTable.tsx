@@ -35,6 +35,7 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useSettings } from "@/context/settings-context";
 import Drawer from "@/components/ui/Drawer";
 import EditInventoryForm from "@/app/inventory-management/inventory-and-pricing/edit/[id]/EditInventoryForm";
 import {
@@ -46,7 +47,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
 
 const FULLSCREEN_TITLES = {
   products: "Product List",
@@ -147,7 +148,7 @@ function StatCard({
 /** Sort icon is decorative only — no sort behavior wired up yet. */
 function SortableHead({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <TableHead className={`font-semibold text-gray-500 ${className}`}>
+    <TableHead className={`font-semibold text-muted-foreground ${className}`}>
       <span className="inline-flex items-center gap-1">
         {children}
         <ArrowUpDown className="size-3 text-muted-foreground/60" />
@@ -162,11 +163,15 @@ function TableFooterStatus({
   pageSize,
   loading,
   onPageChange,
+  pageSizeOptions,
+  onPageSizeChange,
 }: {
   pagination: { page: number; totalPages: number; totalEntries: number };
   pageSize: number;
   loading: boolean;
   onPageChange: (page: number) => void;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (size: number) => void;
 }) {
   if (pagination.totalPages > 1) {
     return (
@@ -177,6 +182,8 @@ function TableFooterStatus({
         pageSize={pageSize}
         loading={loading}
         onPageChange={onPageChange}
+        pageSizeOptions={pageSizeOptions}
+        onPageSizeChange={onPageSizeChange}
       />
     );
   }
@@ -190,6 +197,7 @@ function TableFooterStatus({
 type FilterType = "category" | "brand" | "product" | null;
 
 export default function InventoryOnHandTable() {
+  const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
 
   const [activeTab, setActiveTab] = useState<"products" | "packages" | "tags" | "brands">("products");
@@ -214,6 +222,7 @@ export default function InventoryOnHandTable() {
 
   const [productPagination, setProductPagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
   const [packagePagination, setPackagePagination] = useState({ page: 1, totalPages: 1, totalEntries: 0 });
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [stats, setStats] = useState({
     categoryCount: 0,
@@ -280,11 +289,11 @@ export default function InventoryOnHandTable() {
   );
 
   const fetchProducts = useCallback(
-    async (filters: Filter[], page = 1) => {
+    async (filters: Filter[], page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = { limit: PAGE_SIZE, page, ...filtersToParams(filters) };
+        const params = { limit: size, page, ...filtersToParams(filters) };
         const res = await fetchInventoryOnHandByProduct(shopId, params);
         if (res?.tableData) {
           setProductRows(res.tableData);
@@ -302,15 +311,15 @@ export default function InventoryOnHandTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   const fetchPackages = useCallback(
-    async (filters: Filter[], page = 1) => {
+    async (filters: Filter[], page = 1, size = pageSize) => {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = { limit: PAGE_SIZE, page, ...filtersToParams(filters) };
+        const params = { limit: size, page, ...filtersToParams(filters) };
         const res = await fetchInventoryOnHandByPackage(shopId, params);
         if (res?.tableData) {
           setPackageRows(res.tableData);
@@ -328,7 +337,7 @@ export default function InventoryOnHandTable() {
         setLoading(false);
       }
     },
-    [shopId]
+    [shopId, pageSize]
   );
 
   const applyFilters = useCallback(() => {
@@ -461,8 +470,8 @@ export default function InventoryOnHandTable() {
       <div className="-mx-4">
       <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
         <Table className="text-[14px]">
-          <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_tr]:shadow-none [&_th]:h-13`}>
-            <TableRow className="border-gray-200 hover:bg-transparent">
+          <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
+            <TableRow className="hover:bg-transparent">
               <SortableHead className="w-46.5 px-4">Category</SortableHead>
               <SortableHead className="w-38.5 px-4">Brand</SortableHead>
               <SortableHead className="min-w-100 flex-1 px-4">Product</SortableHead>
@@ -471,13 +480,13 @@ export default function InventoryOnHandTable() {
               <SortableHead className="w-36.25 justify-center px-4 text-center">Total Cost</SortableHead>
               <SortableHead className="w-31.25 justify-center px-4 text-center">Unit Price</SortableHead>
               <SortableHead className="w-31.25 justify-center px-4 text-center">Margin</SortableHead>
-              <TableHead className="w-26.25 px-4 text-center font-semibold text-gray-500">Action</TableHead>
+              <TableHead className="w-26.25 px-4 text-center font-semibold text-muted-foreground">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-gray-600">
+          <TableBody className="text-muted-foreground">
             {loading && productRows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`s-${i}`} className="border-gray-200">
+                <TableRow key={`s-${i}`} className="border-b-0">
                   {Array.from({ length: 9 }).map((__, j) => (
                     <TableCell key={j} className="h-17 px-4">
                       <Skeleton className="h-4 w-full" />
@@ -500,7 +509,7 @@ export default function InventoryOnHandTable() {
               const margin = sp !== 0 ? ((sp - cp) / sp) * 100 : 0;
               const totalCost = row.cost || cp * (row.qtyOnHand || 0);
               return (
-                <TableRow key={row.id || i} className="border-gray-200">
+                <TableRow key={row.id || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell
                     className={`h-17 max-w-46.5 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.categoryName && filterType === "category")}`}
                     title={row.categoryName}
@@ -552,9 +561,14 @@ export default function InventoryOnHandTable() {
       </div>
       <TableFooterStatus
         pagination={productPagination}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => fetchProducts(activeFilters, p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          fetchProducts(activeFilters, 1, s);
+        }}
       />
       </div>
     );
@@ -566,21 +580,21 @@ export default function InventoryOnHandTable() {
       <div className="-mx-4">
       <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
         <Table className="text-[14px]">
-          <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_tr]:shadow-none [&_th]:h-13`}>
-            <TableRow className="border-gray-200 hover:bg-transparent">
+          <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
+            <TableRow className="hover:bg-transparent">
               <SortableHead className="w-38.5 justify-center px-4 text-center">Expiry Date</SortableHead>
               <SortableHead className="min-w-100 flex-1 px-4">Product</SortableHead>
               <SortableHead className="w-62.5 px-4">Metrc ID</SortableHead>
               <SortableHead className="w-62.5 px-4">Shop Name</SortableHead>
               <SortableHead className="w-26.25 justify-center px-4 text-center">Age</SortableHead>
               <SortableHead className="w-38.5 justify-center px-4 text-center">Quantity On Hand</SortableHead>
-              <TableHead className="w-26.25 px-4 text-center font-semibold text-gray-500">Action</TableHead>
+              <TableHead className="w-26.25 px-4 text-center font-semibold text-muted-foreground">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-gray-600">
+          <TableBody className="text-muted-foreground">
             {loading && packageRows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`s-${i}`} className="border-gray-200">
+                <TableRow key={`s-${i}`} className="border-b-0">
                   {Array.from({ length: 7 }).map((__, j) => (
                     <TableCell key={j} className="h-17 px-4">
                       <Skeleton className="h-4 w-full" />
@@ -602,7 +616,7 @@ export default function InventoryOnHandTable() {
                 ? Math.floor(Math.abs(Date.now() - new Date(row.createdAt).getTime()) / 86400000)
                 : null;
               return (
-                <TableRow key={row.packageId || i} className="border-gray-200">
+                <TableRow key={row.packageId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="h-17 px-4 text-center">{row.expiryDate || "N/A"}</TableCell>
                   <TableCell className="h-17 min-w-100 truncate px-4" title={row.productName}>
                     {row.productName}
@@ -638,9 +652,14 @@ export default function InventoryOnHandTable() {
       </div>
       <TableFooterStatus
         pagination={packagePagination}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         loading={loading}
         onPageChange={(p) => fetchPackages(activeFilters, p)}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          fetchPackages(activeFilters, 1, s);
+        }}
       />
       </div>
     );
@@ -663,13 +682,13 @@ export default function InventoryOnHandTable() {
         <div className="-mx-4">
           <div className={inModal ? "h-[calc(100vh-160px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
             <Table className="text-[14px]">
-              <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13`}>
-                <TableRow className="border-gray-200 hover:bg-transparent">
-                  <TableHead className="px-4 font-semibold text-gray-500">Top Tag</TableHead>
-                  <TableHead className="px-4 text-right font-semibold text-gray-500">Cost</TableHead>
+              <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-4 font-semibold text-muted-foreground">Top Tag</TableHead>
+                  <TableHead className="px-4 text-right font-semibold text-muted-foreground">Cost</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-gray-600">
+              <TableBody className="text-muted-foreground">
                 {filteredTagRows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
@@ -678,7 +697,7 @@ export default function InventoryOnHandTable() {
                   </TableRow>
                 )}
                 {filteredTagRows.map((t, i) => (
-                  <TableRow key={i} className="border-gray-200">
+                  <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                     <TableCell className="h-17 px-4">{t.topTag}</TableCell>
                     <TableCell className="h-17 px-4 text-right">${t.cost}</TableCell>
                   </TableRow>
@@ -696,13 +715,13 @@ export default function InventoryOnHandTable() {
       <div className="-mx-4">
         <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
           <Table className="text-[14px]">
-            <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13`}>
-              <TableRow className="border-gray-200 hover:bg-transparent">
-                <TableHead className="px-4 font-semibold text-gray-500">Brand</TableHead>
-                <TableHead className="px-4 text-right font-semibold text-gray-500">% Cost</TableHead>
+            <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4 font-semibold text-muted-foreground">Brand</TableHead>
+                <TableHead className="px-4 text-right font-semibold text-muted-foreground">% Cost</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-gray-600">
+            <TableBody className="text-muted-foreground">
               {brandRows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
@@ -711,7 +730,7 @@ export default function InventoryOnHandTable() {
                 </TableRow>
               )}
               {brandRows.map((b, i) => (
-                <TableRow key={i} className="border-gray-200">
+                <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="h-17 px-4">{b.brand}</TableCell>
                   <TableCell className="h-17 px-4 text-right">{b.percentCost}</TableCell>
                 </TableRow>
@@ -724,8 +743,8 @@ export default function InventoryOnHandTable() {
   }
 
   return (
-    <div className="flex flex-col gap-6 bg-[#F5F5F5] px-9 py-6">
-      <div className="mb-[6px] flex flex-col gap-1.5">
+    <div className="flex flex-col gap-6 px-9 py-6">
+      <div className="mb-1.5 flex flex-col gap-1.5">
         <h1 className="text-[22px] font-medium">Inventory On Hand</h1>
         <Breadcrumb>
           <BreadcrumbList className="text-[14px]">
