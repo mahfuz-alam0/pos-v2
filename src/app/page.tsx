@@ -10,7 +10,7 @@ import TotalRevenueCard from "@/components/dashboard/TotalRevenueCard";
 import PopularTimeCard from "@/components/dashboard/PopularTimeCard";
 import ConversionStats from "@/components/dashboard/ConversionStats";
 import AllStatsTiles from "@/components/dashboard/AllStatsTiles";
-import CustomerQueue from "@/components/dashboard/CustomerQueue";
+import CustomerQueue from "@/components/dashboard/HomeCustomerQueue";
 import EmployeeSalesTodayChart from "@/components/dashboard/EmployeeSalesTodayChart";
 import SpiffsCampaigns from "@/components/dashboard/SpiffsCampaigns";
 import TaskList from "@/components/dashboard/TaskList";
