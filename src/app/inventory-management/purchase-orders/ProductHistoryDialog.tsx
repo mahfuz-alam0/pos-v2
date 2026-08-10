@@ -58,8 +58,8 @@ export default function ProductHistoryDialog({
         ...(shopId ? { shopId } : {}),
       };
       const res = await fetchPurchaseOrderProductHistory(params);
-      setData(res?.data ?? []);
-      setSummary(res?.summary ?? null);
+      setData(res?.data?.data ?? []);
+      setSummary(res?.data?.summary ?? null);
     } catch (err) {
       console.error("Failed to fetch purchase order product history:", err);
       setData([]);

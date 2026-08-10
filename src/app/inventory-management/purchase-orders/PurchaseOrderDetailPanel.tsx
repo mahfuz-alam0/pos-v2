@@ -268,19 +268,27 @@ export default function PurchaseOrderDetailPanel({
 
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         <Tabs defaultValue="order-details">
-          <TabsList>
-            <TabsTrigger value="order-details">
-              <FileText className="size-3.5" /> Order Details
-            </TabsTrigger>
-            <TabsTrigger value="payments">
-              <CreditCard className="size-3.5" /> Payments
-              {(po.payments ?? []).length > 0 && (
-                <span className="ml-1 rounded-full bg-green-100 px-1.5 text-[10px] font-bold text-green-700 dark:bg-green-950/50 dark:text-green-400">
-                  {po.payments!.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="border-b border-border">
+            <TabsList variant="line" className="h-auto gap-7 p-0">
+              <TabsTrigger
+                value="order-details"
+                className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
+              >
+                <FileText className="size-3.5" /> Order Details
+              </TabsTrigger>
+              <TabsTrigger
+                value="payments"
+                className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
+              >
+                <CreditCard className="size-3.5" /> Payments
+                {(po.payments ?? []).length > 0 && (
+                  <span className="ml-1 rounded-full bg-green-100 px-1.5 text-[10px] font-bold text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                    {po.payments!.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="order-details">
             <div className="flex flex-col gap-3 pt-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Loader2, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,6 +35,10 @@ interface ApiSelectProps {
    * (e.g. right after creating a new record elsewhere and pre-selecting it),
    * since the popup's own item list won't have been opened/loaded yet. */
   initialLabel?: string;
+  /** Pins a "+ {createLabel}" row above the list, e.g. to open an inline
+   * create-new-brand panel without leaving the dropdown. */
+  onCreateNew?: () => void;
+  createLabel?: string;
 }
 
 export function ApiSelect({
@@ -45,6 +49,8 @@ export function ApiSelect({
   className,
   triggerClassName,
   initialLabel,
+  onCreateNew,
+  createLabel = "Create New",
 }: ApiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -132,6 +138,18 @@ export function ApiSelect({
           onChange={(e) => setSearch(e.target.value)}
           className="mb-1.5 h-8"
         />
+        {onCreateNew && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onCreateNew();
+            }}
+            className="mb-1 flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-sm font-medium text-primary hover:bg-muted"
+          >
+            <Plus className="size-3.5" /> {createLabel}
+          </button>
+        )}
         <div ref={listRef} onScroll={handleScroll} className="max-h-56 overflow-y-auto">
           {loading && (
             <div className="flex justify-center py-3">

@@ -100,10 +100,35 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <label className="mb-1 flex items-center gap-1 text-sm font-medium">
+      <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700">
         {label}
         {required && <span className="text-destructive">*</span>}
       </label>
+      {children}
+    </div>
+  );
+}
+
+const SECTION_COLORS = {
+  blue: "border-l-blue-500 from-blue-50",
+  green: "border-l-green-500 from-green-50",
+  purple: "border-l-purple-500 from-purple-50",
+  teal: "border-l-teal-500 from-teal-50",
+  pink: "border-l-pink-500 from-pink-50",
+} as const;
+
+export function Section({
+  title,
+  color,
+  children,
+}: {
+  title: string;
+  color: keyof typeof SECTION_COLORS;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`rounded-xl border-l-4 bg-gradient-to-r to-transparent p-4 ring-1 ring-foreground/10 ${SECTION_COLORS[color]}`}>
+      <div className="mb-3 text-xs font-bold tracking-wider text-foreground/80 uppercase">{title}</div>
       {children}
     </div>
   );
@@ -241,7 +266,7 @@ interface ProductFormFieldsProps extends CreateEntityFetchers {
   removeTerpene: (i: number) => void;
   uomLists: UomOption[];
   refreshKeys: { category: number; brand: number; strain: number; tag: number };
-  openCreateDialog: (type: "category" | "brand" | "strain" | "tag") => void;
+  onCreateNew: (type: "category" | "brand" | "strain" | "tag") => void;
 }
 
 export default function ProductFormFields({
@@ -269,7 +294,7 @@ export default function ProductFormFields({
   removeTerpene,
   uomLists,
   refreshKeys,
-  openCreateDialog,
+  onCreateNew,
   fetchCategoryPage,
   fetchBrandPage,
   fetchStrainPage,
@@ -277,49 +302,42 @@ export default function ProductFormFields({
 }: ProductFormFieldsProps) {
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-xl bg-muted/40 p-4 ring-1 ring-foreground/10">
-        <div className="mb-3 text-sm font-semibold">Basic Information</div>
+      <Section title="Basic Information" color="blue">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Field label="Name" required>
-            <Input value={values.name} onChange={(e) => set("name", e.target.value)} placeholder="Enter product name" />
+            <Input className="h-9" value={values.name} onChange={(e) => set("name", e.target.value)} placeholder="Enter product name" />
           </Field>
           <Field label="Category">
-            <div className="flex gap-1.5">
-              <ApiSelect
-                key={refreshKeys.category}
-                placeholder="Select Category"
-                value={values.categoryId}
-                onChange={(val, option) => {
-                  set("categoryId", val as string | null);
-                  set("categoryName", option?.name ?? null);
-                }}
-                fetchPage={fetchCategoryPage}
-                className="flex-1"
-                triggerClassName="w-full"
-              />
-              <Button type="button" variant="outline" size="icon" onClick={() => openCreateDialog("category")}>
-                <Plus className="size-4" />
-              </Button>
-            </div>
+            <ApiSelect
+              key={refreshKeys.category}
+              placeholder="Select Category"
+              value={values.categoryId}
+              onChange={(val, option) => {
+                set("categoryId", val as string | null);
+                set("categoryName", option?.name ?? null);
+              }}
+              fetchPage={fetchCategoryPage}
+              triggerClassName="w-full"
+              initialLabel={values.categoryName ?? undefined}
+              onCreateNew={() => onCreateNew("category")}
+              createLabel="Create New Category"
+            />
           </Field>
           <Field label="Brand">
-            <div className="flex gap-1.5">
-              <ApiSelect
-                key={refreshKeys.brand}
-                placeholder="Select Brand"
-                value={values.brandId}
-                onChange={(val, option) => {
-                  set("brandId", val as string | null);
-                  set("brandName", option?.name ?? null);
-                }}
-                fetchPage={fetchBrandPage}
-                className="flex-1"
-                triggerClassName="w-full"
-              />
-              <Button type="button" variant="outline" size="icon" onClick={() => openCreateDialog("brand")}>
-                <Plus className="size-4" />
-              </Button>
-            </div>
+            <ApiSelect
+              key={refreshKeys.brand}
+              placeholder="Select Brand"
+              value={values.brandId}
+              onChange={(val, option) => {
+                set("brandId", val as string | null);
+                set("brandName", option?.name ?? null);
+              }}
+              fetchPage={fetchBrandPage}
+              triggerClassName="w-full"
+              initialLabel={values.brandName ?? undefined}
+              onCreateNew={() => onCreateNew("brand")}
+              createLabel="Create New Brand"
+            />
           </Field>
           <Field label="Profile" required>
             <Select
@@ -327,7 +345,7 @@ export default function ProductFormFields({
               value={values.productProfile}
               onValueChange={(v) => set("productProfile", v as "CANNABIS" | "REGULAR")}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-9 w-full">
                 <SelectValue placeholder="Select product profile" />
               </SelectTrigger>
               <SelectContent>
@@ -337,10 +355,9 @@ export default function ProductFormFields({
             </Select>
           </Field>
         </div>
-      </div>
+      </Section>
 
-      <div className="rounded-xl bg-muted/40 p-4 ring-1 ring-foreground/10">
-        <div className="mb-3 text-sm font-semibold">Weights & Identifiers</div>
+      <Section title="Weights & Identifiers" color="green">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Field label="Unit Weight">
             <div className="flex gap-1.5">
@@ -349,14 +366,14 @@ export default function ProductFormFields({
                 value={values.unitWeight}
                 onChange={(e) => set("unitWeight", e.target.value)}
                 placeholder="Enter unit weight"
-                className="flex-1"
+                className="h-9 flex-1"
               />
               <Select
                 items={uomLists.map((u) => ({ value: u.id, label: u.name }))}
                 value={values.unitWeightUomId ?? undefined}
                 onValueChange={(v) => set("unitWeightUomId", v as string)}
               >
-                <SelectTrigger className="w-28">
+                <SelectTrigger className="h-9 w-28">
                   <SelectValue placeholder="UoM" />
                 </SelectTrigger>
                 <SelectContent>
@@ -374,14 +391,14 @@ export default function ProductFormFields({
                 value={values.packagedUnitWeight}
                 onChange={(e) => set("packagedUnitWeight", e.target.value)}
                 placeholder="Enter package unit weight"
-                className="flex-1"
+                className="h-9 flex-1"
               />
               <Select
                 items={uomLists.map((u) => ({ value: u.id, label: u.name }))}
                 value={values.packagedUnitWeightUomId ?? undefined}
                 onValueChange={(v) => set("packagedUnitWeightUomId", v as string)}
               >
-                <SelectTrigger className="w-28">
+                <SelectTrigger className="h-9 w-28">
                   <SelectValue placeholder="UoM" />
                 </SelectTrigger>
                 <SelectContent>
@@ -393,51 +410,44 @@ export default function ProductFormFields({
             </div>
           </Field>
           <Field label="EAN">
-            <Input value={values.ean} onChange={(e) => set("ean", e.target.value)} placeholder="Enter ean" />
+            <Input className="h-9" value={values.ean} onChange={(e) => set("ean", e.target.value)} placeholder="Enter ean" />
           </Field>
           <Field label="SKU">
-            <Input value={values.sku} onChange={(e) => set("sku", e.target.value)} placeholder="Enter sku" />
+            <Input className="h-9" value={values.sku} onChange={(e) => set("sku", e.target.value)} placeholder="Enter sku" />
           </Field>
         </div>
-      </div>
+      </Section>
 
-      <div className="rounded-xl bg-muted/40 p-4 ring-1 ring-foreground/10">
-        <div className="mb-3 text-sm font-semibold">Classification & Tags</div>
+      <Section title="Classification & Tags" color="purple">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Field label="Strains">
-            <div className="flex gap-1.5">
-              <MultiApiSelect
-                key={refreshKeys.strain}
-                placeholder="Select Strain"
-                value={strainIds}
-                onChange={setStrainIds}
-                fetchPage={fetchStrainPage}
-                triggerClassName="w-full flex-1"
-              />
-              <Button type="button" variant="outline" size="icon" onClick={() => openCreateDialog("strain")}>
-                <Plus className="size-4" />
-              </Button>
-            </div>
+            <MultiApiSelect
+              key={refreshKeys.strain}
+              placeholder="Select Strain"
+              value={strainIds}
+              onChange={setStrainIds}
+              fetchPage={fetchStrainPage}
+              triggerClassName="w-full"
+              onCreateNew={() => onCreateNew("strain")}
+              createLabel="Create New Strain"
+            />
           </Field>
           <Field label="Tags">
-            <div className="flex gap-1.5">
-              <MultiApiSelect
-                key={refreshKeys.tag}
-                placeholder="Select Tag"
-                value={tagIds}
-                onChange={setTagIds}
-                fetchPage={fetchTagPage}
-                triggerClassName="w-full flex-1"
-              />
-              <Button type="button" variant="outline" size="icon" onClick={() => openCreateDialog("tag")}>
-                <Plus className="size-4" />
-              </Button>
-            </div>
+            <MultiApiSelect
+              key={refreshKeys.tag}
+              placeholder="Select Tag"
+              value={tagIds}
+              onChange={setTagIds}
+              fetchPage={fetchTagPage}
+              triggerClassName="w-full"
+              onCreateNew={() => onCreateNew("tag")}
+              createLabel="Create New Tag"
+            />
           </Field>
 
           <div className="md:col-span-2">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-medium">Video Links (YouTube/Vimeo)</span>
+              <span className="text-sm font-medium text-gray-700">Video Links (YouTube/Vimeo)</span>
               <Button type="button" variant="outline" size="sm" onClick={addVideoLink}>
                 <Plus className="size-3.5" /> Add
               </Button>
@@ -449,7 +459,7 @@ export default function ProductFormFields({
                     value={link}
                     placeholder="https://www.youtube.com/watch?v=..."
                     onChange={(e) => changeVideoLink(i, e.target.value)}
-                    className={link && !isValidVideoUrl(link) ? "border-destructive" : ""}
+                    className={`h-9 ${link && !isValidVideoUrl(link) ? "border-destructive" : ""}`}
                   />
                   {videoLinks.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeVideoLink(i)}>
@@ -475,11 +485,10 @@ export default function ProductFormFields({
             </Field>
           </div>
         </div>
-      </div>
+      </Section>
 
       {values.productProfile === "CANNABIS" && (
-        <div className="rounded-xl bg-muted/40 p-4 ring-1 ring-foreground/10">
-          <div className="mb-3 text-sm font-semibold">Cannabis Product Data</div>
+        <Section title="Cannabis Product Data" color="teal">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {([
               { label: "THC", state: thc, setState: setThc },
@@ -489,7 +498,7 @@ export default function ProductFormFields({
                 <div className="mb-2 text-sm font-semibold">{label}</div>
                 <div className="mb-2 grid grid-cols-2 gap-2">
                   <Field label="Value">
-                    <Input
+                    <Input className="h-9"
                       type="number"
                       placeholder="0.00"
                       value={state.value}
@@ -520,10 +529,10 @@ export default function ProductFormFields({
                 {state.isRangeApplicable && (
                   <div className="grid grid-cols-2 gap-2">
                     <Field label="Min" required>
-                      <Input type="number" placeholder="Min" value={state.min} onChange={(e) => setState({ ...state, min: e.target.value })} />
+                      <Input className="h-9" type="number" placeholder="Min" value={state.min} onChange={(e) => setState({ ...state, min: e.target.value })} />
                     </Field>
                     <Field label="Max" required>
-                      <Input type="number" placeholder="Max" value={state.max} onChange={(e) => setState({ ...state, max: e.target.value })} />
+                      <Input className="h-9" type="number" placeholder="Max" value={state.max} onChange={(e) => setState({ ...state, max: e.target.value })} />
                     </Field>
                   </div>
                 )}
@@ -546,7 +555,7 @@ export default function ProductFormFields({
                 value={values.cannabisType || undefined}
                 onValueChange={(v) => set("cannabisType", v as string)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-9 w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -559,13 +568,13 @@ export default function ProductFormFields({
 
             {values.cannabisType === "Other" && (
               <Field label="Specify Type" required>
-                <Input value={values.otherCannabisType} onChange={(e) => set("otherCannabisType", e.target.value)} placeholder="Enter type" />
+                <Input className="h-9" value={values.otherCannabisType} onChange={(e) => set("otherCannabisType", e.target.value)} placeholder="Enter type" />
               </Field>
             )}
 
             <div className="md:col-span-2">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-semibold">Terpene Profiles</span>
+                <span className="text-sm font-semibold text-gray-700">Terpene Profiles</span>
                 <Button type="button" size="sm" onClick={addTerpene}>
                   <Plus className="size-3.5" /> Add
                 </Button>
@@ -573,12 +582,12 @@ export default function ProductFormFields({
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 {terpenes.map((pair, i) => (
                   <div key={i} className="flex items-center gap-1.5">
-                    <Input
+                    <Input className="h-9"
                       value={pair.key}
                       onChange={(e) => changeTerpene(i, "key", e.target.value)}
                       placeholder="Profile name"
                     />
-                    <Input
+                    <Input className="h-9"
                       type="number"
                       value={pair.value}
                       onChange={(e) => changeTerpene(i, "value", e.target.value)}
@@ -592,13 +601,12 @@ export default function ProductFormFields({
               </div>
             </div>
           </div>
-        </div>
+        </Section>
       )}
 
-      <div className="rounded-xl bg-muted/40 p-4 ring-1 ring-foreground/10">
-        <div className="mb-3 text-sm font-semibold">Media</div>
+      <Section title="Media" color="pink">
         <ImagesUpload images={images} onChange={setImages} />
-      </div>
+      </Section>
     </div>
   );
 }

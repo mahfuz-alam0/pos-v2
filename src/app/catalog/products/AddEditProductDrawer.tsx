@@ -12,16 +12,10 @@ import { fetchBrandsList } from "@/services/brands/list";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchTagsList } from "@/services/tags/list";
 import { fetchStrainsList } from "@/services/strains/list";
-import { createBrand } from "@/services/brands/create";
-import { createCategory } from "@/services/categories/create";
-import { createTag } from "@/services/tags/create";
-import { createStrain } from "@/services/strains/create";
 import { listUoms } from "@/services/uoms/listUoms";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import ProductFormFields, {
   EMPTY_PRODUCT_VALUES,
@@ -31,6 +25,7 @@ import ProductFormFields, {
   type UomOption,
   type UploadedImage,
 } from "./ProductFormFields";
+import CreateEntityPanel, { type CreateEntityType } from "./CreateEntityPanel";
 import type { ProductRow } from "./types";
 
 interface AddEditProductDrawerProps {
@@ -63,9 +58,7 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
   const [foundProducts, setFoundProducts] = useState<any[]>([]);
   const [overridingId, setOverridingId] = useState<string | null>(null);
 
-  const [createDialog, setCreateDialog] = useState<"category" | "brand" | "strain" | "tag" | null>(null);
-  const [createName, setCreateName] = useState("");
-  const [createSaving, setCreateSaving] = useState(false);
+  const [createPanel, setCreatePanel] = useState<CreateEntityType | null>(null);
   const [refreshKeys, setRefreshKeys] = useState({ category: 0, brand: 0, strain: 0, tag: 0 });
 
   const set = <K extends keyof ProductFormValues>(key: K, val: ProductFormValues[K]) =>
@@ -172,26 +165,20 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
     return { items: (res?.data ?? []).map((t: any) => ({ id: t.id, name: t.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
   };
 
-  const handleCreateNew = async () => {
-    if (!createName.trim()) {
-      toast.error("Please enter a name");
-      return;
+  const handleEntityCreated = (type: CreateEntityType, item: { id: string; name: string }) => {
+    setRefreshKeys((prev) => ({ ...prev, [type]: prev[type] + 1 }));
+    if (type === "category") {
+      set("categoryId", item.id);
+      set("categoryName", item.name);
+    } else if (type === "brand") {
+      set("brandId", item.id);
+      set("brandName", item.name);
+    } else if (type === "strain") {
+      setStrainIds((prev) => [...prev, item.id]);
+    } else if (type === "tag") {
+      setTagIds((prev) => [...prev, item.id]);
     }
-    setCreateSaving(true);
-    try {
-      if (createDialog === "category") await createCategory({ name: createName.trim() });
-      else if (createDialog === "brand") await createBrand({ name: createName.trim() });
-      else if (createDialog === "strain") await createStrain({ name: createName.trim() });
-      else if (createDialog === "tag") await createTag({ name: createName.trim() });
-      toast.success(`${createDialog} created successfully`);
-      setRefreshKeys((prev) => ({ ...prev, [createDialog as string]: prev[createDialog as keyof typeof prev] + 1 }));
-      setCreateDialog(null);
-      setCreateName("");
-    } catch (err: any) {
-      toast.error(err?.message || err?.error || `Failed to create ${createDialog}`);
-    } finally {
-      setCreateSaving(false);
-    }
+    setCreatePanel(null);
   };
 
   const addVideoLink = () => setVideoLinks((prev) => [...prev, ""]);
@@ -370,77 +357,58 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
             </Button>
           </div>
         ) : (
-          <>
-            <div className="flex-1 overflow-y-auto p-5">
-              <ProductFormFields
-                values={values}
-                set={set}
-                strainIds={strainIds}
-                setStrainIds={setStrainIds}
-                tagIds={tagIds}
-                setTagIds={setTagIds}
-                videoLinks={videoLinks}
-                addVideoLink={addVideoLink}
-                changeVideoLink={changeVideoLink}
-                removeVideoLink={removeVideoLink}
-                images={images}
-                setImages={setImages}
-                thc={thc}
-                setThc={setThc}
-                cbd={cbd}
-                setCbd={setCbd}
-                effects={effects}
-                setEffects={setEffects}
-                terpenes={terpenes}
-                addTerpene={addTerpene}
-                changeTerpene={changeTerpene}
-                removeTerpene={removeTerpene}
-                uomLists={uomLists}
-                refreshKeys={refreshKeys}
-                openCreateDialog={(type) => { setCreateName(""); setCreateDialog(type); }}
-                fetchCategoryPage={fetchCategoryPage}
-                fetchBrandPage={fetchBrandPage}
-                fetchStrainPage={fetchStrainPage}
-                fetchTagPage={fetchTagPage}
-              />
+          <div className="flex min-h-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex-1 overflow-y-auto p-5">
+                <ProductFormFields
+                  values={values}
+                  set={set}
+                  strainIds={strainIds}
+                  setStrainIds={setStrainIds}
+                  tagIds={tagIds}
+                  setTagIds={setTagIds}
+                  videoLinks={videoLinks}
+                  addVideoLink={addVideoLink}
+                  changeVideoLink={changeVideoLink}
+                  removeVideoLink={removeVideoLink}
+                  images={images}
+                  setImages={setImages}
+                  thc={thc}
+                  setThc={setThc}
+                  cbd={cbd}
+                  setCbd={setCbd}
+                  effects={effects}
+                  setEffects={setEffects}
+                  terpenes={terpenes}
+                  addTerpene={addTerpene}
+                  changeTerpene={changeTerpene}
+                  removeTerpene={removeTerpene}
+                  uomLists={uomLists}
+                  refreshKeys={refreshKeys}
+                  onCreateNew={setCreatePanel}
+                  fetchCategoryPage={fetchCategoryPage}
+                  fetchBrandPage={fetchBrandPage}
+                  fetchStrainPage={fetchStrainPage}
+                  fetchTagPage={fetchTagPage}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+                <Button variant="outline" onClick={onClose} disabled={saving}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmit} disabled={saving}>
+                  {saving ? "Saving..." : "Save"}
+                </Button>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-              <Button variant="outline" onClick={onClose} disabled={saving}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={saving}>
-                {saving ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </>
+            {createPanel && (
+              <CreateEntityPanel type={createPanel} onClose={() => setCreatePanel(null)} onCreated={handleEntityCreated} />
+            )}
+          </div>
         )}
       </div>
-
-      <Dialog open={createDialog !== null} onOpenChange={(open) => !open && setCreateDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create {createDialog}</DialogTitle>
-          </DialogHeader>
-          <Input
-            autoFocus
-            value={createName}
-            onChange={(e) => setCreateName(e.target.value)}
-            placeholder={`${createDialog ?? ""} name`}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreateNew();
-            }}
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialog(null)} disabled={createSaving}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateNew} disabled={createSaving}>
-              {createSaving ? "Creating..." : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Drawer>
   );
 }
