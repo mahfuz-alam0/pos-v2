@@ -291,11 +291,6 @@ export const retailMenu: MenuItem[] = [
             href: "/reports-analytics/analytics/day-and-time",
           },
           {
-            key: "supply-tracker",
-            label: "Supply Tracker",
-            href: "/reports-analytics/analytics/inventory-reorder",
-          },
-          {
             key: "referral-source",
             label: "Referral Source",
             href: "/reports-analytics/analytics/referral-source-report",
