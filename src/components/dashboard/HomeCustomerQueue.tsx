@@ -221,10 +221,10 @@ function QueueRow({
 
   const accentBorder =
     waitTime >= queueRedTime && queueBorder20
-      ? "border-l-[#E76F51]"
+      ? "border-l-2 border-l-[#E76F51]"
       : waitTime >= queueYellowTime && queueBorder15
-      ? "border-l-[#E9C46A]"
-      : "border-l-transparent";
+      ? "border-l-2 border-l-[#E9C46A]"
+      : "";
 
   async function handleToggleServing() {
     if (actionLoading) return;
@@ -254,9 +254,9 @@ function QueueRow({
 
   return (
     <div
-      className={`group flex items-center gap-2 overflow-hidden rounded-lg border border-border border-l-2 bg-component-bg px-2 py-1.5 transition-colors hover:bg-surface-alt/60 ${accentBorder}`}
+      className={`group flex min-w-0 items-center gap-1.5 rounded-lg border border-border bg-component-bg px-2 py-1.5 transition-colors hover:bg-surface-alt/60 ${accentBorder}`}
     >
-      <button onClick={() => onOpenDetails?.(data)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+      <div onClick={() => onOpenDetails?.(data)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left">
         <div className="relative shrink-0">
           {data?.avatarUrl ? (
             <img src={data.avatarUrl} alt="" className="size-7 cursor-pointer rounded-full object-cover" />
@@ -289,14 +289,13 @@ function QueueRow({
             {data?.isAddedByQrScan && <QrCode className="size-2.5" />}
           </div>
         </div>
-      </button>
+      </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <button
-          onClick={handleToggleServing}
-          disabled={actionLoading}
+        <div
+          onClick={() => !actionLoading && handleToggleServing()}
           title={statusLabel}
-          className="flex size-6 items-center justify-center rounded-md text-white transition-all hover:w-auto hover:gap-1 hover:px-1.5 disabled:opacity-50"
+          className={`flex size-5.5 items-center justify-center rounded-md text-white transition-colors hover:brightness-110 ${actionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
           style={{ backgroundColor: statusBg }}
         >
           {actionLoading ? (
@@ -306,15 +305,14 @@ function QueueRow({
           ) : (
             <Play className="size-3" />
           )}
-          {isServing && <span className="hidden text-[10px] font-bold group-hover:inline">Serving</span>}
-        </button>
-        <button
+        </div>
+        <div
           onClick={handleRemove}
           title="Remove from queue"
-          className="flex size-6 shrink-0 items-center justify-center rounded-md bg-surface-alt text-muted-foreground transition-colors hover:bg-red-500 hover:text-white"
+          className="flex size-5.5 shrink-0 cursor-pointer items-center justify-center rounded-md bg-surface-alt text-muted-foreground transition-colors hover:bg-red-500 hover:text-white"
         >
           <X className="size-3.5" />
-        </button>
+        </div>
       </div>
     </div>
   );
