@@ -225,11 +225,11 @@ export default function MetrcPackagesPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Metrc Reconcilliation</BreadcrumbLink>
+                <BreadcrumbPage>METRC</BreadcrumbPage>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Packages</BreadcrumbPage>
+                <BreadcrumbPage>METRC Reconciliations</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

@@ -89,10 +89,10 @@ export default function MetrcTransferListPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem>Inventory</BreadcrumbItem>
+              <BreadcrumbItem>METRC</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Metrc Transfers</BreadcrumbPage>
+                <BreadcrumbPage>METRC Transfers</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

@@ -148,7 +148,7 @@ function StatCard({
 /** Sort icon is decorative only — no sort behavior wired up yet. */
 function SortableHead({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <TableHead className={`font-semibold text-muted-foreground ${className}`}>
+    <TableHead className={className}>
       <span className="inline-flex items-center gap-1">
         {children}
         <ArrowUpDown className="size-3 text-muted-foreground/60" />
@@ -467,11 +467,10 @@ export default function InventoryOnHandTable() {
   function ProductsTable({ inModal = false }: { inModal?: boolean }) {
     return (
       <div className="flex flex-col gap-3">
-      <div className="-mx-4">
-      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
-        <Table className="text-[14px]">
-          <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
-            <TableRow className="hover:bg-transparent">
+      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : "relative overflow-hidden rounded-xl ring-1 ring-foreground/10"}>
+        <Table>
+          <TableHeader className={inModal ? "sticky top-0 z-10 [&_tr]:border-b-0" : "[&_tr]:border-b-0"}>
+            <TableRow className="bg-muted/60">
               <SortableHead className="w-46.5 px-4">Category</SortableHead>
               <SortableHead className="w-38.5 px-4">Brand</SortableHead>
               <SortableHead className="min-w-100 flex-1 px-4">Product</SortableHead>
@@ -480,15 +479,15 @@ export default function InventoryOnHandTable() {
               <SortableHead className="w-36.25 justify-center px-4 text-center">Total Cost</SortableHead>
               <SortableHead className="w-31.25 justify-center px-4 text-center">Unit Price</SortableHead>
               <SortableHead className="w-31.25 justify-center px-4 text-center">Margin</SortableHead>
-              <TableHead className="w-26.25 px-4 text-center font-semibold text-muted-foreground">Action</TableHead>
+              <TableHead className="w-26.25 px-4 text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-muted-foreground">
+          <TableBody>
             {loading && productRows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={`s-${i}`} className="border-b-0">
                   {Array.from({ length: 9 }).map((__, j) => (
-                    <TableCell key={j} className="h-17 px-4">
+                    <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   ))}
@@ -511,40 +510,40 @@ export default function InventoryOnHandTable() {
               return (
                 <TableRow key={row.id || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell
-                    className={`h-17 max-w-46.5 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.categoryName && filterType === "category")}`}
+                    className={`max-w-46.5 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.categoryName && filterType === "category")}`}
                     title={row.categoryName}
                     onClick={() => row.categoryName && handleDrillFilter(row, "category")}
                   >
                     {row.categoryName || "-"}
                   </TableCell>
                   <TableCell
-                    className={`h-17 max-w-38.5 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.brandName && filterType === "brand")}`}
+                    className={`max-w-38.5 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.brandName && filterType === "brand")}`}
                     title={row.brandName}
                     onClick={() => row.brandName && handleDrillFilter(row, "brand")}
                   >
                     {row.brandName || "-"}
                   </TableCell>
                   <TableCell
-                    className={`h-17 min-w-100 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.productName && filterType === "product")}`}
+                    className={`min-w-100 cursor-pointer truncate px-4 ${renderCellHighlight(selectedFilter === row.productName && filterType === "product")}`}
                     title={row.productName}
                     onClick={() => row.productName && handleDrillFilter(row, "product")}
                   >
                     {row.productName}
                   </TableCell>
-                  <TableCell className="h-17 p-0 text-center font-semibold">
+                  <TableCell className="p-0 text-center font-semibold">
                     <BarCell value={row.qtyOnHand || 0} max={maxQty} color="#e6f7ff" />
                   </TableCell>
-                  <TableCell className="h-17 p-0 text-center font-semibold">
+                  <TableCell className="p-0 text-center font-semibold">
                     <BarCell value={cp} max={maxCost} color="#f0f5ff" prefix="$" />
                   </TableCell>
-                  <TableCell className="h-17 p-0 text-center font-semibold">
+                  <TableCell className="p-0 text-center font-semibold">
                     <BarCell value={totalCost} max={maxTotalCost} color="#fff7e6" prefix="$" />
                   </TableCell>
-                  <TableCell className="h-17 p-0 text-center font-semibold">
+                  <TableCell className="p-0 text-center font-semibold">
                     <BarCell value={sp} max={maxUnitPrice} color="#f6ffed" prefix="$" />
                   </TableCell>
-                  <TableCell className="h-17 px-4 text-center font-semibold">{margin.toFixed(2)}%</TableCell>
-                  <TableCell className="h-17 px-4 text-center">
+                  <TableCell className="px-4 text-center font-semibold">{margin.toFixed(2)}%</TableCell>
+                  <TableCell className="px-4 text-center">
                     <Button
                       className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
                       onClick={() => setEditInventoryId(row.inventoryId)}
@@ -557,7 +556,6 @@ export default function InventoryOnHandTable() {
             })}
           </TableBody>
         </Table>
-      </div>
       </div>
       <TableFooterStatus
         pagination={productPagination}
@@ -577,26 +575,25 @@ export default function InventoryOnHandTable() {
   function PackagesTable({ inModal = false }: { inModal?: boolean }) {
     return (
       <div className="flex flex-col gap-3">
-      <div className="-mx-4">
-      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
-        <Table className="text-[14px]">
-          <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
-            <TableRow className="hover:bg-transparent">
+      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : "relative overflow-hidden rounded-xl ring-1 ring-foreground/10"}>
+        <Table>
+          <TableHeader className={inModal ? "sticky top-0 z-10 [&_tr]:border-b-0" : "[&_tr]:border-b-0"}>
+            <TableRow className="bg-muted/60">
               <SortableHead className="w-38.5 justify-center px-4 text-center">Expiry Date</SortableHead>
               <SortableHead className="min-w-100 flex-1 px-4">Product</SortableHead>
               <SortableHead className="w-62.5 px-4">Metrc ID</SortableHead>
               <SortableHead className="w-62.5 px-4">Shop Name</SortableHead>
               <SortableHead className="w-26.25 justify-center px-4 text-center">Age</SortableHead>
               <SortableHead className="w-38.5 justify-center px-4 text-center">Quantity On Hand</SortableHead>
-              <TableHead className="w-26.25 px-4 text-center font-semibold text-muted-foreground">Action</TableHead>
+              <TableHead className="w-26.25 px-4 text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-muted-foreground">
+          <TableBody>
             {loading && packageRows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={`s-${i}`} className="border-b-0">
                   {Array.from({ length: 7 }).map((__, j) => (
-                    <TableCell key={j} className="h-17 px-4">
+                    <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   ))}
@@ -617,21 +614,21 @@ export default function InventoryOnHandTable() {
                 : null;
               return (
                 <TableRow key={row.packageId || i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                  <TableCell className="h-17 px-4 text-center">{row.expiryDate || "N/A"}</TableCell>
-                  <TableCell className="h-17 min-w-100 truncate px-4" title={row.productName}>
+                  <TableCell className="px-4 text-center">{row.expiryDate || "N/A"}</TableCell>
+                  <TableCell className="min-w-100 truncate px-4" title={row.productName}>
                     {row.productName}
                   </TableCell>
-                  <TableCell className="h-17 max-w-62.5 truncate px-4" title={row.advertisedId}>
+                  <TableCell className="max-w-62.5 truncate px-4" title={row.advertisedId}>
                     {row.advertisedId}
                   </TableCell>
-                  <TableCell className="h-17 max-w-62.5 truncate px-4" title={row.shopName}>
+                  <TableCell className="max-w-62.5 truncate px-4" title={row.shopName}>
                     {row.shopName}
                   </TableCell>
-                  <TableCell className="h-17 px-4 text-center">{days == null ? "N/A" : `${days} day${days !== 1 ? "s" : ""}`}</TableCell>
-                  <TableCell className="h-17 p-0 text-center font-semibold">
+                  <TableCell className="px-4 text-center">{days == null ? "N/A" : `${days} day${days !== 1 ? "s" : ""}`}</TableCell>
+                  <TableCell className="p-0 text-center font-semibold">
                     <BarCell value={row.qtyOnHand || 0} max={maxPkgQty} color="#e6f7ff" />
                   </TableCell>
-                  <TableCell className="h-17 px-4 text-center">
+                  <TableCell className="px-4 text-center">
                     {row.inventoryId ? (
                       <Button
                         className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
@@ -648,7 +645,6 @@ export default function InventoryOnHandTable() {
             })}
           </TableBody>
         </Table>
-      </div>
       </div>
       <TableFooterStatus
         pagination={packagePagination}
@@ -679,16 +675,15 @@ export default function InventoryOnHandTable() {
             {filteredTagRows.length} {filteredTagRows.length === 1 ? "record" : "records"}
           </span>
         </div>
-        <div className="-mx-4">
-          <div className={inModal ? "h-[calc(100vh-160px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
-            <Table className="text-[14px]">
-              <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="px-4 font-semibold text-muted-foreground">Top Tag</TableHead>
-                  <TableHead className="px-4 text-right font-semibold text-muted-foreground">Cost</TableHead>
+        <div className={inModal ? "h-[calc(100vh-160px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : "relative overflow-hidden rounded-xl ring-1 ring-foreground/10"}>
+            <Table>
+              <TableHeader className={inModal ? "sticky top-0 z-10 [&_tr]:border-b-0" : "[&_tr]:border-b-0"}>
+                <TableRow className="bg-muted/60">
+                  <TableHead className="px-4">Top Tag</TableHead>
+                  <TableHead className="px-4 text-right">Cost</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-muted-foreground">
+              <TableBody>
                 {filteredTagRows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
@@ -698,30 +693,28 @@ export default function InventoryOnHandTable() {
                 )}
                 {filteredTagRows.map((t, i) => (
                   <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                    <TableCell className="h-17 px-4">{t.topTag}</TableCell>
-                    <TableCell className="h-17 px-4 text-right">${t.cost}</TableCell>
+                    <TableCell className="px-4">{t.topTag}</TableCell>
+                    <TableCell className="px-4 text-right">${t.cost}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        </div>
       </div>
     );
   }
 
   function BrandsTable({ inModal = false }: { inModal?: boolean }) {
     return (
-      <div className="-mx-4">
-        <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : ""}>
-          <Table className="text-[14px]">
-            <TableHeader className={`${inModal ? "sticky top-0 z-10 " : ""}bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13`}>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="px-4 font-semibold text-muted-foreground">Brand</TableHead>
-                <TableHead className="px-4 text-right font-semibold text-muted-foreground">% Cost</TableHead>
+      <div className={inModal ? "h-[calc(100vh-105px)] overflow-auto *:data-[slot=table-container]:overflow-visible" : "relative overflow-hidden rounded-xl ring-1 ring-foreground/10"}>
+          <Table>
+            <TableHeader className={inModal ? "sticky top-0 z-10 [&_tr]:border-b-0" : "[&_tr]:border-b-0"}>
+              <TableRow className="bg-muted/60">
+                <TableHead className="px-4">Brand</TableHead>
+                <TableHead className="px-4 text-right">% Cost</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-muted-foreground">
+            <TableBody>
               {brandRows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
@@ -731,14 +724,13 @@ export default function InventoryOnHandTable() {
               )}
               {brandRows.map((b, i) => (
                 <TableRow key={i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                  <TableCell className="h-17 px-4">{b.brand}</TableCell>
-                  <TableCell className="h-17 px-4 text-right">{b.percentCost}</TableCell>
+                  <TableCell className="px-4">{b.brand}</TableCell>
+                  <TableCell className="px-4 text-right">{b.percentCost}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
-      </div>
     );
   }
 
@@ -749,15 +741,11 @@ export default function InventoryOnHandTable() {
         <Breadcrumb>
           <BreadcrumbList className="text-[14px]">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/inventory-management">Insights</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="font-medium text-primary">Inventory On Hand</BreadcrumbPage>
+              <BreadcrumbPage className="font-medium text-primary">Inventory Levels</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -866,34 +854,14 @@ export default function InventoryOnHandTable() {
         <StatCard label="Inventory Price Total" value={`$${stats.inventoryPrice}`} icon={DollarSign} color="#fa541c" loading={summaryLoading} />
       </div>
 
-      <Card className="gap-0 rounded-[10px] p-4 shadow-sm ring-0">
+      <div className="flex flex-col gap-4">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-          <div className="flex items-center justify-between border-b border-border">
-            <TabsList variant="line" className="h-auto gap-7 p-0">
-              <TabsTrigger
-                value="products"
-                className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
-              >
-                Product List
-              </TabsTrigger>
-              <TabsTrigger
-                value="packages"
-                className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
-              >
-                Packages List
-              </TabsTrigger>
-              <TabsTrigger
-                value="tags"
-                className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
-              >
-                Product Tag
-              </TabsTrigger>
-              <TabsTrigger
-                value="brands"
-                className="h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary"
-              >
-                Brands
-              </TabsTrigger>
+          <div className="flex items-center justify-between gap-3">
+            <TabsList>
+              <TabsTrigger value="products">Product List</TabsTrigger>
+              <TabsTrigger value="packages">Packages List</TabsTrigger>
+              <TabsTrigger value="tags">Product Tag</TabsTrigger>
+              <TabsTrigger value="brands">Brands</TabsTrigger>
             </TabsList>
             <Button variant="ghost" size="icon" title="Full Screen" onClick={() => setFullscreenTable(activeTab)}>
               <Maximize2 className="size-4 text-foreground/60" />
@@ -913,7 +881,7 @@ export default function InventoryOnHandTable() {
             <BrandsTable />
           </TabsContent>
         </Tabs>
-      </Card>
+      </div>
 
       <Dialog open={fullscreenTable !== null} onOpenChange={(open) => !open && setFullscreenTable(null)}>
         <DialogContent className="h-screen w-screen max-w-none p-0" showCloseButton={false}>

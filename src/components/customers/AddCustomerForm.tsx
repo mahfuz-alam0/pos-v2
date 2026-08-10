@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -140,10 +141,12 @@ function CustomerGroupMultiSelect({
   groups,
   value,
   onToggle,
+  invalid = false,
 }: {
   groups: any[];
   value: any[];
   onToggle: (groupId: any) => void;
+  invalid?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const selectedNames = groups
@@ -152,7 +155,11 @@ function CustomerGroupMultiSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="mt-1 flex h-9 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-3 text-sm outline-none dark:bg-input/30">
+      <PopoverTrigger
+        className={cn(
+          "mt-1 flex h-9 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-3 text-sm outline-none dark:bg-input/30",
+          invalid && "border-destructive ring-3 ring-destructive/20",
+        )}>
         <span
           className={`truncate text-left ${selectedNames.length === 0 ? "text-muted-foreground" : ""}`}>
           {selectedNames.length > 0
@@ -256,6 +263,7 @@ export default function AddCustomerForm({
   const [loadingCustomer, setLoadingCustomer] = useState(false);
   const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
   const [deliveryLocationErrors, setDeliveryLocationErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const editTargetId = customerId || customer?.id || null;
   const editSource = customer || fetchedCustomer;
@@ -297,6 +305,7 @@ export default function AddCustomerForm({
   const [pinOpen, setPinOpen] = useState(false);
   const [medIdDrawerOpen, setMedIdDrawerOpen] = useState(false);
   const pendingSubmitRef = useRef(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const isMjMedical = groups
     .filter((g) => customerGroupIds.includes(g.id))
@@ -401,6 +410,7 @@ export default function AddCustomerForm({
     setFoundCustomers([]);
     setDeliveryLocations([]);
     setDeliveryLocationErrors({});
+    setErrors({});
   };
 
   const applyScannedFields = (fields: Record<string, string>) => {
@@ -519,41 +529,50 @@ export default function AddCustomerForm({
   };
 
   const validate = () => {
+    const nextErrors: Record<string, string> = {};
+
     if (!form.firstName.trim()) {
-      toast.error("Please input first name!");
-      return false;
+      nextErrors.firstName = "First name is required";
     }
     if (!form.customerTypeId) {
-      toast.error("Please select customer type or None");
-      return false;
+      nextErrors.customerTypeId = "Please select customer type or None";
     }
     if (requireGroupForMJ && customerGroupIds.length === 0) {
-      toast.error("A customer group is required for MJ product purchases");
-      return false;
+      nextErrors.customerGroupIds =
+        "A customer group is required for MJ product purchases";
     }
     if (isMjMedical && !form.medicalLicense.trim()) {
-      toast.error("Please input medical license number!");
-      return false;
+      nextErrors.medicalLicense = "Medical license number is required";
     }
     if (form.dob) {
       if (form.dob > todayISO()) {
-        toast.error("Date of Birth cannot be in the future");
-        return false;
-      }
-      if (form.dob > eighteenYearsAgoISO()) {
-        toast.error("Customer must be at least 18 years old");
-        return false;
+        nextErrors.dob = "Date of Birth cannot be in the future";
+      } else if (form.dob > eighteenYearsAgoISO()) {
+        nextErrors.dob = "Customer must be at least 18 years old";
       }
     }
     if (form.drivingLicenseExpiry && form.drivingLicenseExpiry < todayISO()) {
-      toast.error("License expiration date cannot be in the past");
-      return false;
+      nextErrors.drivingLicenseExpiry =
+        "License expiration date cannot be in the past";
     }
     if (
       form.medicalLicenseExpiresAt &&
       form.medicalLicenseExpiresAt < todayISO()
     ) {
-      toast.error("Medical license expiration date cannot be in the past");
+      nextErrors.medicalLicenseExpiresAt =
+        "Medical license expiration date cannot be in the past";
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      // Scroll the first invalid field into view so the user sees exactly
+      // what's missing, then surface a summary toast as well.
+      const fieldEl = formRef.current?.querySelector(
+        `[data-field="${Object.keys(nextErrors)[0]}"]`,
+      );
+      fieldEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast.error("Please fill in the required fields highlighted in red");
       return false;
     }
     return true;
@@ -856,6 +875,7 @@ export default function AddCustomerForm({
             </div>
           ) : (
             <form
+              ref={formRef}
               onSubmit={(e) => e.preventDefault()}
               className="flex flex-1 flex-col overflow-hidden">
               <div className="flex-1 space-y-6 overflow-auto p-6">
@@ -900,14 +920,24 @@ export default function AddCustomerForm({
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
                   <SectionHeader n={2} label="Basic Information" />
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    <div data-field="firstName">
                       <Label htmlFor="firstName">First Name *</Label>
                       <Input
                         id="firstName"
                         className="mt-1"
                         value={form.firstName}
-                        onChange={setField("firstName")}
+                        onChange={(e) => {
+                          setField("firstName")(e);
+                          if (errors.firstName)
+                            setErrors((p) => ({ ...p, firstName: "" }));
+                        }}
+                        aria-invalid={!!errors.firstName}
                       />
+                      {errors.firstName && (
+                        <p className="mt-1 text-xs text-destructive">
+                          {errors.firstName}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="lastName">Last Name</Label>
@@ -954,7 +984,7 @@ export default function AddCustomerForm({
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
+                    <div data-field="dob">
                       <Label htmlFor="dob">Date of Birth</Label>
                       <Input
                         id="dob"
@@ -962,8 +992,18 @@ export default function AddCustomerForm({
                         className="mt-1"
                         max={eighteenYearsAgoISO()}
                         value={form.dob}
-                        onChange={setField("dob")}
+                        onChange={(e) => {
+                          setField("dob")(e);
+                          if (errors.dob)
+                            setErrors((p) => ({ ...p, dob: "" }));
+                        }}
+                        aria-invalid={!!errors.dob}
                       />
+                      {errors.dob && (
+                        <p className="mt-1 text-xs text-destructive">
+                          {errors.dob}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -993,7 +1033,7 @@ export default function AddCustomerForm({
                         onChange={setField("drivingLicense")}
                       />
                     </div>
-                    <div>
+                    <div data-field="drivingLicenseExpiry">
                       <Label htmlFor="drivingLicenseExpiry">
                         License Expiration
                       </Label>
@@ -1003,8 +1043,21 @@ export default function AddCustomerForm({
                         className="mt-1"
                         min={todayISO()}
                         value={form.drivingLicenseExpiry}
-                        onChange={setField("drivingLicenseExpiry")}
+                        onChange={(e) => {
+                          setField("drivingLicenseExpiry")(e);
+                          if (errors.drivingLicenseExpiry)
+                            setErrors((p) => ({
+                              ...p,
+                              drivingLicenseExpiry: "",
+                            }));
+                        }}
+                        aria-invalid={!!errors.drivingLicenseExpiry}
                       />
+                      {errors.drivingLicenseExpiry && (
+                        <p className="mt-1 text-xs text-destructive">
+                          {errors.drivingLicenseExpiry}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </section>
@@ -1056,15 +1109,25 @@ export default function AddCustomerForm({
                 <section className="space-y-3 rounded-xl bg-muted/30 p-4 ring-1 ring-foreground/10">
                   <SectionHeader n={4} label="Customer Classification" />
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    <div data-field="customerGroupIds">
                       <Label>Customer Groups</Label>
                       <CustomerGroupMultiSelect
                         groups={groups}
                         value={customerGroupIds}
-                        onToggle={toggleGroup}
+                        onToggle={(id) => {
+                          toggleGroup(id);
+                          if (errors.customerGroupIds)
+                            setErrors((p) => ({ ...p, customerGroupIds: "" }));
+                        }}
+                        invalid={!!errors.customerGroupIds}
                       />
+                      {errors.customerGroupIds && (
+                        <p className="mt-1 text-xs text-destructive">
+                          {errors.customerGroupIds}
+                        </p>
+                      )}
                     </div>
-                    <div>
+                    <div data-field="customerTypeId">
                       <Label>Customer Type *</Label>
                       <Select
                         items={[
@@ -1075,10 +1138,17 @@ export default function AddCustomerForm({
                           })),
                         ]}
                         value={form.customerTypeId}
-                        onValueChange={(value) =>
-                          setForm((f) => ({ ...f, customerTypeId: value }))
-                        }>
-                        <SelectTrigger className="mt-1 w-full">
+                        onValueChange={(value) => {
+                          setForm((f) => ({ ...f, customerTypeId: value }));
+                          if (errors.customerTypeId)
+                            setErrors((p) => ({ ...p, customerTypeId: "" }));
+                        }}>
+                        <SelectTrigger
+                          className={cn(
+                            "mt-1 w-full",
+                            errors.customerTypeId &&
+                              "border-destructive ring-3 ring-destructive/20",
+                          )}>
                           <SelectValue placeholder="Select customer type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1090,6 +1160,11 @@ export default function AddCustomerForm({
                           ))}
                         </SelectContent>
                       </Select>
+                      {errors.customerTypeId && (
+                        <p className="mt-1 text-xs text-destructive">
+                          {errors.customerTypeId}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </section>
@@ -1125,7 +1200,7 @@ export default function AddCustomerForm({
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
+                      <div data-field="medicalLicense">
                         <Label htmlFor="medicalLicense">
                           Medical License Number *
                         </Label>
@@ -1133,11 +1208,21 @@ export default function AddCustomerForm({
                           id="medicalLicense"
                           className="mt-1"
                           value={form.medicalLicense}
-                          onChange={setField("medicalLicense")}
+                          onChange={(e) => {
+                            setField("medicalLicense")(e);
+                            if (errors.medicalLicense)
+                              setErrors((p) => ({ ...p, medicalLicense: "" }));
+                          }}
                           onBlur={handleVerifyMedicalLicense}
+                          aria-invalid={!!errors.medicalLicense}
                         />
+                        {errors.medicalLicense && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {errors.medicalLicense}
+                          </p>
+                        )}
                       </div>
-                      <div>
+                      <div data-field="medicalLicenseExpiresAt">
                         <Label htmlFor="medicalLicenseExpiresAt">
                           License Expiration
                         </Label>
@@ -1147,8 +1232,21 @@ export default function AddCustomerForm({
                           className="mt-1"
                           min={todayISO()}
                           value={form.medicalLicenseExpiresAt}
-                          onChange={setField("medicalLicenseExpiresAt")}
+                          onChange={(e) => {
+                            setField("medicalLicenseExpiresAt")(e);
+                            if (errors.medicalLicenseExpiresAt)
+                              setErrors((p) => ({
+                                ...p,
+                                medicalLicenseExpiresAt: "",
+                              }));
+                          }}
+                          aria-invalid={!!errors.medicalLicenseExpiresAt}
                         />
+                        {errors.medicalLicenseExpiresAt && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {errors.medicalLicenseExpiresAt}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <Label htmlFor="condition">Medical Condition</Label>

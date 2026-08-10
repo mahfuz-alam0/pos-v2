@@ -98,7 +98,7 @@ export default function AchTransactionsPage() {
           </SelectContent>
         </Select>
 
-        <DateRangePicker value={dateRange} onChange={setDateRange} className="w-64" />
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
 
         <Button onClick={() => loadTransactions(1)}>Apply Filters</Button>
       </div>

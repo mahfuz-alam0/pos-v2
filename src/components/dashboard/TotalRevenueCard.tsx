@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useShop } from "@/context/shop-context";
 import { getSaleAmountDailyRank, getSaleAmountMonthlyRank } from "@/services/stats/dashboard/rankCharts";
 import { getTimeSeriesWithinTheDaysContext, getTimeSeriesWithinTheMonthsContext } from "@/util/dateUtil";
@@ -12,6 +12,9 @@ const TIME_OPTIONS = [
   { value: 3, label: "Past 3 Months" },
   { value: 6, label: "Past 6 Months" },
 ];
+
+const BAR_COLOR = "#2A9D8F";
+const BAR_ALT_COLOR = "#F4A261";
 
 function formatDate(year, month, day, statsType) {
   if (statsType === "days") {
@@ -56,9 +59,9 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }
   const { value } = payload[0];
   const { name } = payload[0].payload;
   return (
-    <div className="max-w-75 rounded border border-border bg-component-bg p-2.5 shadow">
+    <div className="max-w-75 rounded-xl border border-border bg-popover p-2.5 shadow-lg">
       <p className="m-0 text-sm text-orange-500">{name}</p>
-      <p className="m-0 text-[#2A9D8F]">Total Revenue: ${value.toLocaleString()}</p>
+      <p className="m-0 font-semibold text-heading">Total Revenue: ${value.toLocaleString()}</p>
     </div>
   );
 }
@@ -102,57 +105,54 @@ export default function TotalRevenueCard() {
   const averageGrowth = useMemo(() => Math.round(calculateAverageGrowth(stats)), [stats]);
 
   return (
-    <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-component-bg shadow-md">
-      <div className="p-3 pb-0">
-        <div className="flex flex-row items-center gap-3">
-          <h2 className="m-0 text-lg font-normal text-text">Total Revenue</h2>
-          <div className="ml-auto truncate">
-            <select
-              className="rounded-md border border-border bg-component-bg px-2 py-1 text-sm"
-              value={currentValue}
-              onChange={handleTimeChange}
-            >
-              {TIME_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-2">
-          <h2 className="text-xs font-medium xl:text-sm">
-            ${totalRevenue.toLocaleString()}
-            <span className={`ml-2 text-sm font-semibold ${averageGrowth < 0 ? "text-red-500" : "text-green-600"}`}>
-              {averageGrowth}%
-            </span>
-          </h2>
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-component-bg shadow-sm">
+      <div className="flex flex-row items-center gap-3 px-5 pt-4">
+        <h2 className="m-0 text-[15px] font-semibold text-heading">Total Revenue</h2>
+        <div className="ml-auto">
+          <select
+            className="rounded-md border border-input bg-component-bg px-2 py-1 text-sm text-text"
+            value={currentValue}
+            onChange={handleTimeChange}
+          >
+            {TIME_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <div className="mt-2 h-35 flex-1">
+      <div className="px-5 pt-2">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-xl font-bold text-heading">${totalRevenue.toLocaleString()}</h2>
+          <span className={`text-sm font-semibold ${averageGrowth < 0 ? "text-red-500" : "text-green-600"}`}>
+            {averageGrowth}%
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-3 h-32 flex-1 px-2 pb-3">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={stats} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <Tooltip content={<ChartTooltip />} />
-              <defs>
-                <linearGradient id="totalRevenueGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="5%" stopColor="#4ECDE4" stopOpacity={0.9} />
-                  <stop offset="95%" stopColor="#06BB8A" stopOpacity={0.9} />
-                </linearGradient>
-              </defs>
-              <Area
-                dataKey="Total"
-                type="monotone"
-                strokeWidth={0}
-                stroke="#4D95F3"
-                fill="url(#totalRevenueGradient)"
-                fillOpacity={1}
+            <BarChart data={stats} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(42, 157, 143, 0.08)" }} />
+              <XAxis
+                dataKey="name"
+                interval={0}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                tickFormatter={(tick, index) => (index % 2 === 0 ? tick : "")}
               />
-            </AreaChart>
+              <Bar dataKey="Total" radius={[6, 6, 0, 0]} maxBarSize={28}>
+                {stats.map((entry, index) => (
+                  <Cell key={index} fill={index % 2 === 0 ? BAR_COLOR : BAR_ALT_COLOR} fillOpacity={0.85} />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         )}
       </div>
