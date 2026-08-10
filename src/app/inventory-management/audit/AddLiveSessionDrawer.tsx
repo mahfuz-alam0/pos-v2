@@ -89,8 +89,8 @@ export default function AddLiveSessionDrawer({
   const uniquePackageIds = [...new Set(selectedRows.map((r) => r.id))];
 
   const handleCreate = async () => {
-    if (!locationId || uniquePackageIds.length === 0) {
-      toast.error("Please select a storage location and at least one package");
+    if (!locationId) {
+      toast.error("Please select a storage location");
       return;
     }
     if (!forMe && !employeeId) {
@@ -248,7 +248,7 @@ export default function AddLiveSessionDrawer({
         <div className="flex gap-2 border-t p-5">
           <Button
             onClick={handleCreate}
-            disabled={creating || !locationId || uniquePackageIds.length === 0}>
+            disabled={creating || !locationId}>
             {creating ? "Creating..." : "Create"}
           </Button>
           <Button variant="outline" onClick={onClose} disabled={creating}>
