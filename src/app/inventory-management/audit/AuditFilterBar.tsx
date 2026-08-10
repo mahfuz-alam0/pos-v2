@@ -24,7 +24,9 @@ interface AuditFilterBarProps {
   countedPackagesLoading: boolean;
   countedPackageCount: number;
   onFilterCountedToggle: (checked: boolean) => void;
-  viewMode: "regular" | "live";
+  locationHintText?: string;
+  locationDisabled?: boolean;
+  locationDisabledReason?: string;
 }
 
 async function fetchCategoryPage(page: number, search: string) {
@@ -52,7 +54,9 @@ export default function AuditFilterBar({
   countedPackagesLoading,
   countedPackageCount,
   onFilterCountedToggle,
-  viewMode,
+  locationHintText = "Please select a storage location to enable starting a live count session.",
+  locationDisabled = false,
+  locationDisabledReason,
 }: AuditFilterBarProps) {
   return (
     <div className="flex flex-col gap-2">
@@ -99,8 +103,11 @@ export default function AuditFilterBar({
           items={[{ value: "__all__", label: "All Locations" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
           value={filters.location ?? "__all__"}
           onValueChange={(v) => onFilterChange({ location: v === "__all__" ? null : v })}
+          disabled={locationDisabled}
         >
-          <SelectTrigger className={`w-40 ${viewMode === "live" && !filters.location ? "ring-2 ring-green-400" : ""}`}>
+          <SelectTrigger
+            title={locationDisabled ? locationDisabledReason : undefined}
+            className={`w-40 ${!filters.location ? "ring-2 ring-green-400" : ""}`}>
             <SelectValue placeholder="Select Location..." />
           </SelectTrigger>
           <SelectContent>
@@ -205,10 +212,8 @@ export default function AuditFilterBar({
         </label>
       </div>
 
-      {viewMode === "live" && !filters.location && (
-        <div className="mt-1 text-xs font-medium text-green-600">
-          Please select a storage location to enable starting a live count session.
-        </div>
+      {!filters.location && (
+        <div className="mt-1 text-xs font-medium text-green-600">{locationHintText}</div>
       )}
     </div>
   );

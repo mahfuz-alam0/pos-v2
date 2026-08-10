@@ -68,7 +68,7 @@ const EMPTY_FORM = {
   city: "",
   state: "",
   zipCode: "",
-  customerTypeId: "",
+  customerTypeId: "none",
   medicalLicense: "",
   medicalLicenseExpiresAt: "",
   condition: "",
