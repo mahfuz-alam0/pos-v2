@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, MonitorSmartphone } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useShop } from "@/context/shop-context";
 import { fetchRegistersList } from "@/services/registers/list";
 import { enableRegister, disableRegister } from "@/services/registers/toggleRegister";
@@ -44,67 +45,68 @@ export default function RegistersPanel() {
     }
   };
 
+  const openCount = registers.filter((r) => r.isOpen).length;
+
   return (
-    <div className="flex h-full flex-col rounded-xl bg-component-bg shadow-md">
-      <div className="border-b border-border px-4 py-5.5">
-        <h2 className="m-0 text-lg font-normal text-text">Registers</h2>
+    <div className="flex h-full flex-col rounded-2xl bg-component-bg shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <MonitorSmartphone className="size-4.5 text-primary" />
+          <h2 className="m-0 text-[15px] font-semibold text-heading">Registers</h2>
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-alt px-1.5 text-[11px] font-bold text-primary">
+            {openCount}/{registers.length}
+          </span>
+        </div>
+        <Link
+          href="/cash-management/registers"
+          className="flex h-8 items-center gap-0.5 rounded-full px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-alt hover:text-text"
+        >
+          Manage <ChevronRight className="size-3.5" />
+        </Link>
       </div>
 
-      {loading ? (
-        <div className="flex flex-1 items-center justify-center p-3 py-6 text-center text-muted-foreground">Loading…</div>
-      ) : (
-        <div className="flex-1 px-1 py-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-surface-alt text-left text-xs text-muted-foreground">
-                <th className="rounded-l-lg py-2.5 pl-3 font-medium">Name</th>
-                <th className="py-2.5 text-center font-medium">Status</th>
-                <th className="rounded-r-lg py-2.5 pr-3 text-center font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registers.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-6 text-center text-muted-foreground">
-                    No Data Found
-                  </td>
-                </tr>
-              ) : (
-                registers.map((register) => (
-                  <tr key={register.id} className="border-t border-border">
-                    <td className="py-6">{register.name}</td>
-                    <td className="py-6 text-center">
-                      <button
-                        role="switch"
-                        aria-checked={Boolean(register.isOpen)}
-                        onClick={() => handleToggle(register)}
-                        className={`relative mx-auto flex h-4.5 w-8 items-center rounded-full transition-colors ${
-                          register.isOpen ? "bg-primary" : "bg-surface-alt"
-                        }`}
-                      >
-                        <span
-                          className={`size-3.5 rounded-full bg-white shadow transition-transform ${
-                            register.isOpen ? "translate-x-4" : "translate-x-0.5"
-                          }`}
-                        />
-                      </button>
-                    </td>
-                    <td className="py-6 text-center">
-                      <Link
-                        href={`/pos/drawers?registerId=${register.id}`}
-                        className="mx-auto flex size-6 items-center justify-center rounded-full border"
-                        style={{ borderColor: register.isOpen ? "#2A9D8F" : "#E76F51" }}
-                      >
-                        <ChevronRight className="size-4" style={{ color: register.isOpen ? "#2A9D8F" : "#E76F51" }} />
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="flex-1 px-5 pt-1 pb-3">
+        {loading ? (
+          <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
+        ) : registers.length === 0 ? (
+          <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {registers.map((register) => {
+              const isOpen = Boolean(register.isOpen);
+              return (
+                <div
+                  key={register.id}
+                  className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border border-border bg-component-bg px-2.5 py-2 transition-colors ${
+                    isOpen ? "hover:bg-surface-alt/50" : "opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={`size-1.5 shrink-0 rounded-full ${isOpen ? "bg-emerald-500" : "bg-muted-foreground/50"}`}
+                    />
+                    <span className="truncate text-[12px] font-medium text-text">{register.name}</span>
+                  </span>
+
+                  <Switch
+                    checked={isOpen}
+                    onCheckedChange={() => handleToggle(register)}
+                    aria-label={`${isOpen ? "Close" : "Open"} register ${register.name}`}
+                  />
+
+                  <Link
+                    href={`/pos/drawers?registerId=${register.id}`}
+                    aria-label={`Open drawer for ${register.name}`}
+                    className="flex size-5.5 shrink-0 items-center justify-center rounded-md bg-surface-alt text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
