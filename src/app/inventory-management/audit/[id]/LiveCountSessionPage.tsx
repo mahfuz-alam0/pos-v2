@@ -14,6 +14,7 @@ import { setAuditSessionCountKvProperty } from "@/services/auditSessions/setCoun
 import { markAuditSessionPackageAsDone } from "@/services/auditSessions/markPackageAsDone";
 import { enrollAuditSessionPackage } from "@/services/auditSessions/enrollPackage";
 import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
+import { fetchSingleStorageLocation } from "@/services/storageLocations/getSingle";
 import { createCommittedAuditSession } from "@/services/committedAuditSessions/create";
 
 import { Button } from "@/components/ui/button";
@@ -95,6 +96,8 @@ export default function LiveCountSessionPage({
   );
   const [enrolling, setEnrolling] = useState(false);
   const [countMethod, setCountMethod] = useState<"SCAN" | "MANUAL" | "EITHER" | null>(null);
+  const [isBlindCount, setIsBlindCount] = useState(false);
+  const [locationName, setLocationName] = useState<string | null>(null);
 
   const scanInputRef = useRef<HTMLInputElement>(null);
   const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -152,8 +155,14 @@ export default function LiveCountSessionPage({
       } else {
         setCountMethod("EITHER");
       }
+      setIsBlindCount(Boolean(session.isBlindCount));
 
+      // countKV is the one persisted count per package regardless of mode —
+      // seed both manualCounts and scanCounts from it so re-entering a scan
+      // session (or one that toggled modes) shows what was already counted
+      // instead of starting back at 0.
       setManualCounts((prev) => ({ ...prev, ...countKV }));
+      setScanCounts((prev) => ({ ...prev, ...countKV }));
       setDonePackages((prev) => {
         const next = { ...prev };
         Object.entries(markedAsDoneKV).forEach(([k, v]) => {
@@ -173,6 +182,14 @@ export default function LiveCountSessionPage({
     fetchSummary();
     fetchSessionSingle();
   }, [sessionId, shopId, fetchSummary, fetchSessionSingle]);
+
+  useEffect(() => {
+    const storageLocationId = sessionData?.storageLocationId;
+    if (!storageLocationId || !shopId) return;
+    fetchSingleStorageLocation(storageLocationId, shopId)
+      .then((res) => setLocationName(res?.data?.data?.location?.name ?? null))
+      .catch(() => setLocationName(null));
+  }, [sessionData?.storageLocationId, shopId]);
 
   const flashRow = useCallback((packageId: string) => {
     setFlashingRows((prev) => ({ ...prev, [packageId]: true }));
@@ -467,6 +484,10 @@ export default function LiveCountSessionPage({
                   ? format(new Date(sessionData.endsAtISO), "MMM d, yyyy HH:mm")
                   : "—"}
               </div>
+              <div className="text-sm">
+                <span className="font-semibold">Storage Location:</span>{" "}
+                {locationName ?? (sessionData?.storageLocationId ? "…" : "—")}
+              </div>
               <CountingModeToggle
                 value={countingMode}
                 onChange={setCountingMode}
@@ -556,8 +577,12 @@ export default function LiveCountSessionPage({
                   <TableHead>Package ID</TableHead>
                   <TableHead>Product Name</TableHead>
                   <TableHead>METRC Tag</TableHead>
-                  <TableHead className="text-center">Starting Qty</TableHead>
-                  <TableHead className="text-center">Current Qty</TableHead>
+                  {!isBlindCount && (
+                    <>
+                      <TableHead className="text-center">Starting Qty</TableHead>
+                      <TableHead className="text-center">Current Qty</TableHead>
+                    </>
+                  )}
                   <TableHead className="text-center">
                     {countingMode === "scan" ? "Scan Count" : "Counted Qty"}
                   </TableHead>
@@ -574,7 +599,7 @@ export default function LiveCountSessionPage({
                 {loading &&
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={`sk-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-                      {Array.from({ length: 7 }).map((__, j) => (
+                      {Array.from({ length: isBlindCount ? 5 : 7 }).map((__, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -585,7 +610,7 @@ export default function LiveCountSessionPage({
                 {!loading && packages.length === 0 && (
                   <TableRow className="border-b-0">
                     <TableCell
-                      colSpan={7}
+                      colSpan={isBlindCount ? 5 : 7}
                       className="py-10 text-center text-muted-foreground">
                       No packages in this session.
                     </TableCell>
@@ -632,26 +657,30 @@ export default function LiveCountSessionPage({
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {pkg.metrcTag || "—"}
                         </TableCell>
-                        <TableCell className="text-center">
-                          {pkg.startingCount ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {hasEvents ? (
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <span className="underline decoration-dotted">
-                                  {currentQty}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {pkg.currentQtySnapshot ?? 0} - {salesQty} sold
-                                + {returnsQty} returned = {currentQty}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            currentQty
-                          )}
-                        </TableCell>
+                        {!isBlindCount && (
+                          <>
+                            <TableCell className="text-center">
+                              {pkg.startingCount ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {hasEvents ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <span className="underline decoration-dotted">
+                                      {currentQty}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {pkg.currentQtySnapshot ?? 0} - {salesQty} sold
+                                    + {returnsQty} returned = {currentQty}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                currentQty
+                              )}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell className="text-center">
                           {countingMode === "scan" ? (
                             (scanCounts[pkg.id] || 0) > 0 ? (
