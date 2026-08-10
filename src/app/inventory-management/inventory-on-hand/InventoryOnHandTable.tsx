@@ -744,7 +744,7 @@ export default function InventoryOnHandTable() {
 
   return (
     <div className="flex flex-col gap-6 bg-[#F5F5F5] px-9 py-6">
-      <div className="mb-[6px] flex flex-col gap-1.5">
+      <div className="mb-1.5 flex flex-col gap-1.5">
         <h1 className="text-[22px] font-medium">Inventory On Hand</h1>
         <Breadcrumb>
           <BreadcrumbList className="text-[14px]">
