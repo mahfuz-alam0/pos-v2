@@ -14,6 +14,7 @@ import { fetchMyLiveAuditSession } from "@/services/auditSessions/mySession";
 import { fetchActiveAuditSessions } from "@/services/auditSessions/listActive";
 import { fetchPackageIdsBeingCounted } from "@/services/auditSessions/packageIdsBeingCounted";
 import { removeLiveAuditSession as removeLiveAuditSessionApi } from "@/services/auditSessions/removeLiveAuditSession";
+import { fetchAssignedAuditSessionsList } from "@/services/assignedAuditSessions/list";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +51,7 @@ import AddLiveSessionDrawer from "./AddLiveSessionDrawer";
 import ScanOnlyAuditView from "./ScanOnlyAuditView";
 import LiveCartDrawer from "./LiveCartDrawer";
 import SessionsListDrawer from "./SessionsListDrawer";
+import PendingSessionsDrawer from "./PendingSessionsDrawer";
 import { exportAuditToCSV, exportAuditToXLS } from "./auditExport";
 import PdfExportDrawer from "@/components/ui/pdf-export-drawer";
 import {
@@ -195,6 +197,11 @@ export default function AuditPage() {
   const [sessionCount, setSessionCount] = useState<number | null>(null);
   const [mySession, setMySession] = useState<LiveAuditSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
+
+  const [pendingSessionCount, setPendingSessionCount] = useState<number | null>(null);
+  const [isPendingSessionsOpen, setIsPendingSessionsOpen] = useState(false);
+  const [pendingSessionsList, setPendingSessionsList] = useState<any[]>([]);
+  const [pendingSessionsLoading, setPendingSessionsLoading] = useState(false);
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<(string | number)[]>(
     [],
@@ -395,6 +402,54 @@ export default function AuditPage() {
     }
   };
 
+  // Response shape for /assigned-audit-sessions/list isn't documented in the
+  // OpenAPI spec (no schema, just an empty 200), so this tries every
+  // plausible key instead of assuming one.
+  const extractPendingSessions = (payload: any): any[] => {
+    if (Array.isArray(payload)) return payload;
+    const d = payload ?? {};
+    return (
+      d.sessions ??
+      d.assignedAuditSessions ??
+      d.assignedSessions ??
+      d.list ??
+      d.data ??
+      []
+    );
+  };
+
+  const fetchPendingSessionInfo = async () => {
+    if (!shopId) return;
+    try {
+      const res = await fetchAssignedAuditSessionsList(shopId, { limit: 1, page: 1 });
+      console.log("[assigned-audit-sessions/list] raw response:", res);
+      const total = res?.data?.paginationData?.totalEntries;
+      setPendingSessionCount(total ?? extractPendingSessions(res?.data).length ?? 0);
+    } catch (err) {
+      console.error("Failed to fetch pending session count:", err);
+      setPendingSessionCount(0);
+    }
+  };
+
+  const fetchPendingSessionsList = async () => {
+    if (!shopId) return;
+    setPendingSessionsLoading(true);
+    try {
+      const res = await fetchAssignedAuditSessionsList(shopId, { limit: 100, page: 1 });
+      setPendingSessionsList(extractPendingSessions(res?.data));
+    } catch (err) {
+      console.error("Failed to fetch pending sessions list:", err);
+      setPendingSessionsList([]);
+    } finally {
+      setPendingSessionsLoading(false);
+    }
+  };
+
+  const handleOpenPendingSessions = () => {
+    setIsPendingSessionsOpen(true);
+    fetchPendingSessionsList();
+  };
+
   const getSessionTimeRemaining = () => {
     if (!mySession) return null;
     const endTime =
@@ -415,6 +470,7 @@ export default function AuditPage() {
     fetchFilterOptions();
     fetchData(1, AUDIT_PAGE_SIZE);
     fetchSessionInfo();
+    fetchPendingSessionInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
 
@@ -744,6 +800,15 @@ export default function AuditPage() {
             </button>
           )}
 
+          {pendingSessionCount !== null && pendingSessionCount > 0 && (
+            <button
+              onClick={handleOpenPendingSessions}
+              className="flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400">
+              <span className="size-2 rounded-full bg-red-500" />
+              {pendingSessionCount} session{pendingSessionCount !== 1 ? "s" : ""} pending
+            </button>
+          )}
+
           {mySession && (
             <Button
               size="sm"
@@ -972,6 +1037,7 @@ export default function AuditPage() {
           setSelectedRowKeys([]);
           setSelectedRows([]);
           fetchSessionInfo();
+          fetchPendingSessionInfo();
         }}
       />
 
@@ -986,6 +1052,21 @@ export default function AuditPage() {
         onDismissed={() => {
           fetchSessionInfo();
           fetchData(1, AUDIT_PAGE_SIZE, null, filterCountedPackages || null);
+        }}
+      />
+
+      <PendingSessionsDrawer
+        open={isPendingSessionsOpen}
+        onClose={() => setIsPendingSessionsOpen(false)}
+        sessions={pendingSessionsList}
+        loading={pendingSessionsLoading}
+        locationMap={locationMap}
+        onRefresh={fetchPendingSessionsList}
+        currentUserId={currentUserId}
+        onChanged={() => {
+          fetchPendingSessionInfo();
+          fetchPendingSessionsList();
+          fetchSessionInfo();
         }}
       />
 
