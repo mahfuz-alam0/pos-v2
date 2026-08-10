@@ -393,20 +393,19 @@ export default function PackagesPage() {
   const showMetrcQtyColumn = shouldPopulateMetrcData;
 
   return (
-    <div className="flex gap-4 p-3">
-      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-primary">Packages</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-primary">Packages</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
           <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
             {selectedRowKeys.length > 0 && (
@@ -817,11 +816,11 @@ export default function PackagesPage() {
           </Tabs>
         </div>
 
-        <div className="relative -mx-4">
+        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
           <TableLoadingOverlay show={loading && activeRows.length > 0} />
           <Table className="text-[13px]">
-              <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-                <TableRow className="hover:bg-transparent">
+              <TableHeader className="[&_tr]:border-b-0">
+                <TableRow className="bg-muted/60">
                   {tab === "archived" ? (
                     <>
                       <TableHead>Package ID</TableHead>
@@ -848,14 +847,14 @@ export default function PackagesPage() {
                       <TableHead className="w-[6%] text-center">Status</TableHead>
                       <TableHead className="w-[5%] text-center">Age</TableHead>
                       <TableHead className="w-[8%]">Last Adj.</TableHead>
-                      <TableHead className="w-32 text-center">
+                      <TableHead className="sticky right-0 z-10 w-32 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">
                         Action
                       </TableHead>
                     </>
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+              <TableBody className="text-muted-foreground [&_td]:h-12">
                 {loading && activeRows.length === 0 &&
                   Array.from({ length: 8 }).map((_, i) => (
                     <TableRow key={`sk-${i}`} className="border-b-0">
@@ -868,7 +867,7 @@ export default function PackagesPage() {
                   ))}
 
                 {!loading && activeRows.length === 0 && (
-                  <TableRow>
+                  <TableRow className="border-b-0">
                     <TableCell colSpan={tab === "archived" ? 3 : showMetrcQtyColumn ? 13 : 12} className="py-10 text-center text-muted-foreground">
                       No packages found.
                     </TableCell>
@@ -973,7 +972,6 @@ export default function PackagesPage() {
           pageSizeOptions={[30, 50, 100, 200]}
           onPageSizeChange={(size) => loadPackages(1, size)}
         />
-      </div>
 
       <PackageDetailsPanel
         id={openId}

@@ -321,32 +321,31 @@ export default function TransfersPage() {
   };
 
   return (
-    <div className="flex gap-4 p-3">
-      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="font-medium text-primary">Transfers</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-primary">Transfers</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-            <Button
-              className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
-              render={
-                <Link href={{ pathname: "/inventory-management/transfers/add-transfer", query: { transferType: activeTab } }} />
-              }
-            >
-              Add Transfer
-            </Button>
-          </div>
+        <Button
+          className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
+          render={
+            <Link href={{ pathname: "/inventory-management/transfers/add-transfer", query: { transferType: activeTab } }} />
+          }
+        >
+          Add Transfer
+        </Button>
+      </div>
 
-          <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1.5">
                 <div className="inline-flex h-10 rounded-md border border-input">
@@ -410,11 +409,11 @@ export default function TransfersPage() {
 
             {activeTab === "within-storage-locations" && (
               <>
-                <div className="relative -mx-4">
+                <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
                   <TableLoadingOverlay show={withinLoading && withinRows.length > 0} />
                   <Table>
-                    <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader className="[&_tr]:border-b-0">
+                      <TableRow className="bg-muted/60">
                         <TableHead>Transfer ID</TableHead>
                         <TableHead>Initiated By</TableHead>
                         <TableHead>Source Location</TableHead>
@@ -422,7 +421,7 @@ export default function TransfersPage() {
                         <TableHead>Date Created</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+                    <TableBody className="[&_td]:h-12">
                       {withinLoading && withinRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
                           <TableRow key={`sk-${i}`} className="border-b-0">
@@ -469,21 +468,21 @@ export default function TransfersPage() {
 
             {activeTab === "with-in-shops" && (
               <>
-                <div className="relative -mx-4">
+                <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
                   <TableLoadingOverlay show={shopLoading && shopRows.length > 0} />
                   <Table>
-                    <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader className="[&_tr]:border-b-0">
+                      <TableRow className="bg-muted/60">
                         <TableHead>Transfer ID</TableHead>
                         <TableHead>Created At</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Source Location</TableHead>
                         <TableHead>Destination Location</TableHead>
-                        <TableHead className="text-center">Action</TableHead>
+                        <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">Action</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+                    <TableBody className="[&_td]:h-12">
                       {shopLoading && shopRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
                           <TableRow key={`sk-${i}`} className="border-b-0">
@@ -523,7 +522,7 @@ export default function TransfersPage() {
                           </TableCell>
                           <TableCell>{row.sourceStorageLocation ?? "-"}</TableCell>
                           <TableCell>{row.destinationStorageLocation ?? "-"}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
                             <Button
                               size="icon-sm"
                               className="rounded-full"
@@ -552,11 +551,11 @@ export default function TransfersPage() {
 
             {activeTab === "supplier-specific" && (
               <>
-                <div className="relative -mx-4">
+                <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
                   <TableLoadingOverlay show={supplierLoading && supplierRows.length > 0} />
                   <Table>
-                    <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-                      <TableRow className="hover:bg-transparent">
+                    <TableHeader className="[&_tr]:border-b-0">
+                      <TableRow className="bg-muted/60">
                         <TableHead>Transfer ID</TableHead>
                         <TableHead>Created At</TableHead>
                         <TableHead>Supplier</TableHead>
@@ -564,12 +563,12 @@ export default function TransfersPage() {
                         <TableHead>Type</TableHead>
                         <TableHead className="text-right">Total Price</TableHead>
                         <TableHead className="text-center">Number of Packages</TableHead>
-                        <TableHead className="sticky right-0 z-10 w-40 bg-muted/60 text-center">
+                        <TableHead className="sticky right-0 z-10 w-40 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">
                           Action
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+                    <TableBody className="[&_td]:h-12">
                       {supplierLoading && supplierRows.length === 0 &&
                         Array.from({ length: 6 }).map((_, i) => (
                           <TableRow key={`sk-${i}`} className="border-b-0">
@@ -656,7 +655,6 @@ export default function TransfersPage() {
               </>
             )}
           </div>
-        </div>
 
       {withinDetail && (
         <WithinLocationDetailPanel transfer={withinDetail} onClose={closeDetail} />

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
+import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Breadcrumb,
@@ -163,23 +163,22 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="flex gap-4 p-3">
-      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-primary">Purchase Orders</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/inventory-management">Inventory Management</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-primary">Purchase Orders</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
-        <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <Select
               items={[
@@ -277,10 +276,11 @@ export default function PurchaseOrdersPage() {
 
           {dateFilter === "custom" && <DateRangePicker value={customRange} onChange={setCustomRange} />}
 
-          <div className="relative -mx-4">
+          <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+          <TableLoadingOverlay show={loading && rows.length > 0} />
           <Table>
-            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
-              <TableRow className="hover:bg-transparent">
+            <TableHeader className="[&_tr]:border-b-0">
+              <TableRow className="bg-muted/60">
                 <TableHead>Transfer ID</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Status</TableHead>
@@ -290,7 +290,7 @@ export default function PurchaseOrdersPage() {
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
+            <TableBody className="[&_td]:h-12">
               {loading && rows.length === 0 &&
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={`sk-${i}`} className="border-b-0">
@@ -303,7 +303,7 @@ export default function PurchaseOrdersPage() {
                 ))}
 
               {!loading && rows.length === 0 && (
-                <TableRow>
+                <TableRow className="border-b-0">
                   <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     No purchase orders found.
                   </TableCell>
@@ -363,7 +363,6 @@ export default function PurchaseOrdersPage() {
             }}
           />
         </div>
-      </div>
 
       {activeId && (
         <PurchaseOrderDetailPanel id={activeId} open={!!openId} onClose={closeDetail} onChanged={() => loadPurchaseOrders(page)} />
