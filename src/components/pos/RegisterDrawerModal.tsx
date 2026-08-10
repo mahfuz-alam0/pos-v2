@@ -566,13 +566,13 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
                         className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
                           isActive
                             ? "border-primary/30 bg-primary/10"
-                            : "border-transparent bg-muted hover:bg-muted/70"
+                            : "border-border bg-surface hover:bg-muted"
                         }`}
                       >
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
                           <Monitor className="size-4 text-muted-foreground" />
                         </span>
-                        <span className="min-w-0 flex-1 truncate font-medium">
+                        <span className="min-w-0 flex-1 truncate font-medium text-foreground">
                           {register.name}
                         </span>
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -622,11 +622,11 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
                           isOpen && isActive
                             ? "cursor-pointer border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950"
                             : isOpen
-                            ? "cursor-pointer border-transparent bg-muted hover:bg-muted/70"
+                            ? "cursor-pointer border-border bg-surface hover:bg-muted"
                             : "cursor-default border-destructive/30 bg-destructive/5"
                         }`}
                       >
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-background">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
                           <Inbox
                             className={`size-4 ${
                               isOpen
@@ -636,7 +636,7 @@ export default function RegisterDrawerModal({ open: openProp, onClose }: any = {
                           />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">
+                          <span className="block truncate font-medium text-foreground">
                             {drawer.name}
                           </span>
                           {!isOpen && (
