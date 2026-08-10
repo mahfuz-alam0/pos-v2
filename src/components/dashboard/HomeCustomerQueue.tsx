@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { CheckCircle2, Loader2, Play, QrCode, UserPlus, Users, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2, Play, QrCode, UserPlus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { useShop } from "@/context/shop-context";
 import { useSettings } from "@/context/settings-context";
@@ -197,6 +197,7 @@ function QueueRow({
   const [waitTime, setWaitTime] = useState(calculateWaitTime(data?.updatedAt));
   const [isServing, setIsServing] = useState(Boolean(data?.isGettingServed));
   const [actionLoading, setActionLoading] = useState(false);
+  const [cartExpanded, setCartExpanded] = useState(false);
 
   useEffect(() => {
     setIsServing(Boolean(data?.isGettingServed));
@@ -215,6 +216,21 @@ function QueueRow({
     const created = new Date(data.onboardedDateString || data.createdAt);
     return (Date.now() - created.getTime()) / (1000 * 60 * 60) <= 24;
   })();
+
+  // ── Cart data ──────────────────────────────────────────────────────
+  let cartData = null;
+  try {
+    if (data?.cartMetaDataJsonString) {
+      cartData = JSON.parse(data.cartMetaDataJsonString);
+      if (!cartData?.lineItems?.length) cartData = null;
+    }
+  } catch {}
+
+  const cartItems = cartData?.lineItems || [];
+  const cartSubtotal = cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.purchaseQuantity || 1), 0);
+  const hasDeals = cartData?.applicableRegularDeals?.length > 0 || !!cartData?.couponId;
+  const hasMiscDiscount = !!cartData?.miscDiscount;
+  const hasLoyalty = (cartData?.loyaltyPointsClaimed || 0) > 0;
 
   const statusBg = isServing ? "#059669" : "#d97706";
   const statusLabel = actionLoading ? (isServing ? "Processing…" : "Moving…") : isServing ? "Return to Queue" : "Available";
@@ -254,66 +270,123 @@ function QueueRow({
 
   return (
     <div
-      className={`group flex min-w-0 items-center gap-1.5 rounded-lg border border-border bg-component-bg px-2 py-1.5 transition-colors hover:bg-surface-alt/60 ${accentBorder}`}
+      className={`group flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-component-bg px-2 py-1.5 transition-colors hover:bg-surface-alt/60 ${accentBorder}`}
     >
-      <div onClick={() => onOpenDetails?.(data)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left">
-        <div className="relative shrink-0">
-          {data?.avatarUrl ? (
-            <img src={data.avatarUrl} alt="" className="size-7 cursor-pointer rounded-full object-cover" />
-          ) : (
-            <div className="flex size-7 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
-              {(data?.firstName || "?")[0].toUpperCase()}
+      <div className="flex items-center gap-1.5">
+        <div onClick={() => onOpenDetails?.(data)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left">
+          <div className="relative shrink-0">
+            {data?.avatarUrl ? (
+              <img src={data.avatarUrl} alt="" className="size-7 cursor-pointer rounded-full object-cover" />
+            ) : (
+              <div className="flex size-7 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
+                {(data?.firstName || "?")[0].toUpperCase()}
+              </div>
+            )}
+            {isNewCustomer && (
+              <span className="absolute -right-1 -bottom-1 rounded-full bg-[#87d068] px-1 text-[7px] leading-3 font-bold text-white">
+                New
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[12px] font-semibold text-text">
+                {data?.firstName} {data?.lastName || ""}
+              </span>
+              {age && <span className="shrink-0 text-[10px] text-muted-foreground">{age}y</span>}
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              {isExpired ? (
+                <span className="rounded bg-red-100 px-1 text-[9px] leading-3.5 text-red-600 dark:bg-red-500/20 dark:text-red-300">MED Exp</span>
+              ) : (
+                <span className="rounded bg-cyan-100 px-1 text-[9px] leading-3.5 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300">Active</span>
+              )}
+              <span>{waitTime} min</span>
+              {data?.isAddedByQrScan && <QrCode className="size-2.5" />}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <div
+            onClick={() => !actionLoading && handleToggleServing()}
+            title={statusLabel}
+            className={`flex size-5.5 items-center justify-center rounded-md text-white transition-colors hover:brightness-110 ${actionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+            style={{ backgroundColor: statusBg }}
+          >
+            {actionLoading ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : isServing ? (
+              <CheckCircle2 className="size-3" />
+            ) : (
+              <Play className="size-3" />
+            )}
+          </div>
+          <div
+            onClick={handleRemove}
+            title="Remove from queue"
+            className="flex size-5.5 shrink-0 cursor-pointer items-center justify-center rounded-md bg-surface-alt text-muted-foreground transition-colors hover:bg-red-500 hover:text-white"
+          >
+            <X className="size-3.5" />
+          </div>
+        </div>
+      </div>
+
+      {cartData && (
+        <div className="overflow-hidden rounded-md border border-border">
+          <button
+            className="flex w-full cursor-pointer items-center justify-between gap-1.5 border-0 bg-surface-alt px-2 py-1 text-left transition-colors hover:bg-muted"
+            onClick={() => setCartExpanded((v) => !v)}
+          >
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-[10px] font-medium text-text">
+                {cartItems.length} item{cartItems.length !== 1 ? "s" : ""} in cart
+              </span>
+              {hasDeals && <span className="shrink-0 rounded bg-green-100 px-1 text-[8px] leading-3.5 text-green-700">Deal</span>}
+              {hasMiscDiscount && <span className="shrink-0 rounded bg-cyan-100 px-1 text-[8px] leading-3.5 text-cyan-700">Disc</span>}
+              {hasLoyalty && <span className="shrink-0 rounded bg-amber-100 px-1 text-[8px] leading-3.5 text-amber-700">Pts</span>}
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <span className="text-[10px] font-bold text-text">${cartSubtotal.toFixed(2)}</span>
+              <ChevronDown
+                className="size-3 text-muted-foreground transition-transform duration-200"
+                style={{ transform: cartExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+              />
+            </div>
+          </button>
+
+          {cartExpanded && (
+            <div className="border-t border-border bg-component-bg px-2 py-1.5">
+              <div className="space-y-1">
+                {cartItems.map((item, idx) => {
+                  const name = item.productName || item.name || "Unknown";
+                  const qty = item.purchaseQuantity || 1;
+                  const lineTotal = (item.price || 0) * qty;
+                  return (
+                    <div key={idx} className="flex items-start justify-between gap-1">
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-[10px] leading-tight font-medium text-muted-foreground">
+                          {qty}× {name}
+                        </span>
+                        {item.sellableUomShortForm && (
+                          <span className="text-[9px] text-muted-foreground/70">{item.sellableUomShortForm}</span>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">${lineTotal.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-1.5 flex items-center justify-between border-t border-dashed border-border pt-1.5">
+                <span className="text-[10px] text-muted-foreground">Subtotal</span>
+                <span className="text-[10px] font-bold text-text">${cartSubtotal.toFixed(2)}</span>
+              </div>
             </div>
           )}
-          {isNewCustomer && (
-            <span className="absolute -right-1 -bottom-1 rounded-full bg-[#87d068] px-1 text-[7px] leading-3 font-bold text-white">
-              New
-            </span>
-          )}
         </div>
-
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[12px] font-semibold text-text">
-              {data?.firstName} {data?.lastName || ""}
-            </span>
-            {age && <span className="shrink-0 text-[10px] text-muted-foreground">{age}y</span>}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            {isExpired ? (
-              <span className="rounded bg-red-100 px-1 text-[9px] leading-3.5 text-red-600 dark:bg-red-500/20 dark:text-red-300">MED Exp</span>
-            ) : (
-              <span className="rounded bg-cyan-100 px-1 text-[9px] leading-3.5 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300">Active</span>
-            )}
-            <span>{waitTime} min</span>
-            {data?.isAddedByQrScan && <QrCode className="size-2.5" />}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-1">
-        <div
-          onClick={() => !actionLoading && handleToggleServing()}
-          title={statusLabel}
-          className={`flex size-5.5 items-center justify-center rounded-md text-white transition-colors hover:brightness-110 ${actionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-          style={{ backgroundColor: statusBg }}
-        >
-          {actionLoading ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : isServing ? (
-            <CheckCircle2 className="size-3" />
-          ) : (
-            <Play className="size-3" />
-          )}
-        </div>
-        <div
-          onClick={handleRemove}
-          title="Remove from queue"
-          className="flex size-5.5 shrink-0 cursor-pointer items-center justify-center rounded-md bg-surface-alt text-muted-foreground transition-colors hover:bg-red-500 hover:text-white"
-        >
-          <X className="size-3.5" />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
