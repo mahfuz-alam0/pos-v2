@@ -221,9 +221,11 @@ export default function RegistersPanel() {
                   return (
                     <div
                       key={register.id}
-                      className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border border-border bg-component-bg px-2.5 py-2 transition-colors ${
+                      className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border border-border bg-component-bg px-2.5 py-2 transition-colors ${
                         isOpen ? "hover:bg-surface-alt/50" : "opacity-60 hover:opacity-100"
                       }`}
+                      onClick={() => openRegisterDrawers(register)}
+                      title={`View drawers for ${register.name}`}
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <span
@@ -235,11 +237,15 @@ export default function RegistersPanel() {
                       <Switch
                         checked={isOpen}
                         onCheckedChange={() => handleToggle(register)}
+                        onClick={(e) => e.stopPropagation()}
                         aria-label={`${isOpen ? "Close" : "Open"} register ${register.name}`}
                       />
 
                       <button
-                        onClick={() => openRegisterDrawers(register)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openRegisterDrawers(register);
+                        }}
                         aria-label={`View drawers for ${register.name}`}
                         title="View drawers"
                         className="flex size-5.5 shrink-0 cursor-pointer items-center justify-center rounded-md bg-surface-alt text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
