@@ -12,7 +12,7 @@ import ConversionStats from "@/components/dashboard/ConversionStats";
 import AllStatsTiles from "@/components/dashboard/AllStatsTiles";
 import CustomerQueue from "@/components/dashboard/CustomerQueue";
 import EmployeeSalesTodayChart from "@/components/dashboard/EmployeeSalesTodayChart";
-import SpiffsCampaigns from "@/components/dashboard/SpiffsCampaigns";
+// import SpiffsCampaigns from "@/components/dashboard/SpiffsCampaigns";
 import TaskList from "@/components/dashboard/TaskList";
 import MetrcAlerts from "@/components/dashboard/MetrcAlerts";
 import RegistersPanel from "@/components/dashboard/RegistersPanel";
@@ -53,7 +53,7 @@ export default function Home() {
           {canViewDashboardStats && (
             <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
           )}
-          <SpiffsCampaigns />
+          {/* <SpiffsCampaigns /> */}
           <TaskList />
           {hasMetrcReporting && <MetrcAlerts />}
         </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { UserPlus, X } from "lucide-react";
+import { X } from "lucide-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
@@ -164,25 +164,20 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
     }
   };
 
+  const heading = mode === "add" ? "Add New Employee" : "Edit Employee";
+  const subtitle = mode === "add" ? "Create a new employee account with access permissions" : "Update this employee's account and access permissions";
+
   return (
-    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={560}>
+    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size="80%">
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <UserPlus className="size-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">{mode === "add" ? "Add Employee" : "Edit Employee"}</div>
-            <div className="text-xs leading-tight text-muted-foreground">
-              {mode === "add" ? "Create a new team member" : "Update employee details"}
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-6 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+          <div className="text-base font-semibold">{mode === "add" ? "Add New Employee" : "Edit Employee"}</div>
           <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
             <X className="size-4" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {loading ? (
             <div className="flex flex-col gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -190,129 +185,164 @@ export default function EmployeeFormDrawer({ open, mode, employeeId, onClose, on
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              <Field label="Profile Picture">
-                <SingleImageUpload imageUrl={values.avatarUrl} onChange={(url) => setValues({ ...values, avatarUrl: url })} />
-              </Field>
-
-              <Field label="Full Name" required>
-                <Input value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />
-              </Field>
-
-              <Field label="Email" required>
-                <Input type="email" value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
-              </Field>
-
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={values.useEmailAsUsername}
-                  onCheckedChange={(checked) => setValues({ ...values, useEmailAsUsername: !!checked })}
-                />
-                Use email as username
-              </label>
-
-              {!values.useEmailAsUsername && (
-                <Field label="Username" required>
-                  <Input value={values.username} onChange={(e) => setValues({ ...values, username: e.target.value })} />
-                </Field>
-              )}
-
-              {mode === "add" && (
-                <Field label="Password" required>
-                  <Input type="password" value={values.password} onChange={(e) => setValues({ ...values, password: e.target.value })} />
-                </Field>
-              )}
-
-              <Field label="Phone" required>
-                <PhoneInput
-                  country="us"
-                  enableSearch
-                  value={values.phone}
-                  onChange={(phone) => setValues({ ...values, phone })}
-                  inputClass="!w-full !h-9"
-                />
-              </Field>
-
-              <Field label="Account Type">
-                <div className="flex rounded-lg bg-muted p-0.5">
-                  {(["ADMINISTRATION", "ACCESS_CONTROLLED"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setValues({ ...values, type: t, associatedShopIds: [], roleId: "" })}
-                      className={`flex-1 rounded-[7px] py-2 text-xs font-semibold transition-colors ${values.type === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"}`}
-                    >
-                      {t === "ADMINISTRATION" ? "Administration" : "Access Controlled"}
-                    </button>
-                  ))}
+            <div className="flex flex-col gap-5">
+              <div>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <span className="text-primary">Employee</span>
+                  <span className="text-muted-foreground">&gt;</span>
+                  <span className="text-muted-foreground">{mode === "add" ? "Add Employee" : "Edit Employee"}</span>
                 </div>
-              </Field>
+                <h2 className="mt-2 text-2xl font-bold">{heading}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+              </div>
 
-              <Field label="Associated Shops" required>
-                <ShopMultiSelect
-                  value={values.associatedShopIds}
-                  onChange={(ids) => setValues({ ...values, associatedShopIds: ids, preferredRegisterId: "" })}
-                />
-              </Field>
+              <div className="border-t border-border" />
 
-              {mode === "add" && values.associatedShopIds.length > 0 && registers.length > 0 && (
-                <Field label="Preferred Register">
-                  <Select
-                    items={[{ value: "", label: "None" }, ...registers.map((r) => ({ value: r.id, label: r.name }))]}
-                    value={values.preferredRegisterId}
-                    onValueChange={(v) => setValues({ ...values, preferredRegisterId: v as string })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select register" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {registers.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="flex flex-col gap-4 rounded-xl border border-border p-5">
+                  <h3 className="text-sm font-semibold">Personal Information</h3>
+
+                  <Field label="Full Name" required>
+                    <Input className="h-10" value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} placeholder="Enter full name" />
+                  </Field>
+
+                  <Field label="Email Address" required>
+                    <Input className="h-10" type="email" value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
+                  </Field>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      Username
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Checkbox
+                        checked={values.useEmailAsUsername}
+                        onCheckedChange={(checked) => setValues({ ...values, useEmailAsUsername: !!checked })}
+                      />
+                      Use email as username
+                    </label>
+                    {!values.useEmailAsUsername && (
+                      <Input className="h-10" value={values.username} onChange={(e) => setValues({ ...values, username: e.target.value })} placeholder="Enter username" />
+                    )}
+                  </div>
+
+                  {mode === "add" && (
+                    <Field label="Password" required>
+                      <Input className="h-10" type="password" value={values.password} onChange={(e) => setValues({ ...values, password: e.target.value })} />
+                    </Field>
+                  )}
+
+                  <Field label="Phone Number">
+                    <PhoneInput
+                      country="us"
+                      enableSearch
+                      value={values.phone}
+                      onChange={(phone) => setValues({ ...values, phone })}
+                      inputClass="!w-full !h-10"
+                    />
+                  </Field>
+                </div>
+
+                <div className="flex flex-col gap-4 rounded-xl border border-border p-5">
+                  <h3 className="text-sm font-semibold">Access Configuration</h3>
+
+                  <Field label="Account Type">
+                    <div className="flex flex-col gap-2">
+                      {(["ADMINISTRATION", "ACCESS_CONTROLLED"] as const).map((t) => (
+                        <label key={t} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="employee-account-type"
+                            checked={values.type === t}
+                            onChange={() => setValues({ ...values, type: t, associatedShopIds: [], roleId: "" })}
+                            style={{ accentColor: "var(--primary)" }}
+                            className="size-4"
+                          />
+                          {t === "ADMINISTRATION" ? "Administrative Access" : "Access Controlled"}
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
+                    </div>
+                  </Field>
 
-              {values.type === "ACCESS_CONTROLLED" && (
-                <Field label="Employee Role" required>
-                  <Select
-                    items={[{ value: "", label: "Select a role" }, ...roles.map((r) => ({ value: r.id, label: r.name }))]}
-                    value={values.roleId}
-                    onValueChange={(v) => setValues({ ...values, roleId: v as string })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
+                  <Field label="Associated Shops" required>
+                    <ShopMultiSelect
+                      value={values.associatedShopIds}
+                      onChange={(ids) => setValues({ ...values, associatedShopIds: ids, preferredRegisterId: "" })}
+                    />
+                  </Field>
 
-              <Field label="Identification Documents">
-                <SimpleFileUpload
-                  files={values.documentLinks.map((url) => ({ url }))}
-                  onChange={(files) => setValues((v) => ({ ...v, documentLinks: files.map((f) => f.url) }))}
-                />
-              </Field>
+                  {mode === "add" && values.associatedShopIds.length > 0 && registers.length > 0 && (
+                    <Field label="Preferred Register">
+                      <Select
+                        items={[{ value: "", label: "None" }, ...registers.map((r) => ({ value: r.id, label: r.name }))]}
+                        value={values.preferredRegisterId}
+                        onValueChange={(v) => setValues({ ...values, preferredRegisterId: v as string })}
+                      >
+                        <SelectTrigger className="h-10! w-full">
+                          <SelectValue placeholder="Select register" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {registers.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+
+                  {values.type === "ACCESS_CONTROLLED" && (
+                    <Field label="Employee Role" required>
+                      <Select
+                        items={[{ value: "", label: "Select a role" }, ...roles.map((r) => ({ value: r.id, label: r.name }))]}
+                        value={values.roleId}
+                        onValueChange={(v) => setValues({ ...values, roleId: v as string })}
+                      >
+                        <SelectTrigger className="h-10! w-full">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roles.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-border" />
+
+              <div>
+                <h3 className="mb-3 text-sm font-semibold">Documents & Media</h3>
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="rounded-xl border border-border p-5">
+                    <p className="mb-3 text-sm font-medium">Profile Picture</p>
+                    <SingleImageUpload imageUrl={values.avatarUrl} onChange={(url) => setValues({ ...values, avatarUrl: url })} />
+                  </div>
+                  <div className="rounded-xl border border-border p-5">
+                    <p className="mb-3 text-sm font-medium">Identification Documents</p>
+                    <SimpleFileUpload
+                      files={values.documentLinks.map((url) => ({ url }))}
+                      onChange={(files) => setValues((v) => ({ ...v, documentLinks: files.map((f) => f.url) }))}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+        <div className="flex justify-end gap-2 px-6 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving || loading}>
-            {saving ? "Saving..." : "Save"}
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleSave} disabled={saving || loading}>
+            {saving ? "Saving..." : mode === "add" ? "Create Employee" : "Save Changes"}
           </Button>
         </div>
       </div>

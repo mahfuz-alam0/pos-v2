@@ -365,6 +365,7 @@ export const retailMenu: MenuItem[] = [
         label: "Shifts",
         href: "/access-management/employee-shift",
       },
+      // { key: "spiffs", label: "Spiffs", href: "/access-management/spiffs" },
     ],
   },
   {
