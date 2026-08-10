@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ArrowLeft, CheckCircle2, ChevronRight, Inbox, MonitorSmartphone } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -66,9 +67,10 @@ export default function RegistersPanel() {
       } else {
         await enableRegister(body);
       }
+      toast.success(`Register ${register.isOpen ? "disabled" : "enabled"} successfully`);
       fetchRegisters();
-    } catch (err) {
-      console.error("Failed to toggle register:", err);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update register status");
     }
   };
 
