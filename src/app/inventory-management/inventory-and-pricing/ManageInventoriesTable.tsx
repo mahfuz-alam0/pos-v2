@@ -819,8 +819,8 @@ export default function ManageInventoriesTable() {
           </div>
         )}
         <Table className="table-fixed text-[13px]">
-          <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:font-semibold [&_th]:text-gray-500">
-            <TableRow className="border-gray-200 hover:bg-transparent">
+          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:font-semibold [&_th]:text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[3%] pl-3">
                 <Checkbox
                   className="rounded-md"
@@ -851,10 +851,10 @@ export default function ManageInventoriesTable() {
               <TableHead className="w-[8%] text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-gray-600 [&_td]:h-18">
+          <TableBody className="text-muted-foreground [&_td]:h-18">
             {loading && rows.length === 0 &&
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                <TableRow key={`skeleton-${i}`} className="border-b-0">
                   {Array.from({ length: 10 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -873,7 +873,7 @@ export default function ManageInventoriesTable() {
 
             {displayRows.length > 0 &&
               displayRows.map((row: any, i: number) => (
-                <TableRow key={row.id} className="border-gray-200">
+                <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                   <TableCell className="pl-3">
                     <Checkbox className="rounded-md" checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
                   </TableCell>

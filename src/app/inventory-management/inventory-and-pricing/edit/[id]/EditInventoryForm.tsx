@@ -221,7 +221,7 @@ export default function EditInventoryForm({ inventoryId, onClose }: { inventoryI
         </div>
       </div>
 
-      <div className="flex items-center gap-6 border-b border-gray-200">
+      <div className="flex items-center gap-6 border-b border-border">
         {TAB_ITEMS.map((tab) => (
           <button
             key={tab.value}

@@ -147,8 +147,8 @@ export default function AuditSessionsTab() {
       <div className="relative -mx-4">
         <TableLoadingOverlay show={loading && rows.length > 0} />
         <Table>
-          <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-            <TableRow className="border-gray-200 hover:bg-transparent">
+          <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+            <TableRow className="hover:bg-transparent">
               <TableHead>Storage Location</TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Started At</TableHead>
@@ -158,11 +158,11 @@ export default function AuditSessionsTab() {
               <TableHead>Created At</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+          <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
             {loading &&
               rows.length === 0 &&
               Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                <TableRow key={`skeleton-${i}`} className="border-b-0">
                   {Array.from({ length: 7 }).map((__, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
@@ -180,10 +180,10 @@ export default function AuditSessionsTab() {
             )}
 
             {rows.length > 0 &&
-              rows.map((row: any) => (
+              rows.map((row: any, i) => (
                 <TableRow
                   key={row.id}
-                  className="cursor-pointer border-gray-200"
+                  className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                   onClick={() => openSession(row.id)}
                 >
                   <TableCell>{row.storageLocation?.name || "-"}</TableCell>

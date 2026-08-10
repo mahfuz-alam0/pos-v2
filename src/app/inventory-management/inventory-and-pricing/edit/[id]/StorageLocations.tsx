@@ -191,18 +191,18 @@ export default function StorageLocations({
                 {isExpanded && (
                   <TableRow key={`${row.id}-detail`}>
                     <TableCell colSpan={4} className="bg-muted/30 p-4">
-                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
-                        <p className="px-4 pt-4 pb-2 text-sm font-semibold text-gray-500">Package Details:</p>
+                      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-md">
+                        <p className="px-4 pt-4 pb-2 text-sm font-semibold text-muted-foreground">Package Details:</p>
                         <Table>
                           <TableHeader className="[&_tr]:border-b-0">
-                            <TableRow className="border-gray-200">
-                              <TableHead className="text-gray-500">Platform Package ID</TableHead>
-                              <TableHead className="text-gray-500">Quantity</TableHead>
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="text-muted-foreground">Platform Package ID</TableHead>
+                              <TableHead className="text-muted-foreground">Quantity</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {row.packagesBreakdown.map((pkg) => (
-                              <TableRow key={pkg.id} className="border-gray-200 text-gray-500 last:border-b-0">
+                              <TableRow key={pkg.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] text-muted-foreground">
                                 <TableCell>{pkg.advertisedId ?? pkg.id}</TableCell>
                                 <TableCell>
                                   {renderQuantityWithUom(pkg.totalQuantity, selectedUoMIds[row.id] ?? row.displayUoMId)}

@@ -820,8 +820,8 @@ export default function PackagesPage() {
         <div className="relative -mx-4">
           <TableLoadingOverlay show={loading && activeRows.length > 0} />
           <Table className="text-[13px]">
-              <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-                <TableRow className="border-gray-200 hover:bg-transparent">
+              <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+                <TableRow className="hover:bg-transparent">
                   {tab === "archived" ? (
                     <>
                       <TableHead>Package ID</TableHead>
@@ -855,10 +855,10 @@ export default function PackagesPage() {
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+              <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
                 {loading && activeRows.length === 0 &&
                   Array.from({ length: 8 }).map((_, i) => (
-                    <TableRow key={`sk-${i}`} className="border-gray-200">
+                    <TableRow key={`sk-${i}`} className="border-b-0">
                       {Array.from({ length: tab === "archived" ? 3 : showMetrcQtyColumn ? 13 : 12 }).map((__, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
@@ -876,8 +876,8 @@ export default function PackagesPage() {
                 )}
 
                 {tab === "archived"
-                  ? activeRows.map((row) => (
-                    <TableRow key={row.id} className="border-gray-200">
+                  ? activeRows.map((row, i) => (
+                    <TableRow key={row.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                       <TableCell>
                         <button className="text-primary hover:underline" onClick={() => openRow(row.id)}>
                           {row.advertisedId || "-"}
@@ -890,7 +890,7 @@ export default function PackagesPage() {
                   : activeRows.map((row, i) => (
                     <TableRow
                       key={row.id}
-                      className="border-gray-200"
+                      className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
                     >
                       <TableCell>
                         <Checkbox checked={isRowSelected(row.id)} onCheckedChange={(checked) => toggleRow(row, !!checked)} />
@@ -939,7 +939,7 @@ export default function PackagesPage() {
                           "-"
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center"> 
                         <Badge variant={row.isActive ? "default" : "destructive"}>{row.isActive ? "Active" : "Inactive"}</Badge>
                       </TableCell>
                       <TableCell className="text-center text-sm text-muted-foreground">{ageInDays(row.createdAt)}</TableCell>

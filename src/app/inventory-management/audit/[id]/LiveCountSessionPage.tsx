@@ -412,7 +412,7 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                     }
                   }}
                   placeholder="Scan or type Package ID…"
-                  className="min-w-60 flex-1 border-blue-500 bg-white text-[15px] dark:bg-background"
+                  className="min-w-60 flex-1 border-blue-500 bg-background text-[15px]"
                 />
                 {Object.keys(scanCounts).length > 0 ? (
                   <div className="flex shrink-0 items-center gap-2">
@@ -473,7 +473,7 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                 )}
 
                 {!loading &&
-                  packages.map((pkg) => {
+                  packages.map((pkg, i) => {
                     const sold = soldQtyKV[pkg.id] || 0;
                     const returned = returnedQtyKV[pkg.id] || 0;
                     const { salesQty, returnsQty } = getCheckedTotals(pkg);
@@ -483,7 +483,7 @@ export default function LiveCountSessionPage({ sessionId }: LiveCountSessionPage
                     const hasEvents = salesQty > 0 || returnsQty > 0;
 
                     return (
-                      <TableRow key={pkg.id} className={flashingRows[pkg.id] ? "animate-[scanRowFlash_1.4s_ease-out]" : ""}>
+                      <TableRow key={pkg.id} className={`${flashingRows[pkg.id] ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                         <TableCell>
                           <div className="font-mono text-xs">{pkg.advertisedId || "—"}</div>
                           {(sold > 0 || returned > 0) && (

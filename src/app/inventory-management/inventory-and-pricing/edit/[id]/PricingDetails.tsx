@@ -60,14 +60,14 @@ export default function PricingDetails({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex w-full overflow-hidden rounded-lg border border-gray-200 text-sm font-medium">
+      <div className="flex w-full overflow-hidden rounded-lg border border-border text-sm font-medium">
         {TABS.map((tab, idx) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => setSelectedTab(tab.value)}
-            className={`flex-1 py-2.5 text-center transition-colors ${idx === 0 ? "border-r border-gray-200" : ""} ${
-              selectedTab === tab.value ? "bg-gray-100 text-foreground" : "bg-white text-muted-foreground hover:bg-gray-50"
+            className={`flex-1 py-2.5 text-center transition-colors ${idx === 0 ? "border-r border-border" : ""} ${
+              selectedTab === tab.value ? "bg-muted text-foreground" : "bg-background text-muted-foreground hover:bg-muted/40"
             }`}
           >
             {tab.label}
@@ -77,8 +77,8 @@ export default function PricingDetails({
 
       <p className="text-sm font-semibold">Pricing Details</p>
 
-      <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-4">
-        <div className="flex size-9 items-center justify-center rounded-md border border-gray-200 text-muted-foreground">
+      <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+        <div className="flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground">
           <Package className="size-4" />
         </div>
         <div className="flex flex-col gap-0.5">

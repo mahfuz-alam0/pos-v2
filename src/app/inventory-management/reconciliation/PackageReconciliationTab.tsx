@@ -157,14 +157,14 @@ export default function PackageReconciliationTab() {
     <div className="flex gap-4">
       <div className="flex w-full flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex h-10 rounded-md border border-gray-200">
+          <div className="flex h-10 rounded-md border border-border">
             {(["yesterday", "today", "custom"] as DateFilter[]).map((f, i) => (
               <button
                 key={f}
                 type="button"
                 onClick={() => setDateFilter(f)}
-                className={`px-4 text-[15px] capitalize transition-colors ${i !== 0 ? "border-l border-gray-200" : ""} ${
-                  dateFilter === f ? "text-primary ring-1 ring-inset ring-primary" : "text-gray-500 hover:bg-gray-50"
+                className={`px-4 text-[15px] capitalize transition-colors ${i !== 0 ? "border-l border-border" : ""} ${
+                  dateFilter === f ? "text-primary ring-1 ring-inset ring-primary" : "text-muted-foreground hover:bg-muted/50"
                 }`}
               >
                 {f}
@@ -179,7 +179,7 @@ export default function PackageReconciliationTab() {
                 setDateFilter("all");
                 setCustomRange(undefined);
               }}
-              className="h-10 rounded-md border border-gray-200 px-4 text-[15px] text-gray-500 hover:bg-gray-50"
+              className="h-10 rounded-md border border-border px-4 text-[15px] text-muted-foreground hover:bg-muted/50"
             >
               Reset
             </button>
@@ -225,8 +225,8 @@ export default function PackageReconciliationTab() {
         <div className="relative -mx-4">
           <TableLoadingOverlay show={loading && rows.length > 0} />
           <Table>
-            <TableHeader className="bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-gray-500">
-              <TableRow className="border-gray-200 hover:bg-transparent">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-semibold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Package ID</TableHead>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Date</TableHead>
@@ -234,11 +234,11 @@ export default function PackageReconciliationTab() {
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="text-gray-600 [&_td]:h-18 [&_td]:px-4">
+            <TableBody className="text-muted-foreground [&_td]:h-18 [&_td]:px-4">
               {loading &&
                 rows.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`} className="border-gray-200">
+                  <TableRow key={`skeleton-${i}`} className="border-b-0">
                     {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
@@ -256,10 +256,10 @@ export default function PackageReconciliationTab() {
               )}
 
               {rows.length > 0 &&
-                rows.map((row: any) => (
+                rows.map((row: any, i) => (
                   <TableRow
                     key={row.id}
-                    className={`cursor-pointer border-gray-200 ${
+                    className={`cursor-pointer border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""} ${
                       String(row.id) === selectedId ? "outline outline-primary" : ""
                     }`}
                     onClick={() => openAdjustment(row.id)}

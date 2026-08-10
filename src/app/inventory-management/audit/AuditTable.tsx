@@ -68,32 +68,32 @@ export default function AuditTable({
   return (
     <div className="overflow-auto *:data-[slot=table-container]:overflow-visible" style={{ maxHeight: "calc(100vh - 420px)" }}>
       <Table className="text-[13px]">
-        <TableHeader className="sticky top-0 z-10 bg-neutral-50 [&_tr]:border-b [&_tr]:border-gray-200">
-          <TableRow className="border-gray-200 hover:bg-transparent">
+        <TableHeader className="sticky top-0 z-10 bg-muted/60 [&_tr]:border-b-0">
+          <TableRow className="hover:bg-transparent">
             {selectable && (
               <TableHead className="w-8 px-4">
                 <Checkbox checked={allSelected} onCheckedChange={(c) => toggleAll(!!c)} />
               </TableHead>
             )}
-            <TableHead className="min-w-[220px] px-4 font-semibold text-gray-500">Product</TableHead>
-            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Package ID</TableHead>
-            <TableHead className="min-w-30 px-4 font-semibold text-gray-500">Metrc Tag</TableHead>
-            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Brand</TableHead>
-            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Category</TableHead>
-            <TableHead className="min-w-[130px] px-4 font-semibold text-gray-500">Supplier</TableHead>
-            <TableHead className="min-w-[110px] px-4 text-center font-semibold text-gray-500">Total Pkg Qty</TableHead>
-            <TableHead className="min-w-[100px] px-4 text-center font-semibold text-gray-500">Metrc Qty</TableHead>
-            <TableHead className="min-w-[100px] px-4 font-semibold text-gray-500">Location</TableHead>
-            <TableHead className="min-w-[110px] px-4 text-center font-semibold text-gray-500">Location Qty</TableHead>
-            <TableHead className="sticky right-0 z-10 w-45 min-w-45 bg-neutral-50 px-4 text-center font-semibold text-gray-500 shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
+            <TableHead className="min-w-[220px] px-4 font-semibold text-muted-foreground">Product</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-muted-foreground">Package ID</TableHead>
+            <TableHead className="min-w-30 px-4 font-semibold text-muted-foreground">Metrc Tag</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-muted-foreground">Brand</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-muted-foreground">Category</TableHead>
+            <TableHead className="min-w-[130px] px-4 font-semibold text-muted-foreground">Supplier</TableHead>
+            <TableHead className="min-w-[110px] px-4 text-center font-semibold text-muted-foreground">Total Pkg Qty</TableHead>
+            <TableHead className="min-w-[100px] px-4 text-center font-semibold text-muted-foreground">Metrc Qty</TableHead>
+            <TableHead className="min-w-[100px] px-4 font-semibold text-muted-foreground">Location</TableHead>
+            <TableHead className="min-w-[110px] px-4 text-center font-semibold text-muted-foreground">Location Qty</TableHead>
+            <TableHead className="sticky right-0 z-10 w-45 min-w-45 bg-muted/60 px-4 text-center font-semibold text-muted-foreground shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]">
               {countingMode === "scan" ? "Scan Count" : "Qty On Hand"}
             </TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody className="text-gray-600">
+        <TableBody className="text-muted-foreground">
           {loading &&
             Array.from({ length: 8 }).map((_, i) => (
-              <TableRow key={`skeleton-${i}`} className="border-gray-200">
+              <TableRow key={`skeleton-${i}`} className="border-b-0">
                 {Array.from({ length: selectable ? 12 : 11 }).map((__, j) => (
                   <TableCell key={j} className="h-17 px-4">
                     <Skeleton className="h-4 w-full" />
@@ -111,7 +111,7 @@ export default function AuditTable({
           )}
 
           {!loading &&
-            data.map((record) => {
+            data.map((record, i) => {
               const key = rowKeyOf(record);
               const flashing = flashingRows[key];
               const metrcQty = record.metrQuantity;
@@ -124,12 +124,12 @@ export default function AuditTable({
               const adjKey = locId ? `${record.id}-${locId}` : String(record.id);
               const scanCount = scanCounts[record.advertisedId || ""] || 0;
               const manualVal = pendingAdjustments[adjKey]?.inputValue ?? "";
-              const rowBg = "bg-background";
+              const rowBg = i % 2 === 1 ? "bg-table-zebra" : "bg-background";
 
               return (
                 <TableRow
                   key={key}
-                  className={`border-gray-200 ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : rowBg}`}
+                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : rowBg}`}
                 >
                   {selectable && (
                     <TableCell className="h-17 px-4">
@@ -230,7 +230,7 @@ export default function AuditTable({
                     )}
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-45 min-w-45 px-4 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : rowBg}`}
+                    className={`sticky right-0 z-10 w-45 min-w-45 px-4 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
                   >
                     {countingMode === "scan" ? (
                       scanCount > 0 ? (
