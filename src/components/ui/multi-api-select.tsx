@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Loader2, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -25,9 +25,23 @@ interface MultiApiSelectProps {
   /** Known labels for pre-selected values (e.g. edit mode), shown before the popover is ever opened. */
   initialLabels?: MultiApiSelectOption[];
   triggerClassName?: string;
+  /** Pins a "+ {createLabel}" row above the list, e.g. to open an inline
+   * create-new-tag panel without leaving the dropdown. */
+  onCreateNew?: () => void;
+  createLabel?: string;
 }
 
-export function MultiApiSelect({ placeholder = "Select...", value, onChange, items, fetchPage, initialLabels, triggerClassName }: MultiApiSelectProps) {
+export function MultiApiSelect({
+  placeholder = "Select...",
+  value,
+  onChange,
+  items,
+  fetchPage,
+  initialLabels,
+  triggerClassName,
+  onCreateNew,
+  createLabel = "Create New",
+}: MultiApiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -150,6 +164,18 @@ export function MultiApiSelect({ placeholder = "Select...", value, onChange, ite
       </PopoverTrigger>
       <PopoverContent className="w-56 p-1.5" align="start">
         <Input autoFocus placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="mb-1.5 h-8" />
+        {onCreateNew && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onCreateNew();
+            }}
+            className="mb-1 flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-sm font-medium text-primary hover:bg-muted"
+          >
+            <Plus className="size-3.5" /> {createLabel}
+          </button>
+        )}
         <div ref={listRef} onScroll={handleScroll} className="max-h-56 overflow-y-auto">
           {!isStatic && loading && (
             <div className="flex justify-center py-3">
