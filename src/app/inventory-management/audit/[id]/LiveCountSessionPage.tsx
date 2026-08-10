@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Barcode, Maximize, Minimize, Loader2 } from "lucide-react";
+import { Barcode, Camera, Maximize, Minimize, Loader2 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { connectToSocket } from "@/lib/socket";
+import BarcodeScanDialog from "@/components/pos/BarcodeScanDialog";
 import { fetchLiveAuditSessionSummary } from "@/services/auditSessions/getSummary";
 import { fetchSingleLiveAuditSession } from "@/services/auditSessions/getSingleLiveSession";
 import { setAuditSessionCountKvProperty } from "@/services/auditSessions/setCountKvProperty";
@@ -98,6 +99,7 @@ export default function LiveCountSessionPage({
   const [countMethod, setCountMethod] = useState<"SCAN" | "MANUAL" | "EITHER" | null>(null);
   const [isBlindCount, setIsBlindCount] = useState(false);
   const [locationName, setLocationName] = useState<string | null>(null);
+  const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
 
   const scanInputRef = useRef<HTMLInputElement>(null);
   const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -259,11 +261,11 @@ export default function LiveCountSessionPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, sessionId]);
 
+  // The scan bar is available in both counting modes now, so keep it focused
+  // regardless of which one is active.
   useEffect(() => {
-    if (countingMode === "scan") {
-      const timer = setTimeout(() => scanInputRef.current?.focus(), 150);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => scanInputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
   }, [countingMode]);
 
   useEffect(() => {
@@ -337,7 +339,9 @@ export default function LiveCountSessionPage({
   // locally falls back to a lookup scoped to this session's storage location
   // (same list-packages-minimal-extended call the Packages page's barcode
   // search uses, searching by packageName) and, on a match, enrolls it into
-  // the session before counting it — mirrors the found-locally path below.
+  // the session — mirrors the found-locally path below. The scan bar is
+  // always available regardless of counting mode; only the count-bump is
+  // mode-gated (see handleScan).
   const handleScanMiss = async (trimmed: string) => {
     setEnrolling(true);
     try {
@@ -360,7 +364,14 @@ export default function LiveCountSessionPage({
         packageId: match.id,
       });
       await fetchSummary();
-      bumpScanCount(match.id, match.name || match.advertisedId || trimmed);
+
+      const label = match.name || match.advertisedId || trimmed;
+      if (countingMode === "scan") {
+        bumpScanCount(match.id, label);
+      } else {
+        flashRow(match.id);
+        toast.success(`${label} added to this session`);
+      }
     } catch (err: any) {
       toast.error(err?.message || `Failed to enroll "${trimmed}"`);
     } finally {
@@ -383,7 +394,15 @@ export default function LiveCountSessionPage({
     setTimeout(() => scanInputRef.current?.focus(), 60);
 
     if (found) {
-      bumpScanCount(found.id, found.productName || found.advertisedId);
+      // Manual mode: scanning an already-enrolled package is a no-op on the
+      // count (that's driven by the manual number input instead) — just
+      // acknowledge it. Scan mode: bump the count as usual.
+      if (countingMode === "scan") {
+        bumpScanCount(found.id, found.productName || found.advertisedId);
+      } else {
+        flashRow(found.id);
+        toast.info(`${found.productName || found.advertisedId} is already in this session`);
+      }
       return;
     }
 
@@ -507,66 +526,75 @@ export default function LiveCountSessionPage({
             </div>
           </div>
 
-          {countingMode === "scan" && (
-            <div className="mb-3 rounded-[10px] border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100 p-3 dark:border-blue-800 dark:from-blue-950/40 dark:to-blue-900/30">
-              <div className="flex flex-wrap items-center gap-3">
-                <Barcode className="size-6 shrink-0 text-blue-600 dark:text-blue-400" />
-                <Input
-                  ref={scanInputRef}
-                  value={scanInput}
-                  disabled={enrolling}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setScanInput(val);
+          <div className="mb-3 rounded-[10px] border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100 p-3 dark:border-blue-800 dark:from-blue-950/40 dark:to-blue-900/30">
+            <div className="flex flex-wrap items-center gap-3">
+              <Barcode className="size-6 shrink-0 text-blue-600 dark:text-blue-400" />
+              <Input
+                ref={scanInputRef}
+                value={scanInput}
+                disabled={enrolling}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setScanInput(val);
+                  if (scanDebounceRef.current)
+                    clearTimeout(scanDebounceRef.current);
+                  if (val.trim().length >= 5) {
+                    scanDebounceRef.current = setTimeout(
+                      () => handleScan(val),
+                      300,
+                    );
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
                     if (scanDebounceRef.current)
                       clearTimeout(scanDebounceRef.current);
-                    if (val.trim().length >= 5) {
-                      scanDebounceRef.current = setTimeout(
-                        () => handleScan(val),
-                        300,
-                      );
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (scanDebounceRef.current)
-                        clearTimeout(scanDebounceRef.current);
-                      handleScan(scanInput);
-                    }
-                  }}
-                  placeholder="Scan or type Package ID…"
-                  className="min-w-60 flex-1 border-blue-500 bg-background text-[15px]"
-                />
-                {enrolling ? (
-                  <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" /> Looking up…
+                    handleScan(scanInput);
+                  }
+                }}
+                placeholder="Scan or type Package ID…"
+                className="min-w-60 flex-1 border-blue-500 bg-background text-[15px]"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={enrolling}
+                aria-label="Scan Barcode / QR Code"
+                title="Scan Barcode / QR Code"
+                className="shrink-0 border-blue-500 bg-background text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950"
+                onClick={() => setBarcodeScanOpen(true)}>
+                <Camera className="size-4" />
+              </Button>
+              {enrolling ? (
+                <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" /> Looking up…
+                </span>
+              ) : countingMode === "scan" && Object.keys(scanCounts).length > 0 ? (
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="whitespace-nowrap rounded-full bg-blue-200 px-3 py-1 text-[13px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    {Object.keys(scanCounts).length} pkg
+                    {Object.keys(scanCounts).length !== 1 ? "s" : ""} ·{" "}
+                    {Object.values(scanCounts).reduce((a, b) => a + b, 0)}{" "}
+                    scanned
                   </span>
-                ) : Object.keys(scanCounts).length > 0 ? (
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="whitespace-nowrap rounded-full bg-blue-200 px-3 py-1 text-[13px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                      {Object.keys(scanCounts).length} pkg
-                      {Object.keys(scanCounts).length !== 1 ? "s" : ""} ·{" "}
-                      {Object.values(scanCounts).reduce((a, b) => a + b, 0)}{" "}
-                      scanned
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        setScanCounts({});
-                        setFlashingRows({});
-                      }}>
-                      Clear
-                    </Button>
-                  </div>
-                ) : (
-                  <span className="whitespace-nowrap text-[13px] text-muted-foreground">
-                    Ready to scan…
-                  </span>
-                )}
-              </div>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      setScanCounts({});
+                      setFlashingRows({});
+                    }}>
+                    Clear
+                  </Button>
+                </div>
+              ) : (
+                <span className="whitespace-nowrap text-[13px] text-muted-foreground">
+                  {countingMode === "scan" ? "Ready to scan…" : "Scan to add new packages…"}
+                </span>
+              )}
             </div>
-          )}
+          </div>
 
           <div
             className="overflow-auto"
@@ -805,6 +833,15 @@ export default function LiveCountSessionPage({
           </div>
         </div>
       </div>
+
+      <BarcodeScanDialog
+        open={barcodeScanOpen}
+        onClose={() => setBarcodeScanOpen(false)}
+        onScan={(text) => {
+          setBarcodeScanOpen(false);
+          handleScan(text);
+        }}
+      />
     </div>
   );
 }
