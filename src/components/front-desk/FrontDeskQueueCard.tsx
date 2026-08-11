@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { updateQueueStatus } from "@/services/customerQueue/updateStatus";
+import type { CustomerQueueItem, QueueCartLineItem, QueueCartMetaData } from "@/services/customerQueue/types";
 import { useShop } from "@/context/shop-context";
 import { useSettings } from "@/context/settings-context";
 
@@ -24,7 +25,17 @@ function calculateAge(dob) {
 
 // Reskin of dashboard/QueueCard for the Front Desk screen. Same
 // serve/remove/wait-time-threshold logic, restyled to match the old app's look.
-export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDetails }) {
+export default function FrontDeskQueueCard({
+  data,
+  onRemove,
+  onServe,
+  onOpenDetails,
+}: {
+  data: CustomerQueueItem;
+  onRemove?: (record: CustomerQueueItem) => void;
+  onServe?: (record: CustomerQueueItem) => void;
+  onOpenDetails?: (record: CustomerQueueItem) => void;
+}) {
   const { shopId } = useShop();
   const { queueYellowTime, queueRedTime } = useSettings();
   const [waitTime, setWaitTime] = useState(calculateWaitTime(data?.updatedAt));
@@ -45,14 +56,14 @@ export default function FrontDeskQueueCard({ data, onRemove, onServe, onOpenDeta
   const statusBg = isServing ? "#059669" : "var(--color-primary)";
   const statusLabel = actionLoading ? (isServing ? "Processing…" : "Moving…") : isServing ? "Return to Queue" : "Available";
 
-  let cartData = null;
+  let cartData: QueueCartMetaData | null = null;
   try {
     if (data?.cartMetaDataJsonString) {
-      cartData = JSON.parse(data.cartMetaDataJsonString);
+      cartData = JSON.parse(data.cartMetaDataJsonString) as QueueCartMetaData;
       if (!cartData?.lineItems?.length) cartData = null;
     }
   } catch {}
-  const cartItems = cartData?.lineItems || [];
+  const cartItems: QueueCartLineItem[] = cartData?.lineItems || [];
   const cartSubtotal = cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.purchaseQuantity || 1), 0);
   const hasDeals = cartData?.applicableRegularDeals?.length > 0 || !!cartData?.couponId;
 

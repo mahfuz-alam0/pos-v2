@@ -5,8 +5,8 @@
   "identifier": "com.pos.desktop",
   "build": {
     "frontendDist": "../src-tauri/placeholder",
-    "beforeBuildCommand": "bun run build:sidecar",
-    "beforeDevCommand": "bun run dev:tauri",
+    "beforeBuildCommand": "bun run tauri:setup && bun run build:sidecar",
+    "beforeDevCommand": "bun run tauri:setup && bun run dev:tauri",
     "devUrl": "http://localhost:3000"
   },
   "app": {

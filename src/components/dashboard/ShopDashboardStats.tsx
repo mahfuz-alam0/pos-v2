@@ -42,7 +42,10 @@ function StatBlock({ label, value, isCurrency = true }) {
       >
         {isCurrency ? formatCurrency(value) : value ?? 0}
       </span>
-      <span className="mt-1.5 max-w-full text-center text-[11px] leading-snug font-medium text-muted-foreground">
+      <span
+        className="mt-1.5 flex w-full max-w-full items-center justify-center text-center text-[11px] leading-snug font-medium text-muted-foreground"
+        style={{ minHeight: "2.75em" }}
+      >
         {label}
       </span>
     </div>
