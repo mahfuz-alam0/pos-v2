@@ -100,7 +100,7 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700">
+      <label className="mb-1 flex items-center gap-1 text-sm font-medium text-foreground">
         {label}
         {required && <span className="text-destructive">*</span>}
       </label>
@@ -109,26 +109,16 @@ export function Field({
   );
 }
 
-const SECTION_COLORS = {
-  blue: "border-l-blue-500 from-blue-50",
-  green: "border-l-green-500 from-green-50",
-  purple: "border-l-purple-500 from-purple-50",
-  teal: "border-l-teal-500 from-teal-50",
-  pink: "border-l-pink-500 from-pink-50",
-} as const;
-
 export function Section({
   title,
-  color,
   children,
 }: {
   title: string;
-  color: keyof typeof SECTION_COLORS;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border-l-4 bg-gradient-to-r to-transparent p-4 ring-1 ring-foreground/10 ${SECTION_COLORS[color]}`}>
-      <div className="mb-3 text-xs font-bold tracking-wider text-foreground/80 uppercase">{title}</div>
+    <div className="rounded-xl p-4 ring-1 ring-foreground/10">
+      <div className="mb-3 text-sm font-semibold text-foreground">{title}</div>
       {children}
     </div>
   );
@@ -302,7 +292,7 @@ export default function ProductFormFields({
 }: ProductFormFieldsProps) {
   return (
     <div className="flex flex-col gap-5">
-      <Section title="Basic Information" color="blue">
+      <Section title="Basic Information">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Field label="Name" required>
             <Input className="h-9" value={values.name} onChange={(e) => set("name", e.target.value)} placeholder="Enter product name" />
@@ -357,7 +347,7 @@ export default function ProductFormFields({
         </div>
       </Section>
 
-      <Section title="Weights & Identifiers" color="green">
+      <Section title="Weights & Identifiers">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Field label="Unit Weight">
             <div className="flex gap-1.5">
@@ -418,7 +408,7 @@ export default function ProductFormFields({
         </div>
       </Section>
 
-      <Section title="Classification & Tags" color="purple">
+      <Section title="Classification & Tags">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Field label="Strains">
             <MultiApiSelect
@@ -447,7 +437,7 @@ export default function ProductFormFields({
 
           <div className="md:col-span-2">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Video Links (YouTube/Vimeo)</span>
+              <span className="text-sm font-medium text-foreground">Video Links (YouTube/Vimeo)</span>
               <Button type="button" variant="outline" size="sm" onClick={addVideoLink}>
                 <Plus className="size-3.5" /> Add
               </Button>
@@ -488,13 +478,13 @@ export default function ProductFormFields({
       </Section>
 
       {values.productProfile === "CANNABIS" && (
-        <Section title="Cannabis Product Data" color="teal">
+        <Section title="Cannabis Product Data">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {([
               { label: "THC", state: thc, setState: setThc },
               { label: "CBD", state: cbd, setState: setCbd },
             ] as const).map(({ label, state, setState }) => (
-              <div key={label} className="rounded-lg bg-background p-3 ring-1 ring-foreground/10">
+              <div key={label} className="rounded-lg p-3 ring-1 ring-foreground/10">
                 <div className="mb-2 text-sm font-semibold">{label}</div>
                 <div className="mb-2 grid grid-cols-2 gap-2">
                   <Field label="Value">
@@ -574,7 +564,7 @@ export default function ProductFormFields({
 
             <div className="md:col-span-2">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-700">Terpene Profiles</span>
+                <span className="text-sm font-semibold text-foreground">Terpene Profiles</span>
                 <Button type="button" size="sm" onClick={addTerpene}>
                   <Plus className="size-3.5" /> Add
                 </Button>
@@ -604,7 +594,7 @@ export default function ProductFormFields({
         </Section>
       )}
 
-      <Section title="Media" color="pink">
+      <Section title="Media">
         <ImagesUpload images={images} onChange={setImages} />
       </Section>
     </div>

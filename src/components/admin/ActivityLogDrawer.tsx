@@ -18,11 +18,12 @@ interface ActivityLogDrawerProps {
   domain: "CLASSIFICATION" | "CATEGORY" | "BRAND" | "CUSTOMER";
   targetId: string | number | null;
   zIndex?: number;
+  size?: number | string;
 }
 
-export default function ActivityLogDrawer({ open, onClose, domain, targetId, zIndex }: ActivityLogDrawerProps) {
+export default function ActivityLogDrawer({ open, onClose, domain, targetId, zIndex, size = 520 }: ActivityLogDrawerProps) {
   return (
-    <Drawer open={open} onClose={onClose} side="right" size={520} {...(zIndex !== undefined ? { zIndex } : {})}>
+    <Drawer open={open} onClose={onClose} side="right" size={size} {...(zIndex !== undefined ? { zIndex } : {})}>
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between px-5 py-4 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
           <span className="text-base font-semibold">{DOMAIN_LABELS[domain] ?? "Activity"}</span>

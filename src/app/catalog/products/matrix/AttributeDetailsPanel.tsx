@@ -40,22 +40,21 @@ export default function AttributeDetailsPanel({
   }, [load]);
 
   return (
-    <div className="flex w-1/3 shrink-0 flex-col gap-4 overflow-hidden">
-      <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-sm font-semibold">Attribute Details</h2>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={onEdit}>
-              Edit
-            </Button>
-            <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
-              <X className="size-4" />
-            </Button>
-          </div>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="text-base font-semibold">Attribute Details</h2>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={onEdit}>
+            Edit
+          </Button>
+          <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
+            <X className="size-4" />
+          </Button>
         </div>
-        <div className="h-px bg-border" />
+      </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex flex-col gap-2">
           {loading ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 4 }).map((_, i) => (

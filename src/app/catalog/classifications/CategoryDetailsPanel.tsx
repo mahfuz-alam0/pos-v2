@@ -332,7 +332,7 @@ export default function CategoryDetailsPanel({ categoryId, onClose, onEdit }: Ca
         </div>
       </div>
 
-      <ActivityLogDrawer open={activityOpen} onClose={() => setActivityOpen(false)} domain="CATEGORY" targetId={categoryId} />
+      <ActivityLogDrawer open={activityOpen} onClose={() => setActivityOpen(false)} domain="CATEGORY" targetId={categoryId} size={600} />
     </Drawer>
   );
 }
