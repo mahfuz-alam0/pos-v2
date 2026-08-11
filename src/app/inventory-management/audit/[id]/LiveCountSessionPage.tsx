@@ -83,10 +83,12 @@ export default function LiveCountSessionPage({
   const [sessionData, setSessionData] = useState<any>(null);
   const [packages, setPackages] = useState<any[]>([]);
   const [countingMode, setCountingMode] = useState<"manual" | "scan">("manual");
-  const [scanCounts, setScanCounts] = useState<Record<string, number>>({});
   const [flashingRows, setFlashingRows] = useState<Record<string, boolean>>({});
   const [scanInput, setScanInput] = useState("");
-  const [manualCounts, setManualCounts] = useState<Record<string, any>>({});
+  // Single source of truth for both modes — scanning and manual entry both
+  // read/write this same map (and both persist to the same backend countKV
+  // property), so switching modes mid-session never shows a stale count.
+  const [counts, setCounts] = useState<Record<string, any>>({});
   const [fullscreen, setFullscreen] = useState(false);
   const [donePackages, setDonePackages] = useState<Record<string, boolean>>({});
   const [markingDone, setMarkingDone] = useState<Record<string, boolean>>({});
@@ -96,7 +98,9 @@ export default function LiveCountSessionPage({
     {},
   );
   const [enrolling, setEnrolling] = useState(false);
-  const [countMethod, setCountMethod] = useState<"SCAN" | "MANUAL" | "EITHER" | null>(null);
+  const [countMethod, setCountMethod] = useState<
+    "SCAN" | "MANUAL" | "EITHER" | null
+  >(null);
   const [isBlindCount, setIsBlindCount] = useState(false);
   const [locationName, setLocationName] = useState<string | null>(null);
   const [barcodeScanOpen, setBarcodeScanOpen] = useState(false);
@@ -113,8 +117,8 @@ export default function LiveCountSessionPage({
     packagesRef.current = packages;
   }, [packages]);
 
-  const seedManualCounts = (pkgs: any[]) => {
-    setManualCounts((prev) => {
+  const seedCounts = (pkgs: any[]) => {
+    setCounts((prev) => {
       const next = { ...prev };
       pkgs.forEach((pkg) => {
         if (next[pkg.id] === undefined && pkg.finalQty != null) {
@@ -133,7 +137,7 @@ export default function LiveCountSessionPage({
       const pkgs = res?.data?.packagesData || [];
       setSessionData(res?.data ?? null);
       setPackages(pkgs);
-      seedManualCounts(pkgs);
+      seedCounts(pkgs);
     } catch {
       toast.error("Failed to load session summary.");
     } finally {
@@ -160,11 +164,9 @@ export default function LiveCountSessionPage({
       setIsBlindCount(Boolean(session.isBlindCount));
 
       // countKV is the one persisted count per package regardless of mode —
-      // seed both manualCounts and scanCounts from it so re-entering a scan
-      // session (or one that toggled modes) shows what was already counted
-      // instead of starting back at 0.
-      setManualCounts((prev) => ({ ...prev, ...countKV }));
-      setScanCounts((prev) => ({ ...prev, ...countKV }));
+      // seed counts from it so re-entering a session (or one that toggled
+      // modes) shows what was already counted instead of starting back at 0.
+      setCounts((prev) => ({ ...prev, ...countKV }));
       setDonePackages((prev) => {
         const next = { ...prev };
         Object.entries(markedAsDoneKV).forEach(([k, v]) => {
@@ -238,7 +240,7 @@ export default function LiveCountSessionPage({
       setSoldQtyKV(data.soldQtyKV || {});
       setReturnedQtyKV(data.returnedQtyKV || {});
       if (data.countKV) {
-        setManualCounts((prev) => {
+        setCounts((prev) => {
           const next = { ...prev };
           Object.entries(data.countKV).forEach(([k, v]) => {
             if (v != null) next[k] = v;
@@ -311,8 +313,7 @@ export default function LiveCountSessionPage({
   };
 
   const getCountedQty = (pkg: any) => {
-    if (countingMode === "scan") return scanCounts[pkg.id] || 0;
-    const parsed = parseFloat(manualCounts[pkg.id]);
+    const parsed = parseFloat(counts[pkg.id]);
     return isNaN(parsed) ? 0 : parsed;
   };
 
@@ -328,8 +329,9 @@ export default function LiveCountSessionPage({
   };
 
   const bumpScanCount = (packageId: string, label: string) => {
-    const newCount = (scanCounts[packageId] || 0) + 1;
-    setScanCounts((prev) => ({ ...prev, [packageId]: newCount }));
+    const current = parseFloat(counts[packageId]);
+    const newCount = (isNaN(current) ? 0 : current) + 1;
+    setCounts((prev) => ({ ...prev, [packageId]: newCount }));
     debouncedSave(packageId, newCount);
     flashRow(packageId);
     toast.success(`✓ ${label} — Count: ${newCount}`);
@@ -401,7 +403,9 @@ export default function LiveCountSessionPage({
         bumpScanCount(found.id, found.productName || found.advertisedId);
       } else {
         flashRow(found.id);
-        toast.info(`${found.productName || found.advertisedId} is already in this session`);
+        toast.info(
+          `${found.productName || found.advertisedId} is already in this session`,
+        );
       }
       return;
     }
@@ -511,18 +515,24 @@ export default function LiveCountSessionPage({
                 value={countingMode}
                 onChange={setCountingMode}
                 lockedTo={
-                  countMethod === "SCAN" ? "scan" : countMethod === "MANUAL" ? "manual" : null
+                  countMethod === "SCAN"
+                    ? "scan"
+                    : countMethod === "MANUAL"
+                      ? "manual"
+                      : null
                 }
               />
-              {countingMode === "manual" &&
-                Object.keys(manualCounts).length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => setManualCounts({})}>
-                    Clear Counts
-                  </Button>
-                )}
+              {Object.keys(counts).length > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    setCounts({});
+                    setFlashingRows({});
+                  }}>
+                  Clear Counts
+                </Button>
+              )}
             </div>
           </div>
 
@@ -570,27 +580,23 @@ export default function LiveCountSessionPage({
                 <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" /> Looking up…
                 </span>
-              ) : countingMode === "scan" && Object.keys(scanCounts).length > 0 ? (
+              ) : countingMode === "scan" && Object.keys(counts).length > 0 ? (
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="whitespace-nowrap rounded-full bg-blue-200 px-3 py-1 text-[13px] font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                    {Object.keys(scanCounts).length} pkg
-                    {Object.keys(scanCounts).length !== 1 ? "s" : ""} ·{" "}
-                    {Object.values(scanCounts).reduce((a, b) => a + b, 0)}{" "}
+                    {Object.keys(counts).length} pkg
+                    {Object.keys(counts).length !== 1 ? "s" : ""} ·{" "}
+                    {Object.values(counts).reduce(
+                      (a: number, b) => a + (parseFloat(b as string) || 0),
+                      0,
+                    )}{" "}
                     scanned
                   </span>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      setScanCounts({});
-                      setFlashingRows({});
-                    }}>
-                    Clear
-                  </Button>
                 </div>
               ) : (
                 <span className="whitespace-nowrap text-[13px] text-muted-foreground">
-                  {countingMode === "scan" ? "Ready to scan…" : "Scan to add new packages…"}
+                  {countingMode === "scan"
+                    ? "Ready to scan…"
+                    : "Scan to add new packages…"}
                 </span>
               )}
             </div>
@@ -607,7 +613,9 @@ export default function LiveCountSessionPage({
                   <TableHead>METRC Tag</TableHead>
                   {!isBlindCount && (
                     <>
-                      <TableHead className="text-center">Starting Qty</TableHead>
+                      <TableHead className="text-center">
+                        Starting Qty
+                      </TableHead>
                       <TableHead className="text-center">Current Qty</TableHead>
                     </>
                   )}
@@ -618,7 +626,7 @@ export default function LiveCountSessionPage({
                   {/* <TableHead className="sticky right-[140px] bg-background text-center">
                     Final Counted Qty
                   </TableHead> */}
-                  <TableHead className="sticky right-0 bg-background text-center">
+                  <TableHead className="sticky right-0 z-20 w-33 bg-background text-center">
                     Action
                   </TableHead>
                 </TableRow>
@@ -626,12 +634,16 @@ export default function LiveCountSessionPage({
               <TableBody>
                 {loading &&
                   Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={`sk-${i}`} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-                      {Array.from({ length: isBlindCount ? 5 : 7 }).map((__, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
-                      ))}
+                    <TableRow
+                      key={`sk-${i}`}
+                      className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                      {Array.from({ length: isBlindCount ? 5 : 7 }).map(
+                        (__, j) => (
+                          <TableCell key={j}>
+                            <Skeleton className="h-4 w-full" />
+                          </TableCell>
+                        ),
+                      )}
                     </TableRow>
                   ))}
 
@@ -659,7 +671,7 @@ export default function LiveCountSessionPage({
                     return (
                       <TableRow
                         key={pkg.id}
-                        className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${flashingRows[pkg.id] ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+                        className={`group border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${flashingRows[pkg.id] ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
                         <TableCell>
                           <div className="font-mono text-xs">
                             {pkg.advertisedId || "—"}
@@ -699,8 +711,8 @@ export default function LiveCountSessionPage({
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {pkg.currentQtySnapshot ?? 0} - {salesQty} sold
-                                    + {returnsQty} returned = {currentQty}
+                                    {pkg.currentQtySnapshot ?? 0} - {salesQty}{" "}
+                                    sold + {returnsQty} returned = {currentQty}
                                   </TooltipContent>
                                 </Tooltip>
                               ) : (
@@ -711,9 +723,9 @@ export default function LiveCountSessionPage({
                         )}
                         <TableCell className="text-center">
                           {countingMode === "scan" ? (
-                            (scanCounts[pkg.id] || 0) > 0 ? (
+                            (parseFloat(counts[pkg.id]) || 0) > 0 ? (
                               <span className="inline-flex min-w-13 items-center justify-center gap-1 rounded-full bg-green-100 px-3.5 py-0.5 text-sm font-bold text-green-600 dark:bg-green-950 dark:text-green-400">
-                                ×{scanCounts[pkg.id]}
+                                ×{counts[pkg.id]}
                               </span>
                             ) : (
                               <span className="text-sm text-muted-foreground">
@@ -722,11 +734,11 @@ export default function LiveCountSessionPage({
                             )
                           ) : (
                             <Input
-                              value={manualCounts[pkg.id] ?? ""}
+                              value={counts[pkg.id] ?? ""}
                               disabled={isDone}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                setManualCounts((prev) => ({
+                                setCounts((prev) => ({
                                   ...prev,
                                   [pkg.id]: val,
                                 }));
@@ -735,7 +747,7 @@ export default function LiveCountSessionPage({
                                   debouncedSave(pkg.id, parsed);
                               }}
                               placeholder="0"
-                              className="mx-auto w-24 text-center"
+                              className="mx-auto h-7 w-20 text-center text-sm font-semibold"
                             />
                           )}
                         </TableCell>
@@ -765,7 +777,8 @@ export default function LiveCountSessionPage({
                             </Badge>
                           )}
                         </TableCell> */}
-                        <TableCell className="sticky right-0 bg-background text-center">
+                        <TableCell
+                          className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_"}`}>
                           {isDone ? (
                             <Badge>Done</Badge>
                           ) : (
