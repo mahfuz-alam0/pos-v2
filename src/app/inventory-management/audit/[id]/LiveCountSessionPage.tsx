@@ -778,7 +778,7 @@ export default function LiveCountSessionPage({
                           )}
                         </TableCell> */}
                         <TableCell
-                          className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_"}`}>
+                          className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] group-hover:bg-muted ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}>
                           {isDone ? (
                             <Badge>Done</Badge>
                           ) : (

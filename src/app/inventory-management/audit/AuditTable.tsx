@@ -262,7 +262,7 @@ export default function AuditTable({
                     )}
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-45 min-w-45 px-4 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-45 min-w-45 px-4 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)] ${flashing ? "animate-[scanRowFlash_1.4s_ease-out]" : ""} ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}
                   >
                     {countingMode === "scan" ? (
                       scanCount > 0 ? (
