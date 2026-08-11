@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Calendar, CheckCircle2, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Calendar, CheckCircle2, Loader2, Play, User } from "lucide-react";
+import { useShop } from "@/context/shop-context";
+import { startAssignedAuditSession } from "@/services/assignedAuditSessions/start";
+import { Button } from "@/components/ui/button";
 
 function formatShortDate(dateStr) {
   if (!dateStr) return "";
@@ -10,13 +15,30 @@ function formatShortDate(dateStr) {
 }
 
 export default function TaskItem({ data, taskStatuses, onStatusUpdate }) {
-  const { id, title, description, tags, assignedTo, createdAt, taskPriority, taskStatus, dueDateString } = data;
+  const { id, title, description, tags, assignedTo, createdAt, taskPriority, taskStatus, dueDateString, domain } = data;
+  const router = useRouter();
+  const { shopId } = useShop();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(taskStatus?.statusId);
+
+  const handleStart = async () => {
+    setStarting(true);
+    try {
+      const res = await startAssignedAuditSession(shopId, { taskId: id });
+      const auditSessionId = res?.data?.data?.auditSessionId;
+      toast.success("Count session started");
+      if (auditSessionId) router.push(`/inventory-management/audit/${auditSessionId}`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to start count session");
+    } finally {
+      setStarting(false);
+    }
+  };
 
   const handleStatusChange = async (e) => {
     const statusId = e.target.value;
-    const selectedStatus = taskStatuses?.find((s) => s.priorityId === statusId || s.statusId === statusId);
+    const selectedStatus = taskStatuses?.find((s) => s.statusId === statusId);
     const statusName = selectedStatus?.displayName?.toLowerCase() || "";
 
     if (statusName === "cancelled" && !confirm("Are you sure you want to cancel this task?")) {
@@ -50,6 +72,13 @@ export default function TaskItem({ data, taskStatuses, onStatusUpdate }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {domain === "COUNT_SESSION" && taskStatus?.statusId === "pending" && (
+            <Button size="sm" onClick={handleStart} disabled={starting}>
+              {starting ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+              Start
+            </Button>
+          )}
+
           <select
             value={currentStatus}
             onChange={handleStatusChange}
@@ -57,7 +86,7 @@ export default function TaskItem({ data, taskStatuses, onStatusUpdate }) {
             className="h-7 rounded-md border border-border bg-component-bg px-2 text-xs"
           >
             {taskStatuses?.map((status) => (
-              <option key={status.statusId} value={status.priorityId}>
+              <option key={status.statusId} value={status.statusId}>
                 {status.displayName}
               </option>
             ))}
