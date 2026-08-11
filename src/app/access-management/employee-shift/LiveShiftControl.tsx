@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { LogIn, LogOut, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { useCurrentUser } from "@/util/use-current-user";
 import { startLiveShift } from "@/services/employees/shift/startLive";
@@ -47,8 +47,13 @@ export default function LiveShiftControl({ liveShift, onChanged }: { liveShift: 
 
   return (
     <>
-      <Button variant={action === "END_SHIFT" ? "destructive" : "default"} onClick={() => setPinOpen(true)}>
-        {action === "END_SHIFT" ? <LogOut className="size-4" /> : <LogIn className="size-4" />}
+      <Button
+        variant={action === "END_SHIFT" ? "destructive" : undefined}
+        className={`h-9! rounded! px-3.5! text-[14px]! font-normal! ${
+          action === "END_SHIFT" ? "" : "bg-green-500! text-white! hover:bg-green-600!"
+        }`}
+        onClick={() => setPinOpen(true)}
+      >
         {action === "END_SHIFT" ? "End Shift" : "Start Shift"}
       </Button>
 

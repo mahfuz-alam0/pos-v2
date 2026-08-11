@@ -13,7 +13,7 @@ import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Field } from "@/components/admin/form-fields";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import PermissionBoundaryTree, { PermissionBoundaryNode, PermissionEntry } from "./PermissionBoundaryTree";
 
 interface RoleFormDrawerProps {
@@ -82,21 +82,30 @@ export default function RoleFormDrawer({ open, mode, roleId, onClose, onSaved }:
   };
 
   return (
-    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={560}>
+    <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size="80%">
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">{isEdit ? "Edit Role" : "Add Role"}</div>
-            <div className="text-xs leading-tight text-muted-foreground">
-              {isEdit ? "Update role details" : "Create a new role"}
-            </div>
-          </div>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Access Management</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Employee Role</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-medium text-primary">{isEdit ? "Edit Employee Role" : "Create Employee Role"}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
             <X className="size-4" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {loading ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -104,23 +113,35 @@ export default function RoleFormDrawer({ open, mode, roleId, onClose, onSaved }:
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              <div className="flex gap-4">
-                <Field label="Role Name" required className="flex-1">
-                  <Input value={name} onChange={(e) => setName(e.target.value)} />
-                </Field>
-                <Field label="Color">
-                  <input
-                    type="color"
-                    value={colorCode}
-                    onChange={(e) => setColorCode(e.target.value)}
-                    className="h-9 w-16 cursor-pointer rounded-lg border border-input"
-                  />
-                </Field>
+            <div className="flex flex-col gap-5">
+              <div className="grid grid-cols-2 gap-5">
+                <div className="flex flex-col gap-3 rounded-xl border border-border p-5">
+                  <div>
+                    <p className="text-xs font-bold tracking-wide text-foreground uppercase">Role Name</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">Enter the name for this employee Role</p>
+                  </div>
+                  <Input className="h-10" value={name} onChange={(e) => setName(e.target.value)} placeholder="Role name" />
+                </div>
+
+                <div className="flex flex-col gap-3 rounded-xl border border-border p-5">
+                  <div>
+                    <p className="text-xs font-bold tracking-wide text-foreground uppercase">Role Color</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">Choose a color to identify this Role</p>
+                  </div>
+                  <label className="flex w-fit cursor-pointer items-center gap-2.5">
+                    <input
+                      type="color"
+                      value={colorCode}
+                      onChange={(e) => setColorCode(e.target.value)}
+                      className="size-10 cursor-pointer rounded-lg border border-input"
+                    />
+                    <span className="text-sm font-medium text-muted-foreground">{colorCode}</span>
+                  </label>
+                </div>
               </div>
 
               <div>
-                <div className="mb-2 text-sm font-semibold">Permissions</div>
+                <h3 className="mb-2 text-base font-semibold">Permissions</h3>
                 <PermissionBoundaryTree nodes={boundaries} permissions={permissions} onChange={setPermissions} />
               </div>
             </div>

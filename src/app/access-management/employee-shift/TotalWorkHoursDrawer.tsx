@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Clock, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchAccessControlledEmployees } from "@/services/employees/listAccessControlled";
@@ -10,10 +10,8 @@ import { getEmployeeTotalWorkHours } from "@/services/employees/shift/totalWorkH
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/admin/form-fields";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function toISODate(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -28,6 +26,8 @@ export default function TotalWorkHoursDrawer({ open, onClose }: { open: boolean;
   const [endDate, setEndDate] = useState(toISODate(new Date()));
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{ id: string; name: string; hours: number; minutes: number }[]>([]);
+  const totalHours = results.reduce((sum, r) => sum + r.hours, 0);
+  const totalMinutes = results.reduce((sum, r) => sum + r.minutes, 0);
 
   useEffect(() => {
     if (!open) return;
@@ -65,14 +65,8 @@ export default function TotalWorkHoursDrawer({ open, onClose }: { open: boolean;
   return (
     <Drawer open={open} onClose={onClose} side="right" size={480}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Clock className="size-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">Total Work Hours</div>
-            <div className="text-xs leading-tight text-muted-foreground">Sum logged hours over a date range</div>
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+          <div className="text-base font-semibold">Work Hours</div>
           <Button variant="outline" size="icon-sm" onClick={onClose}>
             <X className="size-4" />
           </Button>
@@ -80,20 +74,36 @@ export default function TotalWorkHoursDrawer({ open, onClose }: { open: boolean;
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="flex flex-col gap-4">
-            <label className="flex items-center justify-between text-sm">
-              <span>All Employees</span>
-              <Switch checked={allEmployees} onCheckedChange={setAllEmployees} />
-            </label>
+            <div className="flex">
+              <button
+                type="button"
+                onClick={() => setAllEmployees(false)}
+                className={`flex-1 rounded-l-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                  !allEmployees ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground"
+                }`}
+              >
+                Single Employee
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllEmployees(true)}
+                className={`-ml-px flex-1 rounded-r-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                  allEmployees ? "relative z-10 border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground"
+                }`}
+              >
+                All Employees
+              </button>
+            </div>
 
             {!allEmployees && (
               <Field label="Employee" required>
                 <Select
-                  items={[{ value: "", label: "Select employee" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
+                  items={[{ value: "", label: "Select Employee" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
                   value={employeeId}
                   onValueChange={(v) => setEmployeeId(v as string)}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select employee" />
+                  <SelectTrigger className="h-10! w-full">
+                    <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((e) => (
@@ -107,46 +117,38 @@ export default function TotalWorkHoursDrawer({ open, onClose }: { open: boolean;
             )}
 
             <div className="flex gap-3">
-              <Field label="Start Date" className="flex-1">
+              <Field label="From" required className="flex-1">
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+                  className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
                 />
               </Field>
-              <Field label="End Date" className="flex-1">
+              <Field label="To" required className="flex-1">
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+                  className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
                 />
               </Field>
             </div>
 
-            <Button onClick={handleFetch} disabled={loading}>
-              {loading ? "Loading..." : "Get Total Hours"}
+            <Button className="h-10! rounded-lg! text-[15px]! font-medium!" onClick={handleFetch} disabled={loading}>
+              {loading ? "Loading..." : "Get Work Hours"}
             </Button>
 
             {results.length > 0 && (
-              <div className="rounded-xl ring-1 ring-foreground/10 overflow-hidden">
-                <Table>
-                  <TableHeader className="[&_tr]:border-b-0">
-                    <TableRow className="bg-muted/60">
-                      <TableHead>Employee</TableHead>
-                      <TableHead className="text-right">Total Hours</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.map((r) => (
-                      <TableRow key={r.id} className="border-b-0">
-                        <TableCell>{r.name}</TableCell>
-                        <TableCell className="text-right font-mono">{r.hours}h {r.minutes}m</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-5">
+                  <span className="text-2xl font-semibold text-blue-500">{totalHours}</span>
+                  <span className="text-sm text-muted-foreground">Total Hours</span>
+                </div>
+                <div className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-5">
+                  <span className="text-2xl font-semibold text-green-500">{totalMinutes}</span>
+                  <span className="text-sm text-muted-foreground">Total Minutes</span>
+                </div>
               </div>
             )}
           </div>
