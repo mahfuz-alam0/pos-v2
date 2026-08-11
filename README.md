@@ -2,19 +2,38 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+bun install
+```
+
+Then run the development server:
+
+```bash
 bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Tauri desktop app
+
+Dev mode (hot reload, opens the desktop window):
+
+```bash
+bun run tauri:dev
+```
+
+Production build (spawns the Next.js sidecar server inside the app):
+
+```bash
+bun run tauri:build
+```
+
+Both commands run `scripts/setup.mjs` first, which checks for the Rust
+toolchain and Bun and installs them if missing. The sidecar binary and
+`src-tauri/server/` are gitignored build artifacts — `tauri:build` regenerates
+them automatically via `build:sidecar`, so a fresh clone just works.
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
