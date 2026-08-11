@@ -1,14 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { PUBLIC_PATHS } from "@/components/auth/AuthGuard";
+import { checkForUpdates } from "@/lib/update-check";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
   const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  useEffect(() => {
+    if (isPublicPath) return;
+    checkForUpdates();
+  }, [isPublicPath]);
 
   if (isPublicPath) return children;
 
