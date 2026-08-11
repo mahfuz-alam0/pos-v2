@@ -60,20 +60,19 @@ export default function ProductDetailsPanel({ productId, productName, onClose, o
   const matrixId = product?.matrixInfo?.id ?? product?.matrixId;
 
   return (
-    <div className="flex h-[80vh] flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h1 className="truncate text-base font-semibold">{product?.name || productName}</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={onClose}>
+          <Button onClick={onEdit}>Edit</Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="size-4" />
           </Button>
-          <Button onClick={onEdit}>Edit</Button>
         </div>
       </div>
-      <div className="h-px bg-border" />
 
-      <div className="flex items-center gap-1.5 px-3 pt-2">
-        <h1 className="text-lg font-semibold">{product?.name || productName}</h1>
-        {matrixId && (
+      {matrixId && (
+        <div className="flex items-center gap-1.5 border-b border-border px-5 py-2">
           <Tooltip>
             <TooltipTrigger
               className="inline-flex shrink-0"
@@ -83,10 +82,10 @@ export default function ProductDetailsPanel({ productId, productName, onClose, o
             </TooltipTrigger>
             <TooltipContent>Associated With Matrix</TooltipContent>
           </Tooltip>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-5">
         {loading && (
           <div className="flex justify-center py-10">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -96,13 +95,13 @@ export default function ProductDetailsPanel({ productId, productName, onClose, o
         {!loading && product && (
           <div className="flex flex-col gap-3">
             {product.images?.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 {product.images.map((img: any, i: number) => (
                   <img
                     key={i}
                     src={img.url}
                     alt={product.name}
-                    className="size-20 rounded-lg object-cover ring-1 ring-foreground/10"
+                    className="h-48 w-full rounded-lg object-cover ring-1 ring-foreground/10"
                   />
                 ))}
               </div>

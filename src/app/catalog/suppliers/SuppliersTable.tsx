@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
+import Drawer from "@/components/ui/Drawer";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -109,7 +110,7 @@ export default function SuppliersTable() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div className={detailId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+      <div className="flex w-full flex-col gap-4">
         <div className="flex items-center justify-between">
           <Breadcrumb>
             <BreadcrumbList>
@@ -245,13 +246,15 @@ export default function SuppliersTable() {
         )}
       </div>
 
-      {detailId && (
-        <SupplierDetailsPanel
-          supplierId={detailId}
-          onClose={() => setDetailId(null)}
-          onEdit={() => setDrawer({ open: true, mode: "edit", supplierId: detailId })}
-        />
-      )}
+      <Drawer open={!!detailId} onClose={() => setDetailId(null)} side="right" size="45%">
+        {detailId && (
+          <SupplierDetailsPanel
+            supplierId={detailId}
+            onClose={() => setDetailId(null)}
+            onEdit={() => setDrawer({ open: true, mode: "edit", supplierId: detailId })}
+          />
+        )}
+      </Drawer>
 
       <SupplierFormDrawer
         open={drawer.open}

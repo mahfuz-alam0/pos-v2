@@ -144,7 +144,7 @@ export default function RegistersPanel() {
         </Link>
       </div>
 
-      <div className="flex-1 px-5 pt-1 pb-3">
+      <div className="max-h-100 flex-1 overflow-y-auto px-5 pt-1 pb-3">
         {selectedRegister ? (
           <>
             <button

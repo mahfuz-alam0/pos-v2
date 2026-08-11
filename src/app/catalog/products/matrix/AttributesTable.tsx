@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
+import Drawer from "@/components/ui/Drawer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,8 +97,8 @@ export default function AttributesTable({
   };
 
   return (
-    <div className="flex gap-4">
-      <div className={detailId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+    <div className="flex flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <div className="relative w-full max-w-sm">
           <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -195,13 +196,15 @@ export default function AttributesTable({
         )}
       </div>
 
-      {detailId && (
-        <AttributeDetailsPanel
-          attributeId={detailId}
-          onClose={() => setDetailId(null)}
-          onEdit={() => onEdit(detailId)}
-        />
-      )}
+      <Drawer open={!!detailId} onClose={() => setDetailId(null)} side="right" size="45%">
+        {detailId && (
+          <AttributeDetailsPanel
+            attributeId={detailId}
+            onClose={() => setDetailId(null)}
+            onEdit={() => onEdit(detailId)}
+          />
+        )}
+      </Drawer>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
         <AlertDialogContent>

@@ -22,7 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
 import ActivityLogDrawer from "@/components/admin/ActivityLogDrawer";
 import CategoryFormDrawer from "./CategoryFormDrawer";
 import CategoryDetailsPanel from "./CategoryDetailsPanel";
@@ -115,59 +114,65 @@ export default function ClassificationDetailsPanel({
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="flex w-1/3 shrink-0 flex-col gap-4 overflow-hidden">
-      <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-sm font-semibold">Classification Details</h2>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setActivityOpen(true)}>
-              Activity
-            </Button>
-            <Button size="sm" onClick={onEdit}>
-              Edit
-            </Button>
-            <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
-              <X className="size-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="h-px bg-border" />
-
-        <div className="flex-1 overflow-y-auto px-4 py-3">
-          {loading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-5 w-full" />
-              ))}
-            </div>
-          ) : classification ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="w-24 shrink-0 text-sm text-muted-foreground">Name:</span>
-                <span className="flex-1 text-sm font-medium">{classification.name ?? "-"}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="w-24 shrink-0 text-sm text-muted-foreground">Description:</span>
-                <span className="flex-1 truncate text-sm">{classification.details ?? "-"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-24 shrink-0 text-sm text-muted-foreground">Image:</span>
-                {classification.image ? (
-                  <img
-                    src={classification.image}
-                    alt={classification.name}
-                    className="size-16 rounded-lg object-cover ring-1 ring-foreground/10"
-                  />
-                ) : (
-                  <span className="text-sm">-</span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="py-4 text-sm text-muted-foreground">Classification not found.</p>
-          )}
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="text-base font-semibold">Classification Details</h2>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setActivityOpen(true)}>
+            Activity
+          </Button>
+          <Button size="sm" onClick={onEdit}>
+            Edit
+          </Button>
+          <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
+            <X className="size-4" />
+          </Button>
         </div>
       </div>
+
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="flex items-center justify-between px-4 py-3">
+              <h2 className="text-sm font-semibold">Classification Details</h2>
+            </div>
+            <div className="h-px bg-border" />
+
+            <div className="flex-1 px-4 py-3">
+              {loading ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-5 w-full" />
+                  ))}
+                </div>
+              ) : classification ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-24 shrink-0 text-sm text-muted-foreground">Name:</span>
+                    <span className="flex-1 text-sm font-medium">{classification.name ?? "-"}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-24 shrink-0 text-sm text-muted-foreground">Description:</span>
+                    <span className="flex-1 text-sm">{classification.details ?? "-"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-24 shrink-0 text-sm text-muted-foreground">Image:</span>
+                    {classification.image ? (
+                      <img
+                        src={classification.image}
+                        alt={classification.name}
+                        className="size-16 rounded-lg object-cover ring-1 ring-foreground/10"
+                      />
+                    ) : (
+                      <span className="text-sm">-</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="py-4 text-sm text-muted-foreground">Classification not found.</p>
+              )}
+            </div>
+          </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
         <div className="flex items-center justify-between px-4 py-3">
@@ -272,12 +277,15 @@ export default function ClassificationDetailsPanel({
           <div className="p-4 text-sm text-muted-foreground">No tax profile available</div>
         )}
       </div>
+        </div>
+      </div>
 
       <ActivityLogDrawer
         open={activityOpen}
         onClose={() => setActivityOpen(false)}
         domain="CLASSIFICATION"
         targetId={classificationId}
+        size="45%"
       />
 
       <CategoryFormDrawer

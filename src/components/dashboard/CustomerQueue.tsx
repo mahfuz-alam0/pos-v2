@@ -117,7 +117,7 @@ export default function CustomerQueue({
       </div>
 
       <div
-        className={`mt-3 flex flex-wrap pb-3 gap-2 overflow-y-auto ${sidepanel ? "min-h-0" : "min-h-20 max-h-82.5"}`}
+        className={`mt-3 flex flex-wrap pb-3 gap-2 overflow-y-auto ${sidepanel ? "min-h-0" : "min-h-20 max-h-100"}`}
         style={sidepanel ? { scrollbarWidth: "none" } : undefined}>
         {loading ? (
           <div className="flex w-full items-center justify-center py-6 text-muted-foreground">
