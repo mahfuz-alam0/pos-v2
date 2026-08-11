@@ -91,9 +91,9 @@ export default function TaskList() {
 
       <div className="mt-4 space-y-3">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground">Loading…</div>
+          <div className="flex min-h-[300px] items-center justify-center py-12 text-muted-foreground">Loading…</div>
         ) : tasks.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">No tasks available</div>
+          <div className="min-h-[300px] py-8 text-center text-muted-foreground">No tasks available</div>
         ) : (
           tasks.map((task, index) => (
             <TaskItem key={task.id || index} data={task} taskStatuses={taskStatuses} onStatusUpdate={handleStatusUpdate} />

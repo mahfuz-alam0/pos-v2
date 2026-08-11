@@ -333,6 +333,7 @@ export default function SignInForm() {
               height={437}
               className="h-12 w-auto"
               priority
+              sizes="(max-width: 640px) 240px, 320px"
             />
           </div>
 

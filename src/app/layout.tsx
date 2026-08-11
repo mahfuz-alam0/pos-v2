@@ -18,6 +18,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 const noirPro = localFont({
   variable: "--font-noir-pro",
+  display: "optional",
   src: [
     { path: "../fonts/noir-pro/NoirPro-Light.woff2", weight: "300", style: "normal" },
     { path: "../fonts/noir-pro/NoirPro-Regular.woff2", weight: "400", style: "normal" },
@@ -30,6 +31,7 @@ const noirPro = localFont({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  display: "optional",
   subsets: ["latin"],
 });
 
