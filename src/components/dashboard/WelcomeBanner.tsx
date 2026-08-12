@@ -121,9 +121,8 @@ export default function WelcomeBanner() {
           <div className="mt-1 text-[13px] font-medium text-muted-foreground">{dateLabel}</div>
         </div>
 
-        {chips.length > 0 && (
-          <div className="flex flex-wrap justify-end gap-3">
-            {chips.map((chip) => {
+        <div className="flex min-h-11 flex-wrap justify-end gap-3">
+          {chips.map((chip) => {
               const content = (
                 <div className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-primary/30 bg-component-bg px-4 py-2">
                   <span className="inline-flex items-center text-[17px] leading-none text-primary">{chip.icon}</span>
@@ -146,8 +145,7 @@ export default function WelcomeBanner() {
                 </div>
               );
             })}
-          </div>
-        )}
+        </div>
       </div>
 
       <AnnouncementDrawer

@@ -84,9 +84,9 @@ export default function MetrcAlerts() {
 
       <div className="mt-4 max-h-100 space-y-2 overflow-y-auto">
         {loading ? (
-          <div className="py-6 text-center text-muted-foreground">Loading…</div>
+          <div className="min-h-40 py-6 text-center text-muted-foreground">Loading…</div>
         ) : logs.length === 0 ? (
-          <div className="py-6 text-center text-muted-foreground">No data found</div>
+          <div className="min-h-40 py-6 text-center text-muted-foreground">No data found</div>
         ) : (
           logs.map((job) => (
             <div key={job.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">

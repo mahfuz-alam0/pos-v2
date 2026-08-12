@@ -149,9 +149,9 @@ export default function EmployeeSalesTodayChart({
       </div>
 
       {loading ? (
-        <div className="px-4 py-6 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="px-4 py-6 text-center text-sm text-muted-foreground" style={{ height: 300 }}>Loading…</div>
       ) : chartData.length === 0 ? (
-        <div className="px-4 py-6 text-center text-muted-foreground">No sales on {dateLabel}</div>
+        <div className="px-4 py-6 text-center text-muted-foreground" style={{ height: 300 }}>No sales on {dateLabel}</div>
       ) : (
         <>
           <div className="flex items-center gap-5 px-4 pt-3 select-none">

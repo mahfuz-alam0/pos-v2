@@ -1,12 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useShop } from "@/context/shop-context";
-import { getSaleAmountDailyRank, getSaleAmountMonthlyRank } from "@/services/stats/dashboard/rankCharts";
-import { getTimeSeriesWithinTheDaysContext, getTimeSeriesWithinTheMonthsContext } from "@/util/dateUtil";
+import {
+  getSaleAmountDailyRank,
+  getSaleAmountMonthlyRank,
+  type SaleAmountBreakdownPoint,
+} from "@/services/stats/dashboard/rankCharts";
+import { getTimeSeriesWithinTheDaysContext, getTimeSeriesWithinTheMonthsContext, TimeSeriesPoint } from "@/util/dateUtil";
 
-const TIME_OPTIONS = [
+type StatsType = "days" | "months";
+
+interface TimeOption {
+  value: number;
+  label: string;
+}
+
+interface RevenuePoint {
+  name: string;
+  Total: number;
+}
+
+const TIME_OPTIONS: TimeOption[] = [
   { value: 7, label: "Past 7 Days" },
   { value: 15, label: "Past 15 Days" },
   { value: 3, label: "Past 3 Months" },
@@ -14,9 +30,8 @@ const TIME_OPTIONS = [
 ];
 
 const BAR_COLOR = "#2A9D8F";
-const BAR_ALT_COLOR = "#F4A261";
 
-function formatDate(year, month, day, statsType) {
+function formatDate(year: number, month: number, day: number | undefined, statsType: StatsType): string {
   if (statsType === "days") {
     return `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.${String(year).slice(-2)}`;
   }
@@ -24,14 +39,14 @@ function formatDate(year, month, day, statsType) {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
-function preprocessData(breakdownData, statsType, factor) {
-  const timeSeries =
+function preprocessData(breakdownData: SaleAmountBreakdownPoint[], statsType: StatsType, factor: number): RevenuePoint[] {
+  const timeSeries: TimeSeriesPoint[] =
     statsType === "months"
       ? getTimeSeriesWithinTheMonthsContext({ monthsCount: factor })
       : getTimeSeriesWithinTheDaysContext({ daysCount: factor });
 
   return timeSeries.map((item) => {
-    const name = formatDate(item.year, item.month, item.day ?? 1, statsType);
+    const name = formatDate(item.year, item.month, item.day, statsType);
     const match =
       statsType === "days"
         ? breakdownData.find((o) => o._id.year === item.year && o._id.month === item.month && o._id.dayOfMonth === item.day)
@@ -40,7 +55,7 @@ function preprocessData(breakdownData, statsType, factor) {
   });
 }
 
-function calculateAverageGrowth(data) {
+function calculateAverageGrowth(data: RevenuePoint[]): number {
   let totalGrowth = 0;
   let count = 0;
   for (let i = 1; i < data.length; i++) {
@@ -54,29 +69,35 @@ function calculateAverageGrowth(data) {
   return count > 0 ? totalGrowth / count : 0;
 }
 
-function ChartTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
+interface TooltipPayloadEntry {
+  value?: number | string;
+  payload?: { name?: string };
+}
+
+function ChartTooltip({ active, payload }: { active?: boolean; payload?: TooltipPayloadEntry[] }) {
   if (!active || !payload || !payload.length) return null;
   const { value } = payload[0];
-  const { name } = payload[0].payload;
+  const { name } = payload[0].payload ?? {};
   return (
     <div className="max-w-75 rounded-xl border border-border bg-popover p-2.5 shadow-lg">
       <p className="m-0 text-sm text-orange-500">{name}</p>
-      <p className="m-0 font-semibold text-heading">Total Revenue: ${value.toLocaleString()}</p>
+      <p className="m-0 font-semibold text-heading">Total Revenue: ${Number(value ?? 0).toLocaleString()}</p>
     </div>
   );
 }
 
 export default function TotalRevenueCard() {
   const { shopId } = useShop();
-  const [currentValue, setCurrentValue] = useState(7);
-  const [statsType, setStatsType] = useState("days");
-  const [stats, setStats] = useState([]);
+  const [currentValue, setCurrentValue] = useState<number>(7);
+  const [statsType, setStatsType] = useState<StatsType>("days");
+  const [stats, setStats] = useState<RevenuePoint[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRevenue = async (sType, count) => {
+  const fetchRevenue = async (sType: StatsType, count: number) => {
     setLoading(true);
     try {
-      const res = sType === "days" ? await getSaleAmountDailyRank(count, shopId) : await getSaleAmountMonthlyRank(count, shopId);
+      const res =
+        sType === "days" ? await getSaleAmountDailyRank(count, shopId) : await getSaleAmountMonthlyRank(count, shopId);
       const breakdownData = res?.data?.data?.breakdownData || [];
       setStats(preprocessData(breakdownData, sType, count));
     } catch (err) {
@@ -93,9 +114,10 @@ export default function TotalRevenueCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
 
-  const handleTimeChange = (e) => {
+  const handleTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const opt = TIME_OPTIONS.find((o) => o.value === Number(e.target.value));
-    const sType = opt.label.includes("Months") ? "months" : "days";
+    if (!opt) return;
+    const sType: StatsType = opt.label.includes("Months") ? "months" : "days";
     setCurrentValue(opt.value);
     setStatsType(sType);
     fetchRevenue(sType, opt.value);
@@ -137,8 +159,9 @@ export default function TotalRevenueCard() {
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
-              <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(42, 157, 143, 0.08)" }} />
+            <LineChart data={stats} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--border)" }} />
               <XAxis
                 dataKey="name"
                 interval={0}
@@ -147,12 +170,15 @@ export default function TotalRevenueCard() {
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 tickFormatter={(tick, index) => (index % 2 === 0 ? tick : "")}
               />
-              <Bar dataKey="Total" radius={[6, 6, 0, 0]} maxBarSize={28}>
-                {stats.map((entry, index) => (
-                  <Cell key={index} fill={index % 2 === 0 ? BAR_COLOR : BAR_ALT_COLOR} fillOpacity={0.85} />
-                ))}
-              </Bar>
-            </BarChart>
+              <Line
+                type="monotone"
+                dataKey="Total"
+                stroke={BAR_COLOR}
+                strokeWidth={2.5}
+                dot={{ r: 3, fill: BAR_COLOR, strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
           </ResponsiveContainer>
         )}
       </div>

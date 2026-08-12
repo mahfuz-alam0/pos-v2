@@ -144,7 +144,7 @@ export default function RegistersPanel() {
         </Link>
       </div>
 
-      <div className="flex-1 px-5 pt-1 pb-3">
+      <div className="max-h-100 flex-1 overflow-y-auto px-5 pt-1 pb-3">
         {selectedRegister ? (
           <>
             <button
@@ -222,9 +222,9 @@ export default function RegistersPanel() {
         ) : (
           <>
             {loading ? (
-              <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
+              <div className="flex min-h-[352px] w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
             ) : registers.length === 0 ? (
-              <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
+              <div className="flex min-h-[352px] w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
             ) : (
               <div className="flex flex-col gap-2">
                 {registers.map((register) => {

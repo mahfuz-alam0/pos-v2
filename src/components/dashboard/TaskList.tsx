@@ -90,9 +90,9 @@ export default function TaskList() {
 
       <div className="mt-4 space-y-3">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground">Loading…</div>
+          <div className="flex min-h-75 items-center justify-center py-12 text-muted-foreground">Loading…</div>
         ) : allTasks.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">No tasks available</div>
+          <div className="min-h-75 py-8 text-center text-muted-foreground">No tasks available</div>
         ) : (
           allTasks.map((task, index) => (
             <TaskItem key={task.id || index} data={task} taskStatuses={taskStatuses} onStatusUpdate={handleStatusUpdate} />
@@ -112,9 +112,8 @@ export default function TaskList() {
                   key={page}
                   onClick={() => fetchTasks(page)}
                   disabled={loading}
-                  className={`flex size-7 items-center justify-center rounded-md text-sm ${
-                    page === currentPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-surface-alt"
-                  }`}
+                  className={`flex size-7 items-center justify-center rounded-md text-sm ${page === currentPage ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-surface-alt"
+                    }`}
                 >
                   {page}
                 </button>

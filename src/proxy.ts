@@ -20,7 +20,11 @@ export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const ecom = pathname.startsWith("/proxy/ecom/");
-  const upstream = ecom
+
+  const socketio = pathname.startsWith("/proxy/socket.io");
+  const upstream = socketio
+    ? `${BASE_URL}/socket.io${pathname.slice("/proxy/socket.io".length)}${search}`
+    : ecom
     ? `${ECOM_URL}${pathname.slice("/proxy/ecom".length)}${search}`
     : `${BASE_URL}${pathname.slice("/proxy".length)}${search}`;
 

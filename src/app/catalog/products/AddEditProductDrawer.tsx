@@ -309,7 +309,7 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
   return (
     <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size="80%">
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <span className="text-base font-semibold">
             {isEdit ? `Edit Product${product?.name ? `: ${product.name}` : ""}` : "Add New Product"}
           </span>
@@ -393,7 +393,7 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
                 />
               </div>
 
-              <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+              <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
                 <Button variant="outline" onClick={onClose} disabled={saving}>
                   Cancel
                 </Button>

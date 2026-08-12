@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 
@@ -45,6 +45,7 @@ export default function StorageLocationsTable() {
   const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { shopId } = useShop();
 
   const openId = searchParams.get("id");
@@ -104,7 +105,7 @@ export default function StorageLocationsTable() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
     const qs = params.toString();
-    router.push(qs ? `?${qs}` : ".", { scroll: false });
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
   return (
