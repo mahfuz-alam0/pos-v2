@@ -304,22 +304,6 @@ export default function SignInForm() {
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
       style={{ backgroundColor: "#001529" }}
     >
-      {/* Animated background — three slow-drifting, morphing blurred blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          className="signin-blob signin-blob-1 -left-[10%] -top-[15%]"
-          style={{ backgroundColor: "#038fdd", opacity: 0.35 }}
-        />
-        <div
-          className="signin-blob signin-blob-2 -right-[15%] top-[10%]"
-          style={{ backgroundColor: "#0ea5e9", opacity: 0.3 }}
-        />
-        <div
-          className="signin-blob signin-blob-3 -bottom-[20%] left-[15%]"
-          style={{ backgroundColor: "#1e40af", opacity: 0.35 }}
-        />
-      </div>
-
       {/* Center radial glow */}
       <div
         className="pointer-events-none absolute inset-0"
