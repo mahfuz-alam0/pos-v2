@@ -44,15 +44,14 @@ function CustomThemeSwatch() {
         onClick={() => setDraft(customColors)}
       >
         <span
-          className={`relative flex size-9 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 transition-transform group-hover:scale-105 ${
-            active ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg" : ""
-          }`}
+          className={`relative flex size-9 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 transition-transform group-hover:scale-105 ${active ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg" : ""
+            }`}
           style={
             active
               ? {
-                  background: `conic-gradient(${customColors.primary} 0deg 120deg, ${customColors.secondary} 120deg 240deg, ${customColors.accent} 240deg 360deg)`,
-                  border: "none",
-                }
+                background: `conic-gradient(${customColors.primary} 0deg 120deg, ${customColors.secondary} 120deg 240deg, ${customColors.accent} 240deg 360deg)`,
+                border: "none",
+              }
               : undefined
           }
         >
@@ -151,11 +150,10 @@ export default function PersonalizeTab() {
                   className="group flex flex-col items-center gap-1.5"
                 >
                   <span
-                    className={`relative flex size-9 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${
-                      active
+                    className={`relative flex size-9 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${active
                         ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg"
                         : ""
-                    }`}
+                      }`}
                     style={{
                       background: `conic-gradient(${t.primary} 0deg 120deg, ${t.secondary} 120deg 240deg, ${t.accent} 240deg 360deg)`,
                     }}
@@ -165,9 +163,8 @@ export default function PersonalizeTab() {
                     )}
                   </span>
                   <span
-                    className={`text-[11px] ${
-                      active ? "font-medium text-primary" : "text-muted-foreground"
-                    }`}
+                    className={`text-[11px] ${active ? "font-medium text-primary" : "text-muted-foreground"
+                      }`}
                   >
                     {t.label}
                   </span>
@@ -187,11 +184,10 @@ export default function PersonalizeTab() {
                   type="button"
                   onClick={() => setMode(m)}
                   suppressHydrationWarning
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
-                    active
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${active
                       ? "bg-component-bg font-medium text-text shadow-sm"
                       : "text-muted-foreground hover:text-text"
-                  }`}
+                    }`}
                 >
                   <Icon className="size-4" />
                   {label}
@@ -209,9 +205,8 @@ export default function PersonalizeTab() {
       >
         <div className="flex flex-col divide-y divide-border">
           <div
-            className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 ${
-              queueBorder15 ? "" : "opacity-60"
-            }`}
+            className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 ${queueBorder15 ? "" : "opacity-60"
+              }`}
           >
             <span className="flex items-center gap-2 text-sm text-text">
               <span className="size-2.5 shrink-0 rounded-full bg-yellow-400" />
@@ -229,9 +224,8 @@ export default function PersonalizeTab() {
           </div>
 
           <div
-            className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 ${
-              queueBorder20 ? "" : "opacity-60"
-            }`}
+            className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 ${queueBorder20 ? "" : "opacity-60"
+              }`}
           >
             <span className="flex items-center gap-2 text-sm text-text">
               <span className="size-2.5 shrink-0 rounded-full bg-red-500" />
@@ -258,7 +252,7 @@ export default function PersonalizeTab() {
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-text">Default rows per page</span>
           <Select
-            items={[30, 50, 100, 200].map((s) => ({ value: String(s), label: `${s} rows` }))}
+            items={[30, 50, 100].map((s) => ({ value: String(s), label: `${s} rows` }))}
             value={String(defaultPageSize)}
             onValueChange={(v) => setDefaultPageSize(Number(v))}
           >
@@ -266,7 +260,7 @@ export default function PersonalizeTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[30, 50, 100, 200].map((s) => (
+              {[30, 50, 100].map((s) => (
                 <SelectItem key={s} value={String(s)}>
                   {s} rows
                 </SelectItem>
@@ -284,9 +278,8 @@ export default function PersonalizeTab() {
         <div className="flex items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-sm text-text">
             <span
-              className={`size-2.5 rounded-full ${
-                printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
-              }`}
+              className={`size-2.5 rounded-full ${printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
+                }`}
               suppressHydrationWarning
             />
             <span suppressHydrationWarning>
