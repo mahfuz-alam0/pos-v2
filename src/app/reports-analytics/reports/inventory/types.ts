@@ -22,6 +22,7 @@ export interface PackageHistoryRow {
   packageQuantityChange: number;
   packageTotal: number;
   roomName?: string;
+  createdAt?: string;
 }
 
 export interface InventorySnapshotRow {

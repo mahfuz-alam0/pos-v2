@@ -75,10 +75,10 @@ export default function PosDlCheckinManager({ open, onClose }) {
             {CHECKIN_TYPES.map(({ key, label, description, Icon, cta }) => (
               <div
                 key={key}
-                className="mb-3 rounded-2xl border border-border bg-muted/40 p-4"
+                className="mb-3 rounded-2xl bg-muted/40 p-4 ring-1 ring-foreground/10"
               >
                 <div className="mb-3.5 flex items-center gap-3.5">
-                  <div className="flex h-13 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
+                  <div className="flex h-13 w-20 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-foreground/10">
                     <Icon className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <div className="min-w-0 flex-1">

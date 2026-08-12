@@ -178,7 +178,7 @@ export default function StorageLocationsTable() {
                     </TableCell>
                     <TableCell>{row.openForAcceptingTransfers ? "yes" : "no"}</TableCell>
                     <TableCell>{row.isSellableOnPhysicalStore ? "yes" : "no"}</TableCell>
-                    <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
+                    <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}>
                       <Button
                         variant="ghost"
                         size="icon-sm"

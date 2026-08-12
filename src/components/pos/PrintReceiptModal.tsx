@@ -19,7 +19,7 @@ import { getUserPrintPreference, createPrintJob } from "@/services/printClients/
 // stylesheet — same visibility-toggle trick used in PrinterSelectionModal's
 // printInCurrentWindow, so both hardware-print's fallback and the plain
 // "Print Invoice (Web)" button behave identically.
-function printNode(node) {
+export function printNode(node) {
   if (!node) return;
   const styleId = "pos-receipt-print-styles";
   document.getElementById(styleId)?.remove();

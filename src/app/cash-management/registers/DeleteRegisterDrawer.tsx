@@ -33,7 +33,7 @@ export default function DeleteRegisterDrawer({ register, loading, onClose, onCon
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <p className="text-sm text-muted-foreground">Are you sure you want to delete this register?</p>
 
-          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-foreground/10 bg-muted/30 p-4">
+          <div className="mt-4 flex flex-col gap-3 rounded-lg bg-muted/30 p-4 ring-1 ring-foreground/10">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Register Name</span>
               <span className="text-sm font-medium">{register?.name ?? "N/A"}</span>
@@ -48,10 +48,10 @@ export default function DeleteRegisterDrawer({ register, loading, onClose, onCon
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+          <Button variant="outline" className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={loading}>
+          <Button variant="destructive" className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={onConfirm} disabled={loading}>
             {loading ? "Deleting..." : "Delete"}
           </Button>
         </div>

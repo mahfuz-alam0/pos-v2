@@ -357,7 +357,7 @@ export default function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-28 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-28 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger render={<Button variant="outline" size="sm">Actions <ChevronDown className="size-3.5" /></Button>} />

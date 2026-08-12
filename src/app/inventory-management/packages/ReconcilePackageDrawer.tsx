@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { createPackageAdjustment } from "@/services/packageAdjustments/create";
@@ -282,7 +282,7 @@ export default function ReconcilePackageDrawer({
   };
 
   return (
-    <Drawer open={open} onClose={submitting ? undefined : onClose} side="right" size="50vw">
+    <Drawer open={open} onClose={submitting ? undefined : onClose} side="right" size="70vw">
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
           <div>
@@ -291,6 +291,9 @@ export default function ReconcilePackageDrawer({
               Adjust on-hand quantity per storage location
             </div>
           </div>
+          <Button variant="outline" size="icon" onClick={onClose} disabled={!!submitting} className="shrink-0">
+            <X className="size-4" />
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 text-foreground/70">

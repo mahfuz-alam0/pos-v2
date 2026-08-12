@@ -1,11 +1,26 @@
 import axios from "axios";
 
 function createApiClient(baseURL) {
-  return axios.create({
+  const client = axios.create({
     baseURL,
     withCredentials: true,
     headers: { "Content-Type": "application/json" },
   });
+
+  // Body-less calls in this codebase are usually written as
+  // `api.put(url, null, { params })`. With Content-Type: application/json
+  // set, axios JSON.stringify()s that `null` into a literal "null" body —
+  // most backends parse JSON bodies in "strict" mode, which rejects a
+  // top-level null/primitive as invalid JSON even though it's valid per the
+  // JSON spec, surfacing as a cryptic "Unexpected token 'n', \"null\" is not
+  // valid JSON" error. Drop it so no body is sent at all, same as omitting
+  // the argument.
+  client.interceptors.request.use((config) => {
+    if (config.data === null) config.data = undefined;
+    return config;
+  });
+
+  return client;
 }
 
 // In the Tauri desktop app, calls go through the same-origin `/proxy/*` rewrites
