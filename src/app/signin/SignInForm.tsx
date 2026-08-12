@@ -304,6 +304,22 @@ export default function SignInForm() {
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
       style={{ backgroundColor: "#001529" }}
     >
+      {/* Animated background — three slow-drifting, morphing blurred blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="signin-blob signin-blob-1 -left-[10%] -top-[15%]"
+          style={{ backgroundColor: "#038fdd", opacity: 0.35 }}
+        />
+        <div
+          className="signin-blob signin-blob-2 -right-[15%] top-[10%]"
+          style={{ backgroundColor: "#0ea5e9", opacity: 0.3 }}
+        />
+        <div
+          className="signin-blob signin-blob-3 -bottom-[20%] left-[15%]"
+          style={{ backgroundColor: "#1e40af", opacity: 0.35 }}
+        />
+      </div>
+
       {/* Center radial glow */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -339,13 +355,6 @@ export default function SignInForm() {
 
           {step === "org" ? (
             <>
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-                <p className="mt-1 text-sm text-white/45">
-                  Sign in to your organization to continue.
-                </p>
-              </div>
-
               <form onSubmit={handleContinue} className="space-y-4" noValidate>
                 <div>
                   <Label
@@ -423,20 +432,14 @@ export default function SignInForm() {
             </>
           ) : (
             <>
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={handleBackToOrg}
-                  className="mb-3 flex items-center gap-1 text-sm text-white/45 hover:text-white/70"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  {orgUsername}
-                </button>
-                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-                <p className="mt-1 text-sm text-white/45">
-                  Sign in to your organization to continue.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={handleBackToOrg}
+                className="mb-6 flex items-center gap-1 text-sm text-white/45 hover:text-white/70"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                {orgUsername}
+              </button>
 
               <form
                 onSubmit={authMode === "pin" ? (e) => e.preventDefault() : handleSubmit}
