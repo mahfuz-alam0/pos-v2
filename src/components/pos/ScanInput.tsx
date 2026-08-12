@@ -18,7 +18,9 @@ import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getInventorySellableViaAdvertisedId } from "@/services/sales/inventorySellableViaAdvertisedId";
 import { getShopPreferences } from "@/services/sales/getShopPreferences";
+import { listMinimalPackages } from "@/services/packages/listMinimal";
 import { quoteApiManager } from "@/utils/quoteApiManager";
+import { useShop } from "@/context/shop-context";
 
 // Ported from ScanInput.js — hardware-barcode scan input driving the
 // sellable-package lookup by advertisedId.
@@ -32,8 +34,9 @@ import { quoteApiManager } from "@/utils/quoteApiManager";
 // quote refresh via the shared quoteApiManager.
 //
 // NOT ported (out of the product/cart scope, and depend on unported services):
-// within-store transfer drawer, breakdown-package fallback (listPackagesMinimal),
-// matrix product resolution.
+// within-store transfer drawer, matrix product resolution. The
+// breakdown-package fallback (listPackagesMinimal) IS implemented — see
+// fetchSellablePackages' fallback branch and handleForceAdd below.
 export default function ScanInput({
   setAddSelected,
   placeholder = "Scan barcode / package ID",
@@ -51,6 +54,7 @@ export default function ScanInput({
   scannedCode?: { value: string; nonce: number } | null;
 }) {
   const dispatch = useDispatch();
+  const { shopId } = useShop();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const quoteBody = useSelector((state: any) => state?.salesDetail);
   const saleDetail = useSelector((state: any) => state?.saleData) || {};
@@ -65,6 +69,10 @@ export default function ScanInput({
   const [scannedPackageId, setScannedPackageId] = useState(null);
   const [shouldEnableScanOnlyCart, setShouldEnableScanOnlyCart] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  // Set when nothing sellable matched the scanned code but a broader,
+  // non-finished package with that code (and real stock) still exists — lets
+  // the cashier force it into the cart instead of a dead-end "not found".
+  const [fallbackPackage, setFallbackPackage] = useState(null);
 
   const searchInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
@@ -131,6 +139,7 @@ export default function ScanInput({
     setScannedPackageId(null);
     setCounters({});
     setInputValue("");
+    setFallbackPackage(null);
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
   };
 
@@ -243,6 +252,50 @@ export default function ScanInput({
     }
   };
 
+  const handleForceAdd = async () => {
+    if (!fallbackPackage || isAddingToCart) return;
+    try {
+      setIsAddingToCart(true);
+      const conversionRate = inventoryData?.inventoryInfo?.projectQtyConversionRate || 1;
+      const lineId = crypto.randomUUID();
+      const forcedItem = {
+        ...fallbackPackage,
+        key: lineId,
+        appMaintainedId: lineId,
+        packageId: fallbackPackage.id,
+        inventoryId: fallbackPackage.inventoryId,
+        productId: inventoryData?.inventoryInfo?.productId,
+        productName:
+          inventoryData?.inventoryInfo?.productNameSnapShot ||
+          fallbackPackage.productName ||
+          fallbackPackage.name,
+        price: inventoryData?.inventoryInfo?.unitPrice,
+        sellableUoMShortForm: inventoryData?.inventoryInfo?.sellableUomShortForm,
+        projectQtyConversionRate: conversionRate,
+        purchaseQuantity: conversionRate * 1,
+        disabledDiscountSources: [],
+      };
+
+      const updatedLineItems = [...cart, forcedItem];
+      dispatch(addToCart(updatedLineItems));
+      dispatch(addLineItemsAction(updatedLineItems));
+      dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
+      setAddSelected?.(false);
+
+      const res = await refreshQuote(updatedLineItems, "scanInput-forceAdd");
+      if (res?.data) {
+        dispatch(getQuoteForSale(res.data));
+        toast.success(`${forcedItem.productName} added to cart`);
+        resetModalState();
+      }
+    } catch (error) {
+      console.error("[ScanInput] Error force-adding to cart:", error);
+      toast.error("Failed to add item to cart. Please try again.");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   const mapPackages = (inventory) =>
     (inventory?.packagesInfo || []).map((item) => ({
       ...item,
@@ -276,6 +329,7 @@ export default function ScanInput({
     if (!advertisedPackageId) return;
     setPackagesLoading(true);
     setScannedPackageId(advertisedPackageId);
+    setFallbackPackage(null);
 
     return getInventorySellableViaAdvertisedId(advertisedPackageId)
       .then((res) => {
@@ -284,6 +338,31 @@ export default function ScanInput({
         setInventoryData(inventory);
         if (!inventory?.packagesInfo) {
           setPackagesLoading(false);
+          setVisible(true);
+
+          // Nothing currently sellable for this code — look for ANY
+          // non-finished package on the same product whose advertisedId
+          // matches what was scanned, so it can still be forced into the
+          // cart instead of a dead end.
+          const productId = inventory?.inventoryInfo?.productId;
+          if (productId && shopId) {
+            listMinimalPackages(shopId, productId, { limit: 30, page: 1 })
+              .then((fbRes) => {
+                const pkgs = fbRes?.data?.data?.packages || [];
+                const candidate =
+                  pkgs.find(
+                    (p) => (p.quantityLeft ?? 0) > 0 && p.advertisedId?.includes(advertisedPackageId),
+                  ) || null;
+                setFallbackPackage(candidate);
+                if (!candidate) toast.error("No eligible packages found for this code");
+              })
+              .catch(() => {
+                setFallbackPackage(null);
+                toast.error("No eligible packages found for this code");
+              });
+          } else {
+            toast.error("No eligible packages found for this code");
+          }
           return;
         }
 
@@ -405,7 +484,26 @@ export default function ScanInput({
           {packagesLoading ? (
             <SkeletonLoader rows={4} />
           ) : packagesData.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No packages available</p>
+            fallbackPackage ? (
+              <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+                <p className="m-0 text-base font-bold text-amber-900 dark:text-amber-200">
+                  Warning: No eligible packages found
+                </p>
+                <p className="mt-1 mb-3 text-sm text-amber-800/80 dark:text-amber-300/80">
+                  {fallbackPackage.name || fallbackPackage.advertisedId} · {fallbackPackage.quantityLeft}{" "}
+                  {fallbackPackage.uoMShortForm} in stock
+                </p>
+                <Button
+                  className="h-16 w-full bg-amber-600 text-lg font-bold hover:bg-amber-700"
+                  size="lg"
+                  onClick={handleForceAdd}
+                  disabled={isAddingToCart}>
+                  Add Cart Item Anyways
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No packages available</p>
+            )
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto">
               {packagesData.map((pkg) => {

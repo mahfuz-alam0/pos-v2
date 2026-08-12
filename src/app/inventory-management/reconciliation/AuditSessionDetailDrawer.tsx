@@ -153,8 +153,8 @@ export default function AuditSessionDetailDrawer({
                     <TableHead>Product Name</TableHead>
                     <TableHead>METRC Tag</TableHead>
                     <TableHead className="text-center">Current Qty</TableHead>
-                    <TableHead className="text-center">Counted Qty</TableHead>
-                    <TableHead className="text-center">Final Qty</TableHead>
+                    <TableHead className="text-center">Adjusted QTY</TableHead>
+                    <TableHead className="text-center">Counted QTY</TableHead>
                     <TableHead className="text-center">Review Status</TableHead>
                   </TableRow>
                 </TableHeader>
