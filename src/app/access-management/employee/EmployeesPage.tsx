@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, KeyRound, Pencil, Trash2, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { usePermission } from "@/util/use-permission";
@@ -38,6 +38,12 @@ const ROLE_LABELS: Record<string, string> = {
   ADMINISTRATION: "Administration",
   ACCESS_CONTROLLED: "Access Controlled",
   SUPER_ADMIN: "Super Admin",
+};
+
+const ROLE_BADGE_CLASS: Record<string, string> = {
+  ADMINISTRATION: "border-sky-300 bg-[#E6F7FF] text-sky-600 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-400",
+  ACCESS_CONTROLLED: "border-green-300 bg-[#F5FCED] text-green-600 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400",
+  SUPER_ADMIN: "border-purple-300 bg-purple-50 text-purple-600 dark:border-purple-800 dark:bg-purple-950/30 dark:text-purple-400",
 };
 
 function formatRole(type?: string) {
@@ -107,7 +113,11 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     if (user?.type === "ACCESS_CONTROLLED") return;
-    fetchEmployeesList({ limit: 100 }).then((res) => setEmployeeOptions(res?.data?.employees ?? []));
+    // Backend caps `limit` at 100 (PaginationDto) — 1000 used to 422 here, silently, since
+    // this call had no .catch(), leaving the filter dropdown permanently empty.
+    fetchEmployeesList({ limit: 100 })
+      .then((res) => setEmployeeOptions(res?.data?.employees ?? []))
+      .catch((err: any) => toast.error(err?.message || "Failed to load employee filter options"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.type]);
 
@@ -167,69 +177,68 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Access Management</BreadcrumbPage>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Team</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+    <div className="flex gap-4 p-3">
+      <div className={`flex flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm ${selectedId ? "w-2/3" : "w-full"}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Access Management</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-medium text-primary">Team</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="size-4" />
-          Add Employee
-        </Button>
-      </div>
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setAddOpen(true)}>
+            Add Employee
+          </Button>
+        </div>
 
-      {user?.type !== "ACCESS_CONTROLLED" && (
-        <Select
-          value={employeeFilter || "__all__"}
-          onValueChange={(v) => {
-            setEmployeeFilter(v === "__all__" ? "" : v);
-            const emp = employeeOptions.find((e: any) => String(e.id) === v);
-            setSearch(emp?.name ?? "");
-          }}
-        >
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Select Employee">
-              {employeeFilter ? employeeOptions.find((e: any) => String(e.id) === employeeFilter)?.name : "All Employees"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All Employees</SelectItem>
-            {employeeOptions.map((emp: any) => (
-              <SelectItem key={emp.id} value={String(emp.id)}>
-                {emp.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+        {user?.type !== "ACCESS_CONTROLLED" && (
+          <Select
+            items={[
+              { value: "__all__", label: "All Employees" },
+              ...employeeOptions.map((emp: any) => ({ value: String(emp.id), label: emp.name })),
+            ]}
+            value={employeeFilter || "__all__"}
+            onValueChange={(v) => {
+              setEmployeeFilter(v === "__all__" ? "" : v);
+              const emp = employeeOptions.find((e: any) => String(e.id) === v);
+              setSearch(emp?.name ?? "");
+            }}
+          >
+            <SelectTrigger className="h-10! w-64">
+              <SelectValue className="text-muted-foreground/60" placeholder="Select Employee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All Employees</SelectItem>
+              {employeeOptions.map((emp: any) => (
+                <SelectItem key={emp.id} value={String(emp.id)}>
+                  {emp.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
-      <div className="flex gap-4">
-      <div className={selectedId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
-
-        <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="relative -mx-4">
           <TableLoadingOverlay show={loading && rows.length > 0} />
-          <Table>
-            <TableHeader className="[&_tr]:border-b-0">
-              <TableRow className="bg-muted/60">
+          <Table className="text-[14px]">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-normal [&_th]:text-foreground/80">
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Employee Name</TableHead>
                 <TableHead>Email Address</TableHead>
                 <TableHead>Phone No.</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead className="text-center">Lock Status</TableHead>
                 <TableHead className="text-center">Active</TableHead>
-                <TableHead className="sticky right-0 z-10 w-33 bg-muted text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)]">Action</TableHead>
+                <TableHead className="w-33 text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="text-foreground/70 [&_td]:h-18 [&_td]:px-4">
               {loading &&
                 rows.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
@@ -250,11 +259,8 @@ export default function EmployeesPage() {
                 </TableRow>
               )}
 
-              {rows.map((row, i) => (
-                <TableRow
-                  key={row.id}
-                  className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
-                >
+              {rows.map((row) => (
+                <TableRow key={row.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
                   <TableCell>
                     <button className="text-primary hover:underline" onClick={() => setSelectedId(row.id)}>
                       {row.name}
@@ -263,35 +269,42 @@ export default function EmployeesPage() {
                   <TableCell>{row.email}</TableCell>
                   <TableCell>{formatPhone(row.phone)}</TableCell>
                   <TableCell>
-                    <Badge variant={row.type === "ADMINISTRATION" ? "default" : "secondary"}>{formatRole(row.type)}</Badge>
+                    <Badge variant="outline" className={`rounded-md text-xs font-normal ${ROLE_BADGE_CLASS[row.type] ?? ""}`}>
+                      {formatRole(row.type)}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Switch checked={!row.isLocked} onCheckedChange={() => handleToggleLock(row)} disabled={!canManage(row)} />
+                    <label className="inline-flex items-center gap-1.5 rounded-full border border-input px-1 py-0.5 pr-2.5">
+                      <Switch checked={!row.isLocked} onCheckedChange={() => handleToggleLock(row)} disabled={!canManage(row)} size="sm" />
+                      <span className="text-xs text-muted-foreground">{row.isLocked ? "Locked" : "Unlocked"}</span>
+                    </label>
                   </TableCell>
                   <TableCell className="text-center">
-                    {row.id === liveShift?.employeeId ? <Badge variant="default">Active</Badge> : "-"}
+                    {row.id === liveShift?.employeeId ? (
+                      <Check className="mx-auto size-4 text-green-600" />
+                    ) : (
+                      <X className="mx-auto size-4 text-rose-500" />
+                    )}
                   </TableCell>
-                  <TableCell
-                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
-                  >
+                  <TableCell className="w-33 text-center">
                     <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={<Button variant="outline" size="sm" disabled={!canManage(row)} />}>
+                      <DropdownMenuTrigger render={<Button variant="outline" className="h-9! bg-card! px-4! text-sm!" />}>
                         Actions <ChevronDown className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem className="gap-2 whitespace-nowrap" onClick={() => setResetTarget(row)}>
+                        <DropdownMenuItem className="gap-2 whitespace-nowrap" disabled={!canManage(row)} onClick={() => setResetTarget(row)}>
                           <KeyRound className="size-4 text-blue-500" />
                           Reset Password
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="gap-2 whitespace-nowrap"
+                          disabled={!canManage(row)}
                           onClick={() => setEditTarget(row)}
                         >
                           <Pencil className="size-4 text-sky-600" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 whitespace-nowrap" variant="destructive" onClick={() => setDeleteTarget(row)}>
+                        <DropdownMenuItem className="gap-2 whitespace-nowrap" variant="destructive" disabled={!canManage(row)} onClick={() => setDeleteTarget(row)}>
                           <Trash2 className="size-4" />
                           Delete
                         </DropdownMenuItem>
@@ -311,6 +324,7 @@ export default function EmployeesPage() {
           pageSize={pagination.pageSize}
           loading={loading}
           onPageChange={(p: number) => load(p)}
+          compact
           pageSizeOptions={[30, 50, 100, 200]}
           onPageSizeChange={(s) => {
             setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
@@ -324,7 +338,6 @@ export default function EmployeesPage() {
           <EmployeeDetailPanel employeeId={selectedId} onClose={() => setSelectedId(null)} />
         </div>
       )}
-      </div>
 
       <Drawer open={!!resetTarget} onClose={resetting ? undefined : () => setResetTarget(null)} side="right" size={400}>
         <div className="flex h-full flex-col">
@@ -338,10 +351,10 @@ export default function EmployeesPage() {
             </Field>
           </div>
           <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-            <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>
               Cancel
             </Button>
-            <Button onClick={handleResetPassword} disabled={resetting}>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleResetPassword} disabled={resetting}>
               {resetting ? "Saving..." : "Reset Password"}
             </Button>
           </div>

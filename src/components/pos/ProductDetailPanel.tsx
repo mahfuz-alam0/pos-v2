@@ -108,6 +108,8 @@ export default function ProductDetailPanel({
   onQuantityInput,
   onBack,
   onAddToCart,
+  fallbackPackage,
+  onForceAdd,
 }) {
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const [productDetails, setProductDetails] = useState(null);
@@ -469,6 +471,25 @@ export default function ProductDetailPanel({
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {packagesData.length === 0 && fallbackPackage && (
+        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+          <p className="m-0 text-base font-bold text-amber-900 dark:text-amber-200">
+            Warning: No eligible packages found
+          </p>
+          <p className="mt-1 mb-3 text-sm text-amber-800/80 dark:text-amber-300/80">
+            {fallbackPackage.name || fallbackPackage.advertisedId} · {fallbackPackage.quantityLeft}{" "}
+            {fallbackPackage.uoMShortForm} in stock
+          </p>
+          <Button
+            className="h-16 w-full bg-amber-600 text-lg font-bold hover:bg-amber-700"
+            size="lg"
+            onClick={() => onForceAdd?.(fallbackPackage)}>
+            <ShoppingCart className="mr-2 size-5" />
+            Add Cart Item Anyways
+          </Button>
         </div>
       )}
     </div>

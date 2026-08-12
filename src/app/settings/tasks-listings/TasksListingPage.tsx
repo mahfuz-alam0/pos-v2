@@ -30,6 +30,7 @@ interface Task {
   taskPriority?: { displayName: string; colorCode?: string };
   taskStatus?: { statusId: string; displayName: string; colorCode?: string };
   dueDateString?: string;
+  domain?: string;
 }
 
 interface TaskStatus {

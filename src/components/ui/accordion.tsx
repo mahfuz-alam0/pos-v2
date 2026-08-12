@@ -31,10 +31,15 @@ function AccordionItem({
 function AccordionTrigger({
   className,
   children,
+  actions,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Trigger> & {
+  /** Rendered as a sibling of the trigger button, e.g. a row-actions dropdown — keeps it out of
+   * the trigger's own <button>, so clicking it doesn't also toggle the accordion. */
+  actions?: React.ReactNode;
+}) {
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="flex items-center gap-1">
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
@@ -50,6 +55,7 @@ function AccordionTrigger({
           data-slot="accordion-trigger-icon"
           className="pointer-events-none hidden shrink-0 group-aria-expanded/accordion-trigger:inline" />
       </AccordionPrimitive.Trigger>
+      {actions}
     </AccordionPrimitive.Header>
   );
 }

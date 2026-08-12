@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { createShift } from "@/services/employees/shift/create";
@@ -11,6 +11,7 @@ import { fetchAccessControlledEmployees } from "@/services/employees/listAccessC
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,7 +48,7 @@ function splitDateTimeLocal(value: string) {
 }
 
 export default function ShiftFormDrawer({ open, mode, initialShift, onClose, onSaved }: ShiftFormDrawerProps) {
-  const { shopId } = useShop();
+  const { shopId, shopDetails } = useShop();
   const [isForSelf, setIsForSelf] = useState(true);
   const [employeeId, setEmployeeId] = useState("");
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
@@ -81,6 +82,13 @@ export default function ShiftFormDrawer({ open, mode, initialShift, onClose, onS
     if (!open || isForSelf) return;
     fetchAccessControlledEmployees(50, 1).then((res) => setEmployees(res?.data?.employees ?? []));
   }, [open, isForSelf]);
+
+  const totalWorked = (() => {
+    if (!clockIn || !clockOut) return "";
+    const diffMs = new Date(clockOut).getTime() - new Date(clockIn).getTime();
+    const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+    return `${Math.floor(totalMinutes / 60)}hour ${totalMinutes % 60}min`;
+  })();
 
   const handleSave = async () => {
     if (!shopId) return;
@@ -132,14 +140,8 @@ export default function ShiftFormDrawer({ open, mode, initialShift, onClose, onS
   return (
     <Drawer open={open} onClose={saving ? undefined : onClose} side="right" size={480}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <CalendarClock className="size-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">{mode === "add" ? "Add Shift" : "Edit Shift"}</div>
-            <div className="text-xs leading-tight text-muted-foreground">Record clock in / clock out</div>
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+          <div className="text-base font-semibold">{mode === "add" ? "Add Shift" : "Edit Shift"}</div>
           <Button variant="outline" size="icon-sm" onClick={onClose} disabled={saving}>
             <X className="size-4" />
           </Button>
@@ -154,14 +156,14 @@ export default function ShiftFormDrawer({ open, mode, initialShift, onClose, onS
               </label>
             )}
 
-            {!isForSelf && (
+            {mode === "add" && !isForSelf && (
               <Field label="Employee" required>
                 <Select
                   items={[{ value: "", label: "Select employee" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
                   value={employeeId}
                   onValueChange={(v) => setEmployeeId(v as string)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="h-10! w-full">
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
@@ -175,35 +177,44 @@ export default function ShiftFormDrawer({ open, mode, initialShift, onClose, onS
               </Field>
             )}
 
+            <Field label="Store" required>
+              <Input className="h-10 bg-muted/50" value={shopDetails?.name ?? shopDetails?.label ?? ""} disabled readOnly />
+            </Field>
+
             <Field label="Clock In" required>
               <input
                 type="datetime-local"
                 value={clockIn}
                 onChange={(e) => setClockIn(e.target.value)}
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+                className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
               />
             </Field>
 
-            <Field label="Clock Out">
+            <Field label="Clock Out" required>
               <input
                 type="datetime-local"
                 value={clockOut}
                 min={clockIn || undefined}
                 onChange={(e) => setClockOut(e.target.value)}
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+                className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
               />
             </Field>
 
-            <Field label="Notes">
-              <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Field label="Total Worked">
+              <Input className="h-10 bg-muted/50" value={totalWorked} placeholder="—" disabled readOnly />
             </Field>
 
-            <Field label="PIN" required>
+            <Field label="Note">
+              <Textarea rows={3} placeholder="Add Note" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </Field>
+
+            <Field label="Enter PIN To Save" required>
               <input
                 type="password"
+                placeholder="PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+                className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
               />
             </Field>
           </div>
@@ -211,7 +222,7 @@ export default function ShiftFormDrawer({ open, mode, initialShift, onClose, onS
 
         <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            Close
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save"}

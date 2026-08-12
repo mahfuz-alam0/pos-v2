@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { usePermission } from "@/util/use-permission";
@@ -171,231 +171,238 @@ export default function EmployeeShiftPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Access Management</BreadcrumbPage>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Employee Shift</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Access Management</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-medium text-primary">Employee Shift</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-        <div className="flex flex-wrap gap-2">
-          <LiveShiftControl liveShift={liveShift} onChanged={() => { refreshLiveShift(); load(pagination.current); }} />
-          <Button variant="outline" onClick={() => setHoursOpen(true)}>
-            <Clock className="size-4" />
-            Total Work Hours
-          </Button>
-          <Button
-            onClick={() => {
-              setFormMode("add");
-              setFormShift(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="size-4" />
-            Add Shift
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <LiveShiftControl liveShift={liveShift} onChanged={() => { refreshLiveShift(); load(pagination.current); }} />
+            <Button
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              variant="outline"
+              onClick={() => setHoursOpen(true)}
+            >
+              Check Total Hours
+            </Button>
+            <Button
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              onClick={() => {
+                setFormMode("add");
+                setFormShift(null);
+                setFormOpen(true);
+              }}
+            >
+              Add Shift
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {!isAccessControlled && (
+        <div className="flex flex-wrap items-center gap-3">
+          {!isAccessControlled && (
+            <Select
+              items={[{ value: "", label: "Select Employees" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
+              value={employeeId}
+              onValueChange={(v) => setEmployeeId(v as string)}
+            >
+              <SelectTrigger className="h-10! w-44">
+                <SelectValue placeholder="Select Employees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Select Employees</SelectItem>
+                {employees.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <Select
-            items={[{ value: "", label: "Select Employees" }, ...employees.map((e) => ({ value: e.id, label: e.name }))]}
-            value={employeeId}
-            onValueChange={(v) => setEmployeeId(v as string)}
+            items={[{ value: "", label: "Select Shop" }, ...shops.map((s) => ({ value: s.id, label: s.name }))]}
+            value={filterShopId}
+            onValueChange={(v) => setFilterShopId(v as string)}
           >
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Select Employees" />
+            <SelectTrigger className="h-10! w-44">
+              <SelectValue placeholder="Select Shop" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Select Employees</SelectItem>
-              {employees.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.name}
+              <SelectItem value="">Select Shop</SelectItem>
+              {shops.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
 
-        <Select
-          items={[{ value: "", label: "Select Shop" }, ...shops.map((s) => ({ value: s.id, label: s.name }))]}
-          value={filterShopId}
-          onValueChange={(v) => setFilterShopId(v as string)}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Select Shop" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Select Shop</SelectItem>
-            {shops.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
+          <Select
+            items={[
+              { value: "", label: "Approval Status" },
+              { value: "approved", label: "Approved" },
+              { value: "pending", label: "Not Approved" },
+            ]}
+            value={approvalStatus}
+            onValueChange={(v) => setApprovalStatus(v as string)}
+          >
+            <SelectTrigger className="h-10! w-44">
+              <SelectValue placeholder="Approval Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Approval Status</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="pending">Not Approved</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center">
+            {DATE_FILTERS.map((f, i) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setDateFilter(f)}
+                className={`h-10 border px-3 text-sm font-normal transition-colors ${i > 0 ? "-ml-px" : ""} ${
+                  i === 0 ? "rounded-l-lg" : ""
+                } ${i === DATE_FILTERS.length - 1 ? "rounded-r-lg" : ""} ${
+                  dateFilter === f
+                    ? "relative z-10 border-primary text-primary"
+                    : "border-input text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                {f}
+              </button>
             ))}
-          </SelectContent>
-        </Select>
+          </div>
 
-        <Select
-          items={[
-            { value: "", label: "Approval Status" },
-            { value: "approved", label: "Approved" },
-            { value: "pending", label: "Not Approved" },
-          ]}
-          value={approvalStatus}
-          onValueChange={(v) => setApprovalStatus(v as string)}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Approval Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Approval Status</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="pending">Not Approved</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
-          {DATE_FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setDateFilter(f)}
-              className={`rounded-[7px] px-3 py-1.5 text-sm font-medium transition-colors ${
-                dateFilter === f
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-background/60"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+          {dateFilter === "Custom" && (
+            <>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="h-10 rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+              />
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="h-10 rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
+              />
+            </>
+          )}
         </div>
 
-        {dateFilter === "Custom" && (
-          <>
-            <input
-              type="date"
-              value={customStartDate}
-              onChange={(e) => setCustomStartDate(e.target.value)}
-              className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
-            />
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm dark:bg-input/30"
-            />
-          </>
-        )}
-      </div>
+        <div className="relative -mx-4">
+          <TableLoadingOverlay show={loading && rows.length > 0} />
+          <Table className="text-[14px]">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-normal [&_th]:text-foreground/80">
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead>Store</TableHead>
+                <TableHead>Clock In</TableHead>
+                <TableHead>Clock Out</TableHead>
+                <TableHead>Hours Worked</TableHead>
+                <TableHead className="text-center">Approved</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="text-foreground/70 [&_td]:h-18 [&_td]:px-4">
+              {loading &&
+                rows.length === 0 &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={`sk-${i}`} className="border-b-0">
+                    {Array.from({ length: 7 }).map((__, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
 
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <TableLoadingOverlay show={loading && rows.length > 0} />
-        <Table>
-          <TableHeader className="[&_tr]:border-b-0">
-            <TableRow className="bg-muted/60">
-              <TableHead>Name</TableHead>
-              <TableHead>Store</TableHead>
-              <TableHead>Clock In</TableHead>
-              <TableHead>Clock Out</TableHead>
-              <TableHead>Hours Worked</TableHead>
-              <TableHead className="text-center">Approved</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading &&
-              rows.length === 0 &&
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={`sk-${i}`} className="border-b-0">
-                  {Array.from({ length: 7 }).map((__, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
+              {!loading && rows.length === 0 && (
+                <TableRow className="border-b-0">
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                    No shifts found.
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {rows.map((row) => (
+                <TableRow key={row.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                  <TableCell>{row.employee?.name ?? "-"}</TableCell>
+                  <TableCell>{row.storeInfo?.name ?? "-"}</TableCell>
+                  <TableCell>{fmtDateTime(row.startDate, row.startTimeTwelveHours)}</TableCell>
+                  <TableCell>{fmtDateTime(row.endDate, row.endTimeTwelveHours)}</TableCell>
+                  <TableCell>{hoursWorked(row)}</TableCell>
+                  <TableCell className="text-center">
+                    {row.isApproved ? (
+                      <span className="font-normal text-muted-foreground">Approved</span>
+                    ) : user?.type !== "ACCESS_CONTROLLED" ? (
+                      <Button className="h-9! rounded! bg-card! px-3.5! text-[14px]! font-normal!" variant="outline" onClick={() => handleApprove(row)}>
+                        Approve
+                      </Button>
+                    ) : (
+                      <Badge variant="secondary">Pending</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="outline" className="h-9! bg-card! px-4! text-sm!" />}>
+                          Actions <ChevronDown className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            className="gap-2 whitespace-nowrap"
+                            onClick={() => {
+                              setFormMode("edit");
+                              setFormShift(row);
+                              setFormOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4 text-sky-600" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 whitespace-nowrap" variant="destructive" onClick={() => setDeleteTarget(row)}>
+                            <Trash2 className="size-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
+            </TableBody>
+          </Table>
+        </div>
 
-            {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  No shifts found.
-                </TableCell>
-              </TableRow>
-            )}
-
-            {rows.map((row, i) => (
-              <TableRow
-                key={row.id}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
-              >
-                <TableCell>{row.employee?.name ?? "-"}</TableCell>
-                <TableCell>{row.storeInfo?.name ?? "-"}</TableCell>
-                <TableCell>{fmtDateTime(row.startDate, row.startTimeTwelveHours)}</TableCell>
-                <TableCell>{fmtDateTime(row.endDate, row.endTimeTwelveHours)}</TableCell>
-                <TableCell>{hoursWorked(row)}</TableCell>
-                <TableCell className="text-center">
-                  {row.isApproved ? (
-                    <Badge variant="default">Approved</Badge>
-                  ) : user?.type !== "ACCESS_CONTROLLED" ? (
-                    <Button size="sm" variant="outline" onClick={() => handleApprove(row)}>
-                      Approve
-                    </Button>
-                  ) : (
-                    <Badge variant="secondary">Pending</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                      Actions <ChevronDown className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem
-                        className="gap-2 whitespace-nowrap"
-                        onClick={() => {
-                          setFormMode("edit");
-                          setFormShift(row);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Pencil className="size-4 text-sky-600" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 whitespace-nowrap" variant="destructive" onClick={() => setDeleteTarget(row)}>
-                        <Trash2 className="size-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TablePagination
+          page={pagination.current}
+          totalPages={pagination.totalPages}
+          totalEntries={pagination.total}
+          pageSize={pagination.pageSize}
+          loading={loading}
+          onPageChange={(p: number) => load(p)}
+          compact
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            load(1, s);
+          }}
+        />
       </div>
-
-      <TablePagination
-        page={pagination.current}
-        totalPages={pagination.totalPages}
-        totalEntries={pagination.total}
-        pageSize={pagination.pageSize}
-        loading={loading}
-        onPageChange={(p: number) => load(p)}
-        pageSizeOptions={[30, 50, 100, 200]}
-        onPageSizeChange={(s) => {
-          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
-          load(1, s);
-        }}
-      />
 
       <ShiftFormDrawer
         open={formOpen}

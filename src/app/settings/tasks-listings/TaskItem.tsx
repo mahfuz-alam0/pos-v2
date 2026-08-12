@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, CheckCircle2, Info, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { CalendarDays, CheckCircle2, Info, Loader2, Play, User } from "lucide-react";
 
+import { useShop } from "@/context/shop-context";
+import { startAssignedAuditSession } from "@/services/assignedAuditSessions/start";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -23,6 +28,7 @@ interface Task {
   taskPriority?: { displayName: string; colorCode?: string };
   taskStatus?: { statusId: string; displayName: string; colorCode?: string };
   dueDateString?: string;
+  domain?: string;
 }
 
 export default function TaskItem({
@@ -36,8 +42,11 @@ export default function TaskItem({
   onStatusUpdate: (taskId: string, statusId: string) => Promise<void>;
   onTaskClick: (task: Task) => void;
 }) {
-  const { id, title, description, tags, assignedTo, createdAt, taskPriority, taskStatus, dueDateString } = data;
+  const { id, title, description, tags, assignedTo, createdAt, taskPriority, taskStatus, dueDateString, domain } = data;
+  const router = useRouter();
+  const { shopId } = useShop();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   const handleStatusChange = async (statusId: string) => {
     setIsUpdating(true);
@@ -45,6 +54,20 @@ export default function TaskItem({
       await onStatusUpdate(id, statusId);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleStart = async () => {
+    setStarting(true);
+    try {
+      const res: any = await startAssignedAuditSession(shopId as string, { taskId: id });
+      const auditSessionId = res?.data?.data?.auditSessionId;
+      toast.success("Count session started");
+      if (auditSessionId) router.push(`/inventory-management/audit/${auditSessionId}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to start count session");
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -75,8 +98,15 @@ export default function TaskItem({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {domain === "COUNT_SESSION" && taskStatus?.statusId === "pending" && (
+          <Button size="sm" onClick={handleStart} disabled={starting}>
+            {starting ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+            Start
+          </Button>
+        )}
+
         <Select
-          items={taskStatuses.map((s) => ({ value: s.priorityId, label: s.displayName }))}
+          items={taskStatuses.map((s) => ({ value: s.statusId, label: s.displayName }))}
           value={taskStatus?.statusId}
           onValueChange={(v) => handleStatusChange(v as string)}
         >
@@ -85,7 +115,7 @@ export default function TaskItem({
           </SelectTrigger>
           <SelectContent>
             {taskStatuses.map((status) => (
-              <SelectItem key={status.statusId} value={status.priorityId}>
+              <SelectItem key={status.statusId} value={status.statusId}>
                 <span className="size-2 rounded-full" style={{ backgroundColor: status.colorCode || "#94a3b8" }} />
                 {status.displayName}
               </SelectItem>

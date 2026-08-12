@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, Trash2 } from "lucide-react";
 
 import { fetchRolesList } from "@/services/roles/list";
 import { deleteRole } from "@/services/roles/deleteRole";
@@ -82,110 +82,114 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbPage>Access Management</BreadcrumbPage>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Roles</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+    <div className="flex gap-4 p-3">
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Access Management</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-medium text-primary">Roles</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="size-4" />
-          Add Role
-        </Button>
-      </div>
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setAddOpen(true)}>
+            Add Role
+          </Button>
+        </div>
 
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <TableLoadingOverlay show={loading && rows.length > 0} />
-        <Table>
-          <TableHeader className="[&_tr]:border-b-0">
-            <TableRow className="bg-muted/60">
-              <TableHead>Role Name</TableHead>
-              <TableHead className="text-center">Color</TableHead>
-              <TableHead className="text-center">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading &&
-              rows.length === 0 &&
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={`sk-${i}`} className="border-b-0">
-                  {Array.from({ length: 3 }).map((__, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
+        <div className="relative -mx-4">
+          <TableLoadingOverlay show={loading && rows.length > 0} />
+          <Table className="text-[14px]">
+            <TableHeader className="bg-muted/60 [&_tr]:border-b-0 [&_th]:h-13 [&_th]:px-4 [&_th]:font-normal [&_th]:text-foreground/80">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-1/4">Role Name</TableHead>
+                <TableHead className="w-56 text-center">Color Code</TableHead>
+                <TableHead className="w-40 text-center">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="text-foreground/70 [&_td]:h-18 [&_td]:px-4">
+              {loading &&
+                rows.length === 0 &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={`sk-${i}`} className="border-b-0">
+                    {Array.from({ length: 3 }).map((__, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+
+              {!loading && rows.length === 0 && (
+                <TableRow className="border-b-0">
+                  <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
+                    No roles found.
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {rows.map((row) => (
+                <TableRow key={row.id} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+                  <TableCell
+                    className="cursor-pointer font-normal"
+                    onClick={() => setEditTarget(row)}
+                  >
+                    {row.name}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2 font-medium">
+                      <span className="inline-block size-4 shrink-0 rounded-full ring-1 ring-foreground/10" style={{ backgroundColor: row.colorCode }} />
+                      {row.colorCode}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="outline" className="h-9! bg-card! px-4! text-sm!" />}>
+                          Actions <ChevronDown className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            className="gap-2 whitespace-nowrap"
+                            onClick={() => setEditTarget(row)}
+                          >
+                            <Pencil className="size-4 text-sky-600" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 whitespace-nowrap" variant="destructive" onClick={() => setDeleteTarget(row)}>
+                            <Trash2 className="size-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
+            </TableBody>
+          </Table>
+        </div>
 
-            {!loading && rows.length === 0 && (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                  No roles found.
-                </TableCell>
-              </TableRow>
-            )}
-
-            {rows.map((row, i) => (
-              <TableRow
-                key={row.id}
-                className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
-              >
-                <TableCell
-                  className="cursor-pointer font-medium hover:underline"
-                  onClick={() => setEditTarget(row)}
-                >
-                  {row.name}
-                </TableCell>
-                <TableCell className="text-center">
-                  <span className="inline-block size-4 rounded-full ring-1 ring-foreground/10" style={{ backgroundColor: row.colorCode }} />
-                </TableCell>
-                <TableCell className="text-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                      Actions <ChevronDown className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem
-                        className="gap-2 whitespace-nowrap"
-                        onClick={() => setEditTarget(row)}
-                      >
-                        <Pencil className="size-4 text-sky-600" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 whitespace-nowrap" variant="destructive" onClick={() => setDeleteTarget(row)}>
-                        <Trash2 className="size-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TablePagination
+          page={pagination.current}
+          totalPages={pagination.totalPages}
+          totalEntries={pagination.total}
+          pageSize={pagination.pageSize}
+          loading={loading}
+          onPageChange={(p: number) => load(p)}
+          compact
+          pageSizeOptions={[30, 50, 100, 200]}
+          onPageSizeChange={(s) => {
+            setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
+            load(1, s);
+          }}
+        />
       </div>
-
-      <TablePagination
-        page={pagination.current}
-        totalPages={pagination.totalPages}
-        totalEntries={pagination.total}
-        pageSize={pagination.pageSize}
-        loading={loading}
-        onPageChange={(p: number) => load(p)}
-        pageSizeOptions={[30, 50, 100, 200]}
-        onPageSizeChange={(s) => {
-          setPagination((prev) => ({ ...prev, pageSize: s, current: 1 }));
-          load(1, s);
-        }}
-      />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
         <AlertDialogContent>
