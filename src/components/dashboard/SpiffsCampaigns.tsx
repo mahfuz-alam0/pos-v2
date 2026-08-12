@@ -107,9 +107,9 @@ export default function SpiffsCampaigns() {
 
       <div className="mt-5">
         {loading ? (
-          <div className="py-6 text-center text-muted-foreground">Loading…</div>
+          <div className="min-h-32 py-6 text-center text-muted-foreground">Loading…</div>
         ) : campaigns.length === 0 ? (
-          <div className="py-6 text-center text-muted-foreground">No spiffs match this filter for this day.</div>
+          <div className="min-h-32 py-6 text-center text-muted-foreground">No spiffs match this filter for this day.</div>
         ) : (
           <Accordion multiple className="gap-1">
             {campaigns.map((campaign) => {

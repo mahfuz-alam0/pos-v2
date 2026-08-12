@@ -222,9 +222,9 @@ export default function RegistersPanel() {
         ) : (
           <>
             {loading ? (
-              <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
+              <div className="flex min-h-[352px] w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
             ) : registers.length === 0 ? (
-              <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
+              <div className="flex min-h-[352px] w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
             ) : (
               <div className="flex flex-col gap-2">
                 {registers.map((register) => {

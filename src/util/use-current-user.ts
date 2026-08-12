@@ -26,7 +26,10 @@ export function getCurrentUser(): CurrentUser | null {
 }
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  // Initialize synchronously from localStorage so permission-gated sections
+  // render on first paint instead of mounting a frame later (CLS). The
+  // effect keeps the value in sync with auth changes afterward.
+  const [user, setUser] = useState<CurrentUser | null>(() => getCurrentUser());
 
   useEffect(() => {
     setUser(getCurrentUser());

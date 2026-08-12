@@ -71,7 +71,9 @@ fn wait_for_server(port: u16, timeout: Duration) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  let builder = tauri::Builder::default().plugin(tauri_plugin_shell::init());
+  let builder = tauri::Builder::default()
+    .plugin(tauri_plugin_shell::init())
+    .plugin(tauri_plugin_updater::Builder::new().build());
 
   #[cfg(debug_assertions)]
   let builder = builder.invoke_handler(tauri::generate_handler![toggle_devtools, set_window_title]);
