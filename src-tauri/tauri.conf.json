@@ -5,14 +5,22 @@
   "identifier": "com.pos.desktop",
   "build": {
     "frontendDist": "../src-tauri/placeholder",
-    "beforeBuildCommand": "bun run build:sidecar",
-    "beforeDevCommand": "bun run dev:tauri",
+    "beforeBuildCommand": "bun run tauri:setup && bun run build:sidecar",
+    "beforeDevCommand": "bun run tauri:setup && bun run dev:tauri",
     "devUrl": "http://localhost:3000"
   },
   "app": {
     "windows": [],
     "security": {
       "csp": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1RjcwNjVDQjZFMUMwQzcKUldUSHdPRzJYQWIzTmRwdHljaTh6ZHhuNTliNXVyTy9NbzN5YWkydmpuN3V4UFJwRVowd0g0TXUK",
+      "endpoints": [
+        "https://updates.pos.app/updater/{{target}}/{{arch}}/{{current_version}}"
+      ]
     }
   },
   "bundle": {

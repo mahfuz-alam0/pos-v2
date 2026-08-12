@@ -35,6 +35,7 @@ import {
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 import { MultiApiSelect } from "@/components/ui/multi-api-select";
+import Drawer from "@/components/ui/Drawer";
 import AddEditProductDrawer from "./AddEditProductDrawer";
 import BulkUploadDrawer from "./BulkUploadDrawer";
 import BulkEditDrawer from "./BulkEditDrawer";
@@ -185,7 +186,7 @@ export default function ProductsPage() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+      <div className="flex w-full flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb>
             <BreadcrumbList>
@@ -391,8 +392,8 @@ export default function ProductsPage() {
         />
       </div>
 
-      {openId && (
-        <div className="w-1/3">
+      <Drawer open={!!openId} onClose={closeDetail} side="right" size="40%">
+        {openId && (
           <ProductDetailsPanel
             productId={openId}
             productName={data.find((p) => p.id === openId)?.name}
@@ -402,8 +403,8 @@ export default function ProductsPage() {
               if (product) setEditingProduct(product);
             }}
           />
-        </div>
-      )}
+        )}
+      </Drawer>
 
       <AddEditProductDrawer
         open={addOpen}

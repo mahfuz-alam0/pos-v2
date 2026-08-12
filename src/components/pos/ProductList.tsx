@@ -37,7 +37,9 @@ import { listBrands } from "@/services/classifications/listBrands";
 import { listCategories } from "@/services/classifications/listCategories";
 import { getInventorySellable } from "@/services/sales/inventorySellable";
 import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
+import { listMinimalPackages } from "@/services/packages/listMinimal";
 import { quoteApiManager } from "@/utils/quoteApiManager";
+import { useShop } from "@/context/shop-context";
 
 import { addToCart } from "@/store/slices/cartSlice";
 import { addLineItemsAction } from "@/store/slices/lineItemsSlice";
@@ -78,6 +80,7 @@ export default function ProductList({
   onToggleCartPanel = undefined,
 }) {
   const dispatch = useDispatch();
+  const { shopId } = useShop();
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const lineItems =
     useSelector((state: any) => state?.lineItems?.lineItems) || [];
@@ -119,6 +122,11 @@ export default function ProductList({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [quantities, setQuantities] = useState({});
+  // Set when the normal sellable lookup comes back with nothing (e.g. every
+  // package for this product is at 0 qty) but a broader, non-finished
+  // package still exists — lets the cashier force it into the cart instead
+  // of being completely blocked. Null means no such fallback is available.
+  const [fallbackPackage, setFallbackPackage] = useState(null);
 
   const activeFiltersRef = useRef({
     categoryIds: [],
@@ -307,9 +315,28 @@ export default function ProductList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoOpenProduct]);
 
+  // Nothing currently sellable for this product — look for ANY non-finished
+  // package for it regardless of sellable status (e.g. it's just at 0 qty
+  // right now), so the cashier can still force it into the cart instead of
+  // being completely blocked. Picks the first one with real stock.
+  const fetchFallbackPackage = (productId) => {
+    if (!shopId || !productId) return;
+    listMinimalPackages(shopId, productId, { limit: 30, page: 1 })
+      .then((res) => {
+        if (!mountedRef.current) return;
+        const pkgs = res?.data?.data?.packages || [];
+        setFallbackPackage(pkgs.find((p) => (p.quantityLeft ?? 0) > 0) || null);
+      })
+      .catch(() => {
+        if (!mountedRef.current) return;
+        setFallbackPackage(null);
+      });
+  };
+
   // --- Sellable packages + add-to-cart ---
   const fetchSellablePackages = (productId) => {
     setIsLoading(true);
+    setFallbackPackage(null);
     getInventorySellable(productId)
       .then((res) => {
         if (!mountedRef.current) return;
@@ -317,6 +344,7 @@ export default function ProductList({
         if (!inventory) {
           setPackagesData([]);
           setIsLoading(false);
+          fetchFallbackPackage(productId);
           return;
         }
         const updatedPackagesInfo = (inventory.packagesInfo || []).map(
@@ -349,7 +377,10 @@ export default function ProductList({
           inventory?.inventoryInfo?.storageLocationBreakdown || [],
         );
         setIsLoading(false);
-        if (updatedPackagesInfo.length === 0) toast.error("Package not found");
+        if (updatedPackagesInfo.length === 0) {
+          toast.error("Package not found");
+          fetchFallbackPackage(productId);
+        }
       })
       .catch((error) => {
         if (!mountedRef.current) return;
@@ -427,6 +458,50 @@ export default function ProductList({
     setShowDetail(false);
     setSelectedRowKeys([]);
     setQuantities({});
+  };
+
+  // Forces the fallback (non-sellable) package into the cart when nothing
+  // eligible was found — priced/labeled off the product being viewed since
+  // the minimal-package record itself carries cost fields, not a sell price.
+  const handleForceAddToState = (pkg) => {
+    if (!pkg) return;
+    const product = fetchModalProductDetails;
+    const conversionRate = product?.projectQtyConversionRate || 1;
+    const lineId = crypto.randomUUID();
+    const forcedItem = {
+      ...pkg,
+      key: lineId,
+      appMaintainedId: lineId,
+      packageId: pkg.id,
+      inventoryId: pkg.inventoryId,
+      productId: pkg.productId,
+      productName: pkg.productName || pkg.name,
+      price: Number(product?.unitPrice) || 0,
+      sellableUoMShortForm: product?.sellableUoMShortForm,
+      projectQtyConversionRate: conversionRate,
+      purchaseQuantity: conversionRate * 1,
+      disabledDiscountSources: [],
+    };
+
+    const updatedLineItems = [...cart, forcedItem];
+    dispatch(addToCart(updatedLineItems));
+    dispatch(addLineItemsAction(updatedLineItems));
+    dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
+
+    quoteApiManager
+      .call(
+        getQuoteForSales,
+        { ...quoteBody, lineItems: updatedLineItems },
+        "productList-force-add-to-cart",
+      )
+      .then((res) => dispatch(getQuoteForSale(res.data)))
+      .catch((err) => toast.error(err?.message || "Failed to refresh quote"));
+
+    toast.success(`${forcedItem.productName} added to cart`);
+    setShowDetail(false);
+    setSelectedRowKeys([]);
+    setQuantities({});
+    setFallbackPackage(null);
   };
 
   return (
@@ -853,6 +928,8 @@ export default function ProductList({
               onQuantityInput={handleInputQuantity}
               onBack={() => setShowDetail(false)}
               onAddToCart={handleAddToState}
+              fallbackPackage={fallbackPackage}
+              onForceAdd={handleForceAddToState}
             />
           )}
         </div>

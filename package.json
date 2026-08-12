@@ -9,10 +9,11 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
+    "tauri:setup": "node scripts/setup.mjs",
     "dev:tauri": "NEXT_PUBLIC_TAURI=1 next dev",
     "build:sidecar": "NEXT_PUBLIC_TAURI=1 next build && node scripts/build-sidecar.mjs",
-    "tauri:build": "tauri build",
-    "tauri:dev": "tauri dev"
+    "tauri:build": "node scripts/setup.mjs && tauri build",
+    "tauri:dev": "node scripts/setup.mjs && tauri dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -20,6 +21,8 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@reduxjs/toolkit": "^2.12.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

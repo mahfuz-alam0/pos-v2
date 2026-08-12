@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
+import Drawer from "@/components/ui/Drawer";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import {
   AlertDialog,
@@ -36,6 +37,7 @@ export default function ManufacturersTable() {
   const { defaultPageSize } = useSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const openId = searchParams.get("id");
 
   const [search, setSearch] = useState("");
@@ -96,7 +98,7 @@ export default function ManufacturersTable() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("id");
     const qs = params.toString();
-    router.push(qs ? `?${qs}` : ".", { scroll: false });
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
   const handleDelete = async () => {
@@ -117,7 +119,7 @@ export default function ManufacturersTable() {
 
   return (
     <div className="flex gap-4 p-6">
-      <div className={openId ? "flex w-2/3 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+      <div className="flex w-full flex-col gap-4">
         <div className="flex items-center justify-between">
           <Breadcrumb>
             <BreadcrumbList>
@@ -235,13 +237,15 @@ export default function ManufacturersTable() {
         )}
       </div>
 
-      {openId && (
-        <ManufacturerDetailsPanel
-          brandId={openId}
-          onClose={closeDetail}
-          onEdit={() => setDrawer({ open: true, mode: "edit", brandId: openId })}
-        />
-      )}
+      <Drawer open={!!openId} onClose={closeDetail} side="right" size="45%">
+        {openId && (
+          <ManufacturerDetailsPanel
+            brandId={openId}
+            onClose={closeDetail}
+            onEdit={() => setDrawer({ open: true, mode: "edit", brandId: openId })}
+          />
+        )}
+      </Drawer>
 
       <ManufacturerFormDrawer
         open={drawer.open}

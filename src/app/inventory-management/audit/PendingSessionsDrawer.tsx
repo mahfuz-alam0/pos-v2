@@ -72,11 +72,11 @@ export default function PendingSessionsDrawer({
     setStartingId(session.id);
     try {
       const res = await startAssignedAuditSession(shopId as string, { sessionId: session.id });
-      const started = res?.data?.data?.session || res?.data?.data;
+      const auditSessionId = res?.data?.data?.auditSessionId;
       toast.success("Session started");
       onClose();
       onChanged();
-      if (started?.id) router.push(`/inventory-management/audit/${started.id}`);
+      if (auditSessionId) router.push(`/inventory-management/audit/${auditSessionId}`);
     } catch (err: any) {
       toast.error(err?.message || "Failed to start session");
     } finally {

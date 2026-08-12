@@ -155,7 +155,7 @@ function ProductCard({ product, onClick }) {
 
       {/* Bottom gradient bar — name + price */}
       <div
-        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-0.5 px-2 pb-1.5 pt-6"
+        className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-0.5 px-2 pb-1.5 pt-8"
         style={{
           background:
             "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)",
@@ -163,7 +163,7 @@ function ProductCard({ product, onClick }) {
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="line-clamp-1 text-xs font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
+              <div className="line-clamp-2 text-[11px] font-bold leading-tight text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.7)]">
                 {product?.productName ?? "N/A"}
               </div>
             }
@@ -230,7 +230,7 @@ export default function ProductGridView({
           rendered width is what matters (e.g. Tablet Mode squeezes it next
           to the cart sidebar, so it never reached the xl: viewport
           breakpoint even on a wide screen and got stuck at 3 columns). */}
-      <div className="grid grid-cols-3 gap-1.5 @lg:grid-cols-5 @3xl:grid-cols-7">
+      <div className="grid grid-cols-3 gap-1.5 @lg:grid-cols-4 @3xl:grid-cols-6">
         {data.map((product) => (
           <ProductCard
             key={product.id}

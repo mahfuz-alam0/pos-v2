@@ -19,9 +19,9 @@
   --muted: var(--surface-alt);
   --muted-foreground: #6b7280;
   --table-zebra: #f5f5f4;
-  /* Opaque version of --table-zebra, for sticky columns that need to fully
-     occlude non-sticky cells sliding underneath during horizontal scroll —
-     the translucent --table-zebra lets that content bleed through. */
+  /* Same visual result as --table-zebra but fully opaque — needed on sticky
+     columns, where the translucent version lets horizontally-scrolled
+     content bleed through underneath instead of just tinting the row. */
   --table-zebra-solid: #f5f5f4;
 }
 
@@ -36,7 +36,7 @@
   --destructive-foreground: #1a1a1a;
   --muted-foreground: #9ca3af;
   --table-zebra: rgba(255, 255, 255, 0.04);
-  /* --table-zebra flattened onto --surface (#0b0d10), opaque. */
+  /* rgba(255,255,255,0.04) flattened over --surface (#0b0d10) */
   --table-zebra-solid: #15171a;
 }
 

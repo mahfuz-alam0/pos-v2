@@ -53,11 +53,14 @@ export default function Home() {
         <RegistersPanel />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {canViewDashboardStats && (
           <EmployeeSalesTodayChart employeeId={selectedEmployeeId} onEmployeeChange={setSelectedEmployeeId} />
         )}
         <SpiffsCampaigns />
+      </div>
+
+      <div className="flex flex-col gap-3">
         <TaskList />
         {hasMetrcReporting && <MetrcAlerts />}
       </div>

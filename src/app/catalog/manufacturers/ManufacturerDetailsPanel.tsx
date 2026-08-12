@@ -163,39 +163,45 @@ export default function ManufacturerDetailsPanel({ brandId, onClose, onEdit }: M
   };
 
   return (
-    <div className="flex w-1/3 shrink-0 flex-col gap-4 overflow-hidden">
-      <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-sm font-semibold">Brand Details</h2>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setActivityOpen(true)}>
-              Activity
-            </Button>
-            <Button size="sm" onClick={onEdit}>
-              Edit
-            </Button>
-            <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
-              <X className="size-4" />
-            </Button>
-          </div>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="text-base font-semibold">Brand Details</h2>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setActivityOpen(true)}>
+            Activity
+          </Button>
+          <Button size="sm" onClick={onEdit}>
+            Edit
+          </Button>
+          <Button variant="outline" size="icon" onClick={onClose} className="size-7 shrink-0">
+            <X className="size-4" />
+          </Button>
         </div>
-        <div className="h-px bg-border" />
+      </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3">
-          {loading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-5 w-full" />
-              ))}
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
+            <div className="flex items-center justify-between px-4 py-3">
+              <h2 className="text-sm font-semibold">Brand Details</h2>
             </div>
-          ) : !brand ? (
-            <p className="py-4 text-sm text-muted-foreground">Manufacturer not found.</p>
-          ) : (
-            <Tabs value={tab} onValueChange={setTab}>
-              <TabsList>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                {hasEcomPermission && <TabsTrigger value="ecomm">Ecomm Configuration</TabsTrigger>}
-              </TabsList>
+            <div className="h-px bg-border" />
+
+            <div className="flex-1 px-4 py-3">
+              {loading ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-5 w-full" />
+                  ))}
+                </div>
+              ) : !brand ? (
+                <p className="py-4 text-sm text-muted-foreground">Manufacturer not found.</p>
+              ) : (
+                <Tabs value={tab} onValueChange={setTab}>
+                  <TabsList>
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    {hasEcomPermission && <TabsTrigger value="ecomm">Ecomm Configuration</TabsTrigger>}
+                  </TabsList>
 
               <TabsContent value="details" className="mt-3">
                 <div className="flex flex-col gap-2">
@@ -327,11 +333,13 @@ export default function ManufacturerDetailsPanel({ brandId, onClose, onEdit }: M
                 <TableCell>{supplier.phoneNumber ?? "-"}</TableCell>
               </TableRow>
             ))}
-          </TableBody>
-        </Table>
+            </TableBody>
+          </Table>
+        </div>
+        </div>
       </div>
 
-      <ActivityLogDrawer open={activityOpen} onClose={() => setActivityOpen(false)} domain="BRAND" targetId={brandId} />
+      <ActivityLogDrawer open={activityOpen} onClose={() => setActivityOpen(false)} domain="BRAND" targetId={brandId} size="45%" />
     </div>
   );
 }
