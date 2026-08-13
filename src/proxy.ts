@@ -32,6 +32,11 @@ export async function proxy(request: NextRequest) {
 
   const headers = new Headers(request.headers);
   headers.delete("host");
+  // The upstream engine.io server rejects the polling handshake with 400
+  // ("requested insecurely") unless it can see the hop was HTTPS — this
+  // fetch always is (BASE_URL is https), but the header saying so doesn't
+  // propagate automatically.
+  headers.set("x-forwarded-proto", "https");
 
   const upstreamResponse = await fetch(upstream, {
     method: request.method,
