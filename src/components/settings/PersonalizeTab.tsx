@@ -151,8 +151,8 @@ export default function PersonalizeTab() {
                 >
                   <span
                     className={`relative flex size-9 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${active
-                        ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg"
-                        : ""
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg"
+                      : ""
                       }`}
                     style={{
                       background: `conic-gradient(${t.primary} 0deg 120deg, ${t.secondary} 120deg 240deg, ${t.accent} 240deg 360deg)`,
@@ -185,8 +185,8 @@ export default function PersonalizeTab() {
                   onClick={() => setMode(m)}
                   suppressHydrationWarning
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${active
-                      ? "bg-component-bg font-medium text-text shadow-sm"
-                      : "text-muted-foreground hover:text-text"
+                    ? "bg-component-bg font-medium text-text shadow-sm"
+                    : "text-muted-foreground hover:text-text"
                     }`}
                 >
                   <Icon className="size-4" />
@@ -252,7 +252,7 @@ export default function PersonalizeTab() {
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-text">Default rows per page</span>
           <Select
-            items={[30, 50, 100].map((s) => ({ value: String(s), label: `${s} rows` }))}
+            items={[30, 50, 100, 200].map((s) => ({ value: String(s), label: `${s} rows` }))}
             value={String(defaultPageSize)}
             onValueChange={(v) => setDefaultPageSize(Number(v))}
           >
@@ -260,7 +260,7 @@ export default function PersonalizeTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[30, 50, 100].map((s) => (
+              {[30, 50, 100, 200].map((s) => (
                 <SelectItem key={s} value={String(s)}>
                   {s} rows
                 </SelectItem>

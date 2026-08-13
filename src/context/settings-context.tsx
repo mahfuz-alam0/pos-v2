@@ -13,7 +13,7 @@ const DEFAULTS = {
   queueYellowTime: 15,
   queueRedTime: 20,
   printType: "browser",
-  defaultPageSize: 30,
+  defaultPageSize: 200,
 };
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
