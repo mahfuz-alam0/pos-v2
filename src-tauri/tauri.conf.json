@@ -17,7 +17,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1RjcwNjVDQjZFMUMwQzcKUldUSHdPRzJYQWIzTmRwdHljaTh6ZHhuNTliNXVyTy9NbzN5YWkydmpuN3V4UFJwRVowd0g0TXUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5QjE3NkMxMERGRkM4MTMKUldRVHlQOE53WGF4bWI2TVcreUVEMHZVbGZMVnpkMWxyNnMrTm54RnlNT3hXUVh6Z1JSZzNMUWkK",
       "endpoints": [
         "https://updates.pos.app/updater/{{target}}/{{arch}}/{{current_version}}"
       ]
