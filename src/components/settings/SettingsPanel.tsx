@@ -12,14 +12,13 @@ import CustomerQueue from "@/components/dashboard/CustomerQueue";
 
 const DRAWER_WIDTH = 660;
 const HIDDEN_PATHS = ["/signin"];
-const POSITION_STORAGE_KEY = "settingsFabTop";
 const DEFAULT_TOP_RATIO = 0.25;
 const DRAG_THRESHOLD_PX = 5;
 
 export default function SettingsPanel() {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState("personalize");
-  const { labMode } = useSettings();
+  const { labMode, fabTop, setFabTop } = useSettings();
   const pathname = usePathname();
 
   const [top, setTop] = useState<number | null>(null);
@@ -30,9 +29,12 @@ export default function SettingsPanel() {
   const startPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const stored = Number(localStorage.getItem(POSITION_STORAGE_KEY));
-    setTop(Number.isFinite(stored) && stored > 0 ? stored : window.innerHeight * DEFAULT_TOP_RATIO);
-  }, []);
+    setTop(
+      fabTop && Number.isFinite(fabTop) && fabTop > 0
+        ? fabTop
+        : window.innerHeight * DEFAULT_TOP_RATIO
+    );
+  }, [fabTop]);
 
   const clampTop = (value: number) => {
     const buttonHeight = 44;
@@ -67,7 +69,7 @@ export default function SettingsPanel() {
     e.currentTarget.releasePointerCapture(e.pointerId);
     if (movedRef.current) {
       setTop((current) => {
-        if (current !== null) localStorage.setItem(POSITION_STORAGE_KEY, String(current));
+        if (current !== null) setFabTop(current);
         return current;
       });
     }
@@ -92,9 +94,8 @@ export default function SettingsPanel() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         aria-label={open ? "Close settings" : "Open settings"}
-        className={`fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover ${
-          isDragging ? "cursor-grabbing" : "cursor-pointer"
-        }`}
+        className={`fixed right-0 z-50 flex h-11 w-14 touch-none items-center justify-center rounded-l-full bg-primary text-on-primary shadow-lg transition-[transform,background-color] duration-300 ease-in-out hover:bg-primary-hover ${isDragging ? "cursor-grabbing" : "cursor-pointer"
+          }`}
         style={{
           top: top ?? "25%",
           transform: `translateY(-50%) translateX(${open ? -DRAWER_WIDTH : 0}px)`,
