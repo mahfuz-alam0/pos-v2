@@ -3,7 +3,7 @@ name: Build desktop apps
 on:
   push:
     branches:
-      - master
+      - desktop-release
   workflow_dispatch:
 
 permissions:
