@@ -18,6 +18,7 @@ import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { OrderDetail } from "@/components/admin/SalesTable";
 import SessionDetailDrawer from "./SessionDetailDrawer";
+import { STATUS_BADGE_CLASS } from "./DrawerTransactionsTable";
 import { useSettings } from "@/context/settings-context";
 
 function money(v: number | undefined) {
@@ -61,7 +62,7 @@ function SessionOrdersRow({ orders, loading, onOpenOrder }: { orders: any[] | nu
               </TableCell>
               <TableCell>{row.customer?.name ?? "-"}</TableCell>
               <TableCell>
-                <Badge variant={row.status === "COMPLETED" ? "default" : "secondary"}>
+                <Badge className={row.status === "COMPLETED" ? STATUS_BADGE_CLASS.COMPLETED : STATUS_BADGE_CLASS.OTHER}>
                   {row.status ? row.status.charAt(0) + row.status.slice(1).toLowerCase() : "-"}
                 </Badge>
               </TableCell>
