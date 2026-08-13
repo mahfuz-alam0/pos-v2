@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Minus, Plus } from "lucide-react";
+import { AlertTriangle, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import Drawer from "@/components/ui/Drawer";
@@ -19,8 +19,11 @@ import { getQuoteForSales } from "@/services/sales/getQuoteforSales";
 import { getInventorySellableViaAdvertisedId } from "@/services/sales/inventorySellableViaAdvertisedId";
 import { getShopPreferences } from "@/services/sales/getShopPreferences";
 import { listMinimalPackages } from "@/services/packages/listMinimal";
+import { getSingleProduct } from "@/services/products/getSingleProduct";
 import { quoteApiManager } from "@/utils/quoteApiManager";
 import { useShop } from "@/context/shop-context";
+
+const defaultImage = "/images/placeholders/product.svg";
 
 // Ported from ScanInput.js — hardware-barcode scan input driving the
 // sellable-package lookup by advertisedId.
@@ -34,9 +37,10 @@ import { useShop } from "@/context/shop-context";
 // quote refresh via the shared quoteApiManager.
 //
 // NOT ported (out of the product/cart scope, and depend on unported services):
-// within-store transfer drawer, matrix product resolution. The
-// breakdown-package fallback (listPackagesMinimal) IS implemented — see
-// fetchSellablePackages' fallback branch and handleForceAdd below.
+// matrix product resolution. The breakdown-package fallback
+// (listPackagesMinimal) IS implemented — see fetchSellablePackages' fallback
+// branch below — but the old app's inline within-store transfer Drawer isn't;
+// "Transfer" instead opens the Add Transfer page in a new tab, pre-filled.
 export default function ScanInput({
   setAddSelected,
   placeholder = "Scan barcode / package ID",
@@ -69,10 +73,13 @@ export default function ScanInput({
   const [scannedPackageId, setScannedPackageId] = useState(null);
   const [shouldEnableScanOnlyCart, setShouldEnableScanOnlyCart] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  // Set when nothing sellable matched the scanned code but a broader,
-  // non-finished package with that code (and real stock) still exists — lets
-  // the cashier force it into the cart instead of a dead-end "not found".
-  const [fallbackPackage, setFallbackPackage] = useState(null);
+  // Populated when nothing sellable matched the scanned code — every
+  // non-finished package on the same product, so the cashier can see what's
+  // in stock and transfer one into a sellable location instead of a dead end.
+  const [breakdownPackages, setBreakdownPackages] = useState([]);
+  // Full product record (image, strains, THC/CBD, weight) for that same
+  // "package not found" panel — inventoryData alone doesn't carry these.
+  const [breakdownProductDetails, setBreakdownProductDetails] = useState(null);
 
   const searchInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
@@ -139,7 +146,8 @@ export default function ScanInput({
     setScannedPackageId(null);
     setCounters({});
     setInputValue("");
-    setFallbackPackage(null);
+    setBreakdownPackages([]);
+    setBreakdownProductDetails(null);
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
   };
 
@@ -252,48 +260,20 @@ export default function ScanInput({
     }
   };
 
-  const handleForceAdd = async () => {
-    if (!fallbackPackage || isAddingToCart) return;
-    try {
-      setIsAddingToCart(true);
-      const conversionRate = inventoryData?.inventoryInfo?.projectQtyConversionRate || 1;
-      const lineId = crypto.randomUUID();
-      const forcedItem = {
-        ...fallbackPackage,
-        key: lineId,
-        appMaintainedId: lineId,
-        packageId: fallbackPackage.id,
-        inventoryId: fallbackPackage.inventoryId,
-        productId: inventoryData?.inventoryInfo?.productId,
-        productName:
-          inventoryData?.inventoryInfo?.productNameSnapShot ||
-          fallbackPackage.productName ||
-          fallbackPackage.name,
-        price: inventoryData?.inventoryInfo?.unitPrice,
-        sellableUoMShortForm: inventoryData?.inventoryInfo?.sellableUomShortForm,
-        projectQtyConversionRate: conversionRate,
-        purchaseQuantity: conversionRate * 1,
-        disabledDiscountSources: [],
-      };
-
-      const updatedLineItems = [...cart, forcedItem];
-      dispatch(addToCart(updatedLineItems));
-      dispatch(addLineItemsAction(updatedLineItems));
-      dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
-      setAddSelected?.(false);
-
-      const res = await refreshQuote(updatedLineItems, "scanInput-forceAdd");
-      if (res?.data) {
-        dispatch(getQuoteForSale(res.data));
-        toast.success(`${forcedItem.productName} added to cart`);
-        resetModalState();
-      }
-    } catch (error) {
-      console.error("[ScanInput] Error force-adding to cart:", error);
-      toast.error("Failed to add item to cart. Please try again.");
-    } finally {
-      setIsAddingToCart(false);
-    }
+  // Opens the Add Transfer page (within-storage-locations) in a new tab,
+  // pre-filled with this package and its highest-stocked location — keeps
+  // the current sale/cart untouched instead of navigating away from it.
+  const handleTransfer = (pkg) => {
+    const entries = Object.entries(pkg.storageLocationBreakdown || {});
+    const sourceId = entries.length
+      ? entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0]
+      : undefined;
+    const params = new URLSearchParams({
+      transferType: "within-storage-locations",
+      packageIds: pkg.id,
+      ...(sourceId ? { sourceLocationId: sourceId } : {}),
+    });
+    window.open(`/inventory-management/transfers/add-transfer?${params.toString()}`, "_blank");
   };
 
   const mapPackages = (inventory) =>
@@ -329,44 +309,37 @@ export default function ScanInput({
     if (!advertisedPackageId) return;
     setPackagesLoading(true);
     setScannedPackageId(advertisedPackageId);
-    setFallbackPackage(null);
+    setBreakdownPackages([]);
+    setBreakdownProductDetails(null);
 
     return getInventorySellableViaAdvertisedId(advertisedPackageId)
       .then((res) => {
         setInputValue("");
         const { inventory } = res.data.data;
         setInventoryData(inventory);
-        if (!inventory?.packagesInfo) {
+
+        const updatedPackagesInfo = mapPackages(inventory);
+
+        // Nothing currently sellable for this code (packagesInfo missing OR
+        // an empty array both land here) — look up every non-finished
+        // package on the same product, so the cashier can see what's in
+        // stock and transfer one into a sellable location.
+        if (updatedPackagesInfo.length === 0) {
           setPackagesLoading(false);
           setVisible(true);
-
-          // Nothing currently sellable for this code — look for ANY
-          // non-finished package on the same product whose advertisedId
-          // matches what was scanned, so it can still be forced into the
-          // cart instead of a dead end.
           const productId = inventory?.inventoryInfo?.productId;
           if (productId && shopId) {
             listMinimalPackages(shopId, productId, { limit: 30, page: 1 })
               .then((fbRes) => {
-                const pkgs = fbRes?.data?.data?.packages || [];
-                const candidate =
-                  pkgs.find(
-                    (p) => (p.quantityLeft ?? 0) > 0 && p.advertisedId?.includes(advertisedPackageId),
-                  ) || null;
-                setFallbackPackage(candidate);
-                if (!candidate) toast.error("No eligible packages found for this code");
+                setBreakdownPackages(fbRes?.data?.data?.packages || []);
               })
-              .catch(() => {
-                setFallbackPackage(null);
-                toast.error("No eligible packages found for this code");
-              });
-          } else {
-            toast.error("No eligible packages found for this code");
+              .catch(() => setBreakdownPackages([]));
+            getSingleProduct(productId)
+              .then((pRes) => setBreakdownProductDetails(pRes?.data?.data?.product || null))
+              .catch(() => setBreakdownProductDetails(null));
           }
           return;
         }
-
-        const updatedPackagesInfo = mapPackages(inventory);
 
         // Scan-only single-package flow: skip the drawer, add straight to
         // cart as its own new line every time — rescanning the same package
@@ -477,33 +450,141 @@ export default function ScanInput({
         autoFocus
       />
 
-      <Drawer open={visible} onClose={resetModalState} side="right" size={420}>
+      <Drawer
+        open={visible}
+        onClose={resetModalState}
+        side="right"
+        size={packagesData.length === 0 && breakdownPackages.length > 0 ? "min(1100px, 92vw)" : 420}
+      >
+        {packagesData.length === 0 && breakdownPackages.length > 0 ? (
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <h2 className="truncate text-xl font-semibold">
+                {inventoryData?.inventoryInfo?.productNameSnapShot ?? "Product Details"}
+              </h2>
+              <Button variant="destructive" onClick={resetModalState}>
+                Cancel
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              {(() => {
+                const inv = inventoryData?.inventoryInfo;
+                const conversionRate = inv?.projectQtyConversionRate;
+                const qtyText = (val: any) =>
+                  conversionRate > 0
+                    ? `${(Number(val ?? 0) / conversionRate).toFixed(2)} ${inv?.projectQtyUomShortForm ?? ""}`
+                    : `${Number(val ?? 0).toFixed(2)} ${inv?.sellableUomShortForm ?? ""}`;
+                const strains = breakdownProductDetails?.strains ?? [];
+                const thcValue = breakdownProductDetails?.cannabisProductData?.thcData?.value;
+                const imgUrl = breakdownProductDetails?.images?.[0]?.url;
+
+                return (
+                  <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-stretch">
+                    <div className="w-full shrink-0 overflow-hidden rounded-xl border border-border md:w-2/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgUrl || defaultImage}
+                        alt=""
+                        className="h-full min-h-55 w-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = defaultImage;
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-1 flex-col gap-3">
+                      <div className="rounded-xl border border-border bg-muted/30 p-4">
+                        <p className="m-0 text-sm text-muted-foreground">Unit Price</p>
+                        <p className="m-0 text-2xl font-bold">${Number(inv?.unitPrice ?? 0).toFixed(2)}</p>
+                      </div>
+
+                      <div className="flex-1 rounded-xl border border-border bg-muted/30 p-4">
+                        <div className="flex items-center justify-between border-b border-border/60 py-2 text-sm first:pt-0">
+                          <span className="text-muted-foreground">Total Quantity</span>
+                          <span className="font-medium">{qtyText(inv?.sellableQuantityLeft)}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-border/60 py-2 text-sm">
+                          <span className="text-muted-foreground">Sellable Quantity</span>
+                          <span className="font-medium">{qtyText(inv?.sellableQuantityLeft)}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-border/60 py-2 text-sm">
+                          <span className="text-muted-foreground">Strain</span>
+                          <span className="font-medium">
+                            {strains.length > 0 ? strains.map((s: any) => s.name).join(", ") : "-"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-border/60 py-2 text-sm">
+                          <span className="text-muted-foreground">THC</span>
+                          <span className="font-medium">{thcValue ?? "0"}%</span>
+                        </div>
+                        <div className="flex items-center justify-between py-2 text-sm last:pb-0">
+                          <span className="text-muted-foreground">Weight</span>
+                          <span className="font-medium">
+                            {breakdownProductDetails?.unitWeight ?? "-"}{" "}
+                            {breakdownProductDetails?.unitWeightUom?.shortForm ?? ""}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="mb-4 flex gap-2.5 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="m-0 text-sm font-bold text-amber-900 dark:text-amber-200">
+                    Package Not Found
+                  </p>
+                  <p className="m-0 text-sm text-amber-800/80 dark:text-amber-300/80">
+                    No sellable packages were found for this item. The packages below make up this
+                    inventory&apos;s stock but aren&apos;t currently sellable.
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-lg border border-border">
+                <div className="border-b border-border bg-muted px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Packages In Inventory
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-left text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2">Package ID</th>
+                      <th className="px-3 py-2">Package Name</th>
+                      <th className="px-3 py-2">Quantity Left</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {breakdownPackages.map((pkg) => (
+                      <tr key={pkg.id} className="border-t border-border">
+                        <td className="px-3 py-2">{pkg.advertisedId}</td>
+                        <td className="px-3 py-2">{pkg.name ?? "-"}</td>
+                        <td className="px-3 py-2">{pkg.quantityLeft ?? "-"}</td>
+                        <td className="px-3 py-2">{pkg.isActive ? "Active" : "Inactive"}</td>
+                        <td className="px-3 py-2 text-center">
+                          <Button size="sm" onClick={() => handleTransfer(pkg)}>
+                            Transfer
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div className="flex h-full flex-col p-4">
           <div className="mb-3 text-lg font-semibold">Add Line Items</div>
 
           {packagesLoading ? (
             <SkeletonLoader rows={4} />
           ) : packagesData.length === 0 ? (
-            fallbackPackage ? (
-              <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-                <p className="m-0 text-base font-bold text-amber-900 dark:text-amber-200">
-                  Warning: No eligible packages found
-                </p>
-                <p className="mt-1 mb-3 text-sm text-amber-800/80 dark:text-amber-300/80">
-                  {fallbackPackage.name || fallbackPackage.advertisedId} · {fallbackPackage.quantityLeft}{" "}
-                  {fallbackPackage.uoMShortForm} in stock
-                </p>
-                <Button
-                  className="h-16 w-full bg-amber-600 text-lg font-bold hover:bg-amber-700"
-                  size="lg"
-                  onClick={handleForceAdd}
-                  disabled={isAddingToCart}>
-                  Add Cart Item Anyways
-                </Button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No packages available</p>
-            )
+            <p className="text-sm text-muted-foreground">No packages available</p>
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto">
               {packagesData.map((pkg) => {
@@ -564,6 +645,7 @@ export default function ScanInput({
             )}
           </div>
         </div>
+        )}
       </Drawer>
     </div>
   );
