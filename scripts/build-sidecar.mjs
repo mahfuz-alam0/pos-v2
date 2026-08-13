@@ -1,7 +1,7 @@
 // Packs the Next.js standalone build + a Node binary into src-tauri/binaries/
 // as a Tauri sidecar. Run after `next build`.
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, rmSync, existsSync, chmodSync } from "node:fs";
+import { cpSync, mkdirSync, rmSync, existsSync, chmodSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
@@ -33,6 +33,51 @@ cpSync(standalone, serverDir, { recursive: true });
 cpSync(join(root, ".next", "static"), join(serverDir, ".next", "static"), { recursive: true });
 if (existsSync(join(root, "public"))) {
   cpSync(join(root, "public"), join(serverDir, "public"), { recursive: true });
+}
+
+// sharp (a Next.js optional dep) ships one prebuilt binary per OS/arch. bun
+// installs whichever matches the *host* running `bun install`, not the Rust
+// cross-compile target — so cross-building x86_64 on an arm64 runner (or vice
+// versa) bundles the wrong-arch .node/.dylib too. It's dead weight, and on
+// macOS its bundled signature also fails Apple notarization outright.
+if (triple.includes("-apple-darwin")) {
+  const dropArch = triple.startsWith("x86_64") ? "arm64" : "x64";
+  const imgDir = join(serverDir, "node_modules", "@img");
+  if (existsSync(imgDir)) {
+    for (const name of readdirSync(imgDir)) {
+      if (name.includes(`-darwin-${dropArch}`)) {
+        rmSync(join(imgDir, name), { recursive: true, force: true });
+      }
+    }
+  }
+
+  // The kept-arch binaries above still carry sharp's own publisher signature,
+  // not ours — Apple notarization rejects any embedded Mach-O not signed with
+  // our Developer ID cert. Re-sign them here, once they're in their final
+  // location. Needs APPLE_SIGNING_IDENTITY's cert already in a keychain on
+  // the runner's search list (CI imports it before this script runs).
+  if (process.env.APPLE_SIGNING_IDENTITY) {
+    const nodeModulesDir = join(serverDir, "node_modules");
+    const toSign = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, entry.name);
+        if (entry.isDirectory()) walk(p);
+        else if (entry.name.endsWith(".node") || entry.name.endsWith(".dylib")) toSign.push(p);
+      }
+    };
+    if (existsSync(nodeModulesDir)) walk(nodeModulesDir);
+    for (const file of toSign) {
+      execFileSync("codesign", [
+        "--force",
+        "--timestamp",
+        "--options", "runtime",
+        "--sign", process.env.APPLE_SIGNING_IDENTITY,
+        file,
+      ]);
+    }
+    console.log(`Re-signed ${toSign.length} native binaries for notarization`);
+  }
 }
 
 // Watchdog wrapper must sit beside server.js so its relative import resolves.

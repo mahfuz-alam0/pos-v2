@@ -239,7 +239,7 @@ export default function RevenueBreakdownCard() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-[220px] flex-col items-center justify-center rounded-xl bg-surface-alt/60">
+            <div className="flex h-55 flex-col items-center justify-center rounded-xl bg-surface-alt/60">
               <div className="text-sm font-medium text-muted-foreground">No data available</div>
               <div className="mt-1 text-xs text-muted-foreground">Try selecting a different time period</div>
             </div>
