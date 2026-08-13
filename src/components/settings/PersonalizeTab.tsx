@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HexColorPicker, HexColorInput } from "react-colorful";
 import {
   Check,
   Plus,
@@ -27,21 +28,74 @@ const COLOR_FIELDS = [
   { key: "accent", label: "Accent (sidebar)" },
 ];
 
+// Custom in-DOM color field — deliberately not the native <input type="color">.
+// The native picker renders as an OS-level surface outside this popover's
+// portaled subtree, so it can visually overlap the other rows, and dragging
+// inside it registers as an "outside click" to the popover's own dismiss
+// logic and closes the whole panel. Keeping everything (gradient box, hue
+// slider, hex input) inside our own DOM fixes both.
+function ColorField({ label, value, onChange, isOpen, onToggle }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="flex items-center justify-between gap-3 text-xs text-text">
+        {label}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={`Pick ${label} color`}
+          aria-expanded={isOpen}
+          className={`size-7 shrink-0 cursor-pointer rounded-full border transition-transform hover:scale-105 ${isOpen ? "ring-2 ring-primary ring-offset-2 ring-offset-popover" : "border-border"
+            }`}
+          style={{ backgroundColor: value }}
+        />
+      </label>
+
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-2 pt-1 pb-1 [&_.react-colorful]:w-full [&_.react-colorful]:h-35 [&_.react-colorful__hue]:h-3 [&_.react-colorful__saturation]:rounded-lg [&_.react-colorful__hue]:rounded-full [&_.react-colorful__pointer]:size-4">
+            <HexColorPicker color={value} onChange={onChange} />
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">#</span>
+              <HexColorInput
+                color={value}
+                onChange={onChange}
+                prefixed={false}
+                className="h-7 w-full min-w-0 rounded border border-input bg-component-bg px-2 text-xs text-text uppercase outline-none focus:border-primary"
+              />
+              <Button type="button" size="sm" className="h-7 shrink-0 px-2.5 text-xs" onClick={onToggle}>
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CustomThemeSwatch() {
   const { theme, setTheme, customColors, setCustomColors, customThemeId } = useTheme();
   const [draft, setDraft] = useState(customColors);
+  const [openField, setOpenField] = useState<string | null>(null);
   const active = theme === customThemeId;
 
   const apply = () => {
     setCustomColors(draft);
     setTheme(customThemeId);
+    setOpenField(null);
   };
 
   return (
     <Popover>
       <PopoverTrigger
         className="group flex flex-col items-center gap-1.5"
-        onClick={() => setDraft(customColors)}
+        onClick={() => {
+          setDraft(customColors);
+          setOpenField(null);
+        }}
       >
         <span
           className={`relative flex size-9 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 transition-transform group-hover:scale-105 ${active ? "ring-2 ring-primary ring-offset-2 ring-offset-component-bg" : ""
@@ -65,18 +119,17 @@ function CustomThemeSwatch() {
           Custom
         </span>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-56">
+      <PopoverContent align="start" className="w-64">
         <div className="flex flex-col gap-2.5">
           {COLOR_FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex items-center justify-between gap-3 text-xs text-text">
-              {label}
-              <input
-                type="color"
-                value={draft[key]}
-                onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                className="size-7 cursor-pointer rounded border border-border bg-transparent p-0"
-              />
-            </label>
+            <ColorField
+              key={key}
+              label={label}
+              value={draft[key]}
+              onChange={(color) => setDraft((d) => ({ ...d, [key]: color }))}
+              isOpen={openField === key}
+              onToggle={() => setOpenField((k) => (k === key ? null : key))}
+            />
           ))}
           <Button type="button" size="sm" onClick={apply} className="mt-1">
             Apply
