@@ -98,10 +98,10 @@ export default function VaultActionDialog({ open, mode, onClose, onDone }: Vault
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-          <Button variant="outline" onClick={handleClose} disabled={saving}>
+          <Button variant="outline" className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={saving}>
+          <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving..." : isDeposit ? "Deposit" : "Withdrawal"}
           </Button>
         </div>

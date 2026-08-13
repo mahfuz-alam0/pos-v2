@@ -151,7 +151,7 @@ export default function UomTable() {
                     {row.applicationType === "SELLABLE_STOCK" ? "Unit Product" : "Product Group"}
                   </TableCell>
                   <TableCell className="text-center">{row.conversionRate ?? "-"}</TableCell>
-                  <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
+                  <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}>
                     {!row.systemGeneratedIdentifier && (
                       <div className="flex justify-center">
                         <Button variant="outline" size="icon-sm" onClick={() => openEdit(row.id)}>

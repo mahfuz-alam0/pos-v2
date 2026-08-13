@@ -32,6 +32,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 
 import { Checkbox } from "@/components/ui/checkbox";
 
+import AddEditProductDrawer from "@/app/catalog/products/AddEditProductDrawer";
+import TransferSelectedPackagesDrawer, { type TransferPackageRow } from "../transfers/TransferSelectedPackagesDrawer";
 import PackageDetailsPanel from "./PackageDetailsPanel";
 import RepackageDrawer from "./RepackageDrawer";
 import WasteDrawer from "./WasteDrawer";
@@ -147,9 +149,11 @@ export default function PackagesPage() {
   const [wasteOpen, setWasteOpen] = useState(false);
   const [bulkFinishOpen, setBulkFinishOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const [transferPackages, setTransferPackages] = useState<TransferPackageRow[] | null>(null);
 
   const [reconcileDetail, setReconcileDetail] = useState<any>(null);
   const [reconcileLoadingId, setReconcileLoadingId] = useState<string | null>(null);
+  const [editProductId, setEditProductId] = useState<string | null>(null);
 
   const [exporting, setExporting] = useState(false);
   const [cleanupPackageIds, setCleanupPackageIds] = useState<string[]>([]);
@@ -443,13 +447,7 @@ export default function PackagesPage() {
               <Button
                 className="h-9! rounded! px-3.5! text-[14px]! font-medium!"
                 variant="outline"
-                onClick={() =>
-                  router.push(
-                    `/inventory-management/transfers/add-transfer?transferType=within-storage-locations&packageIds=${selectedTransferRows
-                      .map((r) => r.id)
-                      .join(",")}`
-                  )
-                }
+                onClick={() => setTransferPackages(selectedTransferRows)}
               >
                 Transfer ({selectedTransferRows.length})
               </Button>
@@ -944,7 +942,7 @@ export default function PackagesPage() {
                       <TableCell className="text-center text-sm text-muted-foreground">{ageInDays(row.createdAt)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{fmtDate(row.updatedAt)}</TableCell>
                       <TableCell
-                        className={`sticky right-0 z-10 w-32 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                        className={`sticky right-0 z-10 w-32 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}
                       >
                         <Button
                           className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
@@ -978,6 +976,32 @@ export default function PackagesPage() {
         onClose={closeDetail}
         onChanged={() => loadPackages(pagination.current, pagination.pageSize)}
         locationMap={locationMap}
+        onEditProduct={(productId) => setEditProductId(productId)}
+        onEditPricing={(inventoryId) => router.push(`/inventory-management/inventory-and-pricing/edit/${inventoryId}`)}
+        onTransfer={(pkg) => setTransferPackages([pkg])}
+      />
+
+      <AddEditProductDrawer
+        open={!!editProductId}
+        product={editProductId ? ({ id: editProductId } as any) : null}
+        onClose={() => setEditProductId(null)}
+        onDone={() => {
+          setEditProductId(null);
+          loadPackages(pagination.current, pagination.pageSize);
+        }}
+      />
+
+      <TransferSelectedPackagesDrawer
+        open={!!transferPackages}
+        onClose={() => setTransferPackages(null)}
+        shopId={shopId as string}
+        packages={transferPackages ?? []}
+        onTransferred={() => {
+          setTransferPackages(null);
+          setSelectedRowKeys([]);
+          setSelectedRows([]);
+          loadPackages(pagination.current, pagination.pageSize);
+        }}
       />
 
       <RepackageDrawer

@@ -4,6 +4,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import type { PackageHistoryRow, InventoryPagination } from "./types";
 
+// Matches the date formatting convention used on the order details page
+// (SalesTable.tsx's fmtDateTime).
+const fmtDate = (d?: string) => {
+  if (!d) return "-";
+  const dt = new Date(d);
+  return dt.toLocaleString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+};
+
 export default function PackageHistoryTable({
   data,
   loading,
@@ -17,7 +25,6 @@ export default function PackageHistoryTable({
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
 }) {
-  const totalQuantityChange = data.reduce((sum, r) => sum + (Number(r.packageQuantityChange) || 0), 0);
   const totalPackageTotal = data.reduce((sum, r) => sum + (Number(r.packageTotal) || 0), 0);
 
   return (
@@ -28,31 +35,24 @@ export default function PackageHistoryTable({
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted [&_tr]:border-b-0">
               <TableRow className="bg-muted/60">
-                <TableHead className="w-50">Product</TableHead>
-                <TableHead className="w-37.5">SKU</TableHead>
-                <TableHead className="w-37.5">Location</TableHead>
-                <TableHead className="w-40">Transaction ID</TableHead>
-                <TableHead className="w-40">Transaction Type</TableHead>
-                <TableHead className="w-37.5 text-right">Quantity Change</TableHead>
-                <TableHead className="w-37.5 text-right">Package Total</TableHead>
-                <TableHead className="w-37.5">Room</TableHead>
+                <TableHead className="w-40">Date</TableHead>
+                <TableHead className="w-30 text-right">Total</TableHead>
+                <TableHead className="w-40">Storage Location</TableHead>
+                <TableHead className="w-40">Order ID</TableHead>
               </TableRow>
               <TableRow className="border-b-0 bg-muted/40 font-semibold">
-                <TableHead colSpan={5} className="text-center">
+                <TableHead colSpan={1} className="text-center">
                   TOTALS ({pagination.totalEntries} records)
                 </TableHead>
-                <TableHead className="text-right">
-                  {totalQuantityChange > 0 ? `+${totalQuantityChange.toFixed(2)}` : totalQuantityChange.toFixed(2)}
-                </TableHead>
                 <TableHead className="text-right">{totalPackageTotal.toFixed(2)}</TableHead>
-                <TableHead className="text-center">-</TableHead>
+                <TableHead colSpan={2}>-</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && data.length === 0 &&
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={`s-${i}`} className="border-b-0">
-                    {Array.from({ length: 8 }).map((__, j) => (
+                    {Array.from({ length: 4 }).map((__, j) => (
                       <TableCell key={j}>
                         <div className="h-4 w-full animate-pulse rounded bg-muted" />
                       </TableCell>
@@ -61,23 +61,17 @@ export default function PackageHistoryTable({
                 ))}
               {!loading && data.length === 0 && (
                 <TableRow className="border-b-0">
-                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
                     No package history found.
                   </TableCell>
                 </TableRow>
               )}
               {data.map((row, i) => (
                 <TableRow key={`${row._id || row.transactionId}-${i}`} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                  <TableCell>{row.productName || "-"}</TableCell>
-                  <TableCell>{row.productSku || "-"}</TableCell>
-                  <TableCell>{row.location?.country || "-"}</TableCell>
-                  <TableCell>{row.transactionId || "-"}</TableCell>
-                  <TableCell>{row.transactionType || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {row.packageQuantityChange > 0 ? `+${row.packageQuantityChange}` : row.packageQuantityChange}
-                  </TableCell>
+                  <TableCell>{fmtDate(row.createdAt)}</TableCell>
                   <TableCell className="text-right">{row.packageTotal}</TableCell>
                   <TableCell>{row.roomName || "-"}</TableCell>
+                  <TableCell className="font-medium text-primary">{row.transactionId || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

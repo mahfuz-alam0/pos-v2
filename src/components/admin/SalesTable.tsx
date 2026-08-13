@@ -27,6 +27,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
+import Receipt from "@/components/pos/Receipt";
+import { printNode } from "@/components/pos/PrintReceiptModal";
+import { OverallActivityLogsPanel } from "@/components/activity-logs/OverallActivityLogsPanel";
 import { TablePagination } from "@/components/ui/table-pagination";
 
 // Admin "Sales" list — completed, non-cancelled orders only (in-progress
@@ -122,18 +125,41 @@ function Row({ label, value }) {
   );
 }
 
-function OrderDetail({ order }) {
-  const storeLabel =
-    (typeof window !== "undefined" && JSON.parse(localStorage.getItem("shopDetails") || "null")?.label) || "-";
+export function OrderDetail({ order }) {
+  const shopDetails = (typeof window !== "undefined" && JSON.parse(localStorage.getItem("shopDetails") || "null")) || null;
+  const storeLabel = shopDetails?.label || "-";
   const transactions = order?.transactions || [];
   const received = transactions.filter((t) => t.type === "CREDIT").reduce((s, t) => s + num(t.amount), 0);
   const changeDue = transactions.filter((t) => t.type === "DEBIT").reduce((s, t) => s + num(t.amount), 0);
 
+  const receiptRef = useRef(null);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const customerName = `${order?.customer?.firstName ?? ""} ${order?.customer?.lastName ?? ""}`.trim();
+
   return (
     <div className="space-y-4 text-sm">
+      {/* Off-screen print source for the "Print Invoice" button — same
+          isolation technique as the post-checkout PrintReceiptModal, just
+          without its hardware-print/New-Order machinery since this is a
+          reprint of a historical order, not a live checkout. */}
+      <div id="pos-receipt-print-area" ref={receiptRef} style={{ position: "fixed", left: -9999, top: 0 }}>
+        <Receipt order={order} shopDetails={shopDetails} customerName={customerName} />
+      </div>
+
       <div className="rounded-lg border border-border">
         <div className="rounded-t-lg bg-[rgb(89,135,216)] px-3 py-2 text-white">
           <h6 className="m-0 font-semibold">{order?.status?.displayName ?? "-"}</h6>
+        </div>
+        <div className="flex items-center justify-between px-4 pt-3">
+          <div className="text-base font-medium">Order Details</div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button size="sm" variant="outline" disabled={!order?.id} onClick={() => printNode(receiptRef.current)}>
+              Print Invoice
+            </Button>
+            <Button size="sm" variant="outline" disabled={!order?.id} onClick={() => setActivityOpen(true)}>
+              Activity
+            </Button>
+          </div>
         </div>
         <div className="space-y-0.5 px-4 py-3">
           <Row label="Type" value="SALE" />
@@ -145,6 +171,19 @@ function OrderDetail({ order }) {
           <Row label="Employee" value={order?.creatorInfo?.name ?? "-"} />
         </div>
       </div>
+
+      <Drawer open={activityOpen} onClose={() => setActivityOpen(false)} side="right" size="60%">
+        <div className="flex h-full flex-col gap-4 overflow-y-auto p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Order Activity</h2>
+            <Button variant="outline" size="icon" onClick={() => setActivityOpen(false)}>
+              <span className="sr-only">Close</span>
+              &times;
+            </Button>
+          </div>
+          {activityOpen && order?.id && <OverallActivityLogsPanel domain="SALES" targetId={order.id} />}
+        </div>
+      </Drawer>
 
       {order?.receiptNote && (
         <div className="rounded-lg border border-border p-3">
@@ -241,7 +280,10 @@ function OrderDetail({ order }) {
   );
 }
 
-export default function SalesTable() {
+// packageId: when set, scopes to sales that included this package as a line
+// item (a product's "Order History") and hides the customer/date/etc filter
+// bar — those don't apply when the caller has already fixed the product.
+export default function SalesTable({ packageId }: { packageId?: string } = {}) {
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -288,6 +330,7 @@ export default function SalesTable() {
         filters.push({ name: "fromDate", value: dateRange.fromDate });
         filters.push({ name: "toDate", value: dateRange.toDate });
       }
+      if (packageId) filters.push({ name: "packageId", value: packageId });
       return filters;
     },
     [
@@ -299,6 +342,7 @@ export default function SalesTable() {
       selectedEmployeeId,
       selectedDateFilter,
       customDateRange,
+      packageId,
     ]
   );
 
@@ -419,8 +463,8 @@ export default function SalesTable() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <h1 className="text-lg font-semibold">Sales</h1>
+    <div className={`flex flex-col gap-4 ${packageId ? "" : "p-4"}`}>
+      {!packageId && <h1 className="text-lg font-semibold">Sales</h1>}
 
       <div className="mb-1 flex flex-wrap items-end gap-2">
         <div className="w-32">
@@ -462,8 +506,10 @@ export default function SalesTable() {
                 </SelectContent>
               </Select>
             </div>
-            <Input placeholder="Search Customer" value={customerSearch} onChange={(e) => handleCustomerSearch(e.target.value)} className="w-40" />
-            {customerFilterOptions && (
+            {!packageId && (
+              <Input placeholder="Search Customer" value={customerSearch} onChange={(e) => handleCustomerSearch(e.target.value)} className="w-40" />
+            )}
+            {!packageId && customerFilterOptions && (
               <div className="w-28">
                 <Select value={selectedCustomerFilter ?? ""} onValueChange={setSelectedCustomerFilter}>
                   <SelectTrigger className="w-full">
@@ -489,6 +535,7 @@ export default function SalesTable() {
           <Input placeholder="Search Order ID..." value={orderIdSearch} onChange={(e) => setOrderIdSearch(e.target.value)} className="w-48" />
         )}
 
+        {!packageId && (
         <div className="w-40">
           <Select value={selectedEmployeeId || "__all__"} onValueChange={(v) => setSelectedEmployeeId(v === "__all__" ? "" : v)}>
             <SelectTrigger className="w-full">
@@ -510,7 +557,9 @@ export default function SalesTable() {
             </SelectContent>
           </Select>
         </div>
+        )}
 
+        {!packageId && (
         <div className="w-36">
           <Select value={selectedReportingStatus || "__all__"} onValueChange={(v) => setSelectedReportingStatus(v === "__all__" ? "" : v)}>
             <SelectTrigger className="w-full">
@@ -529,7 +578,9 @@ export default function SalesTable() {
             </SelectContent>
           </Select>
         </div>
+        )}
 
+        {!packageId && (
         <div className="w-36">
           <Select value={selectedDeliveryMethod || "__all__"} onValueChange={(v) => setSelectedDeliveryMethod(v === "__all__" ? "" : v)}>
             <SelectTrigger className="w-full">
@@ -548,6 +599,7 @@ export default function SalesTable() {
             </SelectContent>
           </Select>
         </div>
+        )}
 
         <div className="w-36">
           <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
@@ -580,26 +632,26 @@ export default function SalesTable() {
             <tr>
               <th className="px-3 py-2 font-medium">Order ID</th>
               <th className="px-3 py-2 font-medium">Customer</th>
-              <th className="px-3 py-2 font-medium">Team</th>
+              {!packageId && <th className="px-3 py-2 font-medium">Team</th>}
               <th className="px-3 py-2 font-medium">Created</th>
-              <th className="px-3 py-2 text-center font-medium">Status</th>
+              {!packageId && <th className="px-3 py-2 text-center font-medium">Status</th>}
               <th className="px-3 py-2 text-center font-medium">Order Type</th>
-              <th className="px-3 py-2 font-medium">Payment</th>
-              <th className="px-3 py-2 text-center font-medium">Reporting</th>
-              <th className="px-3 py-2 text-center font-medium">Total</th>
-              <th className="px-3 py-2 text-center font-medium">Action</th>
+              {!packageId && <th className="px-3 py-2 font-medium">Payment</th>}
+              {!packageId && <th className="px-3 py-2 text-center font-medium">Reporting</th>}
+              {!packageId && <th className="px-3 py-2 text-center font-medium">Total</th>}
+              {!packageId && <th className="px-3 py-2 text-center font-medium">Action</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={packageId ? 3 : 10} className="px-3 py-8 text-center text-muted-foreground">
                   Loading…
                 </td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={packageId ? 3 : 10} className="px-3 py-8 text-center text-muted-foreground">
                   No orders found
                 </td>
               </tr>
@@ -616,14 +668,17 @@ export default function SalesTable() {
                     <td className="max-w-40 truncate px-3 py-2">
                       {`${record?.customerInfo?.firstName ?? ""} ${record?.customerInfo?.lastName ?? ""}`.trim() || "-"}
                     </td>
-                    <td className="max-w-35 truncate px-3 py-2">{record?.employeeInfo?.name || "-"}</td>
+                    {!packageId && <td className="max-w-35 truncate px-3 py-2">{record?.employeeInfo?.name || "-"}</td>}
                     <td className="px-3 py-2">{fmtDateTime(record.createdAt)}</td>
+                    {!packageId && (
                     <td className="px-3 py-2 text-center">
                       <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_STYLES[statusName] || "bg-amber-100 text-amber-600"}`}>
                         {statusName === "Packaged & Ready 1" ? "P&R" : statusName}
                       </span>
                     </td>
+                    )}
                     <td className="px-3 py-2 text-center">{record?.deliveryMethod?.replace(/_/g, " ")}</td>
+                    {!packageId && (
                     <td className="px-3 py-2">
                       <span
                         className={`rounded px-2 py-1 text-xs ${
@@ -633,6 +688,8 @@ export default function SalesTable() {
                         {record?.paymentStatus === "PAID_IN_FULL" ? "Completed" : "Pending"}
                       </span>
                     </td>
+                    )}
+                    {!packageId && (
                     <td className="px-3 py-2 text-center">
                       <Tooltip>
                         <TooltipTrigger
@@ -658,12 +715,15 @@ export default function SalesTable() {
                         <TooltipContent>Click to create METRC sale report</TooltipContent>
                       </Tooltip>
                     </td>
-                    <td className="px-3 py-2 text-center">${record.finalPayable}</td>
+                    )}
+                    {!packageId && <td className="px-3 py-2 text-center">${record.finalPayable}</td>}
+                    {!packageId && (
                     <td className="px-3 py-2 text-center">
                       <Button size="xs" variant="outline" onClick={() => processRefund(record)}>
                         Refund
                       </Button>
                     </td>
+                    )}
                   </tr>
                 );
               })

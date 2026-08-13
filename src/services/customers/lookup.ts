@@ -29,14 +29,26 @@ export async function findCustomersByLicense({
   }
 }
 
-// Fuzzy lookup by "first:last:dob" info string.
-export async function findCustomersByInfoString({ shopId, firstName, lastName, dob }) {
+// Fuzzy lookup by "first:last:dob" info string. The API requires exactly 3
+// colon-separated segments and only filters on the ones you fill in — an
+// empty segment means "don't filter on this field", not "match empty
+// string". A partial string like "first:" is 2 segments, not 3, which the
+// API silently treats as malformed and returns everyone, so always emit
+// all 3 rather than growing the string conditionally.
+export async function findCustomersByInfoString({
+  shopId,
+  firstName,
+  lastName,
+  dob,
+}: {
+  shopId: string
+  firstName?: string
+  lastName?: string
+  dob?: string
+}) {
   try {
-    let infoString = "";
-    if (firstName) infoString += `${String(firstName).toLowerCase()}:`;
-    if (lastName) infoString += `${String(lastName).toLowerCase()}:`;
-    if (dob && lastName) infoString += dob;
-    if (!infoString) return [];
+    if (!firstName && !lastName && !dob) return [];
+    const infoString = `${(firstName ? String(firstName).toLowerCase() : "")}:${(lastName ? String(lastName).toLowerCase() : "")}:${dob || ""}`;
 
     const { data } = await api.get("/customers/list-customers", {
       params: { limit: 30, page: 1, infoString, shopPreference: shopId },

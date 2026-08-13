@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Mail, Phone, Pencil } from "lucide-react";
 import { useShop } from "@/context/shop-context";
 import { parseDLBarcode } from "@/lib/aamva";
 import { findCustomersByLicense, findCustomersByInfoString } from "@/services/customers/lookup";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 
 // Time to wait after the last scanner keystroke before parsing. Hardware scan
 // guns emit the whole barcode in fast chunks; this debounce collects them.
@@ -28,6 +30,12 @@ export default function ScanIdDialog({ open, onOpenChange }) {
   const [customerInfo, setCustomerInfo] = useState(null);
   const [customerStatus, setCustomerStatus] = useState("");
   const [customerNotFound, setCustomerNotFound] = useState(false);
+  // The matched customer's own record — held here (instead of auto-queueing
+  // and closing immediately) so their email/phone/photo can be shown and
+  // edited on the spot before adding them to the queue.
+  const [foundCustomer, setFoundCustomer] = useState(null);
+  const [queueing, setQueueing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const inputRef = useRef(null);
   const timerRef = useRef(null);
@@ -42,6 +50,9 @@ export default function ScanIdDialog({ open, onOpenChange }) {
       setCustomerInfo(null);
       setCustomerStatus("");
       setCustomerNotFound(false);
+      setFoundCustomer(null);
+      setQueueing(false);
+      setEditOpen(false);
       return;
     }
     const t = setTimeout(() => inputRef.current?.focus(), 500);
@@ -99,15 +110,9 @@ export default function ScanIdDialog({ open, onOpenChange }) {
       );
 
       if (found?.length) {
-        await addCustomerToQueue({
-          shopId,
-          customerId: found[0].id || found[0]._id,
-          isAnonymous: false,
-        });
-        toast.success("Customer is Added to Queue");
+        setFoundCustomer(found[0]);
         setCustomerStatus("Customer Found");
         setScanFailed(false);
-        onOpenChange(false);
       } else {
         setCustomerStatus("Customer Not Found");
         setCustomerNotFound(true);
@@ -118,15 +123,11 @@ export default function ScanIdDialog({ open, onOpenChange }) {
           dob: data.dob,
         }).catch(() => []);
         if (found?.length) {
-          await addCustomerToQueue({
-            shopId,
-            customerId: found[0].id || found[0]._id,
-            isAnonymous: false,
-          });
-          toast.success("Customer is Added to Queue");
+          setFoundCustomer(found[0]);
           setCustomerStatus("Customer Found");
           setCustomerNotFound(false);
-          onOpenChange(false);
+          setIsLoading(false);
+          setProcessingMessage("");
           return;
         }
         setScanFailed(false);
@@ -148,8 +149,24 @@ export default function ScanIdDialog({ open, onOpenChange }) {
     setCustomerNotFound(false);
     setCustomerInfo(null);
     setCustomerStatus("");
+    setFoundCustomer(null);
     if (inputRef.current) inputRef.current.value = "";
     inputRef.current?.focus();
+  }
+
+  async function handleAddToQueue() {
+    const customerId = foundCustomer?.id || foundCustomer?._id;
+    if (!customerId || queueing) return;
+    setQueueing(true);
+    try {
+      await addCustomerToQueue({ shopId, customerId, isAnonymous: false });
+      toast.success("Customer is Added to Queue");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err?.message || "Failed to add customer to queue");
+    } finally {
+      setQueueing(false);
+    }
   }
 
   function handleAddCustomer() {
@@ -159,6 +176,7 @@ export default function ScanIdDialog({ open, onOpenChange }) {
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="z-60 sm:max-w-130">
         <DialogHeader>
@@ -213,6 +231,51 @@ export default function ScanIdDialog({ open, onOpenChange }) {
             </div>
           </div>
 
+          {foundCustomer && (
+            <div className="mt-5 rounded-lg border-l-4 border-[#52c41a] bg-[#f6ffed] p-4">
+              <div className="flex items-center gap-3">
+                {foundCustomer.avatarUrl ? (
+                  <img
+                    src={foundCustomer.avatarUrl}
+                    alt=""
+                    className="size-14 shrink-0 rounded-full object-cover ring-2 ring-[#52c41a]"
+                  />
+                ) : (
+                  <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#52c41a] text-lg font-bold text-white">
+                    {[foundCustomer.firstName?.[0], foundCustomer.lastName?.[0]].filter(Boolean).join("").toUpperCase() || "?"}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-gray-900">
+                    {foundCustomer.firstName} {foundCustomer.lastName}
+                  </p>
+                  {foundCustomer.email && (
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-600">
+                      <Mail className="size-3" /> {foundCustomer.email}
+                    </p>
+                  )}
+                  {foundCustomer.phone && (
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-600">
+                      <Phone className="size-3" /> {foundCustomer.phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil /> Edit Customer
+                </Button>
+                <Button
+                  className="bg-[#1890ff] text-white hover:bg-[#1890ff]/90"
+                  disabled={queueing}
+                  onClick={handleAddToQueue}
+                >
+                  {queueing ? "Adding…" : "Add to Queue"}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {customerNotFound && (
             <div className="mt-5 text-center">
               <Button
@@ -238,5 +301,18 @@ export default function ScanIdDialog({ open, onOpenChange }) {
         </div>
       </DialogContent>
     </Dialog>
+
+    <AddCustomerForm
+      open={editOpen}
+      zIndex={80}
+      customer={foundCustomer}
+      onClose={() => setEditOpen(false)}
+      onCreated={() => {}}
+      onUpdated={(updated) => {
+        setFoundCustomer((prev) => ({ ...prev, ...updated }));
+        setEditOpen(false);
+      }}
+    />
+    </>
   );
 }

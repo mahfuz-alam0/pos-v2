@@ -82,7 +82,7 @@ const EMPTY_FORM = {
   note: "",
 };
 
-// Maps PixLab's docscan/medidscan response onto this form's own field names
+// Maps /api/azure-docscan's response onto this form's own field names
 // directly (rather than the initialValues-prop indirection PhotoCheckinDialog
 // uses), since these results feed straight into setForm from inside the form.
 function normalizeOcrDoc(doc: any, isMedId: boolean) {
@@ -209,11 +209,11 @@ const eighteenYearsAgoISO = () => {
  *
  * Identity Documents section (top) mirrors the legacy layout — inline
  * upload-or-camera cards (IdentityDocCard) instead of a button-triggered
- * modal: Profile Picture just uploads, Front Driver's License OCRs via the
- * same /api/pixlab-docscan proxy PhotoCheckinDialog uses, Back Driver's
- * License decodes the AAMVA PDF417 barcode (@/lib/dlBarcode,
- * @/lib/aamva — same libs PhotoCheckinDialog's dl-back mode uses), and
- * Medical ID OCRs via /api/pixlab-medidscan. All four autofill matching
+ * modal: Profile Picture just uploads, Front Driver's License and Medical
+ * ID both OCR via the same /api/azure-docscan proxy PhotoCheckinDialog
+ * uses (Azure AI Document Intelligence), Back Driver's License decodes the
+ * AAMVA PDF417 barcode (@/lib/dlBarcode, @/lib/aamva — same libs
+ * PhotoCheckinDialog's dl-back mode uses). All four autofill matching
  * form fields and attach their photo as drivingLicenseFrontImage /
  * drivingLicenseBackImage / medicalLicenseImage. General document upload
  * reuses this app's existing DocumentsUpload widget
@@ -437,14 +437,10 @@ export default function AddCustomerForm({
       drivingLicenseFrontImage: uploaded.downloadUrl,
     }));
     try {
-      const res = await fetch("/api/pixlab-docscan", {
+      const res = await fetch("/api/azure-docscan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          img: uploaded.downloadUrl,
-          type: "driver_license",
-          country: "usa",
-        }),
+        body: JSON.stringify({ img: uploaded.downloadUrl }),
       });
       const json = await res.json();
       if (!res.ok || !(json?.status === 200 || json?.doc)) {
@@ -504,7 +500,7 @@ export default function AddCustomerForm({
       medicalLicenseImage: uploaded.downloadUrl,
     }));
     try {
-      const res = await fetch("/api/pixlab-medidscan", {
+      const res = await fetch("/api/azure-docscan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ img: uploaded.downloadUrl }),

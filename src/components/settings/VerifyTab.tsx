@@ -10,28 +10,24 @@ const CHECKIN_TYPES = [
   {
     key: "dl-front",
     label: "Driver's License Front",
-    color: "#4B47C8",
     description: "Scan front of driver's license to identify customer",
     icon: FileImage,
   },
   {
     key: "dl-back",
     label: "Driver's License Back / Barcode",
-    color: "#E8632A",
     description: "Scan barcode on back of driver's license",
     icon: ScanBarcode,
   },
   {
     key: "med-id",
     label: "Med ID",
-    color: "#D94F3D",
     description: "Scan medical identification card",
     icon: IdCard,
   },
   {
     key: "scan-dl",
     label: "Scan ID",
-    color: "#1890ff",
     description: "Directly scan driver's license barcode",
     icon: ScanLine,
   },
@@ -40,9 +36,9 @@ const CHECKIN_TYPES = [
 function CheckinCard({ type, onSelect }) {
   const Icon = type.icon;
   return (
-    <div className="mb-3 rounded-[14px] border-[1.5px] border-border bg-surface-alt p-4">
+    <div className="mb-3 rounded-[14px] bg-surface-alt p-4 ring-1 ring-foreground/10">
       <div className="mb-3.5 flex items-center gap-3.5">
-        <div className="flex h-13 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border-[1.5px] border-border bg-muted">
+        <div className="flex h-13 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10">
           <Icon className="size-6 text-muted-foreground/60" />
         </div>
         <div className="min-w-0 flex-1">
@@ -50,11 +46,7 @@ function CheckinCard({ type, onSelect }) {
           <span className="text-xs text-muted-foreground">{type.description}</span>
         </div>
       </div>
-      <Button
-        className="h-12 w-full font-semibold text-white"
-        style={{ background: type.color, borderColor: type.color }}
-        onClick={() => onSelect(type)}
-      >
+      <Button className="h-12 w-full font-semibold" onClick={() => onSelect(type)}>
         {type.key === "scan-dl" ? "Scan ID" : "Scan / Upload"}
       </Button>
     </div>

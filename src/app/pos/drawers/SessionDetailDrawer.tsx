@@ -1,44 +1,64 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { Receipt, X } from "lucide-react";
+import { Download, Printer, Receipt, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { getDrawerSessionDetails } from "@/services/drawers/getSessionDetails";
 import { approveDrawerAdjustment } from "@/services/drawers/approveAdjustment";
+import { printNode } from "@/components/pos/PrintReceiptModal";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Field } from "@/components/admin/form-fields";
+import DrawerReceiptContent, { computeReceiptValues } from "./DrawerReceiptModal";
 
 function money(v: number | undefined) {
   return `$${(v ?? 0).toFixed(2)}`;
 }
 
+function fmt(v: string | undefined) {
+  if (!v) return "-";
+  return new Date(v).toLocaleString([], { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function Row({ label, value, tone }: { label: string; value: string; tone?: "positive" | "negative" }) {
+  const toneClass = tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-destructive" : "";
+  return (
+    <div className="flex justify-between border-b border-foreground/5 py-1.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`font-medium ${toneClass}`}>{value}</span>
+    </div>
+  );
+}
+
 interface SessionDetailDrawerProps {
   session: any;
   drawerId: string;
+  drawerName?: string;
   onClose: () => void;
   onApproved: () => void;
 }
 
-export default function SessionDetailDrawer({ session, drawerId, onClose, onApproved }: SessionDetailDrawerProps) {
+export default function SessionDetailDrawer({ session, drawerId, drawerName, onClose, onApproved }: SessionDetailDrawerProps) {
   const { shopId } = useShop();
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [cashAdjustmentReason, setCashAdjustmentReason] = useState("");
   const [virtualAdjustmentReason, setVirtualAdjustmentReason] = useState("");
   const [approving, setApproving] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!session?.id || !shopId) return;
     setLoading(true);
     setCashAdjustmentReason("");
     setVirtualAdjustmentReason("");
-    getDrawerSessionDetails({ drawerId, sessionId: session.id, shopId })
+    getDrawerSessionDetails({ drawerId, drawerSessionId: session.id, shopId })
       .then((res) => setDetails(res?.data ?? null))
       .finally(() => setLoading(false));
   }, [session?.id, drawerId, shopId]);
@@ -65,6 +85,51 @@ export default function SessionDetailDrawer({ session, drawerId, onClose, onAppr
     }
   };
 
+  const transactions = details?.transactions ?? [];
+  const v = computeReceiptValues(transactions);
+  const expectedCash = session?.expectedCashBalance ?? session?.startingCashBalance ?? 0;
+  const actualCash = session?.isOpen ? expectedCash : session?.closingCashBalance ?? expectedCash;
+  const discrepancy = session?.cashAdjustment ?? actualCash - expectedCash;
+
+  // Raw in/out totals across every transaction, cash and virtual separately —
+  // ported from the old POS's "Deposits & Withdrawals" tiles.
+  const cashIn = transactions.reduce((s: number, t: any) => s + (t.cashCredit || 0), 0);
+  const cashOut = transactions.reduce((s: number, t: any) => s + (t.cashDebit || 0), 0);
+  const virtualIn = transactions.reduce((s: number, t: any) => s + (t.virtualCredit || 0), 0);
+  const virtualOut = transactions.reduce((s: number, t: any) => s + (t.virtualDebit || 0), 0);
+
+  const handleExportPdf = () => {
+    if (!session) return;
+    const lines = [
+      `Session Details`,
+      `Session ID: ${session.id}`,
+      `Status: ${session.isOpen ? "Active" : "Closed"}`,
+      `Opened By: ${session.openedBy?.name ?? "-"}`,
+      `Opened At: ${fmt(session.createdAt)}`,
+      ...(session.isOpen ? [] : [`Closed By: ${session.closedBy?.name ?? "-"}`, `Closed At: ${fmt(session.updatedAt)}`]),
+      ``,
+      `Cash Summary`,
+      `Opening Cash: ${money(session.startingCashBalance)}`,
+      `Closing Cash: ${session.closingCashBalance != null ? money(session.closingCashBalance) : "-"}`,
+      `Opening Virtual: ${money(session.startingVirtualBalance)}`,
+      `Closing Virtual: ${session.closingVirtualBalance != null ? money(session.closingVirtualBalance) : "-"}`,
+      `Expected Cash: ${money(expectedCash)}`,
+      ``,
+      `Deposits & Withdrawals (${transactions.length})`,
+      `Cash In: ${money(cashIn)}`,
+      `Cash Out: ${money(cashOut)}`,
+      `Virtual In: ${money(virtualIn)}`,
+      `Virtual Out: ${money(virtualOut)}`,
+    ].join("\n");
+    const blob = new Blob([lines], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `session-${session.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Drawer open={!!session} onClose={onClose} side="right" size={480}>
       <div className="flex h-full flex-col">
@@ -73,11 +138,22 @@ export default function SessionDetailDrawer({ session, drawerId, onClose, onAppr
             <Receipt className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold leading-tight">Session {session?.id}</div>
-            <div className="text-xs leading-tight text-muted-foreground">Cash summary and adjustments</div>
+            <div className="text-base font-semibold leading-tight">Session Details</div>
+            <Badge variant={session?.isOpen ? "default" : "destructive"} className="mt-0.5">
+              {session?.isOpen ? "Active" : "Closed"}
+            </Badge>
           </div>
           <Button variant="outline" size="icon-sm" onClick={onClose}>
             <X className="size-4" />
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 pt-3">
+          <Button size="sm" variant="outline" disabled={loading} onClick={handleExportPdf}>
+            <Download className="size-3.5" /> Export PDF
+          </Button>
+          <Button size="sm" variant="outline" disabled={loading} onClick={() => printNode(receiptRef.current)}>
+            <Printer className="size-3.5" /> Print Receipt
           </Button>
         </div>
 
@@ -90,46 +166,100 @@ export default function SessionDetailDrawer({ session, drawerId, onClose, onAppr
             </div>
           ) : (
             <div className="flex flex-col gap-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <Badge variant={session?.isOpen ? "default" : "destructive"}>{session?.isOpen ? "Open" : "Closed"}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Opened By</span>
-                <span className="font-medium">{session?.openedBy?.name ?? "-"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Closed By</span>
-                <span className="font-medium">{session?.closedBy?.name ?? "-"}</span>
-              </div>
-
-              <div className="flex flex-col gap-2 rounded-lg bg-muted/30 p-3">
-                <div className="text-xs font-semibold text-muted-foreground uppercase">Cash</div>
-                <div className="flex justify-between"><span>Opening</span><span className="font-mono">{money(session?.startingCashBalance)}</span></div>
-                <div className="flex justify-between"><span>Closing</span><span className="font-mono">{money(session?.closingCashBalance)}</span></div>
-                <div className="flex justify-between"><span>Adjusted</span><span className="font-mono">{money(session?.cashAdjustment)}</span></div>
+              <div className="flex flex-col gap-0.5">
+                <Row label="Register" value={drawerName || "-"} />
+                <Row label="Opened By" value={session?.openedBy?.name ?? "-"} />
+                <Row label="Opened At" value={fmt(session?.createdAt)} />
+                {!session?.isOpen && (
+                  <>
+                    <Row label="Closed By" value={session?.closedBy?.name ?? "-"} />
+                    <Row label="Closed At" value={fmt(session?.updatedAt)} />
+                  </>
+                )}
+                <Row label="Total Transactions" value={String(transactions.length)} />
+                <Row label="Starting Balance" value={money(session?.startingCashBalance)} />
               </div>
 
-              <div className="flex flex-col gap-2 rounded-lg bg-muted/30 p-3">
-                <div className="text-xs font-semibold text-muted-foreground uppercase">Virtual</div>
-                <div className="flex justify-between"><span>Opening</span><span className="font-mono">{money(session?.startingVirtualBalance)}</span></div>
-                <div className="flex justify-between"><span>Closing</span><span className="font-mono">{money(session?.closingVirtualBalance)}</span></div>
-                <div className="flex justify-between"><span>Adjusted</span><span className="font-mono">{money(session?.virtualAdjustment)}</span></div>
+              <div>
+                <div className="mb-2 font-semibold">Cash Summary</div>
+                <div className="flex flex-col gap-0.5">
+                  <Row label="Opening Cash" value={money(session?.startingCashBalance)} />
+                  {session?.closingCashBalance != null && <Row label="Closing Cash" value={money(session.closingCashBalance)} />}
+                  <Row label="Opening Virtual" value={money(session?.startingVirtualBalance)} />
+                  {session?.closingVirtualBalance != null && <Row label="Closing Virtual" value={money(session.closingVirtualBalance)} />}
+                  <Row label="Expected Cash" value={money(expectedCash)} />
+                </div>
               </div>
 
-              {details?.transactions?.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <div className="text-xs font-semibold text-muted-foreground uppercase">Transactions</div>
-                  {details.transactions.map((t: any) => (
-                    <div key={t.id} className="flex justify-between border-b border-foreground/5 py-1.5 text-xs">
-                      <span>{t.event}</span>
-                      <span className="font-mono">
-                        {money((t.cashCredit ?? 0) - (t.cashDebit ?? 0) + (t.virtualCredit ?? 0) - (t.virtualDebit ?? 0))}
-                      </span>
-                    </div>
-                  ))}
+              {transactions.length > 0 && (
+                <div>
+                  <div className="mb-2 font-semibold">
+                    Deposits &amp; Withdrawals <span className="text-xs font-normal text-muted-foreground">({transactions.length})</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <Row label="Cash In" value={money(cashIn)} tone="positive" />
+                    <Row label="Cash Out" value={money(cashOut)} tone="negative" />
+                    <Row label="Virtual In" value={money(virtualIn)} tone="positive" />
+                    <Row label="Virtual Out" value={money(virtualOut)} tone="negative" />
+                  </div>
                 </div>
               )}
+
+              <div>
+                <div className="mb-2 font-semibold">Sales</div>
+                <div className="flex flex-col gap-0.5">
+                  <Row label="Cash Sales" value={money(v.cashSales)} tone="positive" />
+                  <Row label="Total Sales" value={money(v.totalSales)} />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 font-semibold">Payments</div>
+                <div className="flex flex-col gap-0.5">
+                  <Row label="Total Cash In" value={money(v.totalCashIn)} />
+                  <Row label="Total Change Given" value={money(v.totalChangeGiven)} />
+                  <Row label="Cash Change Given" value={money(v.cashChangeGiven)} />
+                  <Row label="Cashless ATM (EC) Change" value={money(v.cashlessATMChange)} />
+                  <Row label="Total Cash Deposit" value={money(v.totalCashDeposit)} />
+                  <Row label="Total Cash Withdrawal" value={money(v.totalCashWithdrawal)} />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 font-semibold">
+                  Withdrawals <span className="text-xs font-normal text-muted-foreground">({v.withdrawals.length})</span>
+                </div>
+                {v.withdrawals.length === 0 ? (
+                  <div className="text-muted-foreground">No withdrawals</div>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {v.withdrawals.map((t: any, i: number) => (
+                      <Row key={t._id || i} label={`Withdraw ${i + 1} (${fmt(t.createdAt)})`} value={money(t.cashDebit)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="mb-2 font-semibold">Totals</div>
+                <div className="flex flex-col gap-0.5">
+                  <Row label="Total Deposits" value={money(v.totalDeposits)} tone="positive" />
+                  <Row label="Total Withdraw" value={money(v.totalWithdrawals)} tone="negative" />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 font-semibold">Cash Drawer</div>
+                <div className="flex flex-col gap-0.5">
+                  <Row label="Expected Cash" value={money(expectedCash)} />
+                  <Row label="Actual Cash" value={money(actualCash)} />
+                  <Row
+                    label="Closing Discrepancy Cash"
+                    value={`${discrepancy >= 0 ? "+" : ""}${money(discrepancy)}`}
+                    tone={discrepancy < 0 ? "negative" : discrepancy > 0 ? "positive" : undefined}
+                  />
+                </div>
+              </div>
 
               {session?.isAdjustmentPending && (
                 <div className="flex flex-col gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
@@ -149,6 +279,25 @@ export default function SessionDetailDrawer({ session, drawerId, onClose, onAppr
           )}
         </div>
       </div>
+
+      {/* Off-screen, receipt-formatted print source — the drawer body above
+          shows the same numbers as normal UI, this is print-only. Portaled
+          straight to <body>, same as PrintReceiptModal: this Drawer's own
+          panel carries an inline `transform`, which makes it a containing
+          block for `position: fixed` descendants — nesting the print
+          source inside it would anchor the print CSS's position:absolute
+          override to the (off-screen) drawer panel instead of the page. */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <DrawerReceiptContent
+            ref={receiptRef}
+            session={session}
+            transactions={transactions}
+            drawerName={drawerName}
+            style={{ position: "fixed", left: -9999, top: 0 }}
+          />,
+          document.body
+        )}
     </Drawer>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { ChevronDown, Info, Loader2, AlertTriangle, X } from "lucide-react";
 
@@ -57,6 +56,7 @@ import PackageStorageLocations from "./PackageStorageLocations";
 import ManageWeedmapsDrawer from "./ManageWeedmapsDrawer";
 import ReconcilePackageDrawer from "../packages/ReconcilePackageDrawer";
 import AddEditProductDrawer from "@/app/catalog/products/AddEditProductDrawer";
+import EditInventoryForm from "./edit/[id]/EditInventoryForm";
 
 function detail(label: string, value: React.ReactNode) {
   return (
@@ -104,6 +104,7 @@ export default function InventoryDetailsDrawer({
   const [reconcilePackage, setReconcilePackage] = useState<any>(null);
 
   const [editProductOpen, setEditProductOpen] = useState(false);
+  const [editPricingOpen, setEditPricingOpen] = useState(false);
 
   const loadInventory = () => {
     if (!inventoryId || !shopId) return;
@@ -284,8 +285,7 @@ export default function InventoryDetailsDrawer({
               </Button>
               <Button
                 className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-                nativeButton={false}
-                render={<Link href={`/inventory-management/inventory-and-pricing/edit/${inventory.id}`} />}
+                onClick={() => setEditPricingOpen(true)}
               >
                 Edit Pricing
               </Button>
@@ -579,6 +579,20 @@ export default function InventoryDetailsDrawer({
         }}
       />
     )}
+
+    <Drawer open={editPricingOpen} onClose={() => setEditPricingOpen(false)} side="right" size="80%">
+      <div className="h-full overflow-y-auto">
+        {editPricingOpen && inventory && (
+          <EditInventoryForm
+            inventoryId={inventory.id}
+            onClose={() => {
+              setEditPricingOpen(false);
+              loadInventory();
+            }}
+          />
+        )}
+      </div>
+    </Drawer>
     </>
   );
 }
