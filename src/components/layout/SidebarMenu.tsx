@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,12 +21,14 @@ interface MenuLeafProps {
   collapsed?: boolean;
   depth: number;
   onNavigate?: () => void;
+  activeHref: string | null;
 }
 
 interface CollapsedSectionProps {
   item: MenuItem;
   sectionActive: boolean;
   onNavigate?: () => void;
+  activeHref: string | null;
 }
 
 interface MenuSectionProps extends AccordionProps {
@@ -34,6 +36,7 @@ interface MenuSectionProps extends AccordionProps {
   collapsed?: boolean;
   depth: number;
   onNavigate?: () => void;
+  activeHref: string | null;
 }
 
 interface SidebarMenuItemProps extends AccordionProps {
@@ -42,6 +45,7 @@ interface SidebarMenuItemProps extends AccordionProps {
   depth: number;
   onNavigate?: () => void;
   flyout?: boolean;
+  activeHref: string | null;
 }
 
 interface SidebarMenuProps {
@@ -50,19 +54,32 @@ interface SidebarMenuProps {
   onNavigate?: () => void;
 }
 
-function isActive(pathname: string, href?: string) {
-  if (!href) return false;
-  return pathname === href || pathname.startsWith(`${href}/`);
+function collectHrefs(items: MenuItem[]): string[] {
+  return items.flatMap((item) => [
+    ...(item.href ? [item.href] : []),
+    ...(item.children ? collectHrefs(item.children) : []),
+  ]);
 }
 
-function hasActiveDescendant(pathname: string, item: MenuItem): boolean {
-  if (item.href) return isActive(pathname, item.href);
-  return (item.children || []).some((child) => hasActiveDescendant(pathname, child));
+// Sibling routes can share a path prefix (e.g. "/pos" and "/pos/tablet-mode"
+// are unrelated leaves, not parent/child) — matching each href independently
+// against the pathname would light up both. Instead resolve the single
+// longest (most specific) href in the whole tree that matches, so only the
+// actual current route's item — and its ancestors — end up active.
+function resolveActiveHref(pathname: string, hrefs: string[]): string | null {
+  const matches = hrefs.filter((href) => pathname === href || pathname.startsWith(`${href}/`));
+  if (!matches.length) return null;
+  return matches.reduce((best, href) => (href.length > best.length ? href : best));
 }
 
-function MenuLeaf({ item, collapsed, depth, onNavigate }: MenuLeafProps) {
-  const pathname = usePathname();
-  const active = isActive(pathname, item.href);
+function subtreeContainsHref(item: MenuItem, activeHref: string | null): boolean {
+  if (!activeHref) return false;
+  if (item.href === activeHref) return true;
+  return (item.children || []).some((child) => subtreeContainsHref(child, activeHref));
+}
+
+function MenuLeaf({ item, collapsed, depth, onNavigate, activeHref }: MenuLeafProps) {
+  const active = item.href === activeHref;
   const Icon = item.icon;
 
   return (
@@ -86,7 +103,7 @@ function MenuLeaf({ item, collapsed, depth, onNavigate }: MenuLeafProps) {
   );
 }
 
-function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionProps) {
+function CollapsedSection({ item, sectionActive, onNavigate, activeHref }: CollapsedSectionProps) {
   const Icon = item.icon;
   const triggerRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -180,6 +197,7 @@ function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionP
                     flyout
                     openKey={childOpenKey}
                     setOpenKey={setChildOpenKey}
+                    activeHref={activeHref}
                   />
                 ))}
               </div>
@@ -191,10 +209,9 @@ function CollapsedSection({ item, sectionActive, onNavigate }: CollapsedSectionP
   );
 }
 
-function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }: MenuSectionProps) {
-  const pathname = usePathname();
+function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate, activeHref }: MenuSectionProps) {
   const Icon = item.icon;
-  const sectionActive = hasActiveDescendant(pathname, item);
+  const sectionActive = subtreeContainsHref(item, activeHref);
   const isOpen = openKey === item.key;
   // Accordion among this section's own children (e.g. Analytics vs Reporting).
   const [childOpenKey, setChildOpenKey] = useState<OpenKey>(null);
@@ -203,7 +220,7 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
   useEffect(() => {
     if (sectionActive) setOpenKey?.(item.key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [activeHref]);
 
   if (collapsed && depth === 0) {
     // Collapsed rail: icon-only trigger, children render as a hover flyout.
@@ -212,7 +229,7 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
     // stop the rail itself from growing a horizontal scrollbar) — anything
     // absolutely positioned inside it with left-full gets clipped and never
     // becomes visible, no matter what z-index/opacity it has.
-    return <CollapsedSection item={item} sectionActive={sectionActive} onNavigate={onNavigate} />;
+    return <CollapsedSection item={item} sectionActive={sectionActive} onNavigate={onNavigate} activeHref={activeHref} />;
   }
 
   return (
@@ -247,6 +264,7 @@ function MenuSection({ item, collapsed, depth, openKey, setOpenKey, onNavigate }
                 onNavigate={onNavigate}
                 openKey={childOpenKey}
                 setOpenKey={setChildOpenKey}
+                activeHref={activeHref}
               />
             ))}
           </div>
@@ -264,6 +282,7 @@ function SidebarMenuItem({
   flyout,
   openKey,
   setOpenKey,
+  activeHref,
 }: SidebarMenuItemProps) {
   // Nested sections (depth > 0, e.g. Analytics/Reporting inside Reports & Analytics)
   // keep their own independent open state — only siblings at the same level
@@ -281,15 +300,18 @@ function SidebarMenuItem({
         openKey={effectiveOpenKey}
         setOpenKey={effectiveSetOpenKey}
         onNavigate={onNavigate}
+        activeHref={activeHref}
       />
     );
   }
-  return <MenuLeaf item={item} collapsed={collapsed && !flyout} depth={depth} onNavigate={onNavigate} />;
+  return <MenuLeaf item={item} collapsed={collapsed && !flyout} depth={depth} onNavigate={onNavigate} activeHref={activeHref} />;
 }
 
 export default function SidebarMenu({ items, collapsed, onNavigate }: SidebarMenuProps) {
   // Accordion: only one top-level section open at a time.
   const [openKey, setOpenKey] = useState<OpenKey>(null);
+  const pathname = usePathname();
+  const activeHref = useMemo(() => resolveActiveHref(pathname, collectHrefs(items)), [pathname, items]);
 
   // Warm every sidebar route in the background, one at a time on browser
   // idle, so switching pages feels instant even for links never scrolled
@@ -305,6 +327,7 @@ export default function SidebarMenu({ items, collapsed, onNavigate }: SidebarMen
           collapsed={collapsed}
           depth={0}
           onNavigate={onNavigate}
+          activeHref={activeHref}
           openKey={openKey}
           setOpenKey={setOpenKey}
         />

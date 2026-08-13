@@ -13,7 +13,8 @@ const DEFAULTS = {
   queueYellowTime: 15,
   queueRedTime: 20,
   printType: "browser",
-  defaultPageSize: 30,
+  defaultPageSize: 200,
+  fabTop: null, // Will be set to window.innerHeight * 0.25 on client
 };
 
 const PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
@@ -56,6 +57,7 @@ export function SettingsProvider({ children }) {
     setQueueRedTime: (v) => update({ queueRedTime: v }),
     setPrintType: (v) => update({ printType: v }),
     setDefaultPageSize: (v) => update({ defaultPageSize: v }),
+    setFabTop: (v) => update({ fabTop: v }),
   };
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

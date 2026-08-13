@@ -43,7 +43,7 @@ export function connectToSocket({ url, shopId }: { url?: string; shopId?: string
     ? io(namespace, {
         // engine.io goes through the Next.js /proxy route, which forwards to the
         // API host with the browser's localhost session cookie attached.
-        path: "/proxy/socket.io",
+        path: "/proxy/socket.io/",
         query: { shopId: finalShopId },
         transports: ["polling"],
         upgrade: false,

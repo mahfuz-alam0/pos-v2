@@ -137,13 +137,13 @@ export default function HomeCustomerQueue({ onCustomerServed = null }) {
       </div>
 
       <div
-        className="mx-4 mt-1 mb-2 overflow-y-auto"
-        style={{ maxHeight: "calc(5 * 64px + 4 * 8px)" }}
+        className="mx-4 mt-1 mb-2 flex-1 overflow-y-auto"
+        style={{ maxHeight: "400px" }}
       >
         {loading ? (
-          <div className="flex min-h-[352px] w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
+          <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">Loading…</div>
         ) : queueData.length === 0 ? (
-          <div className="flex min-h-[352px] w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
+          <div className="flex w-full items-center justify-center py-8 text-sm text-muted-foreground">No Data Found</div>
         ) : (
           <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
             {queueData.map((ticket, index) => (
