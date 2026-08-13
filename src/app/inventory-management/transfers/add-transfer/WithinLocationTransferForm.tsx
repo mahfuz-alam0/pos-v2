@@ -204,7 +204,11 @@ export default function WithinLocationTransferForm({
   };
 
   const updateQty = (id: string, value: number) => {
+    // PackagePickerTable's qty input reads its value off `rows` (the search
+    // results it renders), not `selectedRows` — both need updating or the
+    // input immediately snaps back to the old value on every keystroke.
     setSelectedRows((prev) => prev.map((r) => (r.id === id ? { ...r, displayQuantityToShift: value } : r)));
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, displayQuantityToShift: value } : r)));
   };
 
   const selectedIds = useMemo(() => selectedRows.map((r) => r.id), [selectedRows]);

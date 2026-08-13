@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,14 @@ import SkeletonLoader from "@/components/pos/SkeletonLoader";
 import { getSingleProduct } from "@/services/products/getSingleProduct";
 
 const defaultImage = "/images/placeholders/product.svg";
+
+// Highest-quantity location wins as the pre-filled transfer source — good
+// enough odds it's the one worth moving stock out of.
+function topLocationId(breakdown?: Record<string, number>) {
+  const entries = Object.entries(breakdown || {});
+  if (entries.length === 0) return undefined;
+  return entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0];
+}
 // Big, unmissable touch targets — the shadcn "icon" size defaults to a
 // smaller ~32px, and even the previous 40px was called out as too small to
 // reliably hit on a tablet.
@@ -108,8 +116,7 @@ export default function ProductDetailPanel({
   onQuantityInput,
   onBack,
   onAddToCart,
-  fallbackPackage,
-  onForceAdd,
+  breakdownPackages = [],
 }) {
   const cart = useSelector((state: any) => state?.cart?.cart) || [];
   const [productDetails, setProductDetails] = useState(null);
@@ -208,6 +215,19 @@ export default function ProductDetailPanel({
   const existingPackages = packagesData.filter((pkg) =>
     cart.some((item) => item.id === pkg.id),
   );
+
+  // Opens the Add Transfer page (within-storage-locations) in a new tab,
+  // pre-filled with this package and its highest-stocked location — keeps
+  // the current sale/cart untouched instead of navigating away from it.
+  const handleTransfer = (pkg: any) => {
+    const sourceId = topLocationId(pkg.storageLocationBreakdown);
+    const params = new URLSearchParams({
+      transferType: "within-storage-locations",
+      packageIds: pkg.id,
+      ...(sourceId ? { sourceLocationId: sourceId } : {}),
+    });
+    window.open(`/inventory-management/transfers/add-transfer?${params.toString()}`, "_blank");
+  };
 
   const handleAddClick = () => {
     const allSelectedAlreadyInCart =
@@ -474,23 +494,53 @@ export default function ProductDetailPanel({
         </div>
       )}
 
-      {packagesData.length === 0 && fallbackPackage && (
-        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-          <p className="m-0 text-base font-bold text-amber-900 dark:text-amber-200">
-            Warning: No eligible packages found
-          </p>
-          <p className="mt-1 mb-3 text-sm text-amber-800/80 dark:text-amber-300/80">
-            {fallbackPackage.name || fallbackPackage.advertisedId} · {fallbackPackage.quantityLeft}{" "}
-            {fallbackPackage.uoMShortForm} in stock
-          </p>
-          <Button
-            className="h-16 w-full bg-amber-600 text-lg font-bold hover:bg-amber-700"
-            size="lg"
-            onClick={() => onForceAdd?.(fallbackPackage)}>
-            <ShoppingCart className="mr-2 size-5" />
-            Add Cart Item Anyways
-          </Button>
-        </div>
+      {packagesData.length === 0 && breakdownPackages.length > 0 && (
+        <>
+          <div className="mb-4 flex gap-2.5 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="m-0 text-sm font-bold text-amber-900 dark:text-amber-200">
+                Package Not Found
+              </p>
+              <p className="m-0 text-sm text-amber-800/80 dark:text-amber-300/80">
+                No sellable packages were found for this item. The packages below make up this
+                inventory&apos;s stock but aren&apos;t currently sellable.
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-border">
+            <div className="border-b border-border bg-muted px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Packages In Inventory
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">Package ID</th>
+                  <th className="px-3 py-2">Package Name</th>
+                  <th className="px-3 py-2">Quantity Left</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {breakdownPackages.map((pkg: any) => (
+                  <tr key={pkg.id} className="border-t border-border">
+                    <td className="px-3 py-2">{pkg.advertisedId}</td>
+                    <td className="px-3 py-2">{pkg.name ?? "-"}</td>
+                    <td className="px-3 py-2">{pkg.quantityLeft ?? "-"}</td>
+                    <td className="px-3 py-2">{pkg.isActive ? "Active" : "Inactive"}</td>
+                    <td className="px-3 py-2 text-center">
+                      <Button size="sm" onClick={() => handleTransfer(pkg)}>
+                        Transfer
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
