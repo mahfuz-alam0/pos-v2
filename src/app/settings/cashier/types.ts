@@ -47,6 +47,7 @@ export interface ShopPreferences {
   shouldEnableScanOnlyCart: boolean;
   isChoosingCustomerGroupMandatoryForMJProducts: boolean;
   shouldAllowManualEditOnPosPage: boolean;
+  shouldAddNewLineItemOnScan: boolean;
 
   posOnlinePaymentPreference: PaymentMethodPreference[];
   appOnlinePaymentPreference: PaymentMethodPreference[];
@@ -78,6 +79,7 @@ export const EMPTY_PREFERENCES: ShopPreferences = {
   shouldEnableScanOnlyCart: false,
   isChoosingCustomerGroupMandatoryForMJProducts: false,
   shouldAllowManualEditOnPosPage: false,
+  shouldAddNewLineItemOnScan: false,
   posOnlinePaymentPreference: [],
   appOnlinePaymentPreference: [],
   ecommAndroidOnlinePaymentPreference: { shouldAllowInStorePayment: false, onlinePaymentPreferences: [] },

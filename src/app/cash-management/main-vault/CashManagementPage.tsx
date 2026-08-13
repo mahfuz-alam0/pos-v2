@@ -42,6 +42,17 @@ function toISODate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function initials(name?: string) {
+  return name
+    ? name
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "?";
+}
+
 export default function CashManagementPage() {
   const { defaultPageSize } = useSettings();
   const { shopId } = useShop();
@@ -130,9 +141,9 @@ export default function CashManagementPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span>Vault Current Balance:</span>
-            <span>${(vaultSummary?.currentCashAmount ?? 0).toFixed(2)}</span>
+          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-sm">
+            <span className="text-muted-foreground">Vault Current Balance:</span>
+            <span className="font-semibold">${(vaultSummary?.currentCashAmount ?? 0).toFixed(2)}</span>
           </div>
         </div>
 
@@ -159,13 +170,21 @@ export default function CashManagementPage() {
               <DateRangePicker value={customRange} onChange={setCustomRange} className="w-64" />
             )}
 
-            <Button onClick={handleSearch}>Search</Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={handleSearch}>
+              Search
+            </Button>
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={() => setDepositOpen(true)}>Deposit</Button>
-            <Button onClick={() => setWithdrawOpen(true)}>Withdrawal</Button>
-            <Button onClick={() => setTransferOpen(true)}>Transfer From Drawer</Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setDepositOpen(true)}>
+              Deposit
+            </Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setWithdrawOpen(true)}>
+              Withdrawal
+            </Button>
+            <Button className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={() => setTransferOpen(true)}>
+              Transfer From Drawer
+            </Button>
           </div>
         </div>
 
@@ -209,7 +228,13 @@ export default function CashManagementPage() {
                 >
                   <TableCell>
                     <button className="flex items-center gap-2 text-primary hover:underline" onClick={() => setSelectedTransaction(row)}>
-                      <img src={row?.userInfo?.avatarUrl} alt="" className="size-6 rounded-full border border-foreground/10" />
+                      {row?.userInfo?.avatarUrl ? (
+                        <img src={row.userInfo.avatarUrl} alt="" className="size-6 rounded-full ring-1 ring-foreground/10" />
+                      ) : (
+                        <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                          {initials(row?.userInfo?.name)}
+                        </span>
+                      )}
                       {row?.userInfo?.name ?? "-"}
                     </button>
                   </TableCell>

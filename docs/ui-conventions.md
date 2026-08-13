@@ -43,6 +43,8 @@ Don't make multiple trailing columns sticky with hand-computed `right-[Npx]` off
 
 Follow `ManageInventoriesTable.tsx`: only the single trailing action-ish column is sticky (`sticky right-0 z-10 w-<fixed> bg-<zebra-matching> shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.15)]`). Everything else scrolls normally with the table.
 
+For the sticky cell's zebra alternation, use `bg-table-zebra-solid` (not `bg-table-zebra`) on the striped rows. `bg-table-zebra` is intentionally translucent so it tints whatever surface it sits on; that's fine for an ordinary row, but a sticky cell needs to fully occlude the non-sticky cells sliding underneath it during horizontal scroll, or their text bleeds through in dark mode. `bg-table-zebra-solid` is the same color, pre-flattened opaque.
+
 ## Table horizontal scroll container
 
 The `Table` primitive (`src/components/ui/table.tsx`) already wraps `<table>` in its own `overflow-x-auto` div (`data-slot="table-container"`). Don't add a second independent `overflow-x-auto`/`overflow-auto` ancestor around it with a fixed height — nested scroll containers fight over which one owns the horizontal scrollbar, and it ends up rendering at the bottom of the *inner* (unconstrained-height) container instead of the visible viewport, so it's invisible until you scroll all the way down.
@@ -77,3 +79,4 @@ Known offenders still missing it as of this writing: `settings/suppliers/Supplie
 ## Scrollbar theming (dark mode)
 
 Already handled globally in `src/app/globals.css` (`scrollbar-color` + `::-webkit-scrollbar*` rules keyed off `var(--border)` / `var(--muted-foreground)`). Every scrollable element site-wide inherits it automatically — never add per-component/per-table scrollbar CSS, and never need to "fix" a white scrollbar in dark mode again by hand.
+![alt text](image.png)

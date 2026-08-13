@@ -7,6 +7,17 @@ interface VaultTransactionDetailsProps {
   onClose: () => void;
 }
 
+function initials(name?: string) {
+  return name
+    ? name
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "?";
+}
+
 export default function VaultTransactionDetails({ transaction, onClose }: VaultTransactionDetailsProps) {
   const isDeposit = transaction?.event === "DEPOSIT_CASH";
 
@@ -14,7 +25,13 @@ export default function VaultTransactionDetails({ transaction, onClose }: VaultT
     <div className="flex h-full flex-col rounded-xl ring-1 ring-foreground/10">
       <div className="flex items-center justify-between gap-3 px-4 py-3 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
         <div className="flex items-center gap-2">
-          <img src={transaction?.userInfo?.avatarUrl} alt="" className="size-8 rounded-full border border-foreground/10" />
+          {transaction?.userInfo?.avatarUrl ? (
+            <img src={transaction.userInfo.avatarUrl} alt="" className="size-8 rounded-full ring-1 ring-foreground/10" />
+          ) : (
+            <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              {initials(transaction?.userInfo?.name)}
+            </span>
+          )}
           <div className="text-sm font-semibold">{transaction?.userInfo?.name ?? "-"}</div>
         </div>
         <div className="flex items-center gap-2">

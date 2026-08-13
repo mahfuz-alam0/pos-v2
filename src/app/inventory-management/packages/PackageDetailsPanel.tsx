@@ -135,12 +135,12 @@ export default function PackageDetailsPanel({
   onChanged?: () => void;
   locationMap?: Record<string, string>;
   onOpenImportDrawer?: () => void;
-  onTransfer?: () => void;
+  onTransfer?: (pkg: PackageDetail) => void;
   onConvert?: () => void;
   onReconcile?: () => void;
   onActivity?: () => void;
-  onEditPricing?: () => void;
-  onEditProduct?: () => void;
+  onEditPricing?: (inventoryId: string) => void;
+  onEditProduct?: (productId: string) => void;
 }) {
   const { shopId } = useShop();
   const metrcMechanism = useFeatureAccess();
@@ -384,13 +384,13 @@ export default function PackageDetailsPanel({
             <div className="mb-2 flex items-center justify-between">
               <div className="font-semibold">Attached Product</div>
               <div className="flex gap-2">
-                {packageDetail.productId && packageDetail.isProductImported && (
-                  <Button variant="outline" size="sm" onClick={() => onEditPricing?.()}>
+                {packageDetail.productId && packageDetail.isProductImported && packageDetail.inventoryId && (
+                  <Button variant="outline" size="sm" onClick={() => onEditPricing?.(packageDetail.inventoryId!)}>
                     Edit Pricing
                   </Button>
                 )}
                 {packageDetail.productId && (
-                  <Button variant="outline" size="sm" onClick={() => onEditProduct?.()}>
+                  <Button variant="outline" size="sm" onClick={() => onEditProduct?.(packageDetail.productId!)}>
                     Edit Product
                   </Button>
                 )}
@@ -487,7 +487,9 @@ export default function PackageDetailsPanel({
                 Restore
               </Button>
             )}
-            {storageLocations.length > 0 && <Button onClick={() => onTransfer?.()}>Transfer</Button>}
+            {storageLocations.length > 0 && (
+              <Button onClick={() => onTransfer?.(packageDetail)}>Transfer</Button>
+            )}
             {packageDetail.source !== "METRC" && (
               <Button
                 onClick={() => {

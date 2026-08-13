@@ -61,6 +61,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import InventoryDetailsDrawer from "./InventoryDetailsDrawer";
+import TransferSelectedPackagesDrawer from "../transfers/TransferSelectedPackagesDrawer";
 import { useSettings } from "@/context/settings-context";
 import EditInventoryForm from "./edit/[id]/EditInventoryForm";
 
@@ -168,6 +169,8 @@ export default function ManageInventoriesTable() {
   const [optimizeLoading, setOptimizeLoading] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState("");
   const [transferLoading, setTransferLoading] = useState(false);
+  const [transferPackages, setTransferPackages] = useState<any[] | null>(null);
+  const [transferSourceId, setTransferSourceId] = useState<string | null>(null);
 
   const loadInventories = useCallback(
     async (targetPage = 1, size = pageSize) => {
@@ -597,14 +600,8 @@ export default function ManageInventoriesTable() {
       });
       const bestLocationId = [...qtyByLocation.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 
-      const packageIds = packages.map((pkg: any) => pkg.id);
-      const params = new URLSearchParams({
-        transferType: "within-storage-locations",
-        packageIds: packageIds.join(","),
-      });
-      if (bestLocationId) params.set("sourceLocationId", bestLocationId);
-
-      router.push(`/inventory-management/transfers/add-transfer?${params.toString()}`);
+      setTransferSourceId(bestLocationId ?? null);
+      setTransferPackages(packages);
     } catch (err: any) {
       toast.error(err?.message || "Failed to load packages for transfer");
     } finally {
@@ -941,7 +938,7 @@ export default function ManageInventoriesTable() {
                     />
                   </TableCell>
                   <TableCell
-                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}
+                    className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}
                   >
                     <Button
                       className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
@@ -1135,6 +1132,19 @@ export default function ManageInventoriesTable() {
       </Drawer>
 
       <InventoryDetailsDrawer inventoryId={detailsInventoryId} onClose={() => setDetailsInventoryId(null)} />
+
+      <TransferSelectedPackagesDrawer
+        open={!!transferPackages}
+        onClose={() => setTransferPackages(null)}
+        shopId={shopId as string}
+        packages={transferPackages ?? []}
+        preSelectedSourceId={transferSourceId}
+        onTransferred={() => {
+          setTransferPackages(null);
+          setSelectedRows([]);
+          loadInventories(page, pageSize);
+        }}
+      />
 
       <Drawer open={!!editPricingId} onClose={() => setEditPricingId(null)} side="right" size="80%">
         <div className="h-full overflow-y-auto">

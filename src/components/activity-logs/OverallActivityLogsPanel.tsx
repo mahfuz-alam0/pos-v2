@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
-import { ArrowRight, Calendar, Link2, Loader2, Network, User } from "lucide-react";
+import {
+  ArrowRight,
+  Calendar,
+  Link2,
+  Loader2,
+  Network,
+  User,
+} from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { useCurrentUser } from "@/util/use-current-user";
@@ -68,11 +75,13 @@ const ACTION_BADGE_CLASSES: Record<string, string> = {
   SOLD: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400",
 };
 
-const DEFAULT_ACTION_BADGE_CLASS =
-  "bg-muted text-muted-foreground";
+const DEFAULT_ACTION_BADGE_CLASS = "bg-muted text-muted-foreground";
 
 function getActionBadgeClass(action?: string) {
-  return ACTION_BADGE_CLASSES[action?.toUpperCase() ?? ""] ?? DEFAULT_ACTION_BADGE_CLASS;
+  return (
+    ACTION_BADGE_CLASSES[action?.toUpperCase() ?? ""] ??
+    DEFAULT_ACTION_BADGE_CLASS
+  );
 }
 
 const TYPE_STYLES: Record<
@@ -87,7 +96,8 @@ const TYPE_STYLES: Record<
   added: {
     label: "ADDED",
     box: "bg-green-50 dark:bg-green-950/20",
-    badge: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400",
+    badge:
+      "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400",
   },
   removed: {
     label: "REMOVED",
@@ -97,7 +107,8 @@ const TYPE_STYLES: Record<
   type_changed: {
     label: "TYPE CHANGED",
     box: "bg-amber-50 dark:bg-amber-950/20",
-    badge: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
+    badge:
+      "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
   },
 };
 
@@ -137,10 +148,12 @@ function renderValue(val: unknown) {
   }
   if (typeof val === "object") {
     const entries = Object.entries(val as Record<string, unknown>).filter(
-      ([, v]) => v !== null && v !== undefined
+      ([, v]) => v !== null && v !== undefined,
     );
     if (entries.length === 0) {
-      return <span className="text-xs text-muted-foreground italic">{"{}"}</span>;
+      return (
+        <span className="text-xs text-muted-foreground italic">{"{}"}</span>
+      );
     }
     return (
       <pre className="overflow-x-auto rounded bg-muted p-2 font-mono text-xs">
@@ -165,7 +178,8 @@ function ChangeLogEntryCard({ entry }: { entry: ChangeLogEntry }) {
         <code className="rounded bg-background px-2 py-0.5 text-xs font-bold ring-1 ring-foreground/10">
           {entry.path}
         </code>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.badge}`}>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.badge}`}>
           {style.label}
         </span>
       </div>
@@ -191,7 +205,9 @@ function ChangeLogEntryCard({ entry }: { entry: ChangeLogEntry }) {
           <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
             {entry.type === "removed" ? "Removed value" : "New value"}
           </p>
-          {renderValue(entry.type === "removed" ? entry.oldValue : entry.newValue)}
+          {renderValue(
+            entry.type === "removed" ? entry.oldValue : entry.newValue,
+          )}
         </div>
       )}
     </div>
@@ -223,7 +239,8 @@ function DetailDialog({
         const activityLog = res?.data?.data?.activityLog ?? null;
         if (!cancelled) setDetail(activityLog);
       } catch (err: any) {
-        if (!cancelled) toast.error(err?.message || "Failed to load activity log details");
+        if (!cancelled)
+          toast.error(err?.message || "Failed to load activity log details");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -235,7 +252,8 @@ function DetailDialog({
 
   const changeLog = detail?.changeLog ?? [];
   const currentUserId = useCurrentUser()?.id ?? null;
-  const creatorLabel = detail && detail.creatorId === currentUserId ? "You" : detail?.creatorName;
+  const creatorLabel =
+    detail && detail.creatorId === currentUserId ? "You" : detail?.creatorName;
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -255,15 +273,16 @@ function DetailDialog({
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 border-b pb-3">
-              <Badge className={getActionBadgeClass(detail.action)}>{detail.action}</Badge>
+              <Badge className={getActionBadgeClass(detail.action)}>
+                {detail.action}
+              </Badge>
               <Badge variant="outline">{detail.domain}</Badge>
               <Badge
                 className={
                   detail.level === "INFO"
                     ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
                     : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
-                }
-              >
+                }>
                 {detail.level}
               </Badge>
               <span className="ml-auto text-xs text-muted-foreground">
@@ -276,11 +295,15 @@ function DetailDialog({
             <div className="space-y-1.5 rounded-lg bg-muted/50 p-3 text-xs">
               <div className="flex items-center gap-2">
                 <Network className="size-3.5 text-muted-foreground" />
-                <span className="w-28 shrink-0 text-muted-foreground">{detail.domain}:</span>
+                <span className="w-28 shrink-0 text-muted-foreground">
+                  {detail.domain}:
+                </span>
                 <span className="font-semibold">{detail.domainName}</span>
               </div>
               <div className="flex items-center gap-2 pl-5.5">
-                <span className="w-28 shrink-0 text-muted-foreground">{detail.domain} ID:</span>
+                <span className="w-28 shrink-0 text-muted-foreground">
+                  {detail.domain} ID:
+                </span>
                 <code className="font-mono">{detail.domainDisplayId}</code>
               </div>
               {detail.companionDomain && (
@@ -291,13 +314,17 @@ function DetailDialog({
                     <span className="w-28 shrink-0 text-blue-500">
                       TARGETED {detail.companionDomain}:
                     </span>
-                    <span className="font-semibold">{detail.companionDomainName}</span>
+                    <span className="font-semibold">
+                      {detail.companionDomainName}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 pl-5.5">
                     <span className="w-28 shrink-0 text-muted-foreground">
                       TARGETED {detail.companionDomain} ID:
                     </span>
-                    <code className="font-mono">{detail.companionDomainDisplayId}</code>
+                    <code className="font-mono">
+                      {detail.companionDomainDisplayId}
+                    </code>
                   </div>
                 </>
               )}
@@ -305,7 +332,9 @@ function DetailDialog({
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <User className="size-3.5" />
-              <span className="font-medium text-foreground">{creatorLabel}</span>
+              <span className="font-medium text-foreground">
+                {creatorLabel}
+              </span>
             </div>
 
             {changeLog.length > 0 ? (
@@ -313,7 +342,8 @@ function DetailDialog({
                 <h4 className="flex items-center gap-1.5 border-t pt-3 text-sm font-semibold">
                   <span>Change Log</span>
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                    {changeLog.length} field{changeLog.length !== 1 ? "s" : ""} changed
+                    {changeLog.length} field{changeLog.length !== 1 ? "s" : ""}{" "}
+                    changed
                   </span>
                 </h4>
                 <div className="space-y-2">
@@ -342,14 +372,16 @@ function LogCard({
   onDetails: (id: string) => void;
 }) {
   const currentUserId = useCurrentUser()?.id ?? null;
-  const creatorLabel = log.creatorId === currentUserId ? "You" : log.creatorName;
+  const creatorLabel =
+    log.creatorId === currentUserId ? "You" : log.creatorName;
   const hasCompanion = !!log.companionDomain;
 
   return (
     <div className="space-y-3 rounded-xl p-4 shadow-sm ring-1 ring-foreground/10">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className={`font-semibold uppercase tracking-wide ${getActionBadgeClass(log.action)}`}>
+          <Badge
+            className={`font-semibold uppercase tracking-wide ${getActionBadgeClass(log.action)}`}>
             {log.action}
           </Badge>
           <Badge variant="outline">{log.domain}</Badge>
@@ -358,8 +390,7 @@ function LogCard({
               log.level === "INFO"
                 ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
                 : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
-            }
-          >
+            }>
             {log.level}
           </Badge>
         </div>
@@ -368,16 +399,22 @@ function LogCard({
         </span>
       </div>
 
-      <p className="text-sm leading-relaxed font-semibold">{log.displayMessage}</p>
+      <p className="text-sm leading-relaxed font-semibold">
+        {log.displayMessage}
+      </p>
 
       <div className="space-y-1.5 rounded-lg bg-muted/50 p-3 text-xs">
         <div className="flex items-center gap-2">
           <Network className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="w-24 shrink-0 font-medium text-muted-foreground">{log.domain}:</span>
+          <span className="w-24 shrink-0 font-medium text-muted-foreground">
+            {log.domain}:
+          </span>
           <span className="truncate font-semibold">{log.domainName}</span>
         </div>
         <div className="flex items-center gap-2 pl-5.5">
-          <span className="w-24 shrink-0 text-muted-foreground">{log.domain} ID:</span>
+          <span className="w-24 shrink-0 text-muted-foreground">
+            {log.domain} ID:
+          </span>
           <code className="font-mono break-all">{log.domainDisplayId}</code>
         </div>
 
@@ -389,13 +426,17 @@ function LogCard({
               <span className="w-24 shrink-0 font-medium text-blue-500">
                 TARGETED {log.companionDomain}:
               </span>
-              <span className="truncate font-semibold">{log.companionDomainName}</span>
+              <span className="truncate font-semibold">
+                {log.companionDomainName}
+              </span>
             </div>
             <div className="flex items-center gap-2 pl-5.5">
               <span className="w-24 shrink-0 text-muted-foreground">
                 TARGETED {log.companionDomain} ID:
               </span>
-              <code className="font-mono break-all">{log.companionDomainDisplayId}</code>
+              <code className="font-mono break-all">
+                {log.companionDomainDisplayId}
+              </code>
             </div>
           </>
         )}
@@ -419,16 +460,21 @@ export interface OverallActivityLogsPanelProps {
   targetId: string;
 }
 
-export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLogsPanelProps) {
+export function OverallActivityLogsPanel({
+  domain,
+  targetId,
+}: OverallActivityLogsPanelProps) {
   const { shopId } = useShop();
 
   const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalEntries, setTotalEntries] = useState(0);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
   const [dateMode, setDateMode] = useState<DateMode>("all");
-  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(
+    undefined,
+  );
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -449,25 +495,25 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
   }, [dateMode, customRange]);
 
   const fetchLogs = useCallback(
-    async (pageToLoad: number, append = false) => {
+    async (cursorToLoad: string | null, append = false) => {
       if (!shopId) return;
       if (append) setLoadingMore(true);
       else setLoading(true);
       try {
         const params: Record<string, any> = {
-          page: pageToLoad,
           limit: PAGE_SIZE,
           shopId,
           domain,
           targetId,
+          ...(cursorToLoad ? { cursor: cursorToLoad } : {}),
           ...buildDateParams(),
         };
         const res = await fetchOverallActivityLogs(params);
         const body = res?.data?.data;
         const newLogs = body?.activityLogs ?? [];
         setLogs((prev) => (append ? [...prev, ...newLogs] : newLogs));
-        setTotalEntries(body?.paginationData?.totalEntries ?? 0);
-        setPage(pageToLoad);
+        setHasMore(Boolean(body?.paginationData?.hasMore));
+        setCursor(body?.paginationData?.nextCursor ?? null);
       } catch (err: any) {
         toast.error(err?.message || "Failed to load activity logs");
         if (!append) setLogs([]);
@@ -476,32 +522,30 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
         else setLoading(false);
       }
     },
-    [shopId, domain, targetId, buildDateParams]
+    [shopId, domain, targetId, buildDateParams],
   );
 
   useEffect(() => {
-    if (shopId) fetchLogs(1);
+    if (shopId) fetchLogs(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, domain, targetId, dateMode, customRange]);
 
-  const hasMore = logs.length < totalEntries;
-
-  // Infinite scroll: load the next page once the sentinel below the list
-  // scrolls into view, instead of numbered pagination.
+  // Infinite scroll: load the next page (via cursor) once the sentinel below
+  // the list scrolls into view, instead of numbered pagination.
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || !hasMore) return;
+    if (!el || !hasMore || !cursor) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting && !loading && !loadingMore) {
-          fetchLogs(page + 1, true);
+          fetchLogs(cursor, true);
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "200px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadingMore, page, fetchLogs]);
+  }, [hasMore, cursor, loading, loadingMore, fetchLogs]);
 
   const handleOpenDetail = (id: string) => {
     setSelectedLogId(id);
@@ -521,13 +565,16 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
               dateMode === mode
                 ? "bg-primary text-primary-foreground"
                 : "bg-background text-muted-foreground hover:text-foreground"
-            }`}
-          >
+            }`}>
             {mode}
           </button>
         ))}
         {dateMode === "custom" && (
-          <DateRangePicker value={customRange} onChange={setCustomRange} className="ml-1" />
+          <DateRangePicker
+            value={customRange}
+            onChange={setCustomRange}
+            className="ml-1"
+          />
         )}
       </div>
 
@@ -547,8 +594,12 @@ export function OverallActivityLogsPanel({ domain, targetId }: OverallActivityLo
               <LogCard key={log.id} log={log} onDetails={handleOpenDetail} />
             ))}
             {hasMore && (
-              <div ref={sentinelRef} className="flex items-center justify-center py-4">
-                {loadingMore && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
+              <div
+                ref={sentinelRef}
+                className="flex items-center justify-center py-4">
+                {loadingMore && (
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                )}
               </div>
             )}
           </>

@@ -19,6 +19,7 @@ const SUPPORTED = [
   "toDate",
   "advertisedSaleId",
   "employeeId",
+  "packageId",
 ];
 
 export async function listSales(filters = []) {

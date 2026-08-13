@@ -138,6 +138,7 @@ export default function RegistersPage() {
           </Breadcrumb>
 
           <Button
+            className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
             onClick={() => {
               setFormMode("add");
               setFormRegisterId(null);
@@ -194,7 +195,7 @@ export default function RegistersPage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                      <DropdownMenuTrigger render={<Button variant="outline" className="h-9! rounded! px-3.5! text-[14px]! font-normal!" />}>
                         Actions <ChevronDown className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">

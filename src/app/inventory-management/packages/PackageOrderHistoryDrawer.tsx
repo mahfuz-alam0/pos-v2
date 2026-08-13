@@ -1,50 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-
-import { fetchInventoryPackageHistory } from "@/services/reporting/inventoryPackageHistory";
-
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
-import PackageHistoryTable from "@/app/reports-analytics/reports/inventory/PackageHistoryTable";
-import type { PackageHistoryRow, InventoryPagination } from "@/app/reports-analytics/reports/inventory/types";
-
-const PAGE_SIZE = 20;
+import SalesTable from "@/components/admin/SalesTable";
 
 export interface PackageOrderHistoryDrawerProps {
   open: boolean;
   packageId: string;
   onClose: () => void;
+  // Match whatever host drawer this is opened from on top of — PackageDetailsPanel
+  // is 50vw, InventoryDetailsDrawer (via PackageStorageLocations) is 60%.
+  size?: number | string;
 }
 
-export default function PackageOrderHistoryDrawer({ open, packageId, onClose }: PackageOrderHistoryDrawerProps) {
-  const [rows, setRows] = useState<PackageHistoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState<InventoryPagination>({ page: 1, pageSize: PAGE_SIZE, totalEntries: 0, totalPages: 1 });
-
-  const fetchPage = async (page: number) => {
-    if (!packageId) return;
-    setLoading(true);
-    try {
-      const res = await fetchInventoryPackageHistory({ packageId, page, limit: PAGE_SIZE });
-      setRows(res?.data?.data || []);
-      const pd = res?.data?.paginationData;
-      setPagination({ page: pd?.currentPage || page, pageSize: PAGE_SIZE, totalEntries: pd?.totalEntries || 0, totalPages: pd?.totalPages || 1 });
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to load order history");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (open && packageId) fetchPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, packageId]);
-
+// Shows the real sales orders that included this package — same fields as
+// the main Sales table (Order ID, Customer, Team, Created, Status, Order
+// Type, Payment, Reporting, Total, Action), scoped via SalesTable's
+// packageId prop instead of duplicating its rendering.
+export default function PackageOrderHistoryDrawer({ open, packageId, onClose, size = "50vw" }: PackageOrderHistoryDrawerProps) {
   return (
-    <Drawer open={open} onClose={onClose} side="right" size={900}>
+    <Drawer open={open} onClose={onClose} side="right" size={size}>
       <div className="flex h-full flex-col gap-4 overflow-y-auto p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Order History</h2>
@@ -54,7 +29,7 @@ export default function PackageOrderHistoryDrawer({ open, packageId, onClose }: 
           </Button>
         </div>
 
-        <PackageHistoryTable data={rows} loading={loading} pagination={pagination} onPageChange={fetchPage} />
+        {open && packageId && <SalesTable packageId={packageId} />}
       </div>
     </Drawer>
   );

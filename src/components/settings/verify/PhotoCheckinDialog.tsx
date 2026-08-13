@@ -11,6 +11,10 @@ import {
   UserPlus,
   Pencil,
   Check,
+  Mail,
+  Phone,
+  Loader2,
+  Plus,
 } from "lucide-react";
 import { useShop } from "@/context/shop-context";
 import { parseDLBarcode, formatDLDate } from "@/lib/aamva";
@@ -23,6 +27,8 @@ import {
 import { uploadAnySingleFile } from "@/services/storage/uploadFile";
 import { findCustomersByLicense, findCustomersByInfoString } from "@/services/customers/lookup";
 import { addCustomerToQueue } from "@/services/customerQueue/add";
+import { updateCustomerInfo } from "@/services/customers/updateCustomer";
+import { getSingleCustomer } from "@/services/customers/getSingleCustomer";
 import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import AnimatedDrawer from "@/components/ui/AnimatedDrawer";
 import { Button } from "@/components/ui/button";
@@ -86,14 +92,19 @@ const FIELD_LABELS = {
   postal_code: "Postal Code",
   city: "City",
   state: "State",
+  email: "Email",
+  phone: "Phone",
 };
 
-function fieldGroupsFor(mode) {
+// Existing (matched) customers get an email/phone row too — the scanned DL
+// never has those, only the customer record does.
+function fieldGroupsFor(mode, customerExists) {
   return [
     [mode === "med-id" ? "medicalLicense" : "licenseId", "firstName", "lastName"],
     ["dob", "sex", "expiry"],
     ["address"],
     ["postal_code", "city", "state"],
+    ...(customerExists ? [["email", "phone"]] : []),
   ];
 }
 
@@ -106,6 +117,78 @@ function dataUrlToFile(dataUrl) {
   return new File([arr], `license_${Date.now()}.${contentType.split("/")[1]}`, {
     type: contentType,
   });
+}
+
+// formData field -> customer record field, for saving a single inline edit
+// (address fields nest under locationDetails).
+function applyFieldToCustomer(customer, field, value, mode) {
+  const next = { ...customer };
+  switch (field) {
+    case "licenseId":
+      next.drivingLicense = value;
+      break;
+    case "medicalLicense":
+      next.medicalLicense = value;
+      break;
+    case "expiry":
+      if (mode === "med-id") next.medicalLicenseExpiresAt = value;
+      else next.drivingLicenseExpiry = value;
+      break;
+    case "address":
+      next.locationDetails = { ...next.locationDetails, streetAddress: value };
+      break;
+    case "postal_code":
+      next.locationDetails = { ...next.locationDetails, zipCode: value };
+      break;
+    case "city":
+      next.locationDetails = { ...next.locationDetails, city: value };
+      break;
+    case "state":
+      next.locationDetails = { ...next.locationDetails, state: value };
+      break;
+    default:
+      // firstName, lastName, dob, sex, email, phone map 1:1
+      next[field] = value;
+  }
+  return next;
+}
+
+// The update endpoint validates a full customer payload, not a sparse
+// single-field patch (mirrors AddCustomerForm's buildPayload, sourced from
+// the customer record instead of form state — same field names either way).
+function buildFullCustomerPayload(customer, shopId) {
+  return {
+    email: customer.email || undefined,
+    firstName: customer.firstName,
+    lastName: customer.lastName || undefined,
+    countryCode: "US",
+    sex: customer.sex || undefined,
+    phone: customer.phone ? `+${String(customer.phone).replace(/^\+/, "")}` : undefined,
+    locationDetails: {
+      country: "US",
+      city: customer.locationDetails?.city || undefined,
+      state: customer.locationDetails?.state || undefined,
+      streetAddress: customer.locationDetails?.streetAddress || undefined,
+      zipCode: customer.locationDetails?.zipCode || undefined,
+    },
+    mjMedicalData: customer.mjMedicalData || undefined,
+    customerGroupIds: (customer.customerGroups || [])
+      .map((g) => (typeof g === "string" ? g : g?.id))
+      .filter(Boolean),
+    note: customer.note || undefined,
+    dob: customer.dob || undefined,
+    drivingLicense: customer.drivingLicense || undefined,
+    drivingLicenseExpiry: customer.drivingLicenseExpiry || undefined,
+    medicalLicense: customer.medicalLicense || undefined,
+    customerTypeId: customer.customerTypeId || "",
+    isLocked: !!customer.isLocked,
+    shouldWarnUser: !!customer.shouldWarnUser,
+    warningMessage: customer.shouldWarnUser ? customer.warningMessage : null,
+    shopId,
+    referralSource: customer.referralSource || null,
+    avatarUrl: customer.avatarUrl || undefined,
+    documentLinks: customer.documentLinks || [],
+  };
 }
 
 function normalizeOcrDoc(doc, isMedId) {
@@ -144,6 +227,11 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
   const [queueLoading, setQueueLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  // Field currently being saved to the matched customer's record (inline
+  // pencil-edit on the confirmation screen).
+  const [savingField, setSavingField] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarFileInputRef = useRef(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -174,6 +262,7 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
     setDragOver(false);
     setFacingMode("environment");
     setAddCustomerOpen(false);
+    setSavingField(null);
   }
 
   useEffect(() => {
@@ -286,8 +375,30 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
         dob: data.dob,
       }).catch(() => []);
     }
-    setCustomer(found?.[0] || null);
-    setCustomerExists(Boolean(found?.length));
+    // Customers added before the FN/LN extraction fix may be stored under a
+    // different first/last split than today's scan produces (a multi-word
+    // given name that used to get its last word misfiled as the surname).
+    // DOB alone is unaffected by that, so retry on it — but only trust an
+    // unambiguous single hit, since DOB alone can collide across customers.
+    if (!found?.length && data.dob) {
+      const byDob = await findCustomersByInfoString({ shopId, dob: data.dob }).catch(() => []);
+      if (byDob?.length === 1) found = byDob;
+    }
+    let matched = found?.[0] || null;
+    // The list-lookup response is abbreviated — fetch the full record so
+    // inline edits below have every field the update endpoint needs (it
+    // validates a complete customer payload, not a sparse patch).
+    if (matched?.id) {
+      const full = await getSingleCustomer(matched.id).catch(() => null);
+      matched = full?.data?.data?.customer || matched;
+    }
+    setCustomer(matched);
+    setCustomerExists(Boolean(matched));
+    // The scan never carries email/phone — pull those from the matched
+    // customer's own record so they're editable inline too.
+    if (matched) {
+      setFormData((prev) => ({ ...prev, email: matched.email || "", phone: matched.phone || "" }));
+    }
     setShowConfirmation(true);
   }
 
@@ -334,14 +445,10 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
         setLoadingMsg(
           mode === "med-id" ? "Processing medical ID… Please wait." : "Processing license… Please wait."
         );
-        const endpoint = mode === "med-id" ? "/api/pixlab-medidscan" : "/api/pixlab-docscan";
-        const res = await fetch(endpoint, {
+        const res = await fetch("/api/azure-docscan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            img: uploaded.downloadUrl,
-            ...(mode === "med-id" ? {} : { type: "driver_license", country: "usa" }),
-          }),
+          body: JSON.stringify({ img: uploaded.downloadUrl }),
         });
         const json = await res.json();
         if (!res.ok || !(json?.status === 200 || json?.fields || json?.doc)) {
@@ -611,6 +718,48 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
     );
   }
 
+  // Confirming a field's edit: for the new-customer path this is just local
+  // state (Add Customer creates it below), but once a customer is already
+  // matched there's nothing left to "Add" — save straight to their record.
+  async function commitFieldEdit(field) {
+    const value = formData[field] || "";
+    const customerId = customer?.id || customer?._id;
+    if (!customerExists || !customerId) {
+      setEditingField(null);
+      return;
+    }
+    setSavingField(field);
+    try {
+      const updatedCustomer = applyFieldToCustomer(customer, field, value, mode);
+      await updateCustomerInfo(customerId, buildFullCustomerPayload(updatedCustomer, shopId));
+      setCustomer(updatedCustomer);
+      toast.success(`${FIELD_LABELS[field]} updated`);
+      setEditingField(null);
+    } catch (err) {
+      toast.error(err?.message || `Failed to update ${FIELD_LABELS[field]}`);
+    } finally {
+      setSavingField(null);
+    }
+  }
+
+  async function handleAvatarFile(file) {
+    const customerId = customer?.id || customer?._id;
+    if (!file || !customerId || avatarUploading) return;
+    setAvatarUploading(true);
+    try {
+      const uploaded = await uploadAnySingleFile(file);
+      if (!uploaded?.downloadUrl) throw new Error("Failed to upload image");
+      const updatedCustomer = { ...customer, avatarUrl: uploaded.downloadUrl };
+      await updateCustomerInfo(customerId, buildFullCustomerPayload(updatedCustomer, shopId));
+      setCustomer(updatedCustomer);
+      toast.success("Profile picture updated");
+    } catch (err) {
+      toast.error(err?.message || "Failed to update profile picture");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   function renderFieldValue(field) {
     const value = formData[field] || "";
     if (editingField === field) {
@@ -621,8 +770,14 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
             value={value}
             onChange={(e) => setFormData((prev) => ({ ...prev, [field]: e.target.value }))}
             className="h-8 flex-1"
+            disabled={savingField === field}
           />
-          <Button size="icon-sm" className="shrink-0" onClick={() => setEditingField(null)}>
+          <Button
+            size="icon-sm"
+            className="shrink-0"
+            disabled={savingField === field}
+            onClick={() => commitFieldEdit(field)}
+          >
             <Check />
           </Button>
         </div>
@@ -635,24 +790,67 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
     const initials =
       [formData.firstName?.[0], formData.lastName?.[0]].filter(Boolean).join("").toUpperCase() || "?";
 
-    const groups = fieldGroupsFor(mode);
+    const groups = fieldGroupsFor(mode, customerExists);
     const colClass = (group) =>
       group.length === 1 ? "w-full" : group.length === 2 ? "w-[49%]" : "w-[32%]";
 
     return (
       <div className="mt-8 w-full">
         <div className="mb-3 flex items-center gap-4">
-          {customer?.avatarUrl ? (
+          {customerExists ? (
+            <button
+              type="button"
+              onClick={() => avatarFileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="group relative size-25 shrink-0 cursor-pointer rounded-full disabled:cursor-wait"
+              title="Click to upload a profile picture"
+            >
+              {customer?.avatarUrl ? (
+                <>
+                  <img
+                    src={customer.avatarUrl}
+                    alt=""
+                    className="size-25 shrink-0 rounded-full object-cover ring-2 ring-[#52c41a]"
+                  />
+                  {/* Existing photo: always-visible edit badge, not hover-only
+                      — hover doesn't exist on the tablets this dialog runs on. */}
+                  <div className="absolute -right-0.5 -bottom-0.5 flex size-8 items-center justify-center rounded-full border-2 border-white bg-[#52c41a] text-white shadow-sm dark:border-[#1c2027]">
+                    {avatarUploading ? <Loader2 className="size-4 animate-spin" /> : <Pencil className="size-4" />}
+                  </div>
+                  {avatarUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40" />
+                  )}
+                </>
+              ) : (
+                // No photo on file yet: show the "+" upload affordance
+                // outright instead of initials, so it reads as a button.
+                <div className="flex size-25 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[#52c41a] bg-[#f6ffed] text-[#52c41a]">
+                  {avatarUploading ? <Loader2 className="size-7 animate-spin" /> : <Plus className="size-8" />}
+                </div>
+              )}
+              <input
+                ref={avatarFileInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  handleAvatarFile(f);
+                }}
+              />
+            </button>
+          ) : customer?.avatarUrl ? (
             <img
               src={customer.avatarUrl}
               alt=""
               className="size-25 shrink-0 rounded-full object-cover ring-2"
-              style={{ "--tw-ring-color": customerExists ? "#52c41a" : "#1890ff" } as CSSProperties}
+              style={{ "--tw-ring-color": "#1890ff" } as CSSProperties}
             />
           ) : (
             <div
               className="flex size-25 shrink-0 items-center justify-center rounded-full text-2xl font-bold text-white"
-              style={{ background: customerExists ? "#52c41a" : "#1890ff" }}
+              style={{ background: "#1890ff" }}
             >
               {initials}
             </div>
@@ -665,6 +863,20 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
                 <span className="text-gray-700">
                   {customer?.firstName} {customer?.lastName} — Add to queue to continue.
                 </span>
+                {(customer?.email || customer?.phone) && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                    {customer?.email && (
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="size-3" /> {customer.email}
+                      </span>
+                    )}
+                    {customer?.phone && (
+                      <span className="inline-flex items-center gap-1">
+                        <Phone className="size-3" /> {customer.phone}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="w-full rounded-lg border-l-4 border-[#1890ff] bg-[#e6f7ff] p-4">

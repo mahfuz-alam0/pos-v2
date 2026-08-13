@@ -339,13 +339,6 @@ export default function SignInForm() {
 
           {step === "org" ? (
             <>
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-                <p className="mt-1 text-sm text-white/45">
-                  Sign in to your organization to continue.
-                </p>
-              </div>
-
               <form onSubmit={handleContinue} className="space-y-4" noValidate>
                 <div>
                   <Label
@@ -423,20 +416,14 @@ export default function SignInForm() {
             </>
           ) : (
             <>
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={handleBackToOrg}
-                  className="mb-3 flex items-center gap-1 text-sm text-white/45 hover:text-white/70"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  {orgUsername}
-                </button>
-                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-                <p className="mt-1 text-sm text-white/45">
-                  Sign in to your organization to continue.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={handleBackToOrg}
+                className="mb-6 flex items-center gap-1 text-sm text-white/45 hover:text-white/70"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                {orgUsername}
+              </button>
 
               <form
                 onSubmit={authMode === "pin" ? (e) => e.preventDefault() : handleSubmit}

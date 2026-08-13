@@ -71,7 +71,7 @@ export default function ManageHardwareDialog({ open, register, onClose }: Manage
               <p className="mt-0.5 text-sm text-muted-foreground">Configure automatic receipt printing for this register.</p>
             </div>
 
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-foreground/10 bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-4 rounded-lg bg-muted/30 p-4 ring-1 ring-foreground/10">
               <div className="flex-1">
                 <div className="text-sm font-medium">Automated Sales Receipt Printing</div>
                 <div className="mt-1 text-xs text-muted-foreground">
@@ -95,7 +95,7 @@ export default function ManageHardwareDialog({ open, register, onClose }: Manage
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" className="h-9! rounded! px-3.5! text-[14px]! font-normal!" onClick={onClose}>
             Close
           </Button>
         </div>

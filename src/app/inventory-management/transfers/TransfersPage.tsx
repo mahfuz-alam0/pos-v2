@@ -522,7 +522,7 @@ export default function TransfersPage() {
                           </TableCell>
                           <TableCell>{row.sourceStorageLocation ?? "-"}</TableCell>
                           <TableCell>{row.destinationStorageLocation ?? "-"}</TableCell>
-                          <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
+                          <TableCell className={`sticky right-0 z-10 w-33 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}>
                             <Button
                               size="icon-sm"
                               className="rounded-full"
@@ -609,7 +609,7 @@ export default function TransfersPage() {
                           </TableCell>
                           <TableCell className="text-right">${(row.totalPrice || 0).toLocaleString()}</TableCell>
                           <TableCell className="text-center">{row.numberOfPackages || 0}</TableCell>
-                          <TableCell className={`sticky right-0 z-10 w-40 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra" : "bg-background"}`}>
+                          <TableCell className={`sticky right-0 z-10 w-40 text-center shadow-[inset_8px_0_8px_-8px_rgba(0,0,0,0.35)] ${i % 2 === 1 ? "bg-table-zebra-solid" : "bg-background"}`}>
                             {!row.isTransit ? (
                               <AlertDialog>
                                 <AlertDialogTrigger>

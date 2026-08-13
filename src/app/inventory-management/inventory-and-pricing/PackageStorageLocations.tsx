@@ -218,7 +218,7 @@ function PackageCard({
 
       <PackageActivityDrawer open={activityOpen} packageId={pkg.id} onClose={() => setActivityOpen(false)} />
 
-      <PackageOrderHistoryDrawer open={orderHistoryOpen} packageId={pkg.id} onClose={() => setOrderHistoryOpen(false)} />
+      <PackageOrderHistoryDrawer open={orderHistoryOpen} packageId={pkg.id} onClose={() => setOrderHistoryOpen(false)} size="60%" />
 
       {pkg.productId && (
         <AddEditProductDrawer
