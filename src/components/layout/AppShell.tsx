@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { PUBLIC_PATHS } from "@/components/auth/AuthGuard";
-import { checkForUpdates } from "@/lib/update-check";
+// import { checkForUpdates } from "@/lib/update-check"; // auto-update backend not ready yet
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
@@ -14,7 +14,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     if (isPublicPath) return;
-    checkForUpdates();
+    // checkForUpdates(); // auto-update backend not ready yet
   }, [isPublicPath]);
 
   if (isPublicPath) return children;
