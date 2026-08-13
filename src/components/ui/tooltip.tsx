@@ -30,9 +30,16 @@ function TooltipContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
+  // Tailwind's z-50 (the default) loses to a Drawer's content panel, which
+  // sits at its own zIndex+1 (Drawer.tsx defaults to 50, so 51) — pass a
+  // higher value here when this tooltip can be triggered from inside a
+  // Drawer, same reasoning as AlertDialogContent's zIndex prop. Inline style
+  // wins over the Tailwind class regardless of source order.
+  zIndex,
+  style,
   children,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Popup> & Pick<React.ComponentProps<typeof TooltipPrimitive.Positioner>, "side" | "sideOffset" | "align" | "alignOffset">) {
+}: React.ComponentProps<typeof TooltipPrimitive.Popup> & Pick<React.ComponentProps<typeof TooltipPrimitive.Positioner>, "side" | "sideOffset" | "align" | "alignOffset"> & { zIndex?: number }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Positioner
@@ -40,13 +47,15 @@ function TooltipContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50">
+        className="isolate z-50"
+        style={zIndex != null ? { zIndex } : undefined}>
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"
           className={cn(
             "z-50 inline-flex w-fit max-w-xs origin-(--transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pr-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
+          style={zIndex != null ? { ...style, zIndex } : style}
           {...props}>
           {children}
           <TooltipPrimitive.Arrow

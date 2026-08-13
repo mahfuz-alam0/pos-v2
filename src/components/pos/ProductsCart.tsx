@@ -15,6 +15,7 @@ import {
   Package,
   Tag,
   Percent,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useShop } from "@/context/shop-context";
@@ -444,6 +445,12 @@ export default function ProductsCart() {
 
   const orderSummaryItemFor = (record) => lineItemAssignment.get(record.key);
 
+  // errorMessages sits as a sibling of createdLineItem on the quote
+  // response's nonPackagedLineItems entries (e.g. "Unable to resolve
+  // purchase quantity") — surfaced per-row so it's visible wherever this
+  // cart table renders (regular POS sidebar and Tablet Mode's cart drawer).
+  const itemErrorsFor = (record) => orderSummaryItemFor(record)?.errorMessages || [];
+
   const unitPriceOf = (record) =>
     orderSummaryItemFor(record)?.createdLineItem?.initialUnitPrice ??
     record.price;
@@ -549,10 +556,14 @@ export default function ProductsCart() {
                 i % 2 === 1
                   ? "bg-stone-50 dark:bg-stone-900/40"
                   : "bg-background";
+              const itemErrors = itemErrorsFor(record);
+              const hasErrors = itemErrors.length > 0;
               return (
                 <Fragment key={record.key ?? record.id}>
                   <tr
-                    className={`${zebra} shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] transition-colors hover:bg-primary/3`}>
+                    className={`${zebra} shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] transition-colors hover:bg-primary/3 ${
+                      hasErrors ? "border-l-4 border-l-destructive bg-destructive/5" : ""
+                    }`}>
                     {!isLocked && (
                       <td className="px-2 py-3">
                         <button
@@ -585,6 +596,28 @@ export default function ProductsCart() {
                     )}
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
+                        {hasErrors && (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  aria-label="Item errors"
+                                  className="inline-flex cursor-help items-center justify-center text-destructive">
+                                  <AlertTriangle className="size-4" />
+                                </button>
+                              }
+                            />
+                            <TooltipContent zIndex={1010}>
+                              <strong>Item Errors:</strong>
+                              <ul className="m-0 pl-4">
+                                {itemErrors.map((error, errorIndex) => (
+                                  <li key={errorIndex}>{error}</li>
+                                ))}
+                              </ul>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         <span className="text-base font-semibold text-foreground">
                           {record?.productName}
                         </span>

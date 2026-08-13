@@ -37,6 +37,7 @@ import { quoteApiManager } from "@/utils/quoteApiManager";
 const NAVY = "#00152A";
 const NAVY_CARD = "#001D3D";
 const BLUE = "#0190DD";
+const RED = "#DC2626";
 
 // Every createdLineItem across the quote — non-packaged plus bundle
 // parent/child — used to roll the per-line tax + discount breakdowns
@@ -149,6 +150,13 @@ export default function TabletModeCartSummary({
   const total = orderData?.finalPayable ?? subtotal;
   const itemCount = cart.length;
   const cartEmpty = itemCount === 0;
+
+  // Same errorExists flag ProductPromoTaxes' per-row error badges are keyed
+  // off of (see nonPackagedLineItems[].errorMessages) — surfaced here too so
+  // the top-level "Items in cart" bar isn't silent about a broken line item
+  // the way it was before (that detail only lived inside the Discounts &
+  // Taxes drawer, several taps away).
+  const cartHasErrors = Boolean(orderData?.errorExists);
 
   const customerName = selectedCustomer
     ? `${selectedCustomer.firstName || ""} ${selectedCustomer.lastName || ""}`.trim()
@@ -494,10 +502,19 @@ export default function TabletModeCartSummary({
           disabled={cartEmpty}
           onClick={() => setCartDrawerOpen(true)}
           className="flex w-full items-center justify-between rounded-xl px-4 py-4 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ background: BLUE }}>
+          style={{ background: cartHasErrors ? RED : BLUE }}>
           <span className="flex items-center gap-2.5 text-base font-semibold">
-            <ShoppingCart className="size-6" />
+            {cartHasErrors ? (
+              <TriangleAlert className="size-6" />
+            ) : (
+              <ShoppingCart className="size-6" />
+            )}
             {itemCount} Item{itemCount === 1 ? "" : "s"} in cart
+            {cartHasErrors && (
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                Needs attention
+              </span>
+            )}
           </span>
           <span className="text-lg font-bold">${subtotal.toFixed(2)}</span>
         </button>
