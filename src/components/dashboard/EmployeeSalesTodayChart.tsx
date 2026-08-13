@@ -109,10 +109,10 @@ export default function EmployeeSalesTodayChart({
   const dateShort = new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
   return (
-    <div className="h-full rounded-xl bg-component-bg shadow-md">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-5">
-        <span className="text-lg font-normal text-text">
-          Today&apos;s Sales by Employee &mdash; <span className="text-[#2A9D8F]">{dateLabel}</span>
+    <div className="rounded-2xl bg-component-bg shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-5 py-3.5">
+        <span className="text-[15px] font-semibold text-heading">
+          Today&apos;s Sales by Employee &mdash; <span className="text-primary">{dateLabel}</span>
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <ApiSelect
@@ -129,18 +129,18 @@ export default function EmployeeSalesTodayChart({
           />
           <button
             onClick={goToPrev}
-            className="flex items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 py-1 text-sm font-medium text-[#2A9D8F]"
+            className="flex items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 py-1 text-sm font-medium text-primary"
           >
             <ChevronLeft className="size-3" /> Previous
           </button>
-          <span className="rounded-full bg-surface-alt px-3 py-1 text-sm font-semibold text-[#2A9D8F]">{dateShort}</span>
+          <span className="rounded-full bg-surface-alt px-3 py-1 text-sm font-semibold text-primary">{dateShort}</span>
           <button
             onClick={goToNext}
             disabled={isToday}
             className="flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium disabled:cursor-not-allowed"
             style={{
               borderColor: isToday ? "var(--border)" : "rgba(196,181,244,0.6)",
-              color: isToday ? "var(--muted-foreground)" : "#2A9D8F",
+              color: isToday ? "var(--muted-foreground)" : "var(--color-primary)",
             }}
           >
             Next <ChevronRight className="size-3" />

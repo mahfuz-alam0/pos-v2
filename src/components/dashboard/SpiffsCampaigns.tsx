@@ -68,24 +68,24 @@ export default function SpiffsCampaigns() {
     goalType === "revenue" ? formatCurrency(value) : Math.round(value).toLocaleString("en-US");
 
   return (
-    <div className="rounded-xl bg-component-bg shadow-md p-3">
+    <div className="rounded-2xl bg-component-bg p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-lg font-normal text-text">Spiffs &amp; Campaigns</span>
+        <h2 className="m-0 text-[15px] font-semibold text-heading">Spiffs &amp; Campaigns</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrev}
-            className="flex h-8 items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 text-sm font-medium text-[#2A9D8F]"
+            className="flex h-8 items-center gap-1 rounded-full border border-primary/30 bg-component-bg px-3 text-sm font-medium text-primary"
           >
             <ChevronLeft className="size-3" /> Previous
           </button>
-          <span className="flex h-8 items-center rounded-full bg-surface-alt px-3 text-sm font-semibold text-[#2A9D8F]">
+          <span className="flex h-8 items-center rounded-full bg-surface-alt px-3 text-sm font-semibold text-primary">
             {new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })}
           </span>
           <button
             onClick={goToNext}
             disabled={isToday}
             className="flex h-8 items-center gap-1 rounded-full border px-3 text-sm font-medium disabled:cursor-not-allowed"
-            style={{ borderColor: isToday ? "var(--border)" : "rgba(196,181,244,0.6)", color: isToday ? "var(--muted-foreground)" : "#2A9D8F" }}
+            style={{ borderColor: isToday ? "var(--border)" : "rgba(196,181,244,0.6)", color: isToday ? "var(--muted-foreground)" : "var(--color-primary)" }}
           >
             Next <ChevronRight className="size-3" />
           </button>

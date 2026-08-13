@@ -69,9 +69,9 @@ export default function TaskList() {
   };
 
   return (
-    <div className="rounded-xl bg-component-bg shadow-md p-3">
+    <div className="rounded-2xl bg-component-bg p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-lg font-normal text-text">Task List</h2>
+        <h2 className="m-0 text-[15px] font-semibold text-heading">Task List</h2>
         <Button className="h-10 px-3.5 text-sm" onClick={() => fetchTasks(currentPage)}>
           Refresh
         </Button>
