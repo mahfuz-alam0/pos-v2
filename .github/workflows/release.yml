@@ -141,6 +141,15 @@ jobs:
           echo "${{ secrets.APPLE_API_KEY_P8 }}" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
           echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple_api_key.p8" >> "$GITHUB_ENV"
 
+      - name: Import Apple Developer ID intermediate certificate
+        # The exported .p12 contains only the leaf cert, not the chain, so
+        # notarization can't validate it unless this intermediate is present
+        # in a keychain on the runner's search list.
+        if: matrix.platform == 'macos-latest'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k ~/Library/Keychains/login.keychain-db
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
