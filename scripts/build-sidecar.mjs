@@ -50,6 +50,34 @@ if (triple.includes("-apple-darwin")) {
       }
     }
   }
+
+  // The kept-arch binaries above still carry sharp's own publisher signature,
+  // not ours — Apple notarization rejects any embedded Mach-O not signed with
+  // our Developer ID cert. Re-sign them here, once they're in their final
+  // location. Needs APPLE_SIGNING_IDENTITY's cert already in a keychain on
+  // the runner's search list (CI imports it before this script runs).
+  if (process.env.APPLE_SIGNING_IDENTITY) {
+    const nodeModulesDir = join(serverDir, "node_modules");
+    const toSign = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, entry.name);
+        if (entry.isDirectory()) walk(p);
+        else if (entry.name.endsWith(".node") || entry.name.endsWith(".dylib")) toSign.push(p);
+      }
+    };
+    if (existsSync(nodeModulesDir)) walk(nodeModulesDir);
+    for (const file of toSign) {
+      execFileSync("codesign", [
+        "--force",
+        "--timestamp",
+        "--options", "runtime",
+        "--sign", process.env.APPLE_SIGNING_IDENTITY,
+        file,
+      ]);
+    }
+    console.log(`Re-signed ${toSign.length} native binaries for notarization`);
+  }
 }
 
 // Watchdog wrapper must sit beside server.js so its relative import resolves.
