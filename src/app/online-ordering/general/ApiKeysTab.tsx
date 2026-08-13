@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import CryptoJS from "crypto-js";
 import { Copy, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { getApiKey } from "@/services/apiKeys/getApiKey";
 import { generateApiKey } from "@/services/apiKeys/generateApiKey";
 import { getMyPin } from "@/services/profile/getMyPin";
 import { getCurrentUser } from "@/util/use-current-user";
+import { decryptPin } from "@/util/pin";
 
 const PLATFORMS = [
   { key: "ios", label: "iOS", platform: "IOS" },
@@ -69,20 +69,12 @@ export default function ApiKeysTab() {
       toast.error("PIN verification not available");
       return false;
     }
-    try {
-      const key = CryptoJS.enc.Utf8.parse(process.env.NEXT_PUBLIC_ENCRYPTION_KEY || "");
-      const iv = CryptoJS.enc.Hex.parse(encryptedPin.slice(0, 32));
-      const encryptedData = CryptoJS.enc.Hex.parse(encryptedPin.slice(32));
-      const decrypted = CryptoJS.AES.decrypt({ ciphertext: encryptedData } as any, key, {
-        iv,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7,
-      });
-      return entered === decrypted.toString(CryptoJS.enc.Utf8);
-    } catch {
+    const decrypted = decryptPin(encryptedPin);
+    if (!decrypted) {
       toast.error("Failed to verify PIN");
       return false;
     }
+    return entered === decrypted;
   };
 
   const handleGenerateClick = (key: PlatformKey) => {

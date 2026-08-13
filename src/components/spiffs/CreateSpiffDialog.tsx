@@ -62,16 +62,14 @@ const SCOPE_FETCHERS: Record<string, (page: number, search: string) => Promise<{
 
 export function ToggleGroup({ options, value, onChange }: { options: { label: string; value: string }[]; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex w-fit flex-wrap items-center gap-0.5 rounded-lg bg-muted p-0.5">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
-            value === opt.value
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-component-bg text-muted-foreground hover:text-text"
+          className={`rounded-[7px] px-3 py-1 text-sm font-medium transition-colors ${
+            value === opt.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
           }`}
         >
           {opt.label}

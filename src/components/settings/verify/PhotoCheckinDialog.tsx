@@ -191,6 +191,18 @@ function buildFullCustomerPayload(customer, shopId) {
   };
 }
 
+const nameTokens = (o) => (`${o?.firstName || ""} ${o?.lastName || ""}`.toLowerCase().match(/[a-z]+/g) || []);
+
+// Same person, tolerating a middle name on one side only and a different
+// first/last word split (older records split multi-word given names
+// differently) — but never a different name.
+function sameName(customer, scan) {
+  const a = nameTokens(customer);
+  const b = nameTokens(scan);
+  if (!a.length || !b.length) return false;
+  return a.every((t) => b.includes(t)) || b.every((t) => a.includes(t));
+}
+
 function normalizeOcrDoc(doc, isMedId) {
   return {
     licenseId: isMedId ? "" : doc.license_no || "",
@@ -367,22 +379,28 @@ export default function PhotoCheckinDialog({ open, onOpenChange, mode = "dl-fron
         medicalLicense: data.medicalLicense || undefined,
       }).catch(() => []);
     }
+    // Name lookups can hand back someone else entirely: the list API drops
+    // the firstName filter server-side, and the DOB retry below matches
+    // anyone born that day. Both paths are only usable once the returned
+    // record's name is checked against the scan.
     if (!found?.length) {
-      found = await findCustomersByInfoString({
-        shopId,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        dob: data.dob,
-      }).catch(() => []);
+      found = (
+        await findCustomersByInfoString({
+          shopId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          dob: data.dob,
+        }).catch(() => [])
+      )?.filter((c) => sameName(c, data));
     }
     // Customers added before the FN/LN extraction fix may be stored under a
     // different first/last split than today's scan produces (a multi-word
     // given name that used to get its last word misfiled as the surname).
-    // DOB alone is unaffected by that, so retry on it — but only trust an
-    // unambiguous single hit, since DOB alone can collide across customers.
+    // DOB alone is unaffected by that, so retry on it — but the hit still has
+    // to be the same human, since a DOB collides across customers freely.
     if (!found?.length && data.dob) {
       const byDob = await findCustomersByInfoString({ shopId, dob: data.dob }).catch(() => []);
-      if (byDob?.length === 1) found = byDob;
+      found = (byDob || []).filter((c) => sameName(c, data));
     }
     let matched = found?.[0] || null;
     // The list-lookup response is abbreviated — fetch the full record so

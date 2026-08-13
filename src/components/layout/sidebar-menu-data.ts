@@ -254,6 +254,11 @@ export const retailMenu: MenuItem[] = [
         label: "ACH Transactions",
         href: "/audit-logs/ach-transactions",
       },
+      {
+        key: "activity-log",
+        label: "Activity Log",
+        href: "/audit-logs/activity-log",
+      },
     ],
   },
   {
@@ -360,7 +365,7 @@ export const retailMenu: MenuItem[] = [
         label: "Shifts",
         href: "/access-management/employee-shift",
       },
-      // { key: "spiffs", label: "Spiffs", href: "/access-management/spiffs" },
+      { key: "spiffs", label: "Spiffs", href: "/access-management/spiffs" },
     ],
   },
   {
