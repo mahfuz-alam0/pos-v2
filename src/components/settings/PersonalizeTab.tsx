@@ -55,8 +55,12 @@ function ColorField({ label, value, onChange, isOpen, onToggle }) {
           }`}
       >
         <div className="overflow-hidden">
-          <div className="flex flex-col gap-2 pt-1 pb-1 [&_.react-colorful]:w-full [&_.react-colorful]:h-35 [&_.react-colorful__hue]:h-3 [&_.react-colorful__saturation]:rounded-lg [&_.react-colorful__hue]:rounded-full [&_.react-colorful__pointer]:size-4">
-            <HexColorPicker color={value} onChange={onChange} />
+          <div className="flex flex-col gap-2 pt-1 pb-1">
+            {/* react-colorful injects its own unlayered <style> tag at mount, which
+                beats Tailwind's @layer utilities regardless of specificity — only an
+                inline style (highest priority, no layer) reliably overrides its
+                default 200x200 box. */}
+            <HexColorPicker color={value} onChange={onChange} style={{ width: "100%", height: 180 }} />
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-muted-foreground">#</span>
               <HexColorInput
@@ -119,7 +123,7 @@ function CustomThemeSwatch() {
           Custom
         </span>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64">
+      <PopoverContent align="start" className="w-72">
         <div className="flex flex-col gap-2.5">
           {COLOR_FIELDS.map(({ key, label }) => (
             <ColorField
