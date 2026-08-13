@@ -131,11 +131,17 @@ export default function WithinLocationTransferForm({
         );
 
         if (preSelectedPackageIds?.length) {
+          // Default to 1 here too — same as every other selection path
+          // (toggleRow/toggleAll) — so the qty this seeds into selectedRows
+          // always matches what the input actually displays (which reads
+          // off `rows`, seeded at 1 above). Pre-filling with the full
+          // location quantity here silently desynced the two: the input
+          // kept showing 1 while the submitted payload carried the real qty.
           setSelectedRows((prev) => {
             const merged = [...prev];
             packages.forEach((pkg: any) => {
               if (preSelectedPackageIds.includes(pkg.id) && !merged.find((m) => m.id === pkg.id)) {
-                merged.push({ ...pkg, displayQuantityToShift: pkg.storageLocationBreakdown?.[sourceId] ?? 1 });
+                merged.push({ ...pkg, displayQuantityToShift: 1 });
               }
             });
             return merged.length > 10 ? merged.slice(0, 10) : merged;
@@ -260,7 +266,7 @@ export default function WithinLocationTransferForm({
             </span>
             <Select
               items={[{ value: "__none__", label: "Select source" }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
-              value={sourceId ?? undefined}
+              value={sourceId ?? "__none__"}
               onValueChange={(v) => setSourceId(v as string)}
               disabled={locationsLoading}
             >
@@ -288,7 +294,7 @@ export default function WithinLocationTransferForm({
                 { value: "__none__", label: "Select destination" },
                 ...locations.filter((l) => l.id !== sourceId).map((l) => ({ value: l.id, label: l.name })),
               ]}
-              value={destinationId ?? undefined}
+              value={destinationId ?? "__none__"}
               onValueChange={(v) => setDestinationId(v as string)}
               disabled={locationsLoading}
             >

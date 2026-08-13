@@ -223,6 +223,11 @@ export default function CashierSettings() {
       <div className="columns-1 lg:columns-2 xl:columns-3 gap-6">
             <SectionCard icon={<ShoppingCart className="size-4 text-primary" />} title="Sales Preferences">
               <PreferenceCheckbox
+                label="Add new item on scan"
+                checked={preferences.shouldAddNewLineItemOnScan}
+                onCheckedChange={(v) => set("shouldAddNewLineItemOnScan", v)}
+              />
+              <PreferenceCheckbox
                 label="Allow sales of out of stock packages"
                 checked={preferences.shouldAllowOutOfStockPackagesToSell}
                 onCheckedChange={(v) => set("shouldAllowOutOfStockPackagesToSell", v)}

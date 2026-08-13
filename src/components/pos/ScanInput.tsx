@@ -72,6 +72,11 @@ export default function ScanInput({
   const [counters, setCounters] = useState({});
   const [scannedPackageId, setScannedPackageId] = useState(null);
   const [shouldEnableScanOnlyCart, setShouldEnableScanOnlyCart] = useState(false);
+  // true — every scan/add always creates its own new cart line.
+  // false (default, matches the shop preference's default) — scanning/adding
+  // a package already in the cart bumps that line's quantity instead of
+  // creating a duplicate, preserving its existing appMaintainedId.
+  const [shouldAddNewLineItemOnScan, setShouldAddNewLineItemOnScan] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   // Populated when nothing sellable matched the scanned code — every
   // non-finished package on the same product, so the cashier can see what's
@@ -91,9 +96,9 @@ export default function ScanInput({
     getShopPreferences()
       .then((response) => {
         if (response?.data?.success && response?.data?.data?.preference) {
-          setShouldEnableScanOnlyCart(
-            response.data.data.preference.shouldEnableScanOnlyCart || false
-          );
+          const pref = response.data.data.preference;
+          setShouldEnableScanOnlyCart(pref.shouldEnableScanOnlyCart || false);
+          setShouldAddNewLineItemOnScan(pref.shouldAddNewLineItemOnScan === true);
         }
       })
       .catch((error) => console.error("Error fetching shop preferences:", error));
@@ -197,6 +202,50 @@ export default function ScanInput({
       source
     );
 
+  // Adds each item to the cart per the shouldAddNewLineItemOnScan preference:
+  // true -> always its own new line, fresh appMaintainedId (old behaviour).
+  // false -> a package already in the cart gets its existing line's quantity
+  // bumped instead of a duplicate line, preserving that line's own
+  // appMaintainedId (matches the old app's scan-only-cart merge behaviour).
+  const mergeIntoCart = (
+    currentCart,
+    itemsToAdd,
+    conversionRate,
+    uomInfo: { projectQtyUomShortForm?: any; sellableUoMShortForm?: any } = {}
+  ) => {
+    let nextCart = [...currentCart];
+    itemsToAdd.forEach(({ item, baseQuantity }) => {
+      const addQty = conversionRate ? conversionRate * baseQuantity : baseQuantity;
+      if (!shouldAddNewLineItemOnScan) {
+        const idx = nextCart.findIndex((c) => c.id === item.id);
+        if (idx !== -1) {
+          nextCart = nextCart.map((c, i) =>
+            i === idx ? { ...c, purchaseQuantity: (c.purchaseQuantity || 0) + addQty } : c
+          );
+          return;
+        }
+      }
+      const lineId = crypto.randomUUID();
+      nextCart = [
+        ...nextCart,
+        {
+          ...item,
+          key: lineId,
+          appMaintainedId: lineId,
+          inventoryId: item.inventoryId,
+          packageId: item.id,
+          purchaseQuantity: addQty,
+          disabledDiscountSources: [],
+          shouldAllowDecimalValue: item.shouldAllowDecimalValue,
+          projectQtyConversionRate: conversionRate,
+          projectQtyUomShortForm: uomInfo.projectQtyUomShortForm,
+          sellableUoMShortForm: uomInfo.sellableUoMShortForm,
+        },
+      ];
+    });
+    return nextCart;
+  };
+
   const handleAddToState = async () => {
     if (isAddingToCart) return;
     try {
@@ -218,30 +267,15 @@ export default function ScanInput({
         return;
       }
 
-      // Always adds a new, independent cart line — scanning/selecting the
-      // same package again (e.g. to ring up another unit as its own line)
-      // is not merged or blocked; each line's own quote data stays distinct
-      // via a fresh appMaintainedId (see lineItemMatching.ts).
       const conversionRate = inventoryData?.inventoryInfo?.projectQtyConversionRate;
-      const packagesWithExtraFields = packagesWithQuantity.map((item) => {
-        const baseQuantity = counters[item.id] !== undefined ? counters[item.id] : 1;
-        const lineId = crypto.randomUUID();
-        return {
-          ...item,
-          key: lineId,
-          appMaintainedId: lineId,
-          inventoryId: item.inventoryId,
-          packageId: item.id,
-          purchaseQuantity: conversionRate ? conversionRate * baseQuantity : baseQuantity,
-          disabledDiscountSources: [],
-          shouldAllowDecimalValue: item.shouldAllowDecimalValue,
-          projectQtyConversionRate: inventoryData?.inventoryInfo?.projectQtyConversionRate,
-          projectQtyUomShortForm: inventoryData?.inventoryInfo?.projectQtyUomShortForm,
-          sellableUoMShortForm: inventoryData?.inventoryInfo?.sellableUomShortForm,
-        };
+      const itemsToAdd = packagesWithQuantity.map((item) => ({
+        item,
+        baseQuantity: counters[item.id] !== undefined ? counters[item.id] : 1,
+      }));
+      const updatedLineItems = mergeIntoCart(cart, itemsToAdd, conversionRate, {
+        projectQtyUomShortForm: inventoryData?.inventoryInfo?.projectQtyUomShortForm,
+        sellableUoMShortForm: inventoryData?.inventoryInfo?.sellableUomShortForm,
       });
-
-      const updatedLineItems = [...cart, ...packagesWithExtraFields];
       dispatch(addToCart(updatedLineItems));
       dispatch(addLineItemsAction(updatedLineItems));
       dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
@@ -342,9 +376,9 @@ export default function ScanInput({
         }
 
         // Scan-only single-package flow: skip the drawer, add straight to
-        // cart as its own new line every time — rescanning the same package
-        // adds another line rather than bumping an existing one's quantity,
-        // same as everywhere else (see lineItemMatching.ts).
+        // cart. Whether rescanning the same package adds another line or
+        // bumps the existing one's quantity is controlled by the
+        // shouldAddNewLineItemOnScan shop preference (see mergeIntoCart).
         if (shouldEnableScanOnlyCart && updatedPackagesInfo.length === 1) {
           const scannedPackage =
             updatedPackagesInfo.find(
@@ -353,22 +387,16 @@ export default function ScanInput({
                 pkg.advertisedId?.endsWith(advertisedPackageId)
             ) || updatedPackagesInfo[0];
           const conversionRate = inventory?.inventoryInfo?.projectQtyConversionRate || 1;
-          const lineId = crypto.randomUUID();
 
-          const packageWithExtraFields = {
-            ...scannedPackage,
-            key: lineId,
-            appMaintainedId: lineId,
-            inventoryId: scannedPackage.inventoryId,
-            packageId: scannedPackage.id,
-            purchaseQuantity: conversionRate * 1,
-            disabledDiscountSources: [],
-            shouldAllowDecimalValue: scannedPackage.shouldAllowDecimalValue,
-            projectQtyConversionRate: conversionRate,
-            projectQtyUomShortForm: inventory?.inventoryInfo?.projectQtyUomShortForm,
-            sellableUoMShortForm: inventory?.inventoryInfo?.sellableUomShortForm,
-          };
-          const updatedLineItems = [...cart, packageWithExtraFields];
+          const updatedLineItems = mergeIntoCart(
+            cart,
+            [{ item: scannedPackage, baseQuantity: 1 }],
+            conversionRate,
+            {
+              projectQtyUomShortForm: inventory?.inventoryInfo?.projectQtyUomShortForm,
+              sellableUoMShortForm: inventory?.inventoryInfo?.sellableUomShortForm,
+            }
+          );
           dispatch(addToCart(updatedLineItems));
           dispatch(addLineItemsAction(updatedLineItems));
           dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
