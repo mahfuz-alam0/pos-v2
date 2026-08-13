@@ -23,7 +23,9 @@ export async function proxy(request: NextRequest) {
 
   const socketio = pathname.startsWith("/proxy/socket.io");
   const upstream = socketio
-    ? `${BASE_URL}/socket.io${pathname.slice("/proxy/socket.io".length)}${search}`
+    ? // engine.io is mounted at "/socket.io/" upstream; the trailing slash is not
+      // optional, and Next strips it from the incoming path.
+      `${BASE_URL}/socket.io/${pathname.slice("/proxy/socket.io/".length)}${search}`
     : ecom
     ? `${ECOM_URL}${pathname.slice("/proxy/ecom".length)}${search}`
     : `${BASE_URL}${pathname.slice("/proxy".length)}${search}`;
