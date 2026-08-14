@@ -39,11 +39,16 @@ export function connectToSocket({ url, shopId }: { url?: string; shopId?: string
     namespace = url;
   }
 
+  // console.log("[socket] connecting", { namespace, url, shopId: finalShopId, isTauri });
+
   const socket = isTauri
     ? io(namespace, {
         // engine.io goes through the Next.js /proxy route, which forwards to the
         // API host with the browser's localhost session cookie attached.
-        path: "/proxy/socket.io/",
+        // No trailing slash: Next 308-redirects "/proxy/socket.io/" and every poll
+        // would pay an extra round trip.
+        path: "/proxy/socket.io",
+        addTrailingSlash: false,
         query: { shopId: finalShopId },
         transports: ["polling"],
         upgrade: false,
@@ -55,8 +60,20 @@ export function connectToSocket({ url, shopId }: { url?: string; shopId?: string
         withCredentials: true,
       });
 
+  socket.on("connect", () => {
+    console.log("[socket] connected", namespace, socket.id);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("[socket] disconnected", namespace, reason);
+  });
+
   socket.on("error", (error) => {
-    console.error("Socket error on", (socket.io as any).uri, error);
+    console.error("[socket] error on", (socket.io as any).uri, namespace, error);
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("[socket] connect_error on", namespace, error.message);
   });
 
   return socket;

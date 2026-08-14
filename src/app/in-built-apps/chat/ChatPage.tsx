@@ -15,7 +15,9 @@ export default function ChatPage() {
   const { isConnected, socketError, isLoading } = useChatSocket();
   const dispatch: any = useDispatch();
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 992
+  );
   const [selectedUser, setSelectedUser] = useState(null);
   const { messages, loading } = useSelector((state: any) => state.chat);
 

@@ -108,10 +108,20 @@ export default function Communication({ selectedUser, loading, onOpenDrawer }) {
 
   if (!selectedUser) {
     return (
-      <div className="flex h-full flex-col items-center justify-center text-center">
-        <MessageSquare className="size-20 text-muted-foreground/30" />
-        <h2 className="mt-5 mb-2 text-2xl font-medium text-muted-foreground">Select a conversation</h2>
-        <p className="text-sm text-muted-foreground/70">Choose from your existing conversations to start messaging</p>
+      <div className="flex h-full flex-col">
+        <button
+          type="button"
+          className="m-4 mb-0 self-start text-muted-foreground lg:hidden"
+          onClick={onOpenDrawer}
+          aria-label="Open conversations"
+        >
+          <Menu className="size-5" />
+        </button>
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <MessageSquare className="size-20 text-muted-foreground/30" />
+          <h2 className="mt-5 mb-2 text-2xl font-medium text-muted-foreground">Select a conversation</h2>
+          <p className="text-sm text-muted-foreground/70">Choose from your existing conversations to start messaging</p>
+        </div>
       </div>
     );
   }

@@ -64,7 +64,6 @@ export default function HomeCustomerQueue({ onCustomerServed = null }) {
 
   useEffect(() => {
     fetchQueue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
 
   useEffect(() => {
@@ -85,7 +84,6 @@ export default function HomeCustomerQueue({ onCustomerServed = null }) {
     });
 
     return () => socketRef.current?.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId]);
 
   const handleClearQueue = async () => {
