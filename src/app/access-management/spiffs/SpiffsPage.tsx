@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { useShop } from "@/context/shop-context";
 import { fetchSpiffCampaigns } from "@/services/spiffs/list";
 import { nowInShopTimezone, formatCurrency } from "@/util/dateUtil";
@@ -10,28 +11,143 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import CreateSpiffDialog from "@/components/spiffs/CreateSpiffDialog";
 import SpiffCampaignActions from "@/components/spiffs/SpiffCampaignActions";
+import SpiffPayoutsTable from "@/components/spiffs/SpiffPayoutsTable";
+
+const TAB_LABEL_CLASS =
+  "h-auto flex-none -mb-px rounded-none border-x-0 border-t-0 border-b-2 border-transparent px-0 pb-3 text-sm font-normal text-foreground/70 after:hidden focus-visible:border-b-primary focus-visible:ring-0 focus-visible:outline-none data-active:border-primary";
 
 const STATUS_VARIANT: Record<string, "default" | "destructive" | "outline"> = { met: "default", missed: "destructive", progress: "outline" };
 const STATUS_LABEL: Record<string, string> = { met: "Goal Met", missed: "Missed", progress: "In Progress" };
 
-const fmtValue = (value: number, goalType: string) =>
-  goalType === "revenue" ? formatCurrency(value) : Math.round(value).toLocaleString("en-US");
+const fmtValue = (value: number, goalType: string) => {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return goalType === "revenue" ? formatCurrency(safeValue) : Math.round(safeValue).toLocaleString("en-US");
+};
 
-// Groups the campaign-centric /spiffs/list response by contributor so each employee's
-// spiff activity for the day can be reviewed in one place. Keyed by contributor id, not
-// display name, so employees sharing a name never get merged together.
+// Groups the campaign-centric /spiffs/list response by contributor, then by campaign, so each
+// employee's row is "how is this spiff going overall" rather than one row per calendar day. A
+// daily-cadence campaign resets its goal every day and the API returns one entry per day in the
+// selected range — flattening that straight into the list (as this used to do) turned 3 real
+// campaigns into 39 near-identical "Missed" rows. Aggregating first, with the day-by-day detail
+// available on demand, is what actually reads as "3 spiffs" at a glance.
 function groupByEmployee(campaigns: any[]) {
-  const byEmployee = new Map<string, { id: string; name: string; campaigns: any[] }>();
+  const byEmployee = new Map<string, { id: string; name: string; byCampaign: Map<string, any> }>();
+
   for (const campaign of campaigns) {
     for (const contributor of campaign.contributors || []) {
-      if (!byEmployee.has(contributor.id)) byEmployee.set(contributor.id, { id: contributor.id, name: contributor.name, campaigns: [] });
-      byEmployee.get(contributor.id)!.campaigns.push({ ...campaign, contribution: contributor.value });
+      if (!byEmployee.has(contributor.id)) {
+        byEmployee.set(contributor.id, { id: contributor.id, name: contributor.name, byCampaign: new Map() });
+      }
+      const employee = byEmployee.get(contributor.id)!;
+      if (!employee.byCampaign.has(campaign.campaignId)) {
+        employee.byCampaign.set(campaign.campaignId, {
+          campaignId: campaign.campaignId,
+          title: campaign.title,
+          goalType: campaign.goalType,
+          reward: campaign.reward,
+          days: [] as any[],
+        });
+      }
+      employee.byCampaign.get(campaign.campaignId)!.days.push({ ...campaign, contribution: contributor.value });
     }
   }
-  return [...byEmployee.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  return [...byEmployee.values()]
+    .map((employee) => ({
+      id: employee.id,
+      name: employee.name,
+      campaigns: [...employee.byCampaign.values()].map((c) => {
+        const totalContribution = c.days.reduce((sum: number, d: any) => sum + (Number.isFinite(d.contribution) ? d.contribution : 0), 0);
+        const metCount = c.days.filter((d: any) => d.status === "met").length;
+        const missedCount = c.days.filter((d: any) => d.status === "missed").length;
+        const progressCount = c.days.filter((d: any) => d.status === "progress").length;
+        return {
+          ...c,
+          totalContribution,
+          metCount,
+          missedCount,
+          progressCount,
+          // Most recent day first — enumerateCadencePeriods hands the API days back oldest-first.
+          days: [...c.days].reverse(),
+        };
+      }),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// One campaign's summary row for an employee — daily/weekly/monthly rollup collapsed to a single
+// line, with the underlying per-period rows available behind a toggle instead of always shown.
+function CampaignSummaryRow({
+  campaign,
+  onEdit,
+  onChanged,
+}: {
+  campaign: any;
+  onEdit: (id: string) => void;
+  onChanged: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const unitLabel = campaign.goalType === "revenue" ? "" : " units";
+  const isSingleDay = campaign.days.length === 1;
+
+  return (
+    <div className="not-last:pb-2 not-last:shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          onClick={() => !isSingleDay && setExpanded((v) => !v)}
+        >
+          <span className="shrink-0 truncate font-medium text-text">{campaign.title}</span>
+          {isSingleDay ? (
+            <Badge variant={STATUS_VARIANT[campaign.days[0].status]} className="shrink-0 text-xs">
+              {STATUS_LABEL[campaign.days[0].status]}
+            </Badge>
+          ) : (
+            <span className="flex shrink-0 items-center gap-1 text-xs">
+              {campaign.metCount > 0 && <span className="font-semibold text-emerald-600">{campaign.metCount} met</span>}
+              {campaign.missedCount > 0 && <span className="font-semibold text-destructive">{campaign.missedCount} missed</span>}
+              {campaign.progressCount > 0 && <span className="font-semibold text-muted-foreground">{campaign.progressCount} in progress</span>}
+            </span>
+          )}
+          <span className="truncate text-xs text-muted-foreground">{campaign.reward?.label}</span>
+          {!isSingleDay && (
+            <ChevronDown className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
+          )}
+        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-sm font-semibold whitespace-nowrap">
+            {fmtValue(campaign.totalContribution, campaign.goalType)}
+            {unitLabel} contributed
+          </span>
+          <SpiffCampaignActions campaignId={campaign.campaignId} onEdit={onEdit} onChanged={onChanged} />
+        </div>
+      </div>
+
+      {!isSingleDay && expanded && (
+        <div className="mt-2 ml-4 flex flex-col gap-1.5 border-l border-foreground/10 pl-3">
+          {campaign.days.map((day: any) => (
+            <div key={day.id} className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">{day.period}</span>
+                <Badge variant={STATUS_VARIANT[day.status]} className="text-xs">
+                  {STATUS_LABEL[day.status]}
+                </Badge>
+              </div>
+              <span className="font-medium">
+                {fmtValue(day.contribution, day.goalType)}
+                {unitLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SpiffsPage() {
@@ -93,9 +209,9 @@ export default function SpiffsPage() {
   const visibleEmployees = employeeFilter ? employees.filter((e) => e.id === employeeFilter) : employees;
 
   return (
-    <div className="flex gap-4 p-3">
-      <div className="flex w-full flex-col gap-4 rounded-xl border border-border bg-card px-4 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -145,65 +261,69 @@ export default function SpiffsPage() {
           </Select>
         </div>
 
-        <div className="relative -mx-4 px-4">
-          {loading ? (
-            <div className="py-6 text-center text-muted-foreground">Loading…</div>
-          ) : visibleEmployees.length === 0 ? (
-            <div className="py-6 text-center text-muted-foreground">
-              {employeeFilter ? "This employee hasn't contributed to a spiff in this range." : "No employee has contributed to a spiff in this range."}
-            </div>
-          ) : (
-            <Accordion multiple className="gap-1">
-              {visibleEmployees.map((employee) => {
-                const metCount = employee.campaigns.filter((c) => c.status === "met").length;
-                return (
-                  <AccordionItem key={employee.id} value={employee.id} className="not-last:border-b-0">
-                    <AccordionTrigger className="items-center py-2 hover:no-underline">
-                      <div className="flex w-full items-center justify-between gap-3">
-                        <span className="truncate font-semibold text-text">{employee.name}</span>
-                        <span className="shrink-0 text-sm text-muted-foreground">
-                          {employee.campaigns.length} spiff{employee.campaigns.length === 1 ? "" : "s"} · {metCount} met
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="m-1 flex flex-col gap-2 p-3">
-                        {employee.campaigns.map((campaign) => {
-                          const unitLabel = campaign.goalType === "revenue" ? "" : " units";
-                          return (
-                            <div key={campaign.id} className="flex items-center justify-between gap-3 not-last:border-b not-last:border-foreground/5 not-last:pb-2">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <span className="shrink-0 truncate font-medium text-text">{campaign.title}</span>
-                                <Badge variant={STATUS_VARIANT[campaign.status]} className="shrink-0 text-xs">
-                                  {STATUS_LABEL[campaign.status]}
-                                </Badge>
-                                <span className="truncate text-xs text-muted-foreground">{campaign.reward?.label}</span>
-                              </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                <span className="text-sm font-semibold whitespace-nowrap">
-                                  {fmtValue(campaign.contribution, campaign.goalType)}
-                                  {unitLabel} contributed
-                                </span>
-                                <SpiffCampaignActions
-                                  campaignId={campaign.campaignId}
-                                  onEdit={(id) => {
-                                    setEditCampaignId(id);
-                                    setModalOpen(true);
-                                  }}
-                                  onChanged={fetchCampaigns}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          )}
-        </div>
+        <Tabs defaultValue="leaderboard">
+          <div className="shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+            <TabsList variant="line" className="h-auto gap-7 p-0">
+              <TabsTrigger value="leaderboard" className={TAB_LABEL_CLASS}>
+                Leaderboard
+              </TabsTrigger>
+              <TabsTrigger value="payouts" className={TAB_LABEL_CLASS}>
+                Payouts
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="leaderboard" className="relative mt-4">
+            {loading ? (
+              <div className="py-6 text-center text-muted-foreground">Loading…</div>
+            ) : visibleEmployees.length === 0 ? (
+              <div className="py-6 text-center text-muted-foreground">
+                {employeeFilter ? "This employee hasn't contributed to a spiff in this range." : "No employee has contributed to a spiff in this range."}
+              </div>
+            ) : (
+              <Accordion multiple className="gap-1">
+                {visibleEmployees.map((employee) => {
+                  const metCount = employee.campaigns.filter((c) => c.metCount > 0).length;
+                  return (
+                    <AccordionItem
+                      key={employee.id}
+                      value={employee.id}
+                      className="not-last:border-b-0 not-last:shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]"
+                    >
+                      <AccordionTrigger className="items-center py-2 hover:no-underline">
+                        <div className="flex w-full items-center justify-between gap-3">
+                          <span className="truncate font-semibold text-text">{employee.name}</span>
+                          <span className="shrink-0 text-sm text-muted-foreground">
+                            {employee.campaigns.length} spiff{employee.campaigns.length === 1 ? "" : "s"} · {metCount} met
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="m-1 flex flex-col gap-2 p-3">
+                          {employee.campaigns.map((campaign) => (
+                            <CampaignSummaryRow
+                              key={campaign.campaignId}
+                              campaign={campaign}
+                              onEdit={(id) => {
+                                setEditCampaignId(id);
+                                setModalOpen(true);
+                              }}
+                              onChanged={fetchCampaigns}
+                            />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
+          </TabsContent>
+
+          <TabsContent value="payouts" className="mt-4">
+            <SpiffPayoutsTable shopId={shopId} startDate={range.startDate} endDate={range.endDate} employeeFilter={employeeFilter} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <CreateSpiffDialog

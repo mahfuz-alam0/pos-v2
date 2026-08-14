@@ -64,8 +64,10 @@ export default function SpiffsCampaigns() {
   };
   const isToday = date === nowInShopTimezone().format("YYYY-MM-DD");
 
-  const fmtValue = (value: number, goalType: string) =>
-    goalType === "revenue" ? formatCurrency(value) : Math.round(value).toLocaleString("en-US");
+  const fmtValue = (value: number, goalType: string) => {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    return goalType === "revenue" ? formatCurrency(safeValue) : Math.round(safeValue).toLocaleString("en-US");
+  };
 
   return (
     <div className="rounded-2xl bg-component-bg p-5 shadow-sm">

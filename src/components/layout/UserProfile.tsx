@@ -274,9 +274,7 @@ export default function UserProfile({ collapsed }) {
               </div>
             </div>
 
-            {/* Quick actions row ported from old app's AppsNavigation.
-                Chat page (/in-built-apps/chat) is not built yet — icon is
-                wired up ahead of the page landing. */}
+            {/* Quick actions row ported from old app's AppsNavigation. */}
             <div className="flex items-center justify-center gap-2 border-b border-primary/20 px-3 py-3">
               <Link
                 href="/in-built-apps/chat"
@@ -306,7 +304,7 @@ export default function UserProfile({ collapsed }) {
                 <View className="size-4.5" />
               </a>
               <Link
-                href="/admin/activity-log"
+                href="/audit-logs/activity-log"
                 title="Activity Logs"
                 onClick={() => setOpen(false)}
                 className="flex size-9 items-center justify-center rounded-lg text-sidebar-text/70 transition-colors hover:bg-sidebar-bg-hover/50 hover:text-sidebar-text"
