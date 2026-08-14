@@ -51,6 +51,7 @@ export function computeReceiptValues(transactions: any[]) {
 export interface DrawerReceiptContentProps {
   session: any;
   transactions: any[];
+  salesTaxes?: any[];
   drawerName?: string;
   style?: CSSProperties;
 }
@@ -63,7 +64,7 @@ export interface DrawerReceiptContentProps {
 // override has nothing to override and the content prints off-page).
 // Forwards a ref so the caller can hand that DOM node straight to printNode().
 const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProps>(function DrawerReceiptContent(
-  { session, transactions, drawerName, style },
+  { session, transactions, salesTaxes, drawerName, style },
   ref
 ) {
   const shopDetails = (typeof window !== "undefined" && JSON.parse(localStorage.getItem("shopDetails") || "null")) || null;
@@ -79,46 +80,38 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
 
   return (
     <div ref={ref} id="pos-receipt-print-area" style={style} className="rounded-md ring-1 ring-foreground/10 p-3 font-mono text-[11px] leading-tight">
-      <div className="mb-2">
+      <div>
         <div className="text-sm font-bold">Shift Report</div>
         <div>Store: {shopDetails?.label ?? "-"}</div>
         <div>Time Printed: {fmt(new Date().toISOString())}</div>
       </div>
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
 
-      <div className="mb-2 space-y-0.5">
+      <div className="space-y-0.5">
         <Row label="Register Name" value={drawerName || "-"} />
+        <Row label="Status" value={session.isOpen ? "Open" : "Closed"} />
         <Row label="Started By" value={session.openedBy?.name || "-"} />
         <Row label="Started At" value={fmt(session.createdAt)} />
-        <Row label="Ended By" value={session.closedBy?.name || "-"} />
-        <Row label="Ended At" value={session.isOpen ? "-" : fmt(session.updatedAt)} />
-      </div>
-      <hr className="my-2 border-border" />
-
-      <div className="mb-2 space-y-0.5">
-        <div className="font-bold">Starting Shift</div>
-        <Row label="Session ID" value={session.id} mono />
-        <Row label="Session Status" value={session.isOpen ? "Open" : "Closed"} />
-        <Row label="Opened By" value={session.openedBy?.name || "-"} />
-        <Row label="Closed By" value={session.closedBy?.name || "-"} />
-        <Row label="Opened At" value={fmt(session.createdAt)} />
+        {!session.isOpen && (
+          <>
+            <Row label="Ended By" value={session.closedBy?.name || "-"} />
+            <Row label="Ended At" value={fmt(session.updatedAt)} />
+          </>
+        )}
         <Row label="Total Transactions" value={String(transactions?.length ?? 0)} />
-        <Row label="Starting Cash" value={money(session.startingCashBalance)} />
-        <Row label="Expected Cash" value={money(expectedCash)} />
-        <Row label="Closing Cash" value={money(session.closingCashBalance)} />
       </div>
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
 
       <Row label="Starting Balance" value={money(session.startingCashBalance)} bold />
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
 
-      <div className="mb-2 space-y-0.5">
+      <div className="space-y-0.5">
         <Row label="Cash Sales" value={money(v.cashSales)} bold />
         <Row label="Total Sales" value={money(v.totalSales)} bold />
       </div>
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
 
-      <div className="mb-2 space-y-0.5">
+      <div className="space-y-0.5">
         <Row label="Total Cash In" value={money(v.totalCashIn)} bold />
         <Row label="Total Change Given" value={money(v.totalChangeGiven)} bold />
         <Row label="Cash Change Given" value={money(v.cashChangeGiven)} bold />
@@ -126,9 +119,9 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
         <Row label="Total Cash Deposit" value={money(v.totalCashDeposit)} bold />
         <Row label="Total Cash Withdrawal" value={money(v.totalCashWithdrawal)} bold />
       </div>
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
 
-      <div className="mb-2">
+      <div>
         <div className="mb-1 font-bold">Withdraw</div>
         {v.withdrawals.length === 0 ? (
           <div className="text-muted-foreground">No withdrawals</div>
@@ -138,18 +131,31 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
           ))
         )}
       </div>
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
 
-      <div className="mb-2 space-y-0.5">
+      <div className="space-y-0.5">
         <Row label="Total Deposits" value={money(v.totalDeposits)} bold />
         <Row label="Total Withdraw" value={money(v.totalWithdrawals)} bold />
       </div>
-      <hr className="my-2 border-border" />
+      <div className="my-1.5 h-px bg-border" />
+
+      {Array.isArray(salesTaxes) && salesTaxes.length > 0 && (
+        <>
+          <div className="space-y-0.5">
+            <div className="mb-1 font-bold">Taxes</div>
+            {salesTaxes.map((tax: any) => (
+              <Row key={tax.stringId || tax.name} label={`${tax.name} (${tax.taxRate}%)`} value={money(tax.amount)} />
+            ))}
+            <Row label="Tax Total" value={money(salesTaxes.reduce((s: number, t: any) => s + (t.amount || 0), 0))} bold />
+          </div>
+          <div className="my-1.5 h-px bg-border" />
+        </>
+      )}
 
       <div className="space-y-0.5">
-        <Row label="Expected Cash in Drawer" value={money(expectedCash)} bold />
-        <Row label="Actual Cash in Drawer" value={money(actualCash)} bold />
-        <Row label="Closing Discrepancy Cash" value={`${discrepancy >= 0 ? "+" : ""}${money(discrepancy)}`} bold />
+        <Row label="Expected Cash" value={money(expectedCash)} bold />
+        <Row label="Actual Cash" value={money(actualCash)} bold />
+        <Row label="Discrepancy" value={`${discrepancy >= 0 ? "+" : ""}${money(discrepancy)}`} bold />
       </div>
     </div>
   );
@@ -157,11 +163,11 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
 
 export default DrawerReceiptContent;
 
-function Row({ label, value, bold = false, mono = false }: { label: string; value: string; bold?: boolean; mono?: boolean }) {
+function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex justify-between gap-2">
-      <span>{label}:</span>
-      <span className={`${bold ? "font-bold" : ""} ${mono ? "truncate" : ""}`}>{value}</span>
+      <span className="whitespace-nowrap">{label}:</span>
+      <span className={`truncate ${bold ? "font-bold" : ""}`}>{value}</span>
     </div>
   );
 }
