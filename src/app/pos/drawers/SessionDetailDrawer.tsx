@@ -123,6 +123,9 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
   const transactions = details?.transactions ?? [];
   const salesTaxes = Array.isArray(details?.salesTaxes) ? details.salesTaxes : [];
   const v = computeReceiptValues(transactions);
+  const totalTax = salesTaxes.reduce((s: number, t: any) => s + (t.amount || 0), 0);
+  const totalVirtualSales = v.totalSales - v.cashSales;
+  const finalTotal = v.totalSales + totalTax;
   const expectedCash = session?.expectedCashBalance ?? session?.startingCashBalance ?? 0;
   const actualCash = session?.isOpen ? expectedCash : session?.closingCashBalance ?? expectedCash;
   const discrepancy = session?.cashAdjustment ?? actualCash - expectedCash;
@@ -266,8 +269,10 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
               )}
 
               <SectionCard icon={<Sigma className="size-3.5" />} title="Totals">
-                <Row label="Total Deposits" value={money(v.totalDeposits)} tone="positive" />
-                <Row label="Total Withdraw" value={money(v.totalWithdrawals)} tone="negative" />
+                <Row label="Total Cash" value={money(v.cashSales)} />
+                <Row label="Total Virtual" value={money(totalVirtualSales)} />
+                <Row label="Total Tax" value={money(totalTax)} />
+                <Row label="Final Total" value={money(finalTotal)} tone="positive" />
               </SectionCard>
 
               <SectionCard icon={<Vault className="size-3.5" />} title="Cash Drawer">
