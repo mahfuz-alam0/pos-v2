@@ -77,6 +77,9 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
   const expectedCash = session.expectedCashBalance ?? session.startingCashBalance ?? 0;
   const actualCash = session.isOpen ? expectedCash : session.closingCashBalance ?? expectedCash;
   const discrepancy = session.cashAdjustment ?? actualCash - expectedCash;
+  const totalTax = (salesTaxes || []).reduce((s: number, t: any) => s + (t.amount || 0), 0);
+  const totalVirtualSales = v.totalSales - v.cashSales;
+  const finalTotal = v.totalSales + totalTax;
 
   return (
     <div ref={ref} id="pos-receipt-print-area" style={style} className="rounded-md ring-1 ring-foreground/10 p-3 font-mono text-[11px] leading-tight">
@@ -146,11 +149,19 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
             {salesTaxes.map((tax: any) => (
               <Row key={tax.stringId || tax.name} label={`${tax.name} (${tax.taxRate}%)`} value={money(tax.amount)} />
             ))}
-            <Row label="Tax Total" value={money(salesTaxes.reduce((s: number, t: any) => s + (t.amount || 0), 0))} bold />
+            <Row label="Tax Total" value={money(totalTax)} bold />
           </div>
           <div className="my-1.5 h-px bg-border" />
         </>
       )}
+
+      <div className="space-y-0.5">
+        <Row label="Total Cash" value={money(v.cashSales)} bold />
+        <Row label="Total Virtual" value={money(totalVirtualSales)} bold />
+        <Row label="Total Tax" value={money(totalTax)} bold />
+        <Row label="Final Total" value={money(finalTotal)} bold />
+      </div>
+      <div className="my-1.5 h-px bg-border" />
 
       <div className="space-y-0.5">
         <Row label="Expected Cash" value={money(expectedCash)} bold />
