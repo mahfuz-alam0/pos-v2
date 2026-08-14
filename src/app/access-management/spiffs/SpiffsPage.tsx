@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import CreateSpiffDialog from "@/components/spiffs/CreateSpiffDialog";
+import CreateSpiffDialog, { ACTION_BUTTON } from "@/components/spiffs/CreateSpiffDialog";
 import SpiffCampaignActions from "@/components/spiffs/SpiffCampaignActions";
 import SpiffPayoutsTable from "@/components/spiffs/SpiffPayoutsTable";
 
@@ -225,7 +225,7 @@ export default function SpiffsPage() {
           </Breadcrumb>
 
           <Button
-            className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+            className={ACTION_BUTTON}
             onClick={() => {
               setEditCampaignId(null);
               setModalOpen(true);
@@ -247,7 +247,7 @@ export default function SpiffsPage() {
             value={employeeFilter}
             onValueChange={setEmployeeFilter}
           >
-            <SelectTrigger className="h-10! w-52">
+            <SelectTrigger className="w-62.5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
