@@ -18,8 +18,6 @@ import CustomerCartSidebar from "@/components/pos/CustomerCartSidebar";
 // next to "Manage Cart Items". (That toggle was this port's own invention
 // and has been removed to match.)
 export default function ProductSearch({
-  setAddSelected,
-  setMiscallenousType,
   setNotes,
   notes,
   discountTypes = [],
@@ -45,7 +43,7 @@ export default function ProductSearch({
     <div>
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <ScanInput setAddSelected={setAddSelected} />
+          <ScanInput />
         </div>
         <div className="flex-1">
           <ProductSearchDropdown
@@ -90,8 +88,6 @@ export default function ProductSearch({
             <div className="min-w-0 flex-1 overflow-hidden">
               <ProductList
                 refreshSignal={manageCartOpenCount}
-                setAddSelected={setAddSelected}
-                setMiscallenousType={setMiscallenousType}
                 setNotes={setNotes}
                 notes={notes}
                 discountTypes={discountTypes}

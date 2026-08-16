@@ -64,8 +64,6 @@ import { getQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 // the "search and select products" typeahead (ProductDropdown) are ported —
 // see ProductDetailPanel.jsx / ProductSearchDropdown.jsx.
 export default function ProductList({
-  setAddSelected,
-  setMiscallenousType,
   discountTypes = [],
   setNotes,
   notes,
@@ -506,7 +504,6 @@ export default function ProductList({
         ) : (
           <div className="min-w-40 flex-1">
             <ScanInput
-              setAddSelected={setAddSelected}
               placeholder="Scan package id"
               className="h-12 border-white/20 bg-[#00152B] text-base text-white placeholder:text-white/50"
               scannedCode={scannedCode}
@@ -896,18 +893,12 @@ export default function ProductList({
             <>
               <Button
                 disabled={isLocked}
-                onClick={() => {
-                  setMiscallenousType?.("charge");
-                  scrollToTop?.();
-                }}>
+                onClick={() => scrollToTop?.()}>
                 Add Miscellaneous Charge
               </Button>
               <Button
                 disabled={isLocked || quoteBody?.miscDiscount !== null}
-                onClick={() => {
-                  setMiscallenousType?.("discount");
-                  scrollToTop?.();
-                }}>
+                onClick={() => scrollToTop?.()}>
                 Add Miscellaneous Discount
               </Button>
             </>

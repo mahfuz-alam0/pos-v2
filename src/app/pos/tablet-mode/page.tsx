@@ -79,7 +79,6 @@ import Drawer from "@/components/ui/Drawer";
 
 import ProductList from "@/components/pos/ProductList";
 import BundledLineItems from "@/components/pos/BundledLineItems";
-import MiscellaneousChargeDrawer from "@/components/pos/MiscellaneousChargeDrawer";
 import ReturnLineItems from "@/components/pos/ReturnLineItems";
 import AddReturnedLineItems from "@/components/pos/AddReturnedLineItems";
 import RefundLineItems from "@/components/pos/RefundLineItems";
@@ -175,10 +174,6 @@ function TabletModePosInner() {
   const [anonymous, setAnonymous] = useState(false);
 
   // product side
-  const [miscallenousType, setMiscallenousType] = useState<
-    null | "charge" | "discount"
-  >(null);
-  const [addSelected, setAddSelected] = useState(false);
   const [returnedLineItems, setReturnedLineItems] = useState([]);
 
   const [deliveryType, setDeliveryType] = useState(
@@ -994,8 +989,6 @@ function TabletModePosInner() {
                   <ProductList
                     initialView="grid"
                     showFooterActions={false}
-                    setAddSelected={setAddSelected}
-                    setMiscallenousType={setMiscallenousType}
                     setNotes={undefined}
                     notes={false}
                     discountTypes={discountTypes}
@@ -1149,30 +1142,6 @@ function TabletModePosInner() {
                     .catch(() => {});
                 }}
               />
-            </div>
-          </div>
-        </Drawer>
-
-        {/* Miscellaneous charge / discount drawer */}
-        <Drawer
-          open={miscallenousType !== null}
-          onClose={() => setMiscallenousType(null)}
-          side="right"
-          size={600}
-          zIndex={60}>
-          <div className="flex h-full flex-col">
-            <div className="border-b border-border px-6 py-4 text-base font-semibold">
-              {miscallenousType === "discount"
-                ? "Miscellaneous Discount"
-                : "Miscellaneous Charge"}
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              {miscallenousType !== null && (
-                <MiscellaneousChargeDrawer
-                  type={miscallenousType === "discount" ? "discount" : "charge"}
-                  onDone={() => setMiscallenousType(null)}
-                />
-              )}
             </div>
           </div>
         </Drawer>

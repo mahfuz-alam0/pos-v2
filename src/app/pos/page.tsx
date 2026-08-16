@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Trash2,
   X,
   TriangleAlert,
   FileText,
@@ -28,8 +27,7 @@ import {
   getQuoteForSale,
   resetQuoteForSale,
 } from "@/store/slices/quoteForSaleSlice";
-import { getSaleDetail, resetSaleDetail } from "@/store/slices/saleDataSlice";
-import { updateOrderAction } from "@/store/slices/orderActionSlice";
+import { resetSaleDetail } from "@/store/slices/saleDataSlice";
 import {
   addLineItemsAction,
   resetAddedLineITems,
@@ -60,7 +58,6 @@ import useDiscountTypes from "@/hooks/useDiscountTypes";
 import { useShop } from "@/context/shop-context";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -190,8 +187,6 @@ function TabletPosInner() {
 
   // product side
   const [notes, setNotes] = useState(false);
-  const [addSelected, setAddSelected] = useState(false);
-  const [miscallenousType, setMiscallenousType] = useState(null);
   const [returnedLineItems, setReturnedLineItems] = useState([]);
 
   const [deliveryType, setDeliveryType] = useState(
@@ -1208,8 +1203,6 @@ function TabletPosInner() {
                 ) : (
                   <section>
                     <ProductSearch
-                      setAddSelected={setAddSelected}
-                      setMiscallenousType={setMiscallenousType}
                       setNotes={setNotes}
                       notes={notes}
                       discountTypes={discountTypes}

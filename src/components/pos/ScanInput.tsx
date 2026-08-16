@@ -42,7 +42,6 @@ const defaultImage = "/images/placeholders/product.svg";
 // branch below — but the old app's inline within-store transfer Drawer isn't;
 // "Transfer" instead opens the Add Transfer page in a new tab, pre-filled.
 export default function ScanInput({
-  setAddSelected,
   placeholder = "Scan barcode / package ID",
   className = "",
   // A code captured externally (e.g. a camera-based barcode/QR scan — see
@@ -52,7 +51,6 @@ export default function ScanInput({
   // a plain string prop wouldn't re-trigger the effect on an unchanged value.
   scannedCode,
 }: {
-  setAddSelected?: (v: boolean) => void;
   placeholder?: string;
   className?: string;
   scannedCode?: { value: string; nonce: number } | null;
@@ -279,7 +277,6 @@ export default function ScanInput({
       dispatch(addToCart(updatedLineItems));
       dispatch(addLineItemsAction(updatedLineItems));
       dispatch(updateSalesDetail({ lineItems: updatedLineItems }));
-      setAddSelected?.(false);
 
       const res = await refreshQuote(updatedLineItems, "scanInput-addToCart");
       if (res?.data) {
