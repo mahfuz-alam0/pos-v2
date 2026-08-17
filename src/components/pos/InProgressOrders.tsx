@@ -25,6 +25,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
+import PrintOrderModal from "@/components/order-ahead/PrintOrderModal";
 
 const fmtDateTime = (d) => {
   if (!d) return "-";
@@ -124,6 +125,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailOrder, setDetailOrder] = useState(null);
+  const [printOpen, setPrintOpen] = useState(false);
 
   const [selectedFilter, setSelectedFilter] = useState("Customer");
   const [customersData, setCustomersData] = useState([]);
@@ -754,9 +756,14 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
             <h2 className="text-lg font-semibold">
               Order # {detailOrder?.advertisedId ?? ""}
             </h2>
-            <Button variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
-              Close
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" disabled={!detailOrder} onClick={() => setPrintOpen(true)}>
+                Print Invoice
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
+                Close
+              </Button>
+            </div>
           </div>
           <div className="flex-1 overflow-auto p-4">
             {detailOrder ? (
@@ -769,6 +776,8 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
           </div>
         </div>
       </Drawer>
+
+      <PrintOrderModal open={printOpen} onClose={() => setPrintOpen(false)} type="sale" item={detailOrder} />
     </div>
   );
 }

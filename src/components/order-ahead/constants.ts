@@ -162,3 +162,60 @@ export function getCustomerName(preSale) {
 export function isShareMode() {
   return typeof window !== "undefined" && localStorage.getItem("shareMode") === "true";
 }
+
+// Normalizes line items (with pricing) for both a Sale and a pre-sale into the
+// same display shape — used by the Order Details drawer and the print modal.
+export function getOrderLineItems(type, item) {
+  let source;
+  if (type !== "presale") {
+    source = item?.nonPackagedLineItems || [];
+  } else {
+    const saleData = item?.info?.saleData;
+    const lifecycle = getPreSaleLifecycle(item);
+    source =
+      (lifecycle === "NEW"
+        ? saleData?.nonPackagedLineItems
+        : saleData?.confirmedNonPackagedLineItems || saleData?.nonPackagedLineItems) || [];
+  }
+
+  return source.map((li) => ({
+    name: li?.productName || li?.snapShotData?.productName || "Product",
+    brand: li?.brandName || li?.snapShotData?.brandName || "",
+    thumbnail: li?.productThumbNail || li?.snapShotData?.productThumbNail || "",
+    qty: li?.purchaseQuantity || li?.quantity || 1,
+    unitPrice: li?.initialUnitPrice || 0,
+    subtotal: li?.totalPriceBeforeTax || 0,
+    discount: li?.totalDiscountApplied || 0,
+    tax: li?.totalTaxApplied || 0,
+    total: li?.finalTotalPrice ?? li?.initialTotalPrice ?? 0,
+    discountNotes: (li?.discountBreakDownHierarchy || []).map((d: any) => d.notes).filter(Boolean).join(", "),
+    metrcTag: li?.snapShotData?.metrcPackageTag || "",
+    metrcBatchId: li?.snapShotData?.metrcBatchId || "",
+    taxesApplied: li?.snapShotData?.taxesApplied || [],
+  }));
+}
+
+// preSale.info.saleData.deliveryLocation / sale.deliveryLocation — same shape
+// either way (houseNumber/streetAddress1/streetAddress2/apt/floor/intercom/
+// zipCode/state/country/tag), matching the old app's formatDeliveryAddress.
+export function getDeliveryAddress(type, item) {
+  const loc = type === "presale" ? item?.info?.saleData?.deliveryLocation : item?.deliveryLocation;
+  if (!loc) return null;
+
+  const lines = [
+    [loc.houseNumber, loc.streetAddress1].filter(Boolean).join(" "),
+    loc.streetAddress2,
+    loc.apt ? `Apt ${loc.apt}` : "",
+    loc.floor ? `Floor ${loc.floor}` : "",
+    loc.intercom ? `Intercom: ${loc.intercom}` : "",
+  ].filter(Boolean);
+  const cityLine = [loc.zipCode, loc.state ? loc.state.replace(/_/g, " ") : "", loc.country]
+    .filter(Boolean)
+    .join(", ");
+
+  return { lines, cityLine, tag: loc.tag };
+}
+
+export function getCustomerPhone(type, item) {
+  return (type === "presale" ? item?.customerInfo?.phone : item?.customer?.phone) || "";
+}

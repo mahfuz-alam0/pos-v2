@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { getShopTimezone } from "@/util/dateUtil";
 import { listDrawerSessions } from "@/services/drawers/listSessions";
 import { getSessionOrderDetails } from "@/services/drawers/getSessionOrders";
 import { getSingleSale } from "@/services/sales/getSingleSales";
@@ -28,7 +29,13 @@ function money(v: number | undefined) {
 function fmtDateTime(v: string | undefined) {
   if (!v) return "-";
   const d = new Date(v);
-  return { date: d.toLocaleDateString(), time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) };
+  const timeZone = getShopTimezone() || undefined;
+  // Locale pinned to "en-US" (not the browser's own locale) so the format is
+  // always MM/DD/YYYY and h:mm:ss AM/PM, regardless of the viewer's system settings.
+  return {
+    date: d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", timeZone }),
+    time: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true, timeZone }),
+  };
 }
 
 // Inline order list for one expanded session — matches SalesTable's own
@@ -67,7 +74,19 @@ function SessionOrdersRow({ orders, loading, onOpenOrder }: { orders: any[] | nu
                 </Badge>
               </TableCell>
               <TableCell>{row.orderType ? row.orderType.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) : "-"}</TableCell>
-              <TableCell>{row.placedAt ? new Date(row.placedAt).toLocaleString() : "-"}</TableCell>
+              <TableCell>
+                {row.placedAt
+                  ? new Date(row.placedAt).toLocaleString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                      timeZone: getShopTimezone() || undefined,
+                    })
+                  : "-"}
+              </TableCell>
               <TableCell className="text-center">{row.items?.length ?? 0}</TableCell>
               <TableCell className="text-right font-semibold">{money(row.total)}</TableCell>
             </TableRow>

@@ -1165,16 +1165,18 @@ function TemplatesTab({ configs }: { configs: Record<string, Config> }) {
     setSavingTpl(true);
     try {
       const templateHtml = buildTemplateHtml(type, configs[type]);
+      // Flat width/height/marginTop/marginBottom/marginLeft/marginRight —
+      // same DTO shape as the larger save handler below (see its comment);
+      // nested dimensions/margins objects fail server-side validation.
       await updatePrintTemplate(selected.id, {
         name: edit.name,
         type,
-        dimensions: { width: parseFloat(edit.width) || 0, height: parseFloat(edit.height) || 0 },
-        margins: {
-          top: parseFloat(edit.marginTop) || 0,
-          bottom: parseFloat(edit.marginBottom) || 0,
-          left: parseFloat(edit.marginLeft) || 0,
-          right: parseFloat(edit.marginRight) || 0,
-        },
+        width: parseFloat(edit.width) || 0,
+        height: parseFloat(edit.height) || 0,
+        marginTop: parseFloat(edit.marginTop) || 0,
+        marginBottom: parseFloat(edit.marginBottom) || 0,
+        marginLeft: parseFloat(edit.marginLeft) || 0,
+        marginRight: parseFloat(edit.marginRight) || 0,
         templateHtml,
       });
       toast.success("Template saved");
@@ -1484,19 +1486,22 @@ function PrintSettingsPage() {
         googleReviewUrl: cfg.googleReviewUrl ?? "",
         googleReviewEnabled: cfg.googleReviewEnabled ?? false,
       };
+      // /print-templates/create and /update validate width/height/marginTop/
+      // marginBottom/marginLeft/marginRight as flat top-level fields (see the
+      // old app's services/Templates/updateTemplate.js caller) — NOT nested
+      // dimensions/margins objects, which the API silently ignores and then
+      // rejects the (missing) flat fields as "must be a number". The nested
+      // shape still belongs in meta (templateMeta above) for this app's own
+      // bookkeeping/preview — just not at the top level of the request body.
       const templatePayload = {
         name: cfg.name || tpl?.name || type,
         type,
-        dimensions: {
-          width: parseFloat(String(cfg.dimensions?.width ?? tpl?.dimensions?.width ?? 0)),
-          height: parseFloat(String(cfg.dimensions?.height ?? tpl?.dimensions?.height ?? 0)),
-        },
-        margins: {
-          top: parseFloat(String(cfg.margins?.top ?? tpl?.margins?.top ?? 0)),
-          bottom: parseFloat(String(cfg.margins?.bottom ?? tpl?.margins?.bottom ?? 0)),
-          left: parseFloat(String(cfg.margins?.left ?? tpl?.margins?.left ?? 0)),
-          right: parseFloat(String(cfg.margins?.right ?? tpl?.margins?.right ?? 0)),
-        },
+        width: parseFloat(String(cfg.dimensions?.width ?? tpl?.dimensions?.width ?? tpl?.width ?? 0)),
+        height: parseFloat(String(cfg.dimensions?.height ?? tpl?.dimensions?.height ?? tpl?.height ?? 0)),
+        marginTop: parseFloat(String(cfg.margins?.top ?? tpl?.margins?.top ?? tpl?.marginTop ?? 0)),
+        marginBottom: parseFloat(String(cfg.margins?.bottom ?? tpl?.margins?.bottom ?? tpl?.marginBottom ?? 0)),
+        marginLeft: parseFloat(String(cfg.margins?.left ?? tpl?.margins?.left ?? tpl?.marginLeft ?? 0)),
+        marginRight: parseFloat(String(cfg.margins?.right ?? tpl?.margins?.right ?? tpl?.marginRight ?? 0)),
         templateHtml,
         meta: templateMeta,
       };

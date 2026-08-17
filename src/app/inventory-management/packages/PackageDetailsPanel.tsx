@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Package, X } from "lucide-react";
+import { AlertTriangle, FileText, Package, X } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
@@ -13,6 +13,8 @@ import { continuePackage } from "@/services/packages/continue";
 import { discontinuePackage } from "@/services/packages/discontinue";
 import { detachPackage } from "@/services/packages/detach";
 import { pullPackageCoa } from "@/services/packages/pullCoa";
+import { deleteAndArchivePackage } from "@/services/packages/deleteAndArchive";
+import { fetchSingleProduct } from "@/services/products/getSingle";
 
 import PrintLabelModal from "@/components/pos/PrintLabelModal";
 import Drawer from "@/components/ui/Drawer";
@@ -147,6 +149,7 @@ export default function PackageDetailsPanel({
 
   const [loading, setLoading] = useState(true);
   const [packageDetail, setPackageDetail] = useState<PackageDetail | null>(null);
+  const [productData, setProductData] = useState<any>(null);
 
   const [activationToggleLoading, setActivationToggleLoading] = useState(false);
   const [detachLoading, setDetachLoading] = useState(false);
@@ -167,6 +170,8 @@ export default function PackageDetailsPanel({
   const [importOpen, setImportOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [archivePackageLoading, setArchivePackageLoading] = useState(false);
 
   const fetchDetail = async () => {
     if (!shopId || !id) return;
@@ -186,6 +191,29 @@ export default function PackageDetailsPanel({
     if (id && shopId) fetchDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, shopId]);
+
+  // The package response only carries productId — name/image/category/brand
+  // live on the product record itself, so fetch it separately (same as the
+  // old app's singleProductDetails), guarded against a stale response
+  // landing after the user has already switched to a different package.
+  useEffect(() => {
+    const productId = packageDetail?.productId;
+    if (!productId) {
+      setProductData(null);
+      return;
+    }
+    let cancelled = false;
+    fetchSingleProduct(productId)
+      .then((res: any) => {
+        if (!cancelled) setProductData(res?.data?.data?.product ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setProductData(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [packageDetail?.productId]);
 
   const refreshPackageDetails = async () => {
     await fetchDetail();
@@ -271,6 +299,22 @@ export default function PackageDetailsPanel({
     }
   };
 
+  const handleArchivePackage = async () => {
+    if (!packageDetail?.id || !shopId) return;
+    setArchivePackageLoading(true);
+    try {
+      await deleteAndArchivePackage(packageDetail.id, shopId as string, isMetrc);
+      toast.success("Package Successfully Deleted");
+      setArchiveConfirmOpen(false);
+      onChanged?.();
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.error || "Failed to delete package");
+    } finally {
+      setArchivePackageLoading(false);
+    }
+  };
+
   const handlePullCoa = async () => {
     if (!packageDetail?.id || !shopId) return;
     setPullCoaLoading(true);
@@ -285,9 +329,17 @@ export default function PackageDetailsPanel({
     }
   };
 
-  const storageLocations = Object.entries(packageDetail?.storageLocationBreakdown ?? {})
-    .map(([locId, quantity]) => ({ id: locId, quantity: Number(quantity) || 0 }))
-    .filter((loc) => loc.quantity > 0);
+  // storageLocationBreakdown may come back as an object map ({ [locationId]:
+  // qty }, per types.ts) or as an array of { id, name, quantity } (as the old
+  // app's detail endpoint returned it) — ReconcilePackageDrawer.tsx already
+  // had to handle both defensively for this exact same field, so mirror that
+  // here rather than assuming one shape and silently dropping every row.
+  const rawBreakdown = packageDetail?.storageLocationBreakdown;
+  const storageLocations = (
+    Array.isArray(rawBreakdown)
+      ? rawBreakdown.map((loc: any) => ({ id: loc.id ?? loc.storageLocationId, name: loc.name, quantity: Number(loc.quantity) || 0 }))
+      : Object.entries(rawBreakdown ?? {}).map(([locId, quantity]) => ({ id: locId, name: undefined, quantity: Number(quantity) || 0 }))
+  ).filter((loc) => loc.quantity > 0);
 
   const snapshot = packageDetail?.metrcData?.snapShotData?.metrcSnapshotData;
   const cannabisProps = packageDetail?.additionalCannabisProps;
@@ -326,6 +378,12 @@ export default function PackageDetailsPanel({
       ? (packageDetail as any).effectiveUnitCost ?? (packageDetail.unitCost ?? 0) * (1 - discountPercent / 100)
       : undefined;
 
+  // metrQuantity (METRC-side quantity) vs quantityLeft (Bleaum-side quantity)
+  // — same field and same comparison MetrcPackagesPage.tsx already uses to
+  // flag a discrepancy on the packages list.
+  const metrQuantity = (packageDetail as any).metrQuantity;
+  const hasMetrcMismatch = metrQuantity != null && (packageDetail.quantityLeft ?? 0) !== metrQuantity;
+
   return (
     <Drawer open={!!id} onClose={onClose} side="right" size="50vw">
     <div className="flex h-full flex-col gap-4">
@@ -346,41 +404,40 @@ export default function PackageDetailsPanel({
           </div>
           <p className="text-xs text-muted-foreground">{packageDetail.advertisedId}</p>
         </div>
-        <Button variant="outline" size="icon" onClick={onClose} className="shrink-0">
-          <X className="size-4" />
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-2 px-5">
-        {packageDetail.source === "METRC" && !!metrcMechanism && packageDetail.metrcData && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {packageDetail.source === "METRC" && !!metrcMechanism && packageDetail.metrcData && (
+            <Button
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              onClick={handlePullCoa}
+              disabled={pullCoaLoading}
+            >
+              <FileText className="size-3.5" />
+              {pullCoaLoading ? "Pulling..." : "Pull COA"}
+            </Button>
+          )}
           <Button
             className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-            onClick={handlePullCoa}
-            disabled={pullCoaLoading}
+            variant="outline"
+            onClick={() => setPrintOpen(true)}
           >
-            <FileText className="size-3.5" />
-            {pullCoaLoading ? "Pulling..." : "Pull COA"}
+            Print
           </Button>
-        )}
-        <Button
-          className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-          variant="outline"
-          onClick={() => setPrintOpen(true)}
-        >
-          Print
-        </Button>
-        <Button
-          className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-          onClick={() => setEditPackageOpen(true)}
-        >
-          Edit Package
-        </Button>
+          <Button
+            className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+            onClick={() => setEditPackageOpen(true)}
+          >
+            Edit Package
+          </Button>
+          <Button variant="outline" size="icon" onClick={onClose} className="shrink-0">
+            <X className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-5 text-foreground/70">
+      <div className="flex-1 overflow-y-auto px-5 pt-1 pb-5 text-foreground/70">
         {/* Attached Product card */}
         {!isFinishedPkg && (
-          <div className="mb-4 rounded-xl p-4 shadow-sm">
+          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
             <div className="mb-2 flex items-center justify-between">
               <div className="font-semibold">Attached Product</div>
               <div className="flex gap-2">
@@ -403,21 +460,24 @@ export default function PackageDetailsPanel({
                 <div className="rounded-xl bg-blue-50 p-2.5 ring-1 ring-blue-200 dark:bg-blue-950/20 dark:ring-blue-900">
                   <div className="flex items-center gap-2.5">
                     <img
-                      alt={packageDetail.productName ?? "Product"}
-                      src={packageDetail.productImageUrl || "/images/placeholders/product.svg"}
+                      alt={productData?.name ?? "Product"}
+                      src={
+                        (typeof productData?.images?.[0] === "string" ? productData.images[0] : productData?.images?.[0]?.url) ||
+                        "/images/placeholders/product.svg"
+                      }
                       className="size-10 shrink-0 rounded-md border border-blue-200 bg-background object-cover dark:border-blue-900"
                     />
                     <div className="min-w-0 flex-1">
                       <p
                         className="truncate text-sm font-semibold text-blue-600 dark:text-blue-400"
-                        title={packageDetail.productName}
+                        title={productData?.name}
                       >
-                        {packageDetail.productName ?? "Unnamed product"}
+                        {productData?.name ?? "Loading..."}
                       </p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {packageDetail.category ? packageDetail.category.name : "No Category"}
+                        {productData?.category ? productData.category.name : "No Category"}
                         {" · "}
-                        {packageDetail.brand ? packageDetail.brand.name : "No Brand"}
+                        {productData?.brand ? productData.brand.name : "No Brand"}
                       </p>
                     </div>
                   </div>
@@ -436,13 +496,15 @@ export default function PackageDetailsPanel({
                 )}
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-6 text-center">
-                <Package className="mb-2 size-8 text-muted-foreground" />
-                <p className="mb-1 text-sm font-medium">No product attached</p>
-                <p className="mb-3 text-xs text-muted-foreground">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-10 text-center">
+                <div className="mb-2 text-3xl">📦</div>
+                <p className="mb-1 font-semibold">No product attached</p>
+                <p className="mb-4 max-w-xs text-sm text-muted-foreground">
                   Import this package to link it to a product and start selling it.
                 </p>
                 <Button
+                  size="lg"
+                  className="px-8"
                   onClick={() => {
                     setImportOpen(true);
                     onOpenImportDrawer?.();
@@ -456,9 +518,33 @@ export default function PackageDetailsPanel({
         )}
 
         {/* Package Details card */}
-        <div className="mb-4 rounded-xl p-4 shadow-sm">
+        <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
           <div className="font-semibold">Packages Details</div>
           <div className="my-3 h-px bg-border" />
+
+          {hasMetrcMismatch && (
+            <div className="mb-3 flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="font-semibold text-amber-800 dark:text-amber-300">METRC Quantity Mismatch</p>
+                  <p className="text-amber-700 dark:text-amber-400">
+                    Synchronizes the package quantity in METRC with the quantity currently recorded in Bleaum.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="w-fit"
+                onClick={() => {
+                  setReconcileOpen(true);
+                  onReconcile?.();
+                }}
+              >
+                Reconcile to Metrc
+              </Button>
+            </div>
+          )}
 
           <div className="mb-3 flex flex-wrap gap-2 [&_button]:h-8! [&_button]:px-3! [&_button]:text-[13px]!">
             {isProductImported && !isFinishedPkg && (
@@ -519,6 +605,11 @@ export default function PackageDetailsPanel({
             <Button variant="outline" onClick={() => setOrderHistoryOpen(true)}>
               Order History
             </Button>
+            {isFinishedPkg && (
+              <Button variant="destructive" onClick={() => setArchiveConfirmOpen(true)}>
+                Move to Archive
+              </Button>
+            )}
           </div>
 
           <PackageIdCard packageDetail={packageDetail} onChanged={refreshPackageDetails} />
@@ -587,7 +678,7 @@ export default function PackageDetailsPanel({
           />
 
           {!isFinishedPkg && packageDetail.source === "METRC" && (
-            <div className="mt-4 overflow-hidden rounded-xl shadow-sm">
+            <div className="mt-4 overflow-hidden rounded-xl ring-1 ring-foreground/10">
               <button
                 type="button"
                 onClick={() => setMetrcInfoOpen((v) => !v)}
@@ -640,7 +731,7 @@ export default function PackageDetailsPanel({
 
         {/* Lab Results card */}
         {packageDetail.metrcData && (
-          <div className="mb-4 rounded-xl p-4 shadow-sm">
+          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
             <div className="font-semibold">Lab Results</div>
             <div className="mb-3 mt-2 h-px bg-border" />
             {labResults.length > 0 ? <LabResultsTable data={labResults} /> : <p className="text-sm text-muted-foreground">N/A</p>}
@@ -649,7 +740,7 @@ export default function PackageDetailsPanel({
 
         {/* Storage location breakdown */}
         {storageLocations.length > 0 && (
-          <div className="mb-4 rounded-xl p-4 shadow-sm">
+          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
             <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
               <Table>
                 <TableHeader className="[&_tr]:border-b-0">
@@ -661,7 +752,7 @@ export default function PackageDetailsPanel({
                 <TableBody>
                   {storageLocations.map((loc, i) => (
                     <TableRow key={loc.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                      <TableCell>{locationMap?.[loc.id] ?? loc.id}</TableCell>
+                      <TableCell>{loc.name ?? locationMap?.[loc.id] ?? loc.id}</TableCell>
                       <TableCell>
                         {loc.quantity} {packageDetail.uoMShortForm}
                       </TableCell>
@@ -688,7 +779,7 @@ export default function PackageDetailsPanel({
           </AlertDialogHeader>
           {!!packageDetail.metrcData && (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 shadow-sm">
+              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
                 <div>
                   <p className="text-sm font-medium">Report to METRC</p>
                   <p className="text-xs text-muted-foreground">Also finish this package in METRC</p>
@@ -725,7 +816,7 @@ export default function PackageDetailsPanel({
           </AlertDialogHeader>
           {!!packageDetail.metrcData && (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 shadow-sm">
+              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
                 <div>
                   <p className="text-sm font-medium">Report to METRC</p>
                   <p className="text-xs text-muted-foreground">Also restore this package in METRC</p>
@@ -761,6 +852,24 @@ export default function PackageDetailsPanel({
             <AlertDialogCancel disabled={detachLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDetach} disabled={detachLoading}>
               {detachLoading ? "Detaching..." : "Yes, Detach"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Move to Archive Confirmation */}
+      <AlertDialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Package</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete and archive this package? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archivePackageLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleArchivePackage} disabled={archivePackageLoading}>
+              {archivePackageLoading ? "Deleting..." : "Yes, Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
