@@ -36,7 +36,7 @@ export default function TaxBreakdown({ product }) {
                 </span>
               </div>
               <span className="mr-2 font-medium text-[#76CA99]">
-                $ {tax.amount}
+                $ {(Number(tax.amount) || 0).toFixed(2)}
               </span>
             </div>
           );

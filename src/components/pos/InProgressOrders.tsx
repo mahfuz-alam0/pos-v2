@@ -791,6 +791,34 @@ function Row({ label, value }) {
   );
 }
 
+// Aggregates each line item's own taxesApplied (see TaxBreakdown.tsx) across
+// every non-packaged and packaged/BOGO item in the order, summing same-named
+// taxes into one total each — the per-item breakdowns only show what applied
+// to that one line, not the sale-wide total for e.g. "Excise Tax".
+function aggregateOrderTaxes(order) {
+  const rateByName: Record<string, number> = {};
+  const totalByName: Record<string, number> = {};
+
+  const collectFrom = (product) => {
+    if (!product?.taxesApplied?.length) return;
+    (product.taxProfileSnapShot?.taxes || []).forEach((tp) => {
+      if (rateByName[tp.taxName] == null) rateByName[tp.taxName] = tp.taxRate;
+    });
+    product.taxesApplied.forEach((t) => {
+      totalByName[t.name] = (totalByName[t.name] || 0) + num(t.amount);
+    });
+  };
+
+  (order?.nonPackagedLineItems || []).forEach((item) => collectFrom(item?.snapShotData));
+  (order?.packagedLineItems || []).forEach((pkg) => {
+    [...(pkg.parentLineItems || []), ...(pkg.childLineItems || [])].forEach((it) => {
+      collectFrom((it.createdLineItem || it)?.snapShotData);
+    });
+  });
+
+  return Object.entries(totalByName).map(([name, amount]) => ({ name, amount, rate: rateByName[name] }));
+}
+
 function OrderDetail({ order }) {
   const misc = order?.miscCharges || [];
   const storeLabel =
@@ -804,6 +832,8 @@ function OrderDetail({ order }) {
   const changeDue = transactions
     .filter((t) => t.type === "DEBIT")
     .reduce((s, t) => s + num(t.amount), 0);
+  const taxRows = aggregateOrderTaxes(order);
+  const taxTotal = taxRows.reduce((s, t) => s + t.amount, 0);
 
   return (
     <div className="space-y-4 text-sm">
@@ -878,7 +908,7 @@ function OrderDetail({ order }) {
                     )
                   </span>
                   <span className="text-red-500">
-                    - ${discount.totalDiscountApplied}
+                    - ${num(discount.totalDiscountApplied).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -933,19 +963,41 @@ function OrderDetail({ order }) {
           })}
         </div>
 
+        {/* Overall tax breakdown — same-named taxes summed across every item */}
+        {taxRows.length > 0 && (
+          <div className="border-t border-border px-4 py-3">
+            <div className="mb-2 font-semibold">Tax Breakdown</div>
+            <div className="space-y-1">
+              {taxRows.map((t) => (
+                <div key={t.name} className="flex justify-between text-[#9CA3AF]">
+                  <span>
+                    {t.name}
+                    {t.rate != null && <span>({t.rate}%)</span>}
+                  </span>
+                  <span className="font-medium text-[#76CA99]">${t.amount.toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="mt-1 flex justify-between border-t border-border pt-1 font-semibold">
+                <span>Tax Total</span>
+                <span>${taxTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Totals + transactions */}
         <div className="space-y-0.5 border-t border-border px-4 py-3">
-          <Row label="Total" value={`$${order?.finalSubTotal}`} />
+          <Row label="Total" value={`$${num(order?.finalSubTotal).toFixed(2)}`} />
           {transactions.map((txn, idx) => (
             <Row
               key={idx}
               label={getTransactionLabel(txn)}
-              value={`${txn.type === "DEBIT" ? "-" : ""}$${txn.amount}`}
+              value={`${txn.type === "DEBIT" ? "-" : ""}$${num(txn.amount).toFixed(2)}`}
             />
           ))}
-          <Row label="Tips Collected" value={`$${order?.tipGiven}`} />
-          <Row label="Total Amount Received" value={`$${received}`} />
-          <Row label="Change Due" value={`$${changeDue}`} />
+          <Row label="Tips Collected" value={`$${num(order?.tipGiven).toFixed(2)}`} />
+          <Row label="Total Amount Received" value={`$${received.toFixed(2)}`} />
+          <Row label="Change Due" value={`$${changeDue.toFixed(2)}`} />
         </div>
       </div>
 
