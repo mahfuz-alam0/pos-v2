@@ -22,10 +22,20 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
     .filter((t) => t.method === "VIRTUAL" && t.event === "VIRTUAL_DEPOSITED")
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-  // One row per distinct tax rule, deduped by name across all line items.
-  const taxBreakdown = lineItems
-    .flatMap((item) => item?.createdLineItem?.snapShotData?.taxesApplied || [])
-    .filter((t, i, self) => self.findIndex((s) => s.name === t.name) === i);
+  // One row per distinct tax rule, summed by name across all line items —
+  // NOT deduped to the first match, or a tax applied on multiple lines only
+  // shows one line's contribution while the TAX total (order?.tax) reflects
+  // all of them, making the breakdown add up to far less than the header.
+  const taxBreakdown: any[] = Object.values(
+    lineItems
+      .flatMap((item) => item?.createdLineItem?.snapShotData?.taxesApplied || [])
+      .reduce((acc: Record<string, any>, t: any) => {
+        const key = t.name;
+        if (!acc[key]) acc[key] = { ...t, amount: 0 };
+        acc[key].amount += t.amount ?? 0;
+        return acc;
+      }, {})
+  );
   const tax =
     order?.tax ?? taxBreakdown.reduce((sum, t) => sum + (t.amount ?? 0), 0);
 

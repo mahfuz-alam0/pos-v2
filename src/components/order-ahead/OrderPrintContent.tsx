@@ -72,10 +72,19 @@ const OrderPrintContent = forwardRef<HTMLDivElement, OrderPrintContentProps>(fun
   const cardPayment = virtualDeposited - processingDiscount;
   const tipGiven = Number(item?.tipGiven || 0);
 
-  // Dedupe tax lines by name across every line item, same as the old app's tailorReceiptData.
-  const taxBreakdown = lineItems
-    .flatMap((li) => li.taxesApplied || [])
-    .filter((t: any, i: number, self: any[]) => self.findIndex((s) => s.name === t.name) === i);
+  // Sum (not dedupe) tax lines by name across every line item — a tax that
+  // applies on multiple lines needs its amounts added together, or the
+  // per-tax breakdown adds up to far less than the printed TAX total.
+  const taxBreakdown = Object.values(
+    lineItems
+      .flatMap((li) => li.taxesApplied || [])
+      .reduce((acc: Record<string, any>, t: any) => {
+        const key = t.name;
+        if (!acc[key]) acc[key] = { ...t, amount: 0 };
+        acc[key].amount += t.amount ?? 0;
+        return acc;
+      }, {})
+  );
 
   return (
     <div
