@@ -3,7 +3,8 @@ name: Build desktop apps
 on:
   push:
     branches:
-      - desktop-release
+      # - desktop-release
+      - mfz-dev
   workflow_dispatch:
 
 permissions:
