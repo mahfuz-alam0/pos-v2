@@ -1,15 +1,9 @@
 import io from "socket.io-client";
 
-// Mirrors src/services/api.ts: in the Tauri desktop app the session cookie only
-// ever exists for localhost:3000 (set through the /proxy rewrites). A cross-origin
-// WebSocket handshake to the API host carries no auth cookie, and WKWebView won't
-// attach the localhost cookie to a cross-origin upgrade. Next.js also can't tunnel
-// WebSocket upgrades through a route handler, so in Tauri the sockets connect
-// through the same-origin /proxy using the HTTP long-polling transport — plain XHR,
-// the exact cookie path the REST calls already use. The web build keeps its direct
-// WebSocket connection.
-const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
-
+// These namespaces authorize purely on the "shopId" query param (verified against
+// the API directly), so — same as the chat socket in src/services/chat/inbox.ts —
+// there's no need to route through the same-origin /proxy: a direct cross-origin
+// WebSocket connection works from both the web build and the Tauri desktop shell.
 export function connectToSocket({ url, shopId }: { url?: string; shopId?: string } = {}) {
   if (!url) {
     console.error("URL is required for socket connection");
@@ -39,26 +33,11 @@ export function connectToSocket({ url, shopId }: { url?: string; shopId?: string
     namespace = url;
   }
 
-  // console.log("[socket] connecting", { namespace, url, shopId: finalShopId, isTauri });
-
-  const socket = isTauri
-    ? io(namespace, {
-        // engine.io goes through the Next.js /proxy route, which forwards to the
-        // API host with the browser's localhost session cookie attached.
-        // No trailing slash: Next 308-redirects "/proxy/socket.io/" and every poll
-        // would pay an extra round trip.
-        path: "/proxy/socket.io",
-        addTrailingSlash: false,
-        query: { shopId: finalShopId },
-        transports: ["polling"],
-        upgrade: false,
-        withCredentials: true,
-      })
-    : io(url, {
-        query: { shopId: finalShopId },
-        transports: ["websocket"],
-        withCredentials: true,
-      });
+  const socket = io(url, {
+    query: { shopId: finalShopId },
+    transports: ["websocket"],
+    withCredentials: true,
+  });
 
   socket.on("connect", () => {
     console.log("[socket] connected", namespace, socket.id);
