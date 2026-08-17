@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, GripVertical, Truck, MapPin, Store } from "lucide-react";
+import { ChevronDown, GripVertical, Printer, Truck, MapPin, Store } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import { getOrderStatuses } from "@/services/sales/getOrderStatuses";
 import { updateOrderStatus } from "@/services/sales/updateOrderStatus";
 import { useShop } from "@/context/shop-context";
@@ -20,6 +27,7 @@ import {
   abbreviateDuration,
 } from "./constants";
 import OrderDetailDialog from "./OrderDetailDialog";
+import PrintOrderModal from "./PrintOrderModal";
 import DeliveryJobDrawer from "./DeliveryJobDrawer";
 import DeliveryOptionsDrawer from "./DeliveryOptionsDrawer";
 
@@ -81,6 +89,8 @@ export default function OrderCard({
   sortId,
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const [deliveryJobDrawerOpen, setDeliveryJobDrawerOpen] = useState(false);
   const [deliveryOptionsDrawerOpen, setDeliveryOptionsDrawerOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -95,6 +105,7 @@ export default function OrderCard({
       ? getCustomerName(item)
       : `${item?.customer?.firstName || ""} ${item?.customer?.lastName || ""}`.trim()) ||
     "Guest";
+  const customerId = item?.customerId || item?.customer?.id || item?.customerInfo?.id;
   const source = isPreSale ? item?.info?.source : item?.source;
   const deliveryMethod = isPreSale
     ? item?.info?.saleData?.deliveryMethod
@@ -186,12 +197,20 @@ export default function OrderCard({
         </div>
 
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1"
-            onClick={() => setDetailsOpen(true)}>
-            Details <ChevronDown className="size-3.5" />
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button size="sm" variant="outline" className="flex-1" />}>
+              Details <ChevronDown className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setDetailsOpen(true)}>Order Details</DropdownMenuItem>
+              <DropdownMenuItem disabled={!customerId} onClick={() => setEditCustomerOpen(true)}>
+                Edit Customer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button size="sm" variant="outline" onClick={() => setPrintOpen(true)} aria-label="Print">
+            <Printer className="size-3.5" />
           </Button>
 
           {isPreSale && lifecycle === "NEW" && (
@@ -280,6 +299,21 @@ export default function OrderCard({
         type={type}
         item={item}
       />
+
+      <PrintOrderModal open={printOpen} onClose={() => setPrintOpen(false)} type={type} item={item} />
+
+      {editCustomerOpen && (
+        <AddCustomerForm
+          open={editCustomerOpen}
+          onClose={() => setEditCustomerOpen(false)}
+          onCreated={() => {}}
+          customerId={customerId}
+          onUpdated={() => {
+            setEditCustomerOpen(false);
+            onRefresh?.();
+          }}
+        />
+      )}
 
       {isDeliveryJobOrder && (
         <DeliveryJobDrawer

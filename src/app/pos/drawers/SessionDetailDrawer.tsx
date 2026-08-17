@@ -19,15 +19,16 @@ import {
 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
+import { getShopTimezone } from "@/util/dateUtil";
 import { getDrawerSessionDetails } from "@/services/drawers/getSessionDetails";
 import { approveDrawerAdjustment } from "@/services/drawers/approveAdjustment";
 import { printNode } from "@/components/pos/PrintReceiptModal";
 
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Field } from "@/components/admin/form-fields";
 import DrawerReceiptContent, { computeReceiptValues } from "./DrawerReceiptModal";
 
 function money(v: number | undefined) {
@@ -36,7 +37,15 @@ function money(v: number | undefined) {
 
 function fmt(v: string | undefined) {
   if (!v) return "-";
-  return new Date(v).toLocaleString([], { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(v).toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: getShopTimezone() || undefined,
+  });
 }
 
 function StatTile({ label, value }: { label: string; value: string }) {
@@ -83,6 +92,8 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
   const { shopId } = useShop();
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [cashAdjustmentAmount, setCashAdjustmentAmount] = useState("0");
+  const [virtualAdjustmentAmount, setVirtualAdjustmentAmount] = useState("0");
   const [cashAdjustmentReason, setCashAdjustmentReason] = useState("");
   const [virtualAdjustmentReason, setVirtualAdjustmentReason] = useState("");
   const [approving, setApproving] = useState(false);
@@ -91,10 +102,25 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
   useEffect(() => {
     if (!session?.id || !shopId) return;
     setLoading(true);
+    setCashAdjustmentAmount("0");
+    setVirtualAdjustmentAmount("0");
     setCashAdjustmentReason("");
     setVirtualAdjustmentReason("");
     getDrawerSessionDetails({ drawerId, drawerSessionId: session.id, shopId })
-      .then((res) => setDetails(res?.data ?? null))
+      .then((res) => {
+        const data = res?.data ?? null;
+        setDetails(data);
+        // The pending adjustment awaiting approval — requestedCashAdjustment
+        // etc — is a separate value from session.cashAdjustment (that's the
+        // already-settled adjustment applied to a closed session).
+        const summary = data?.summary;
+        if (summary) {
+          setCashAdjustmentAmount(String(summary.requestedCashAdjustment ?? 0));
+          setVirtualAdjustmentAmount(String(summary.requestedVirtualAdjustment ?? 0));
+          setCashAdjustmentReason(summary.requestedCashAdjustmentReason ?? "");
+          setVirtualAdjustmentReason(summary.requestedVirtualAdjustmentReason ?? "");
+        }
+      })
       .finally(() => setLoading(false));
   }, [session?.id, drawerId, shopId]);
 
@@ -106,8 +132,8 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
         shopId,
         drawerId,
         sessionId: session.id,
-        cashAdjustment: session.cashAdjustment ?? 0,
-        virtualAdjustment: session.virtualAdjustment ?? 0,
+        cashAdjustment: parseFloat(cashAdjustmentAmount) || 0,
+        virtualAdjustment: parseFloat(virtualAdjustmentAmount) || 0,
         cashAdjustmentReason: cashAdjustmentReason || undefined,
         virtualAdjustmentReason: virtualAdjustmentReason || undefined,
       });
@@ -126,9 +152,9 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
   const totalTax = salesTaxes.reduce((s: number, t: any) => s + (t.amount || 0), 0);
   const totalVirtualSales = v.totalSales - v.cashSales;
   const finalTotal = v.totalSales + totalTax;
-  const expectedCash = session?.expectedCashBalance ?? session?.startingCashBalance ?? 0;
-  const actualCash = session?.isOpen ? expectedCash : session?.closingCashBalance ?? expectedCash;
-  const discrepancy = session?.cashAdjustment ?? actualCash - expectedCash;
+  const expectedCash = session?.expectedCashBalance;
+  const actualCash = session?.closingCashBalance;
+  const discrepancy = (actualCash ?? 0) - (expectedCash ?? 0);
 
   // Raw in/out totals across every transaction, cash and virtual separately —
   // ported from the old POS's "Deposits & Withdrawals" tiles.
@@ -300,14 +326,42 @@ export default function SessionDetailDrawer({ session, drawerId, drawerName, onC
 
               {session?.isAdjustmentPending && (
                 <div className="flex flex-col gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
-                  <div className="text-xs font-semibold text-destructive uppercase">Approve Adjustment</div>
-                  <Field label="Cash Adjustment Reason">
-                    <Textarea rows={2} value={cashAdjustmentReason} onChange={(e) => setCashAdjustmentReason(e.target.value)} />
-                  </Field>
-                  <Field label="Virtual Adjustment Reason">
-                    <Textarea rows={2} value={virtualAdjustmentReason} onChange={(e) => setVirtualAdjustmentReason(e.target.value)} />
-                  </Field>
-                  <Button onClick={handleApprove} disabled={approving}>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-bold text-destructive">Adjustment Pending</div>
+                    <Badge className="border border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+                      Requires Approval
+                    </Badge>
+                  </div>
+
+                  <div className="text-xs font-semibold text-destructive uppercase">Cash Adjustment</div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={cashAdjustmentAmount}
+                    onChange={(e) => setCashAdjustmentAmount(e.target.value)}
+                  />
+                  <Textarea
+                    rows={2}
+                    placeholder="Cash adjustment reason..."
+                    value={cashAdjustmentReason}
+                    onChange={(e) => setCashAdjustmentReason(e.target.value)}
+                  />
+
+                  <div className="text-xs font-semibold text-destructive uppercase">Virtual Adjustment</div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={virtualAdjustmentAmount}
+                    onChange={(e) => setVirtualAdjustmentAmount(e.target.value)}
+                  />
+                  <Textarea
+                    rows={2}
+                    placeholder="Virtual adjustment reason..."
+                    value={virtualAdjustmentReason}
+                    onChange={(e) => setVirtualAdjustmentReason(e.target.value)}
+                  />
+
+                  <Button className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={handleApprove} disabled={approving}>
                     {approving ? "Approving..." : "Approve Adjustment"}
                   </Button>
                 </div>

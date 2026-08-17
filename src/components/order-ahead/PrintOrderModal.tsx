@@ -12,32 +12,38 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import PackageLabel from "@/components/pos/PackageLabel";
-import CustomPackageLabelModal from "@/components/pos/CustomPackageLabelModal";
-import { fetchSinglePackage } from "@/services/packages/getSingle";
-import { fetchSingleProduct } from "@/services/products/getSingle";
+import OrderPrintContent from "./OrderPrintContent";
+import { useShop } from "@/context/shop-context";
 import { connectToSocket } from "@/lib/socket";
 import { JOB_TYPES } from "@/hooks/usePrintClients";
 import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
 
-const LABEL_TYPES = [
-  { value: "EXIT_LABEL", label: "Exit Label" },
-  { value: "PACKAGE_LABEL", label: "Package Label" },
-];
+const RECEIPT_OPTION = { value: "RECEIPT", label: "Receipt" };
+const PULL_SHEET_OPTION = { value: "PRE_ORDER_FULFILLMENT_PULL_SHEET", label: "Pre-Order Fulfillment Pull Sheet" };
 
 // Print a specific DOM node via the browser — same isolation technique as
-// PrintReceiptModal's printNode.
+// PrintReceiptModal's printNode / PrintLabelModal's printNode.
 function printNode(node) {
   if (!node) return;
-  const styleId = "pos-label-print-styles";
+  const styleId = "order-ahead-print-styles";
   document.getElementById(styleId)?.remove();
   const style = document.createElement("style");
   style.id = styleId;
   style.innerHTML = `
     @media print {
-      body * { visibility: hidden; }
-      #pos-label-print-area, #pos-label-print-area * { visibility: visible; }
-      #pos-label-print-area { position: absolute !important; left: 0 !important; top: 0 !important; }
+      /* Without an explicit page size, the browser falls back to whatever
+         paper/PDF default is configured — often wider or narrower than the
+         80mm receipt width below, clipping every right-aligned line at the
+         same spot and leaving the unused remainder as blank margin. */
+      @page { size: 80mm auto; margin: 3mm; }
+      body * { visibility: hidden !important; }
+      #order-ahead-print-area, #order-ahead-print-area * { visibility: visible !important; }
+      #order-ahead-print-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 74mm !important;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -45,67 +51,49 @@ function printNode(node) {
 }
 
 /**
- * Print Label modal for a single cart line's package — Exit Label / Package
- * Label, ported from the old app's PrintModal.jsx UI (radio + copies +
- * template status). Label content is a fixed layout (see PackageLabel.tsx);
- * the print delivery reuses the same hardware/browser-fallback path as
- * PrintReceiptModal.
+ * Print modal for an order-ahead order — Receipt or Pre-Order Fulfillment
+ * Pull Sheet, ported from the old app's PrintModal.jsx UI (radio + copies +
+ * template status) same as PrintLabelModal.tsx. Content is the fixed
+ * OrderPrintContent layout; print delivery reuses the same hardware/browser
+ * fallback path as PrintReceiptModal / PrintLabelModal.
  */
-export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
-  const labelRef = useRef(null);
-  const [labelType, setLabelType] = useState("EXIT_LABEL");
+export default function PrintOrderModal({ open, onClose, type, item }) {
+  const { shopId } = useShop();
+  const contentRef = useRef(null);
+  // A New/Confirmed order isn't a completed sale yet — only a pull sheet
+  // makes sense there (matches the old app's OrderCard.jsx, which only ever
+  // passed preOrderReceiptProps for those two stages, receiptProps for
+  // everything past it — never both at once).
+  const printTypeOptions = type === "presale" ? [PULL_SHEET_OPTION] : [RECEIPT_OPTION];
+  const [printType, setPrintType] = useState(printTypeOptions[0].value);
   const [copies, setCopies] = useState("1");
-  const [loading, setLoading] = useState(false);
   const [printing, setPrinting] = useState(false);
-  const [packageData, setPackageData] = useState(null);
-  const [productData, setProductData] = useState(null);
   const [printerReady, setPrinterReady] = useState(null); // null = unknown, true/false once checked
-  const [customLabelOpen, setCustomLabelOpen] = useState(false);
 
   useEffect(() => {
-    if (!open || !packageId) return;
-    setLoading(true);
-    setPackageData(null);
-    setProductData(null);
-    fetchSinglePackage(shopId, { id: packageId })
-      .then((res) => {
-        const pkg = res?.data?.data?.package;
-        setPackageData(pkg || null);
-        if (pkg?.productId) {
-          return fetchSingleProduct(pkg.productId).then((pRes) =>
-            setProductData(pRes?.data?.data?.product || null)
-          );
-        }
-      })
-      .catch(() => toast.error("Failed to fetch package details"))
-      .finally(() => setLoading(false));
-  }, [open, packageId, shopId]);
-
-  const checkLabel = () => {
-    if (!shopId) {
-      setPrinterReady(false);
-      return;
-    }
-    getUserPrintPreference(shopId, labelType)
-      .then((pref) => setPrinterReady(Boolean(pref?.success && pref?.data?.setUpId)))
-      .catch(() => setPrinterReady(false));
-  };
+    if (open) setPrintType(printTypeOptions[0].value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, type]);
 
   useEffect(() => {
     setPrinterReady(null);
-    if (open) checkLabel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [labelType, open]);
+    if (!open || !shopId) return;
+    getUserPrintPreference(shopId, printType)
+      .then((pref) => setPrinterReady(Boolean(pref?.success && pref?.data?.setUpId)))
+      .catch(() => setPrinterReady(false));
+  }, [open, shopId, printType]);
+
+  if (!item) return null;
 
   const printInBrowser = () => {
-    printNode(labelRef.current);
+    printNode(contentRef.current);
   };
 
   const handlePrint = async () => {
     const numOfCopies = Math.max(1, parseInt(copies, 10) || 1);
     setPrinting(true);
     try {
-      const pref = shopId ? await getUserPrintPreference(shopId, labelType) : null;
+      const pref = shopId ? await getUserPrintPreference(shopId, printType) : null;
       if (!pref?.success || !pref?.data?.setUpId) {
         toast.info("No printer configured. Using browser print.");
         printInBrowser();
@@ -117,7 +105,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
         shopId,
       });
       const requestId = Math.random().toString(36).slice(2);
-      const html = `<html><body>${labelRef.current?.innerHTML || ""}</body></html>`;
+      const html = `<html><body>${contentRef.current?.innerHTML || ""}</body></html>`;
 
       const ackPromise = new Promise((resolve) => {
         const timeoutId = setTimeout(() => resolve(false), 8000);
@@ -130,7 +118,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
 
       await createPrintJob({
         shopId,
-        jobType: labelType,
+        jobType: printType,
         sessionId: pref.data.sessionId,
         numOfCopies,
         setUpId: pref.data.setUpId,
@@ -147,7 +135,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
         printInBrowser();
         return;
       }
-      toast.success("Label sent to printer");
+      toast.success("Sent to printer");
       onClose?.();
     } catch (err: any) {
       toast.error(err?.message || "Failed to print on hardware. Using browser print.");
@@ -159,16 +147,26 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
 
   return (
     <>
-      {typeof document !== "undefined" &&
+      {/* One OrderPrintContent per open modal only — every order card on the
+          board mounts its own PrintOrderModal, so an unconditional portal
+          here would put multiple #order-ahead-print-area elements in the DOM
+          at once. The print stylesheet's id selector matches all of them,
+          stacking every card's content at the same top:0/left:0. */}
+      {open &&
+        typeof document !== "undefined" &&
         createPortal(
-          <div id="pos-label-print-area" ref={labelRef} style={{ position: "fixed", left: -9999, top: 0 }}>
-            <PackageLabel packageData={packageData} productData={productData} labelType={labelType} />
-          </div>,
+          <OrderPrintContent
+            ref={contentRef}
+            type={type}
+            item={item}
+            variant={printType === "PRE_ORDER_FULFILLMENT_PULL_SHEET" ? "PULL_SHEET" : "RECEIPT"}
+            style={{ position: "fixed", left: -9999, top: 0 }}
+          />,
           document.body
         )}
 
       <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Print Label</DialogTitle>
           </DialogHeader>
@@ -176,14 +174,14 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
           <div className="space-y-4">
             <div>
               <div className="mb-1.5 text-xs font-medium text-muted-foreground">Select Print Type:</div>
-              <div className="flex gap-4">
-                {LABEL_TYPES.map((t) => (
+              <div className="flex flex-col gap-2">
+                {printTypeOptions.map((t) => (
                   <label key={t.value} className="flex items-center gap-1.5 text-sm">
                     <input
                       type="radio"
-                      name="labelType"
-                      checked={labelType === t.value}
-                      onChange={() => setLabelType(t.value)}
+                      name="printType"
+                      checked={printType === t.value}
+                      onChange={() => setPrintType(t.value)}
                     />
                     {t.label}
                   </label>
@@ -203,7 +201,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
             </div>
 
             <div className="text-xs text-muted-foreground">
-              Current Template: <strong>{LABEL_TYPES.find((t) => t.value === labelType)?.label}</strong>{" "}
+              Current Template: <strong>{printTypeOptions.find((t) => t.value === printType)?.label}</strong>{" "}
               {printerReady === null ? (
                 "…"
               ) : printerReady ? (
@@ -218,27 +216,15 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            {labelType === "PACKAGE_LABEL" && (
-              <Button variant="outline" onClick={() => setCustomLabelOpen(true)}>
-                Custom Label
-              </Button>
-            )}
-            <Button variant="outline" onClick={printInBrowser} disabled={loading}>
+            <Button variant="outline" onClick={printInBrowser}>
               Check Label
             </Button>
-            <Button disabled={loading || printing} onClick={handlePrint}>
+            <Button disabled={printing} onClick={handlePrint}>
               {printing ? "Printing…" : `Print ${Math.max(1, parseInt(copies, 10) || 1)} copy`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <CustomPackageLabelModal
-        open={customLabelOpen}
-        onClose={() => setCustomLabelOpen(false)}
-        packageData={packageData}
-        productData={productData}
-      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, type CSSProperties } from "react";
+import { getShopTimezone } from "@/util/dateUtil";
 
 function money(v: number | undefined) {
   return `$${(v ?? 0).toFixed(2)}`;
@@ -8,7 +9,15 @@ function money(v: number | undefined) {
 
 function fmt(v: string | undefined) {
   if (!v) return "-";
-  return new Date(v).toLocaleString([], { month: "2-digit", day: "2-digit", year: "2-digit", hour: "numeric", minute: "2-digit" });
+  return new Date(v).toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: getShopTimezone() || undefined,
+  });
 }
 
 // Ported from the old POS's DrawerReceiptPrint ("shift" report variant) —
@@ -72,11 +81,9 @@ const DrawerReceiptContent = forwardRef<HTMLDivElement, DrawerReceiptContentProp
   if (!session) return null;
 
   const v = computeReceiptValues(transactions || []);
-  // Expected/actual/discrepancy already computed server-side and carried on
-  // the session itself — no need to re-derive them from raw transactions.
-  const expectedCash = session.expectedCashBalance ?? session.startingCashBalance ?? 0;
-  const actualCash = session.isOpen ? expectedCash : session.closingCashBalance ?? expectedCash;
-  const discrepancy = session.cashAdjustment ?? actualCash - expectedCash;
+  const expectedCash = session.expectedCashBalance;
+  const actualCash = session.closingCashBalance;
+  const discrepancy = (actualCash ?? 0) - (expectedCash ?? 0);
   const totalTax = (salesTaxes || []).reduce((s: number, t: any) => s + (t.amount || 0), 0);
   const totalVirtualSales = v.totalSales - v.cashSales;
   const finalTotal = v.totalSales + totalTax;
