@@ -26,10 +26,17 @@ export interface ChatSession {
 export interface ChatMessage {
   _id?: string;
   sessionId: string;
+  appId?: string;
+  tenantId?: string;
   content?: string;
   message?: string;
   image?: string[] | null;
+  images?: string[];
+  target?: "TEXT" | string;
+  targetLinkRefSubject?: string | null;
+  sessionType?: "SUPPORT" | string;
   createdAt?: string;
+  updatedAt?: string;
   timestamp?: string;
   status?: "read" | "sent";
   adminId?: string;
@@ -37,6 +44,14 @@ export interface ChatMessage {
   isOptimistic?: boolean;
   isFailed?: boolean;
   adminMetaData?: { name?: string; email?: string; avatar?: string };
+  userMetaData?: { name?: string; email?: string; avatar?: string };
+  __v?: number;
+}
+
+export interface SendMessageResponse {
+  success: boolean;
+  message?: ChatMessage;
+  error?: string;
 }
 
 export async function authChat(credentials: ChatAuthPayload) {

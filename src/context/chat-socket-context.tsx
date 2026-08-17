@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { Socket } from "socket.io-client";
 import { useDispatch, useSelector } from "react-redux";
-import { connectChatSocket } from "@/services/chat/inbox";
+import { connectChatSocket, type ChatMessage, type ChatSession, type SendMessageResponse } from "@/services/chat/inbox";
 import {
   addNewMessage,
   addTempMessage,
@@ -15,7 +16,7 @@ import {
 const ChatSocketContext = createContext(null);
 
 export function ChatSocketProvider({ children }) {
-  const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [socketError, setSocketError] = useState(false);
@@ -33,24 +34,36 @@ export function ChatSocketProvider({ children }) {
     setSocket(socketInstance);
     setSocketError(false);
 
-    const updateConnectionState = (connected, error = false, loading = false) => {
+    const updateConnectionState = (connected: boolean, error = false, loading = false) => {
       setIsConnected(connected);
       setSocketError(error);
       setIsLoading(loading);
     };
 
     const eventHandlers = {
-      connect: () => updateConnectionState(true, false, false),
-      disconnect: () => updateConnectionState(false, false, false),
-      connect_error: () => updateConnectionState(false, true, false),
-      newMessage: (data) => {
-        dispatch(addNewMessage(data.message || data));
+      connect: () => {
+        console.log("[chat-socket] connect", socketInstance.id);
+        updateConnectionState(true, false, false);
       },
-      sessionCreated: (sessions) => {
+      disconnect: (reason: string) => {
+        console.log("[chat-socket] disconnect", reason);
+        updateConnectionState(false, false, false);
+      },
+      connect_error: (error: Error) => {
+        console.log("[chat-socket] connect_error", error);
+        updateConnectionState(false, true, false);
+      },
+      newMessage: (data: ChatMessage | { message: ChatMessage }) => {
+        console.log("[chat-socket] newMessage", data);
+        dispatch(addNewMessage("message" in data ? data.message : data));
+      },
+      sessionCreated: (sessions: ChatSession | ChatSession[]) => {
+        console.log("[chat-socket] sessionCreated", sessions);
         const newSession = Array.isArray(sessions) ? sessions[0] : sessions;
         if (newSession) dispatch(updateSessionsList(newSession));
       },
-      sessionUpdated: (data) => {
+      sessionUpdated: (data: ChatSession) => {
+        console.log("[chat-socket] sessionUpdated", data);
         dispatch(updateSessionsList(data));
         dispatch(getChatSessions());
       },
@@ -67,7 +80,7 @@ export function ChatSocketProvider({ children }) {
   }, [token, user?.id, dispatch]);
 
   const sendMessage = useCallback(
-    (sessionId, content, image = null, callback) => {
+    (sessionId: string, content: string, image: string[] | null = null, callback?: (error: string | null, response?: SendMessageResponse) => void) => {
       if (!socket || !isConnected) {
         callback?.("Socket not connected");
         return;
@@ -90,7 +103,8 @@ export function ChatSocketProvider({ children }) {
       socket.emit(
         "sendMessage",
         { sessionId, content, target: "TEXT", ...(image && { image }) },
-        (response) => {
+        (response: SendMessageResponse) => {
+          console.log("[chat-socket] sendMessage response", response);
           if (response?.success && response?.message) {
             dispatch(replaceOptimisticMessage({ tempId, realMessage: response.message }));
             callback?.(null, response);
