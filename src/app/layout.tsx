@@ -35,8 +35,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
-const appName = isTauri ? "POS-Desktop" : "Bleaum";
+const appName = "Bleaum POS";
 
 export const metadata = {
   title: {
