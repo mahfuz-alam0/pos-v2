@@ -35,12 +35,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
+const appName = isTauri ? "POS-Desktop" : "Bleaum";
+
 export const metadata = {
   title: {
-    default: "Bleaum",
-    template: "%s | Bleaum",
+    default: appName,
+    template: `%s | ${appName}`,
   },
-  description: "Bleaum",
+  description: appName,
 };
 
 export default function RootLayout({ children }) {

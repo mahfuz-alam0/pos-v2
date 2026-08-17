@@ -98,7 +98,7 @@ pub fn run() {
           "main",
           WebviewUrl::External("http://localhost:3000".parse()?),
         )
-        .title("POS")
+        .title("POS-Desktop")
         .inner_size(1440.0, 900.0)
         .resizable(true)
         .initialization_script(DEVTOOLS_SHORTCUT_SCRIPT)
@@ -175,7 +175,7 @@ pub fn run() {
         "main",
         WebviewUrl::External(format!("http://localhost:{port}").parse()?),
       )
-      .title("POS")
+      .title("POS-Desktop")
       .inner_size(1440.0, 900.0)
       .resizable(true)
       .initialization_script(TITLE_SYNC_SCRIPT)
