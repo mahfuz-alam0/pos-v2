@@ -33,6 +33,19 @@ export function startTauriSocketProxy() {
       return;
     }
 
+    // React Strict Mode (and Fast Refresh) can tear down a socket-owning
+    // component right after mount, closing clientSocket while the upstream
+    // handshake below is still in flight. Track that so the resulting
+    // ECONNRESET is recognized as self-inflicted instead of logged as a
+    // genuine upstream failure.
+    let upgraded = false;
+    let abortedByClient = false;
+    clientSocket.on("close", () => {
+      if (upgraded) return;
+      abortedByClient = true;
+      upstreamReq.destroy();
+    });
+
     const upstreamHost = new URL(BASE_URL).host;
     const upstreamReq = https.request({
       host: upstreamHost,
@@ -47,6 +60,7 @@ export function startTauriSocketProxy() {
     });
 
     upstreamReq.on("upgrade", (upstreamRes, upstreamSocket, upstreamHead) => {
+      upgraded = true;
       const statusLine = `HTTP/1.1 ${upstreamRes.statusCode} ${upstreamRes.statusMessage}\r\n`;
       const headerLines = Object.entries(upstreamRes.headers)
         .map(([key, value]) => `${key}: ${value}`)
@@ -70,6 +84,7 @@ export function startTauriSocketProxy() {
     });
 
     upstreamReq.on("error", (err) => {
+      if (abortedByClient) return;
       console.error("[tauri-socket-proxy] upstream error", err);
       clientSocket.destroy();
     });

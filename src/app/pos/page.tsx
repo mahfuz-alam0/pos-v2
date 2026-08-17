@@ -132,19 +132,6 @@ function TabletPosInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // POS runs the register — always light, regardless of the admin panel's
-  // dark-mode setting. CSS-variable overrides alone don't stop `dark:`
-  // utility classes baked into shared components, so flip the actual
-  // data-mode attribute while mounted and restore it on the way out.
-  useEffect(() => {
-    const root = document.documentElement;
-    const previousMode = root.getAttribute("data-mode");
-    root.setAttribute("data-mode", "light");
-    return () => {
-      if (previousMode) root.setAttribute("data-mode", previousMode);
-    };
-  }, []);
-
   const [deliverySubType] = useState("");
   const posResetKey = useSelector((state: any) => state?.lineItems?.resetKey || 0);
   const quoteBody = useSelector((state: any) => state?.salesDetail);

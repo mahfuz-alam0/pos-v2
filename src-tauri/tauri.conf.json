@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "POS-Desktop",
+  "productName": "Bleaum-POS",
   "version": "0.1.0",
   "identifier": "com.pos.desktop",
   "build": {
