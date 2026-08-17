@@ -1,9 +1,18 @@
 import io from "socket.io-client";
+import { TAURI_WS_PROXY_PORT } from "./tauriWsProxyPort";
 
-// These namespaces authorize purely on the "shopId" query param (verified against
-// the API directly), so — same as the chat socket in src/services/chat/inbox.ts —
-// there's no need to route through the same-origin /proxy: a direct cross-origin
-// WebSocket connection works from both the web build and the Tauri desktop shell.
+// Mirrors src/services/api.ts: in the Tauri desktop app the session cookie
+// (pos-core-admin-auth) only ever exists for localhost:3000 (set through the
+// /proxy rewrites), and WKWebView won't attach it to a cross-origin WebSocket
+// upgrade. Unlike REST calls, this can't just go through the Next.js /proxy
+// route either — it can't tunnel a WebSocket upgrade, and the API's engine.io
+// server only accepts the "websocket" transport (no polling fallback to proxy
+// instead). So in Tauri, sockets connect to a small same-origin-adjacent relay
+// (src/lib/tauriSocketProxyServer.ts, started from src/instrumentation.ts)
+// that forwards the raw bytes upstream and copies the Cookie header onto the
+// upstream request server-side. The web build keeps its direct connection.
+const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
+
 export function connectToSocket({ url, shopId }: { url?: string; shopId?: string } = {}) {
   if (!url) {
     console.error("URL is required for socket connection");
@@ -33,7 +42,7 @@ export function connectToSocket({ url, shopId }: { url?: string; shopId?: string
     namespace = url;
   }
 
-  const socket = io(url, {
+  const socket = io(isTauri ? `http://localhost:${TAURI_WS_PROXY_PORT}${namespace}` : url, {
     query: { shopId: finalShopId },
     transports: ["websocket"],
     withCredentials: true,

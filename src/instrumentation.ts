@@ -5,5 +5,10 @@ export async function register() {
     // back to the working IPv4 address. Force IPv4 for all server-side fetches.
     const { Agent, setGlobalDispatcher } = await import("undici");
     setGlobalDispatcher(new Agent({ connect: { family: 4 } }));
+
+    if (process.env.NEXT_PUBLIC_TAURI === "1") {
+      const { startTauriSocketProxy } = await import("./lib/tauriSocketProxyServer");
+      startTauriSocketProxy();
+    }
   }
 }
