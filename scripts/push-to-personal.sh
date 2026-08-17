@@ -3,7 +3,7 @@
 # then remove that remote so it never lingers in `git remote -v`.
 #
 # Usage:
-#   ./scripts/push-to-personal.sh [repo-url] [branch]
+#   ./scripts/push-to-personal.sh [--force|-f] [repo-url] [branch]
 #
 # Defaults:
 #   repo-url -> https://github.com/mahfuz-alam0/pos-v2 (private personal repo)
@@ -11,8 +11,21 @@
 
 set -euo pipefail
 
-REPO_URL="${1:-https://github.com/mahfuz-alam0/pos-v2}"
-BRANCH="${2:-$(git rev-parse --abbrev-ref HEAD)}"
+FORCE=""
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --force|-f)
+      FORCE="--force"
+      ;;
+    *)
+      ARGS+=("$arg")
+      ;;
+  esac
+done
+
+REPO_URL="${ARGS[0]:-https://github.com/mahfuz-alam0/pos-v2}"
+BRANCH="${ARGS[1]:-$(git rev-parse --abbrev-ref HEAD)}"
 REMOTE_NAME="personal-temp"
 
 cleanup() {
@@ -31,7 +44,7 @@ fi
 git remote add "$REMOTE_NAME" "$REPO_URL"
 
 echo "Pushing branch '$BRANCH' to $REPO_URL ..."
-git push "$REMOTE_NAME" "$BRANCH"
+git push $FORCE "$REMOTE_NAME" "$BRANCH"
 
 echo "Push complete."
 echo "Remotes after cleanup:"
