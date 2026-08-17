@@ -36,7 +36,7 @@ const geistMono = Geist_Mono({
 });
 
 const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
-const appName = isTauri ? "Bleaum-POS" : "Bleaum";
+const appName = isTauri ? "Bleaum POS" : "Bleaum";
 
 export const metadata = {
   title: {

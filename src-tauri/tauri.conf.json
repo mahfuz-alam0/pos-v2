@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Bleaum-POS",
+  "productName": "Bleaum POS",
   "version": "0.1.0",
   "identifier": "com.pos.desktop",
   "build": {
@@ -26,7 +26,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/bun"],
+    "externalBin": [
+      "binaries/bun"
+    ],
     "resources": {
       "server": "server"
     },

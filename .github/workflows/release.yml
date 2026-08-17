@@ -4,7 +4,7 @@ on:
   push:
     branches:
       # - desktop-release
-      - mfz-dev1
+      - mfz-dev
   workflow_dispatch:
 
 permissions:
