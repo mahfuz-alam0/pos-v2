@@ -184,11 +184,11 @@ export const retailMenu: MenuItem[] = [
         label: "Banners",
         href: "/online-ordering/banners",
       },
-      {
-        key: "ecom-chat-config",
-        label: "Chat Config",
-        href: "/online-ordering/chat",
-      },
+      // {
+      //   key: "ecom-chat-config",
+      //   label: "Chat Config",
+      //   href: "/online-ordering/chat",
+      // },
       {
         key: "ecom-general",
         label: "General",
