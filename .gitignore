@@ -37,6 +37,7 @@ yarn-error.log*
 # local secrets scratch file, never commit
 apple-secrets.json
 src-tauri/apple-secrets.json
+# apple-secrets.json
 
 # vercel
 .vercel
