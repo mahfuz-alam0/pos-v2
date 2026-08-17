@@ -146,6 +146,7 @@ export default function PrintReceiptModal({
         setUpId: pref.data.setUpId,
         requestId,
         html,
+        isTest: false,
       });
 
       const acked = await ackPromise;

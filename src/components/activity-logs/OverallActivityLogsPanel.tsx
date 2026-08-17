@@ -456,8 +456,10 @@ function LogCard({
 }
 
 export interface OverallActivityLogsPanelProps {
-  domain: string;
-  targetId: string;
+  // Both optional: omitting them lists every log for the org, which is what the
+  // standalone Activity Log page does. Drawers scope to one record by passing both.
+  domain?: string;
+  targetId?: string;
 }
 
 export function OverallActivityLogsPanel({
@@ -503,8 +505,8 @@ export function OverallActivityLogsPanel({
         const params: Record<string, any> = {
           limit: PAGE_SIZE,
           shopId,
-          domain,
-          targetId,
+          ...(domain ? { domain } : {}),
+          ...(targetId ? { targetId } : {}),
           ...(cursorToLoad ? { cursor: cursorToLoad } : {}),
           ...buildDateParams(),
         };
@@ -554,21 +556,23 @@ export function OverallActivityLogsPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-3">
+      <div className="flex flex-wrap items-center gap-2">
         <Calendar className="size-4 shrink-0 text-muted-foreground" />
-        {(["all", "today", "yesterday", "custom"] as DateMode[]).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setDateMode(mode)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-              dateMode === mode
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:text-foreground"
-            }`}>
-            {mode}
-          </button>
-        ))}
+        <div className="flex items-center rounded-lg bg-muted p-0.5">
+          {(["all", "today", "yesterday", "custom"] as DateMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setDateMode(mode)}
+              className={`rounded-[7px] px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                dateMode === mode
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-background/60"
+              }`}>
+              {mode}
+            </button>
+          ))}
+        </div>
         {dateMode === "custom" && (
           <DateRangePicker
             value={customRange}
