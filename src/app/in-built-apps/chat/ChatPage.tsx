@@ -16,14 +16,14 @@ export default function ChatPage() {
   const dispatch: any = useDispatch();
 
   const [drawerOpen, setDrawerOpen] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 992
+    () => typeof window !== "undefined" && window.innerWidth < 800
   );
   const [selectedUser, setSelectedUser] = useState(null);
   const { messages, loading } = useSelector((state: any) => state.chat);
 
   useEffect(() => {
     const handleResize = () => {
-      const isSmallScreen = window.innerWidth < 992;
+      const isSmallScreen = window.innerWidth < 800;
       setDrawerOpen(!selectedUser && isSmallScreen ? false : drawerOpen);
     };
     window.addEventListener("resize", handleResize);
@@ -42,7 +42,7 @@ export default function ChatPage() {
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
-    if (typeof window !== "undefined" && window.innerWidth < 992) {
+    if (typeof window !== "undefined" && window.innerWidth < 800) {
       setDrawerOpen(false);
     }
   };
@@ -84,7 +84,7 @@ export default function ChatPage() {
         <ChatUsers selectedUser={selectedUser} setSelectedUser={handleSelectUser} />
       </Drawer>
 
-      <div className="hidden h-full w-80 shrink-0 ring-1 ring-foreground/10 lg:flex">
+      <div className="hidden h-full w-80 shrink-0 ring-1 ring-foreground/10 min-[800px]:flex">
         <ChatUsers selectedUser={selectedUser} setSelectedUser={handleSelectUser} />
       </div>
 

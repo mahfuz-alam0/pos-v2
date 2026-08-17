@@ -111,7 +111,7 @@ export default function Communication({ selectedUser, loading, onOpenDrawer }) {
       <div className="flex h-full flex-col">
         <button
           type="button"
-          className="m-4 mb-0 self-start text-muted-foreground lg:hidden"
+          className="m-4 mb-0 self-start text-muted-foreground min-[800px]:hidden"
           onClick={onOpenDrawer}
           aria-label="Open conversations"
         >
@@ -133,7 +133,7 @@ export default function Communication({ selectedUser, loading, onOpenDrawer }) {
   return (
     <div className="flex h-full flex-col bg-component-bg">
       <div className="flex h-18 items-center px-4 ring-1 ring-foreground/10 sm:px-6">
-        <button type="button" className="mr-4 text-muted-foreground lg:hidden" onClick={onOpenDrawer} aria-label="Open conversations">
+        <button type="button" className="mr-4 text-muted-foreground min-[800px]:hidden" onClick={onOpenDrawer} aria-label="Open conversations">
           <Menu className="size-5" />
         </button>
         <Avatar>
