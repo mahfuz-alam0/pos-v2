@@ -28,14 +28,36 @@ jobs:
           RUN: ${{ github.run_number }}
         run: |
           version=$(node -p "require('./package.json').version" 2>/dev/null || echo 0.1.0)
-          gh api "repos/$GH_REPO/releases" \
-            -f tag_name="$TAG" \
-            -f name="POS $version (build $RUN)" \
-            -f body="Desktop builds for macOS, Windows and Linux." \
-            -F draft=true \
-            -F prerelease=false \
-            -f target_commitish="$GITHUB_SHA" \
-            --jq '.id' | xargs -I{} echo "release_id={}" >> "$GITHUB_OUTPUT"
+
+          # gh api's exit status doesn't reliably propagate through a pipe into
+          # `--jq` + `xargs`, so a transient GitHub outage (a non-JSON error
+          # body) can silently end up as the "release_id" instead of failing
+          # the step. Capture the raw response first, validate it produced a
+          # numeric id, and retry a few times before giving up.
+          release_id=""
+          for attempt in 1 2 3; do
+            response=$(gh api "repos/$GH_REPO/releases" \
+              -f tag_name="$TAG" \
+              -f name="POS $version (build $RUN)" \
+              -f body="Desktop builds for macOS, Windows and Linux." \
+              -F draft=true \
+              -F prerelease=false \
+              -f target_commitish="$GITHUB_SHA" 2>&1) && \
+              release_id=$(echo "$response" | jq -r '.id // empty' 2>/dev/null)
+
+            [[ "$release_id" =~ ^[0-9]+$ ]] && break
+
+            echo "Attempt $attempt: failed to create release — $response" >&2
+            release_id=""
+            sleep 10
+          done
+
+          if [[ ! "$release_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::Failed to create GitHub release after 3 attempts. Last response: $response"
+            exit 1
+          fi
+
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
 
   build:
     needs: create-release
