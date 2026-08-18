@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiSelect } from "@/components/ui/api-select";
 import { MultiApiSelect } from "@/components/ui/multi-api-select";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface UomOption {
@@ -93,7 +94,7 @@ export function Field({
   className,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   required?: boolean;
   className?: string;
   children: React.ReactNode;
@@ -126,13 +127,13 @@ export function Section({
 
 export function UnitToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex w-full rounded-lg bg-muted p-0.5">
+    <div className="flex h-10 w-full rounded-lg bg-muted p-0.5">
       {["%", "mg"].map((opt) => (
         <button
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          className={`flex-1 rounded-[7px] px-2 py-1 text-xs font-medium transition-colors ${
+          className={`flex-1 rounded-[7px] px-2 text-sm font-medium transition-colors ${
             value === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-background/60"
           }`}
         >
@@ -295,7 +296,7 @@ export default function ProductFormFields({
       <Section title="Basic Information">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Field label="Name" required>
-            <Input className="h-9" value={values.name} onChange={(e) => set("name", e.target.value)} placeholder="Enter product name" />
+            <Input className="h-10!" value={values.name} onChange={(e) => set("name", e.target.value)} placeholder="Enter product name" />
           </Field>
           <Field label="Category">
             <ApiSelect
@@ -307,7 +308,7 @@ export default function ProductFormFields({
                 set("categoryName", option?.name ?? null);
               }}
               fetchPage={fetchCategoryPage}
-              triggerClassName="w-full"
+              triggerClassName="h-10 w-full"
               initialLabel={values.categoryName ?? undefined}
               onCreateNew={() => onCreateNew("category")}
               createLabel="Create New Category"
@@ -323,7 +324,7 @@ export default function ProductFormFields({
                 set("brandName", option?.name ?? null);
               }}
               fetchPage={fetchBrandPage}
-              triggerClassName="w-full"
+              triggerClassName="h-10 w-full"
               initialLabel={values.brandName ?? undefined}
               onCreateNew={() => onCreateNew("brand")}
               createLabel="Create New Brand"
@@ -335,7 +336,7 @@ export default function ProductFormFields({
               value={values.productProfile}
               onValueChange={(v) => set("productProfile", v as "CANNABIS" | "REGULAR")}
             >
-              <SelectTrigger className="h-9 w-full">
+              <SelectTrigger className="h-10! w-full">
                 <SelectValue placeholder="Select product profile" />
               </SelectTrigger>
               <SelectContent>
@@ -356,14 +357,14 @@ export default function ProductFormFields({
                 value={values.unitWeight}
                 onChange={(e) => set("unitWeight", e.target.value)}
                 placeholder="Enter unit weight"
-                className="h-9 flex-1"
+                className="h-10! flex-1"
               />
               <Select
                 items={uomLists.map((u) => ({ value: u.id, label: u.name }))}
                 value={values.unitWeightUomId ?? undefined}
                 onValueChange={(v) => set("unitWeightUomId", v as string)}
               >
-                <SelectTrigger className="h-9 w-28">
+                <SelectTrigger className="h-10! w-28">
                   <SelectValue placeholder="UoM" />
                 </SelectTrigger>
                 <SelectContent>
@@ -381,14 +382,14 @@ export default function ProductFormFields({
                 value={values.packagedUnitWeight}
                 onChange={(e) => set("packagedUnitWeight", e.target.value)}
                 placeholder="Enter package unit weight"
-                className="h-9 flex-1"
+                className="h-10! flex-1"
               />
               <Select
                 items={uomLists.map((u) => ({ value: u.id, label: u.name }))}
                 value={values.packagedUnitWeightUomId ?? undefined}
                 onValueChange={(v) => set("packagedUnitWeightUomId", v as string)}
               >
-                <SelectTrigger className="h-9 w-28">
+                <SelectTrigger className="h-10! w-28">
                   <SelectValue placeholder="UoM" />
                 </SelectTrigger>
                 <SelectContent>
@@ -400,10 +401,10 @@ export default function ProductFormFields({
             </div>
           </Field>
           <Field label="EAN">
-            <Input className="h-9" value={values.ean} onChange={(e) => set("ean", e.target.value)} placeholder="Enter ean" />
+            <Input className="h-10!" value={values.ean} onChange={(e) => set("ean", e.target.value)} placeholder="Enter ean" />
           </Field>
           <Field label="SKU">
-            <Input className="h-9" value={values.sku} onChange={(e) => set("sku", e.target.value)} placeholder="Enter sku" />
+            <Input className="h-10!" value={values.sku} onChange={(e) => set("sku", e.target.value)} placeholder="Enter sku" />
           </Field>
         </div>
       </Section>
@@ -417,7 +418,7 @@ export default function ProductFormFields({
               value={strainIds}
               onChange={setStrainIds}
               fetchPage={fetchStrainPage}
-              triggerClassName="w-full"
+              triggerClassName="min-h-10 w-full"
               onCreateNew={() => onCreateNew("strain")}
               createLabel="Create New Strain"
             />
@@ -429,7 +430,7 @@ export default function ProductFormFields({
               value={tagIds}
               onChange={setTagIds}
               fetchPage={fetchTagPage}
-              triggerClassName="w-full"
+              triggerClassName="min-h-10 w-full"
               onCreateNew={() => onCreateNew("tag")}
               createLabel="Create New Tag"
             />
@@ -449,7 +450,7 @@ export default function ProductFormFields({
                     value={link}
                     placeholder="https://www.youtube.com/watch?v=..."
                     onChange={(e) => changeVideoLink(i, e.target.value)}
-                    className={`h-9 ${link && !isValidVideoUrl(link) ? "border-destructive" : ""}`}
+                    className={`h-10! ${link && !isValidVideoUrl(link) ? "border-destructive" : ""}`}
                   />
                   {videoLinks.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeVideoLink(i)}>
@@ -464,17 +465,17 @@ export default function ProductFormFields({
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <Field label="Product Description">
-              <Textarea
-                value={values.details}
-                onChange={(e) => set("details", e.target.value)}
-                placeholder="Enter product description..."
-                rows={4}
-              />
-            </Field>
-          </div>
         </div>
+      </Section>
+
+      <Section title="Description">
+        <Field label="Product Description">
+          <RichTextEditor
+            value={values.details}
+            onChange={(html) => set("details", html)}
+            placeholder="Enter product description..."
+          />
+        </Field>
       </Section>
 
       {values.productProfile === "CANNABIS" && (
@@ -484,11 +485,11 @@ export default function ProductFormFields({
               { label: "THC", state: thc, setState: setThc },
               { label: "CBD", state: cbd, setState: setCbd },
             ] as const).map(({ label, state, setState }) => (
-              <div key={label} className="rounded-lg p-3 ring-1 ring-foreground/10">
-                <div className="mb-2 text-sm font-semibold">{label}</div>
-                <div className="mb-2 grid grid-cols-2 gap-2">
+              <div key={label} className="rounded-xl p-4 ring-1 ring-foreground/10">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+                <div className="mb-3 grid grid-cols-2 gap-3">
                   <Field label="Value">
-                    <Input className="h-9"
+                    <Input className="h-10!"
                       type="number"
                       placeholder="0.00"
                       value={state.value}
@@ -499,7 +500,7 @@ export default function ProductFormFields({
                     <UnitToggle value={state.unit} onChange={(v) => setState({ ...state, unit: v })} />
                   </Field>
                 </div>
-                <Field label="Description" className="mb-2">
+                <Field label="Description" className="mb-3">
                   <Textarea
                     placeholder="Optional"
                     rows={2}
@@ -507,7 +508,7 @@ export default function ProductFormFields({
                     onChange={(e) => setState({ ...state, description: e.target.value })}
                   />
                 </Field>
-                <label className="mb-2 flex items-center gap-2 text-sm">
+                <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
                   <Checkbox
                     checked={state.isRangeApplicable}
                     onCheckedChange={(checked) =>
@@ -517,12 +518,12 @@ export default function ProductFormFields({
                   Enable Range
                 </label>
                 {state.isRangeApplicable && (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-3">
                     <Field label="Min" required>
-                      <Input className="h-9" type="number" placeholder="Min" value={state.min} onChange={(e) => setState({ ...state, min: e.target.value })} />
+                      <Input className="h-10!" type="number" placeholder="Min" value={state.min} onChange={(e) => setState({ ...state, min: e.target.value })} />
                     </Field>
                     <Field label="Max" required>
-                      <Input className="h-9" type="number" placeholder="Max" value={state.max} onChange={(e) => setState({ ...state, max: e.target.value })} />
+                      <Input className="h-10!" type="number" placeholder="Max" value={state.max} onChange={(e) => setState({ ...state, max: e.target.value })} />
                     </Field>
                   </div>
                 )}
@@ -535,7 +536,7 @@ export default function ProductFormFields({
                 value={effects}
                 onChange={setEffects}
                 items={EFFECTS.map((e) => ({ id: e, name: e }))}
-                triggerClassName="w-full"
+                triggerClassName="min-h-10 w-full"
               />
             </Field>
 
@@ -545,7 +546,7 @@ export default function ProductFormFields({
                 value={values.cannabisType || undefined}
                 onValueChange={(v) => set("cannabisType", v as string)}
               >
-                <SelectTrigger className="h-9 w-full">
+                <SelectTrigger className="h-10! w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -558,7 +559,7 @@ export default function ProductFormFields({
 
             {values.cannabisType === "Other" && (
               <Field label="Specify Type" required>
-                <Input className="h-9" value={values.otherCannabisType} onChange={(e) => set("otherCannabisType", e.target.value)} placeholder="Enter type" />
+                <Input className="h-10!" value={values.otherCannabisType} onChange={(e) => set("otherCannabisType", e.target.value)} placeholder="Enter type" />
               </Field>
             )}
 
@@ -572,12 +573,12 @@ export default function ProductFormFields({
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 {terpenes.map((pair, i) => (
                   <div key={i} className="flex items-center gap-1.5">
-                    <Input className="h-9"
+                    <Input className="h-10!"
                       value={pair.key}
                       onChange={(e) => changeTerpene(i, "key", e.target.value)}
                       placeholder="Profile name"
                     />
-                    <Input className="h-9"
+                    <Input className="h-10!"
                       type="number"
                       value={pair.value}
                       onChange={(e) => changeTerpene(i, "value", e.target.value)}

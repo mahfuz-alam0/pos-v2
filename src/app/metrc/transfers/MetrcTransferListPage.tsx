@@ -84,8 +84,8 @@ export default function MetrcTransferListPage() {
   };
 
   return (
-    <div className="flex gap-4 p-6">
-      <div className={openId ? "flex min-w-0 flex-1 flex-col gap-4" : "flex w-full flex-col gap-4"}>
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex w-full flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb>
             <BreadcrumbList>
@@ -193,7 +193,9 @@ export default function MetrcTransferListPage() {
         />
       </div>
 
-      {openId && <MetrcTransferDetailPanel id={openId} onClose={closeDetail} />}
+      {/* Rendered unconditionally so the Drawer keeps its slide-out transition
+          on close — unmounting on `openId` going null would cut it short. */}
+      <MetrcTransferDetailPanel id={openId} onClose={closeDetail} />
     </div>
   );
 }

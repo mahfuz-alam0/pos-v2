@@ -10,7 +10,7 @@ import { listAllDeals } from "@/services/sales/listDeals";
 import { listAllCoupons } from "@/services/sales/listCoupons";
 
 import { Button } from "@/components/ui/button";
-import { ApiSelect } from "@/components/ui/api-select";
+import { MultiApiSelect } from "@/components/ui/multi-api-select";
 import { DateRangeSelector, type SelectedDateResult } from "@/components/ui/date-range-selector";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -28,7 +28,6 @@ import {
   useShop,
   useCategoryPageFetcher,
   useBrandPageFetcher,
-  SimpleSelect,
   DELIVERY_METHOD_OPTIONS,
   SOURCE_OPTIONS,
   money,
@@ -47,15 +46,22 @@ const PAGE_SIZE = 20;
 const EXPORT_BATCH_SIZE = 100;
 
 const DISCOUNT_SOURCE_TYPE_OPTIONS = [
-  { value: "__all__", label: "All Discount Types" },
-  { value: "DEAL", label: "Deal" },
-  { value: "COUPON", label: "Coupon" },
-  { value: "LOYALTY_POINTS", label: "Loyalty Points" },
-  { value: "CUSTOMER_TYPE", label: "Customer Type" },
-  { value: "MISCELLANEOUS", label: "Miscellaneous" },
-  { value: "MANUAL_LINE_ITEM_DISCOUNT", label: "Manual Line Item Discount" },
-  { value: "TIERED_PRICING", label: "Tiered Pricing" },
+  { id: "DEAL", name: "Deal" },
+  { id: "COUPON", name: "Coupon" },
+  { id: "LOYALTY_POINTS", name: "Loyalty Points" },
+  { id: "CUSTOMER_TYPE", name: "Customer Type" },
+  { id: "MISCELLANEOUS", name: "Miscellaneous" },
+  { id: "MANUAL_LINE_ITEM_DISCOUNT", name: "Manual Line Item Discount" },
+  { id: "TIERED_PRICING", name: "Tiered Pricing" },
 ];
+
+/** The shared `{value,label}` lists carry an "All X" row that multi-select expresses
+ *  as an empty selection, so drop it and rename to the `{id,name}` option shape. */
+const toMultiOptions = (options: { value: string; label: string }[]) =>
+  options.filter((o) => o.value !== "__all__").map((o) => ({ id: o.value, name: o.label }));
+
+const DELIVERY_METHOD_ITEMS = toMultiOptions(DELIVERY_METHOD_OPTIONS);
+const SOURCE_ITEMS = toMultiOptions(SOURCE_OPTIONS);
 
 const DELIVERY_METHOD_LABEL: Record<string, string> = { IN_STORE: "In Store", DELIVERY: "Delivery", PICK_UP: "Pick Up" };
 const SOURCE_LABEL: Record<string, string> = { POS: "POS", ECOM: "E-Commerce", WEEDMAPS: "Weedmaps" };
@@ -79,13 +85,13 @@ export default function ItemizedSalesReport() {
     endDate: todayStr(),
     timeEnabled: false,
   });
-  const [categoryId, setCategoryId] = useState<string | number | null>(null);
-  const [brandId, setBrandId] = useState<string | number | null>(null);
-  const [deliveryMethod, setDeliveryMethod] = useState("__all__");
-  const [source, setSource] = useState("__all__");
-  const [discountSourceType, setDiscountSourceType] = useState("__all__");
-  const [dealId, setDealId] = useState<string | number | null>(null);
-  const [couponId, setCouponId] = useState<string | number | null>(null);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [brandIds, setBrandIds] = useState<string[]>([]);
+  const [deliveryMethods, setDeliveryMethods] = useState<string[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
+  const [discountSourceTypes, setDiscountSourceTypes] = useState<string[]>([]);
+  const [dealIds, setDealIds] = useState<string[]>([]);
+  const [couponIds, setCouponIds] = useState<string[]>([]);
 
   const [deals, setDeals] = useState<{ id: string; name: string }[]>([]);
   const [coupons, setCoupons] = useState<{ id: string; name: string }[]>([]);
@@ -114,14 +120,16 @@ export default function ItemizedSalesReport() {
 
   const buildFilters = (extra: Record<string, any> = {}) => {
     const filters: Record<string, any> = { startDate, endDate, ...extra };
+    // Every filter below takes a list; the query params keep their singular names
+    // because the API accepts either a single value or an array under each one.
     if (shopId) filters.shopId = shopId;
-    if (categoryId) filters.categoryId = categoryId;
-    if (brandId) filters.brandId = brandId;
-    if (deliveryMethod !== "__all__") filters.deliveryMethod = deliveryMethod;
-    if (source !== "__all__") filters.source = source;
-    if (discountSourceType !== "__all__") filters.discountSourceType = discountSourceType;
-    if (dealId) filters.dealId = dealId;
-    if (couponId) filters.couponId = couponId;
+    if (categoryIds.length) filters.categoryId = categoryIds;
+    if (brandIds.length) filters.brandId = brandIds;
+    if (deliveryMethods.length) filters.deliveryMethod = deliveryMethods;
+    if (sources.length) filters.source = sources;
+    if (discountSourceTypes.length) filters.discountSourceType = discountSourceTypes;
+    if (dealIds.length) filters.dealId = dealIds;
+    if (couponIds.length) filters.couponId = couponIds;
     return filters;
   };
 
@@ -145,7 +153,7 @@ export default function ItemizedSalesReport() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [shopId, startDate, endDate, categoryId, brandId, deliveryMethod, source, discountSourceType, dealId, couponId, pageSize],
+    [shopId, startDate, endDate, categoryIds, brandIds, deliveryMethods, sources, discountSourceTypes, dealIds, couponIds, pageSize],
   );
 
   const handleRunReport = async () => {
@@ -159,7 +167,7 @@ export default function ItemizedSalesReport() {
   useEffect(() => {
     handleRunReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, startDate, endDate, categoryId, brandId, deliveryMethod, source, discountSourceType, dealId, couponId]);
+  }, [shopId, startDate, endDate, categoryIds, brandIds, deliveryMethods, sources, discountSourceTypes, dealIds, couponIds]);
 
   const fetchAllForExport = async () => {
     const total = pagination.totalEntries || 0;
@@ -222,61 +230,37 @@ export default function ItemizedSalesReport() {
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Categories</div>
-          <ApiSelect placeholder="All Categories" value={categoryId} onChange={setCategoryId} fetchPage={fetchCategoryPage} triggerClassName="w-62.5" />
+          <MultiApiSelect placeholder="All Categories" value={categoryIds} onChange={setCategoryIds} fetchPage={fetchCategoryPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Brands</div>
-          <ApiSelect placeholder="All Brands" value={brandId} onChange={setBrandId} fetchPage={fetchBrandPage} triggerClassName="w-62.5" />
+          <MultiApiSelect placeholder="All Brands" value={brandIds} onChange={setBrandIds} fetchPage={fetchBrandPage} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Delivery Method</div>
-          <SimpleSelect value={deliveryMethod} onValueChange={setDeliveryMethod} options={DELIVERY_METHOD_OPTIONS} className="w-62.5" />
+          <MultiApiSelect placeholder="All Delivery Methods" value={deliveryMethods} onChange={setDeliveryMethods} items={DELIVERY_METHOD_ITEMS} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Source</div>
-          <SimpleSelect value={source} onValueChange={setSource} options={SOURCE_OPTIONS} className="w-62.5" />
+          <MultiApiSelect placeholder="All Sources" value={sources} onChange={setSources} items={SOURCE_ITEMS} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Discount Source Type</div>
-          <SimpleSelect value={discountSourceType} onValueChange={setDiscountSourceType} options={DISCOUNT_SOURCE_TYPE_OPTIONS} className="w-62.5" />
+          <MultiApiSelect placeholder="All Discount Types" value={discountSourceTypes} onChange={setDiscountSourceTypes} items={DISCOUNT_SOURCE_TYPE_OPTIONS} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Deal</div>
-          <ApiSelect
-            placeholder="All Deals"
-            value={dealId}
-            onChange={setDealId}
-            triggerClassName="w-62.5"
-            fetchPage={useCallback(
-              async (_page: number, search: string) => ({
-                items: deals.filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
-                totalPages: 1,
-              }),
-              [deals],
-            )}
-          />
+          <MultiApiSelect placeholder="All Deals" value={dealIds} onChange={setDealIds} items={deals} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">
           <div className="w-52 text-sm">Coupon</div>
-          <ApiSelect
-            placeholder="All Coupons"
-            value={couponId}
-            onChange={setCouponId}
-            triggerClassName="w-62.5"
-            fetchPage={useCallback(
-              async (_page: number, search: string) => ({
-                items: coupons.filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),
-                totalPages: 1,
-              }),
-              [coupons],
-            )}
-          />
+          <MultiApiSelect placeholder="All Coupons" value={couponIds} onChange={setCouponIds} items={coupons} triggerClassName="w-62.5" />
         </div>
 
         <div className="flex items-center gap-3">

@@ -84,7 +84,11 @@ function healthLabel(totalQuantity, threshold) {
   return "Unknown";
 }
 
-function mapInventory(inventory) {
+// `filterLocationId` mirrors the Storage Location filter: the API still returns the
+// full per-location breakdown for a matched inventory, so narrow it here or the
+// column (and its Value column, and every export) would list locations the user
+// filtered out. No filter selected = show every location, as before.
+function mapInventory(inventory, filterLocationId: string | null = null) {
   return {
     id: inventory.id,
     productId: inventory.productId,
@@ -97,12 +101,14 @@ function mapInventory(inventory) {
     brand: inventory?.brand?.name ?? "N/A",
     weedmapProductId: inventory.weedmapProductId,
     isPushedToLeafly: inventory.isPushedToLeafly ?? false,
-    storageLocations: (inventory.storageLocations ?? []).map((location) => ({
-      id: location.id,
-      name: location.name,
-      quantity: location.quantity,
-      value: location.value,
-    })),
+    storageLocations: (inventory.storageLocations ?? [])
+      .filter((location) => !filterLocationId || location.id === filterLocationId)
+      .map((location) => ({
+        id: location.id,
+        name: location.name,
+        quantity: location.quantity,
+        value: location.value,
+      })),
   };
 }
 
@@ -191,7 +197,7 @@ export default function ManageInventoriesTable() {
 
         const res = await fetchInventoriesList(shopId, params);
         const inventories = res?.data?.data?.inventories ?? [];
-        setRows(inventories.map(mapInventory));
+        setRows(inventories.map((inventory) => mapInventory(inventory, storageLocationId)));
 
         const pagination = res?.data?.data?.paginationData;
         if (pagination) {
@@ -399,7 +405,7 @@ export default function ManageInventoriesTable() {
       try {
         const res = await fetchInventoriesList(shopId, params);
         const inventories = res?.data?.data?.inventories ?? [];
-        allData = allData.concat(inventories.map(mapInventory));
+        allData = allData.concat(inventories.map((inventory) => mapInventory(inventory, storageLocationId)));
       } catch {
         toast.warning(`Failed to fetch page ${p}, continuing`);
       }
@@ -1172,6 +1178,7 @@ export default function ManageInventoriesTable() {
         open={bulkEditOpen}
         onClose={() => setBulkEditOpen(false)}
         selectedProducts={selectedRows.map(toProductRow)}
+        inventoryIds={selectedRows.map((r: any) => r.id)}
         onSaved={() => {
           setBulkEditOpen(false);
           setSelectedRows([]);

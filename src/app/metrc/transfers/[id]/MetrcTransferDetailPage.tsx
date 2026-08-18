@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { useShop } from "@/context/shop-context";
 import { fetchMetrcCredentials } from "@/services/metrcConfig/getCredentials";
 import { fetchSingleMetrcTransfer } from "@/services/metrcTransfers/getSingle";
 import { fetchMetrcTransferEligibility } from "@/services/metrcTransfers/getEligibility";
+import { fetchSinglePackage } from "@/services/packages/getSingle";
 
+import PrintLabelModal from "@/components/pos/PrintLabelModal";
+import EditPackageForm from "@/app/inventory-management/packages/edit/[packageid]/EditPackageForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +27,10 @@ import {
 
 function DetailCard({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-muted/40 p-4">
+    // bg-card, not a muted tint — these sit on the section's own muted body, so
+    // a second tint of the same family renders them invisible. The ring keeps
+    // them defined in dark mode, where card and muted are closer together.
+    <div className="rounded-lg bg-card p-4 ring-1 ring-foreground/10">
       <div className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">{label}</div>
       <div className="truncate text-sm font-medium" title={typeof value === "string" ? value : undefined}>
         {value ?? "-"}
@@ -62,6 +69,37 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [transfer, setTransfer] = useState<any>(null);
   const [eligibility, setEligibility] = useState<any>(null);
+  // Keyed "<metrcTag>:<action>" so only the clicked button shows a pending state.
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [printPackageId, setPrintPackageId] = useState<string | null>(null);
+  const [editPackageId, setEditPackageId] = useState<string | null>(null);
+
+  // A transfer package carries METRC identifiers only. Print/Edit/COA all need
+  // the *platform* package id, which old resolved by looking the package up by
+  // its metrc tag — do the same rather than hiding the buttons pre-import.
+  const runPackageAction = async (
+    pkg: any,
+    action: string,
+    fn: (platformPackageId: string) => void | Promise<void>
+  ) => {
+    setPendingAction(`${pkg?.metrcTag}:${action}`);
+    try {
+      let platformPackageId: string | null = pkg?.packageId ?? null;
+      if (!platformPackageId) {
+        const res: any = await fetchSinglePackage(shopId as string, { metrcTag: pkg?.metrcTag });
+        platformPackageId = res?.data?.data?.package?.id ?? null;
+      }
+      if (!platformPackageId) {
+        toast.error("This package hasn't been imported into the POS yet.");
+        return;
+      }
+      await fn(platformPackageId);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load package");
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   useEffect(() => {
     if (!shopId) return;
@@ -79,19 +117,28 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
     })();
   }, [shopId]);
 
+  const loadTransfer = useCallback(
+    ({ showSpinner = true }: { showSpinner?: boolean } = {}) => {
+      if (!shopId || !id) return;
+      if (showSpinner) setLoading(true);
+      Promise.all([
+        fetchSingleMetrcTransfer(shopId as string, id),
+        fetchMetrcTransferEligibility(shopId as string, id),
+      ])
+        .then(([transferRes, eligibilityRes]: any[]) => {
+          setTransfer(transferRes?.data?.transfer ?? null);
+          setEligibility(eligibilityRes?.data ?? null);
+        })
+        .finally(() => {
+          if (showSpinner) setLoading(false);
+        });
+    },
+    [shopId, id]
+  );
+
   useEffect(() => {
-    if (!shopId || !id) return;
-    setLoading(true);
-    Promise.all([
-      fetchSingleMetrcTransfer(shopId as string, id),
-      fetchMetrcTransferEligibility(shopId as string, id),
-    ])
-      .then(([transferRes, eligibilityRes]: any[]) => {
-        setTransfer(transferRes?.data?.transfer ?? null);
-        setEligibility(eligibilityRes?.data ?? null);
-      })
-      .finally(() => setLoading(false));
-  }, [shopId, id]);
+    loadTransfer();
+  }, [loadTransfer]);
 
   if (checkingCredentials || loading) {
     return (
@@ -114,19 +161,30 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-4 p-6 pb-24">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/metrc/transfers" />}>METRC Transfers</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Details</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <div>
+        <h1 className="mb-1 text-2xl font-bold">Metrc Transfer Details</h1>
+        {/* First crumb is METRC, the section this route actually lives under in
+            the sidebar — old sat it under Inventory Management. */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>METRC</BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="/metrc/transfers" />}>Metrc Transfers</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Details</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
-      <div className="rounded-xl bg-muted/30 p-6">
+      <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="bg-green-600 px-4 py-2 text-sm font-semibold text-white dark:bg-green-700">
+          Transfer Details
+        </div>
+        <div className="bg-muted/30 p-6">
         <div className="mb-6 flex flex-wrap items-center gap-6">
           <div>
             <div className="text-xs tracking-wide text-muted-foreground uppercase">Transfer ID</div>
@@ -157,23 +215,28 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
           <DetailCard label="License Number" value={transfer?.defSnapshot?.ShipperFacilityLicenseNumber} />
           <DetailCard label="Transport Name" value={transfer?.defSnapshot?.TransporterFacilityName} />
         </div>
+        </div>
       </div>
 
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Packages</h2>
+      <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+          <span>Packages</span>
+          {/* Old had "Print All Labels (PDF)" here; printing infra isn't ported yet. */}
         </div>
 
         {packages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl bg-muted/30 py-12 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center bg-muted/30 py-12 text-muted-foreground">
             <p className="text-lg font-medium">No Packages Found</p>
             <p>This transfer doesn&apos;t contain any packages.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col">
             {packages.map((pkg: any) => (
-              <div key={pkg.metrcId} className="rounded-lg ring-1 ring-foreground/10">
-                <div className="flex flex-wrap items-center gap-6 rounded-t-lg bg-muted/40 px-4 py-2">
+              <div
+                key={pkg.metrcId}
+                className="shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] last:shadow-none"
+              >
+                <div className="flex flex-wrap items-center gap-6 bg-muted/40 px-4 py-2">
                   <span className="text-sm">
                     <span className="text-muted-foreground">Metrc Tag: </span>
                     <span className="font-mono font-semibold">{pkg?.metrcTag ?? "-"}</span>
@@ -201,19 +264,25 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
                     {pkg?.snapshotData?.ItemUnitWeight ?? "-"} {pkg?.snapshotData?.ItemUnitWeightUnitOfMeasureName ?? ""}
                   </span>
                 </div>
-                <div className="flex justify-end gap-2 rounded-b-lg bg-muted/20 px-4 py-2">
-                  {/* Per-package Edit routes to the existing package-edit page (avoids
-                      re-porting EditPackages as its own drawer/component — out of scope).
-                      That route only accepts a platform package id, which a transfer
-                      package only has once it's been imported — hide the link until then
-                      rather than linking to an id that doesn't resolve. */}
-                  {pkg?.packageId && (
-                    <Link href={`/inventory-management/packages/edit/${pkg.packageId}`} target="_blank">
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                    </Link>
-                  )}
+                <div className="flex gap-2 px-4 py-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pendingAction === `${pkg?.metrcTag}:print`}
+                    onClick={() => runPackageAction(pkg, "print", (pid) => setPrintPackageId(pid))}
+                  >
+                    {pendingAction === `${pkg?.metrcTag}:print` ? "Loading..." : "Print"}
+                  </Button>
+                  {/* Opens EditPackageForm in drawer mode, which carries its own
+                      Pull COA action in the header — so no separate COA button here. */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pendingAction === `${pkg?.metrcTag}:edit`}
+                    onClick={() => runPackageAction(pkg, "edit", (pid) => setEditPackageId(pid))}
+                  >
+                    {pendingAction === `${pkg?.metrcTag}:edit` ? "Loading..." : "Edit"}
+                  </Button>
                 </div>
               </div>
             ))}
@@ -238,6 +307,24 @@ export default function MetrcTransferDetailPage({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      <PrintLabelModal
+        open={!!printPackageId}
+        onClose={() => setPrintPackageId(null)}
+        packageId={printPackageId}
+        shopId={shopId}
+      />
+
+      <EditPackageForm
+        packageId={editPackageId}
+        open={!!editPackageId}
+        onClose={() => setEditPackageId(null)}
+        onSaved={() => {
+          setEditPackageId(null);
+          // Silent refresh — the spinner would blank the whole page behind the drawer.
+          loadTransfer({ showSpinner: false });
+        }}
+      />
     </div>
   );
 }
