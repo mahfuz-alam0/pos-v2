@@ -504,13 +504,13 @@ export default function AssignPackageWizard({ id }: { id: string }) {
                       <div className="flex justify-end gap-2 rounded-b-lg px-4 py-2">
                         <Button
                           variant="outline"
-                          className="text-sm"
+                          className="h-9 text-sm"
                           disabled={editResolvingTag === pkg.metrcTag}
                           onClick={() => handleEditPackage(pkg)}
                         >
                           {editResolvingTag === pkg.metrcTag ? "Loading..." : "Edit Package"}
                         </Button>
-                        <Button className="text-sm" onClick={() => handleOpenAssign(pkg)}>
+                        <Button className="h-9 text-sm" onClick={() => handleOpenAssign(pkg)}>
                           {isAssigned ? "Edit Import" : "Import"}
                         </Button>
                       </div>
@@ -741,6 +741,7 @@ export default function AssignPackageWizard({ id }: { id: string }) {
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
+          className="h-9 text-sm"
           onClick={() => {
             if (step === 0) router.back();
             else setStep(0);
@@ -750,9 +751,9 @@ export default function AssignPackageWizard({ id }: { id: string }) {
         </Button>
 
         {step === 0 ? (
-          <Button onClick={handleNext}>Next</Button>
+          <Button className="h-9 text-sm" onClick={handleNext}>Next</Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button className="h-9 text-sm" onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Finalizing..." : "Finalize Transfer"}
           </Button>
         )}

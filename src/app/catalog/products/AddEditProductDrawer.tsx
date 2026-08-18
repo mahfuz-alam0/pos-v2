@@ -194,7 +194,8 @@ export default function AddEditProductDrawer({ open, onClose, product = null, on
   const buildBody = () => {
     const body: Record<string, any> = {
       name: values.name.trim(),
-      details: values.details || undefined,
+      // Quill leaves "<p><br></p>" behind for an emptied editor — treat that as blank.
+      details: values.details && values.details !== "<p><br></p>" ? values.details : undefined,
       categoryId: values.categoryId,
       brandId: values.brandId,
       images: images.map((img, i) => ({ url: img.url, order: i })),

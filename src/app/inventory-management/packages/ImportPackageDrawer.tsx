@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { attachPackageToProduct } from "@/services/packages/attachToProduct";
 import { updateInventoryEcommStatus } from "@/services/inventories/updateEcommStatus";
 import { fetchProductsList } from "@/services/products/list";
+import { fetchSingleProduct } from "@/services/products/getSingle";
 import { listUoms } from "@/services/uoms/listUoms";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
 
@@ -66,6 +67,8 @@ export default function ImportPackageDrawer({
   const [selectedProductId, setSelectedProductId] = useState<string | number | null>(null);
   const [selectedProductLabel, setSelectedProductLabel] = useState<string | undefined>(undefined);
   const [addProductOpen, setAddProductOpen] = useState(false);
+  // null = the drawer opens in create mode; a product = edit mode.
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Total Cost (Wholesale) <-> Unit Cost are two views of the same number,
@@ -119,6 +122,7 @@ export default function ImportPackageDrawer({
     if (!open || !packageDetail) return;
     setSelectedProductId(null);
     setSelectedProductLabel(undefined);
+    setEditingProduct(null);
     setTotalCost("");
     setUnitCost(packageDetail?.unitCost ? String(packageDetail.unitCost) : "");
     setLowStockPoint("");
@@ -165,6 +169,22 @@ export default function ImportPackageDrawer({
     const unit = parseFloat(unitCost) || 0;
     return `Total cost = $${unit.toFixed(2)} × ${packageQty} ${uomShortForm} = $${(unit * packageQty).toFixed(2)}`;
   }, [unitCost, packageQty, uomShortForm]);
+
+  const openEditProduct = async () => {
+    if (!selectedProductId) return;
+    try {
+      const res: any = await fetchSingleProduct(selectedProductId);
+      const product = res?.data?.data?.product;
+      if (!product) {
+        toast.error("Could not load that product.");
+        return;
+      }
+      setEditingProduct(product);
+      setAddProductOpen(true);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load product");
+    }
+  };
 
   const fetchProductPage = async (page: number, search: string) => {
     const res = await fetchProductsList({ page, limit: 20, search: search || undefined });
@@ -330,10 +350,26 @@ export default function ImportPackageDrawer({
           <div>
             <div className="mb-2 flex items-center justify-between">
               <Label>Select Product from Catalog</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setAddProductOpen(true)}>
-                <Plus className="size-3.5" />
-                Create New Product
-              </Button>
+              <div className="flex items-center gap-2">
+                {selectedProductId && (
+                  <Button type="button" variant="outline" size="sm" onClick={openEditProduct}>
+                    <Pencil className="size-3.5" />
+                    Edit Product
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setAddProductOpen(true);
+                  }}
+                >
+                  <Plus className="size-3.5" />
+                  Create New Product
+                </Button>
+              </div>
             </div>
             <ApiSelect
               placeholder="Search and select a product..."
@@ -555,11 +591,17 @@ export default function ImportPackageDrawer({
       <AddEditProductDrawer
         open={addProductOpen}
         onClose={() => setAddProductOpen(false)}
+        product={editingProduct}
         onDone={(created) => {
           setAddProductOpen(false);
           if (created) {
             setSelectedProductId(created.id);
             setSelectedProductLabel(created.name);
+          } else if (editingProduct) {
+            // An edit can rename the product — keep the select's label in step.
+            fetchSingleProduct(editingProduct.id)
+              .then((res: any) => setSelectedProductLabel(res?.data?.data?.product?.name))
+              .catch(() => {});
           }
         }}
       />
