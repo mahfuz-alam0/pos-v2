@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 const ECOM_URL = process.env.NEXT_PUBLIC_ECCOMMERCE_URL;
+const CHAT_URL = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL;
 
 const isTauri = process.env.NEXT_PUBLIC_TAURI === "1";
 
@@ -20,10 +21,13 @@ export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const ecom = pathname.startsWith("/proxy/ecom/");
+  const chat = pathname.startsWith("/proxy/chat/");
 
   const upstream = ecom
     ? `${ECOM_URL}${pathname.slice("/proxy/ecom".length)}${search}`
-    : `${BASE_URL}${pathname.slice("/proxy".length)}${search}`;
+    : chat
+      ? `${CHAT_URL}${pathname.slice("/proxy/chat".length)}${search}`
+      : `${BASE_URL}${pathname.slice("/proxy".length)}${search}`;
 
   const headers = new Headers(request.headers);
   headers.delete("host");

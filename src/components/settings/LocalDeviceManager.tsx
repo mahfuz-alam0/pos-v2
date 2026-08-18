@@ -9,10 +9,12 @@ import { useSettings } from "@/context/settings-context";
 import { fetchHardwareClients } from "@/services/hardwareClients/list";
 import { removeHardwareClient } from "@/services/hardwareClients/remove";
 import {
-  getUserPrintPreference,
-  setUserPrintPreference,
-  deleteUserPrintPreference,
-} from "@/services/printClients/printClients";
+  getConnectedUserPrintPreference,
+  setConnectedUserPrintPreference,
+  deleteConnectedUserPrintPreference,
+  type ConnectedDeviceProps,
+  type ConnectedPrintJobType,
+} from "@/services/printClients/connectedUserPrintPreference";
 import { JOB_TYPES } from "@/hooks/usePrintClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,10 +36,32 @@ import LocalDeviceFormDrawer from "./LocalDeviceFormDrawer";
 
 const JOB_TYPE_OPTIONS = Object.values(JOB_TYPES).map((jt) => ({ value: jt, label: jt.replace(/_/g, " ") }));
 
+interface LocalDeviceRow {
+  _id: string;
+  name: string;
+  jobType: string;
+  deviceProps?: ConnectedDeviceProps | null;
+}
+
+// Two rows a device's deviceProps are considered "the same printer" for —
+// good enough to tell which row a saved connected-user-print-preference
+// (which stores raw deviceProps, not a device _id) points at.
+function deviceMatches(a?: ConnectedDeviceProps | null, b?: ConnectedDeviceProps | null) {
+  if (!a || !b) return false;
+  return (
+    (a.ipAddress ?? null) === (b.ipAddress ?? null) &&
+    (a.deviceName ?? null) === (b.deviceName ?? null) &&
+    (a.port ?? null) === (b.port ?? null)
+  );
+}
+
 // List/Delete hit the same confirmed-working endpoints as the
 // /settings/hardware-clients admin table (fetchHardwareClients /
 // removeHardwareClient) — there's no separate "local" data model on the
 // backend today, so Add/Edit here manage the same underlying device records.
+// Default preference (Set/Remove Default below) does have its own backend
+// model though: /connected-user-print-preference, distinct from the
+// /user-print-preference endpoints the Remote tab uses in PrinterDeviceSetup.
 export default function LocalDeviceManager() {
   const { shopId } = useShop();
   const { printType, setPrintType } = useSettings();
@@ -47,14 +71,14 @@ export default function LocalDeviceManager() {
   const debouncedSearch = useDebounce(search, 300);
   const [jobType, setJobType] = useState("");
 
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState<LocalDeviceRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // jobType -> current preferred device id for that job type, loaded from
-  // /user-print-preference/get-preference (same endpoints the Remote tab
-  // uses in PrinterDeviceSetup, keyed here per row's own jobType instead of
-  // a single active tab).
-  const [preferredIds, setPreferredIds] = useState({});
+  // jobType -> current preferred deviceProps for that job type, loaded from
+  // /connected-user-print-preference/get-preference. Keyed by jobType (not a
+  // device _id — that endpoint has no concept of one) so each row's default
+  // state is derived via deviceMatches().
+  const [preferredDeviceProps, setPreferredDeviceProps] = useState<Record<string, ConnectedDeviceProps | null>>({});
   const [settingDefaultId, setSettingDefaultId] = useState(null);
   const [removingDefaultJobType, setRemovingDefaultJobType] = useState(null);
 
@@ -87,36 +111,37 @@ export default function LocalDeviceManager() {
   useEffect(() => {
     if (!shopId || !rows.length) return;
     const jobTypes = [...new Set(rows.map((r) => r.jobType).filter(Boolean))];
-    const missing = jobTypes.filter((jt) => !(jt in preferredIds));
+    const missing = jobTypes.filter((jt) => !(jt in preferredDeviceProps));
     if (!missing.length) return;
 
     let cancelled = false;
     (async () => {
       const entries = await Promise.all(
         missing.map(async (jt) => {
-          const res = await getUserPrintPreference(shopId, jt);
-          return [jt, res?.success ? res?.data?.setUpId ?? null : null];
+          const res = await getConnectedUserPrintPreference(shopId, jt as ConnectedPrintJobType);
+          return [jt, res?.success ? res?.data?.deviceProps ?? null : null] as const;
         })
       );
       if (cancelled) return;
-      setPreferredIds((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+      setPreferredDeviceProps((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [shopId, rows, preferredIds]);
+  }, [shopId, rows, preferredDeviceProps]);
 
-  async function handleSetDefault(row) {
+  async function handleSetDefault(row: LocalDeviceRow) {
     setSettingDefaultId(row._id);
     try {
-      await setUserPrintPreference({
-        shopId,
-        printTemplateType: row.jobType,
-        setUpId: row._id,
-        sessionId: row.sessionId,
-      });
-      setPreferredIds((prev) => ({ ...prev, [row.jobType]: row._id }));
+      const deviceProps: ConnectedDeviceProps = {
+        ipAddress: row.deviceProps?.ipAddress ?? null,
+        deviceName: row.deviceProps?.deviceName ?? row.name ?? null,
+        port: row.deviceProps?.port ?? null,
+        meta: row.deviceProps?.meta ?? null,
+      };
+      await setConnectedUserPrintPreference({ shopId, jobType: row.jobType as ConnectedPrintJobType, deviceProps });
+      setPreferredDeviceProps((prev) => ({ ...prev, [row.jobType]: deviceProps }));
       toast.success(`${row.name} set as default for ${row.jobType?.replace(/_/g, " ")}`);
     } catch (err) {
       toast.error(err?.message || "Failed to set default device");
@@ -125,11 +150,11 @@ export default function LocalDeviceManager() {
     }
   }
 
-  async function handleRemoveDefault(row) {
+  async function handleRemoveDefault(row: LocalDeviceRow) {
     setRemovingDefaultJobType(row.jobType);
     try {
-      await deleteUserPrintPreference(shopId, row.jobType);
-      setPreferredIds((prev) => ({ ...prev, [row.jobType]: null }));
+      await deleteConnectedUserPrintPreference(shopId, row.jobType as ConnectedPrintJobType);
+      setPreferredDeviceProps((prev) => ({ ...prev, [row.jobType]: null }));
       toast.success(`Default removed for ${row.jobType?.replace(/_/g, " ")}`);
     } catch (err) {
       toast.error(err?.message || "Failed to remove default device");
@@ -237,7 +262,7 @@ export default function LocalDeviceManager() {
               </TableRow>
             ) : (
               rows.map((client, i) => {
-                const isDefault = preferredIds[client.jobType] === client._id;
+                const isDefault = deviceMatches(client.deviceProps, preferredDeviceProps[client.jobType]);
                 return (
                   <TableRow
                     key={client._id}
