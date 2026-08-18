@@ -236,6 +236,7 @@ export default function SignInForm() {
 
       await loginWithBackendAndPersist({
         orgId,
+        orgUsername,
         email,
         password,
         method: LOGIN_METHODS.EMAIL_PASSWORD,

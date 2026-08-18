@@ -2,6 +2,8 @@
 
 import { loginWithBackend, LOGIN_METHODS } from "@/services/auth/login";
 import { getEcomAccessToken } from "@/services/auth/getEcomAccessToken";
+import { hardwareClientLoginProtected } from "@/services/hardwareClients/loginProtected";
+import { isTauriDesktop } from "@/lib/update-check";
 import { store } from "@/store";
 import { resetPosState } from "@/hooks/useResetPOS";
 
@@ -9,6 +11,7 @@ export const AUTH_CHANGE_EVENT = "pos-auth-change";
 
 export async function loginWithBackendAndPersist({
   orgId,
+  orgUsername,
   email,
   password,
   method,
@@ -17,6 +20,7 @@ export async function loginWithBackendAndPersist({
   pin,
 }: {
   orgId?: string
+  orgUsername?: string
   email?: string
   password?: string
   method: string
@@ -38,6 +42,14 @@ export async function loginWithBackendAndPersist({
   const ecomToken = ecomRes?.data?.accessToken;
   if (ecomToken) {
     localStorage.setItem("ecomm_token", ecomToken);
+  }
+
+  // Desktop-only, best-effort: pairs this device with the hardware-client relay
+  // in the background so automated printing works without a separate sign-in.
+  // Not awaited and never throws (see hardwareClientLoginProtected) — must not
+  // delay or affect the POS sign-in flow.
+  if (isTauriDesktop() && method === LOGIN_METHODS.EMAIL_PASSWORD && orgUsername && email && password) {
+    void hardwareClientLoginProtected({ orgUsername, email, password });
   }
 
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
