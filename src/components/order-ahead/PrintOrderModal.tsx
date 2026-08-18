@@ -17,6 +17,7 @@ import { useShop } from "@/context/shop-context";
 import { connectToSocket } from "@/lib/socket";
 import { JOB_TYPES } from "@/hooks/usePrintClients";
 import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
+import { getSingleSale } from "@/services/sales/getSingleSales";
 
 const RECEIPT_OPTION = { value: "RECEIPT", label: "Receipt" };
 const PULL_SHEET_OPTION = { value: "PRE_ORDER_FULFILLMENT_PULL_SHEET", label: "Pre-Order Fulfillment Pull Sheet" };
@@ -69,11 +70,31 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
   const [copies, setCopies] = useState("1");
   const [printing, setPrinting] = useState(false);
   const [printerReady, setPrinterReady] = useState(null); // null = unknown, true/false once checked
+  const [saleDetail, setSaleDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (open) setPrintType(printTypeOptions[0].value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, type]);
+
+  // The board's own row (and the order card's Print button, which calls this
+  // modal directly without going through Order Details first) doesn't carry
+  // nonPackagedLineItems for a Sale — only /sales/single-sale does. Fetch it
+  // here so printing works from either entry point; skip if the caller (e.g.
+  // OrderDetailDialog, which already fetched this) already passed full data.
+  useEffect(() => {
+    if (!open || type === "presale" || !item?.id || item?.nonPackagedLineItems) {
+      setSaleDetail(null);
+      return;
+    }
+    setLoadingDetail(true);
+    getSingleSale(item.id)
+      .then((res) => setSaleDetail(res?.data?.data?.sale ?? null))
+      .finally(() => setLoadingDetail(false));
+  }, [open, type, item]);
+
+  const effectiveItem = type === "presale" ? item : (saleDetail ?? item);
 
   useEffect(() => {
     setPrinterReady(null);
@@ -158,7 +179,7 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
           <OrderPrintContent
             ref={contentRef}
             type={type}
-            item={item}
+            item={effectiveItem}
             variant={printType === "PRE_ORDER_FULFILLMENT_PULL_SHEET" ? "PULL_SHEET" : "RECEIPT"}
             style={{ position: "fixed", left: -9999, top: 0 }}
           />,
@@ -216,11 +237,11 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={printInBrowser}>
+            <Button variant="outline" onClick={printInBrowser} disabled={loadingDetail}>
               Check Label
             </Button>
-            <Button disabled={printing} onClick={handlePrint}>
-              {printing ? "Printing…" : `Print ${Math.max(1, parseInt(copies, 10) || 1)} copy`}
+            <Button disabled={printing || loadingDetail} onClick={handlePrint}>
+              {loadingDetail ? "Loading…" : printing ? "Printing…" : `Print ${Math.max(1, parseInt(copies, 10) || 1)} copy`}
             </Button>
           </DialogFooter>
         </DialogContent>
