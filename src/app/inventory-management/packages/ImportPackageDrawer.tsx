@@ -379,7 +379,7 @@ export default function ImportPackageDrawer({
                 setSelectedProductLabel(option?.name);
               }}
               fetchPage={fetchProductPage}
-              triggerClassName="w-full"
+              triggerClassName="h-11 w-full"
               initialLabel={selectedProductLabel}
             />
           </div>

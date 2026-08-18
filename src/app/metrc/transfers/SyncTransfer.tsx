@@ -95,7 +95,7 @@ export default function SyncTransfer() {
   };
 
   const button = (
-    <Button onClick={handleSync} disabled={loading || buttonDisabled}>
+    <Button className="h-10 text-[14px]" onClick={handleSync} disabled={loading || buttonDisabled}>
       {loading && <Loader2 className="size-4 animate-spin" />}
       {label}
     </Button>
