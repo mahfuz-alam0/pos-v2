@@ -18,6 +18,16 @@ export interface PackageAssignment {
   shouldActivate: boolean;
   recommendedUnitPrice?: number | null;
   stockThreshold?: number | null;
+  pricingTemplateId?: string | null;
+  // Collected in the drawer for parity with old's Import Package form. Not sent
+  // by completeIncomingMetrcTransfer — the ecom flag is set per *inventory*,
+  // which doesn't exist until after the import runs.
+  isEcomEnabled?: boolean;
+  // Snapshot of the product's existing inventory pricing, read when the product
+  // is picked in the drawer. Used as the price floor at submit time so a blank
+  // price never overwrites live retail pricing with 0, and to compute margin.
+  inventoryUnitPrice?: number | null;
+  sellableUoMShortForm?: string | null;
   unitWeight?: number | null;
   unitWeightUoMId?: string | null;
   expiryDate?: string | null; // YYYY-MM-DD

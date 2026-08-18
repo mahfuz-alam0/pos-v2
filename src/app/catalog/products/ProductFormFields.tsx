@@ -93,7 +93,7 @@ export function Field({
   className,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   required?: boolean;
   className?: string;
   children: React.ReactNode;
