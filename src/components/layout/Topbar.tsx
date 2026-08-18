@@ -219,9 +219,12 @@ export default function Topbar() {
   const dispatch: any = useDispatch();
   const { token: chatToken } = useSelector((state: any) => state.chat);
   const canUseChat = checkPermission("ECOMM_CHAT");
+  const chatInitRef = useRef(false);
+
 
   useEffect(() => {
-    if (!canUseChat || !user) return;
+    if (!canUseChat || !user || chatInitRef.current) return;
+    chatInitRef.current = true;
     if (chatToken) {
       dispatch(getChatSessions());
     } else {

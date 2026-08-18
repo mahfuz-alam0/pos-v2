@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Printer, Laptop, Server } from "lucide-react";
+import { Printer } from "lucide-react";
 import { useSettings } from "@/context/settings-context";
 import { Button } from "@/components/ui/button";
 import { isTauriDesktop } from "@/lib/update-check";
 import PrinterSelectionModal from "./PrinterSelectionModal";
+import PrinterSetupDrawer from "./PrinterSetupDrawer";
 
 function SectionCard({ icon: Icon, title, description, children }) {
   return (
@@ -26,104 +27,17 @@ function SectionCard({ icon: Icon, title, description, children }) {
   );
 }
 
-const DEVICE_OPTIONS = [
-  { id: "local", label: "Local Device", icon: Laptop, description: "Print from this computer" },
-  { id: "remote", label: "Remote Device", icon: Server, description: "Print via a paired hardware client" },
-];
-
-function DeviceModeToggle({ mode, onSelect }) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {DEVICE_OPTIONS.map(({ id, label, icon: Icon, description }) => {
-        const active = mode === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onSelect(id)}
-            aria-pressed={active}
-            className={`flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors ${active ? "border-primary bg-primary-soft" : "border-border hover:border-primary/40"
-              }`}
-          >
-            <span className={`flex items-center gap-1.5 text-sm font-medium ${active ? "text-primary" : "text-text"}`}>
-              <Icon className="size-4" />
-              {label}
-            </span>
-            <span className="text-xs text-muted-foreground">{description}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function AutomatedPrintingSection() {
   const { printType, setPrintType } = useSettings();
-  const [printerModalOpen, setPrinterModalOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
-  // Default to the browser-build layout on both server and first client render,
-  // then switch to the Tauri layout post-mount — matching the SSR markup avoids
-  // a hydration mismatch (window.__TAURI_INTERNALS__ only exists client-side).
+  // Default to the browser-build behavior on both server and first client
+  // render, then switch after mount — matching the SSR markup avoids a
+  // hydration mismatch (window.__TAURI_INTERNALS__ only exists client-side).
   const [isTauri, setIsTauri] = useState(false);
   useEffect(() => {
     setIsTauri(isTauriDesktop());
   }, []);
-
-  const deviceMode = printType === "hardware" ? "remote" : "local";
-
-  function handleDeviceSelect(id) {
-    if (id === "local") {
-      setPrintType("browser");
-    } else {
-      setPrinterModalOpen(true);
-    }
-  }
-
-  if (isTauri) {
-    return (
-      <SectionCard
-        icon={Printer}
-        title="Automated Printing"
-        description="Choose whether print jobs go to this device or a paired remote print client."
-      >
-        <div className="flex flex-col gap-3">
-          <DeviceModeToggle mode={deviceMode} onSelect={handleDeviceSelect} />
-
-          {deviceMode === "remote" && (
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-alt px-3 py-2">
-              <span className="flex items-center gap-2 text-sm text-text">
-                <span
-                  className={`size-2.5 rounded-full ${printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
-                    }`}
-                />
-                {printType === "hardware" ? "Configured" : "Not configured yet"}
-              </span>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  size="sm"
-                  variant={printType === "hardware" ? "outline" : "default"}
-                  onClick={() => setPrinterModalOpen(true)}
-                >
-                  {printType === "hardware" ? "Configure" : "Set up"}
-                </Button>
-                {printType === "hardware" && (
-                  <Button size="sm" variant="outline" onClick={() => setPrintType("browser")}>
-                    Turn Off
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <PrinterSelectionModal
-          open={printerModalOpen}
-          onOpenChange={setPrinterModalOpen}
-          onSelect={() => setPrintType("hardware")}
-        />
-      </SectionCard>
-    );
-  }
 
   return (
     <SectionCard
@@ -147,7 +61,7 @@ export default function AutomatedPrintingSection() {
             size="sm"
             variant={printType === "hardware" ? "outline" : "default"}
             suppressHydrationWarning
-            onClick={() => setPrinterModalOpen(true)}
+            onClick={() => setSetupOpen(true)}
           >
             {printType === "hardware" ? "Configure" : "Set up"}
           </Button>
@@ -159,11 +73,19 @@ export default function AutomatedPrintingSection() {
         </div>
       </div>
 
-      <PrinterSelectionModal
-        open={printerModalOpen}
-        onOpenChange={setPrinterModalOpen}
-        onSelect={() => setPrintType("hardware")}
-      />
+      {isTauri ? (
+        <PrinterSetupDrawer
+          open={setupOpen}
+          onClose={() => setSetupOpen(false)}
+          onSelect={() => setPrintType("hardware")}
+        />
+      ) : (
+        <PrinterSelectionModal
+          open={setupOpen}
+          onOpenChange={setSetupOpen}
+          onSelect={() => setPrintType("hardware")}
+        />
+      )}
     </SectionCard>
   );
 }

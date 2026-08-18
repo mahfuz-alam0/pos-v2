@@ -32,7 +32,12 @@ export function useCurrentUser() {
   const [user, setUser] = useState<CurrentUser | null>(() => getCurrentUser());
 
   useEffect(() => {
-    setUser(getCurrentUser());
+    // No immediate setUser() here — the useState initializer above already
+    // read localStorage synchronously for the first render. Re-reading and
+    // re-setting on mount would hand out a fresh (but `JSON.parse`-distinct)
+    // object reference for identical data, which downstream effects keyed on
+    // this value (by reference, e.g. Topbar's chat-init effect) would see as
+    // a genuine change and re-run for no reason.
     const handler = () => setUser(getCurrentUser());
     window.addEventListener(AUTH_CHANGE_EVENT, handler);
     window.addEventListener("storage", handler);
