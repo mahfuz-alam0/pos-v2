@@ -96,7 +96,7 @@ function PackagePicker({ item, shopId, onAssigned, onClose }) {
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Assign Packages — {item?.snapShotData?.productName}</DialogTitle>
           <DialogDescription>
@@ -244,7 +244,7 @@ export default function AssignPackagesDialog({ open, onClose, preSale, onAssigne
   return (
     <>
       <Dialog open={open && !pickerItem} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Assign Packages — Order #{preSale.advertisedId}</DialogTitle>
             <DialogDescription>

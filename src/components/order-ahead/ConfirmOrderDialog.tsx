@@ -134,7 +134,7 @@ export default function ConfirmOrderDialog({ open, onClose, preSale, onConfirmed
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Confirm Order #{preSale.advertisedId}</DialogTitle>
             <DialogDescription>
