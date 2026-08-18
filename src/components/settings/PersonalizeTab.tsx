@@ -10,7 +10,6 @@ import {
   Monitor,
   Palette,
   Timer,
-  Printer,
   Rows3,
 } from "lucide-react";
 import { useTheme } from "@/context/theme-context";
@@ -20,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import PrinterSelectionModal from "./PrinterSelectionModal";
+import AutomatedPrintingSection from "./AutomatedPrintingSection";
 
 const COLOR_FIELDS = [
   { key: "primary", label: "Primary" },
@@ -176,16 +175,13 @@ export default function PersonalizeTab() {
     queueBorder20,
     queueYellowTime,
     queueRedTime,
-    printType,
     defaultPageSize,
     setQueueBorder15,
     setQueueBorder20,
     setQueueYellowTime,
     setQueueRedTime,
-    setPrintType,
     setDefaultPageSize,
   } = useSettings();
-  const [printerModalOpen, setPrinterModalOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-4">
@@ -327,45 +323,7 @@ export default function PersonalizeTab() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        icon={Printer}
-        title="Automated Printing"
-        description="Select a printer device per print job type. Saving a preference enables automated hardware printing."
-      >
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-sm text-text">
-            <span
-              className={`size-2.5 rounded-full ${printType === "hardware" ? "bg-green-500" : "bg-muted-foreground/40"
-                }`}
-              suppressHydrationWarning
-            />
-            <span suppressHydrationWarning>
-              {printType === "hardware" ? "On — printing to hardware devices" : "Off — using browser print"}
-            </span>
-          </span>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              size="sm"
-              variant={printType === "hardware" ? "outline" : "default"}
-              suppressHydrationWarning
-              onClick={() => setPrinterModalOpen(true)}
-            >
-              {printType === "hardware" ? "Configure" : "Set up"}
-            </Button>
-            {printType === "hardware" && (
-              <Button size="sm" variant="outline" onClick={() => setPrintType("browser")}>
-                Turn Off
-              </Button>
-            )}
-          </div>
-        </div>
-      </SectionCard>
-
-      <PrinterSelectionModal
-        open={printerModalOpen}
-        onOpenChange={setPrinterModalOpen}
-        onSelect={() => setPrintType("hardware")}
-      />
+      <AutomatedPrintingSection />
     </div>
   );
 }
