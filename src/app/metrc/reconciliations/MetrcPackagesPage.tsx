@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useShop } from "@/context/shop-context";
 import { fetchPackagesMinimalExtended } from "@/services/packages/listMinimalExtended";
-import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchOriginalCategories } from "@/services/categories/originalCategories";
 import { fetchBrandsList } from "@/services/brands/list";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
@@ -22,7 +21,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableLoadingOverlay, TablePagination } from "@/components/ui/table-pagination";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { X } from "lucide-react";
+import { ChevronsUpDown, X } from "lucide-react";
 
 import PackageDetailsPanel from "@/app/inventory-management/packages/PackageDetailsPanel";
 import type { PackageRow, StorageLocationOption } from "@/app/inventory-management/packages/types";
@@ -30,8 +29,14 @@ import SyncPackagesButton from "./SyncPackagesButton";
 import MetrcActivityDrawer from "./MetrcActivityDrawer";
 import BulkReconcileDialog from "./BulkReconcileDialog";
 import { useSettings } from "@/context/settings-context";
-
-type MetrcTab = "unFinish" | "finishPackages" | "finishedPackages" | "conversions";
+import {
+  buildParams,
+  DEFAULT_FILTERS,
+  DEFAULT_SORT,
+  type MetrcFilters,
+  type MetrcSort,
+  type MetrcTab,
+} from "./metrcParams";
 
 const TAB_OPTIONS: { value: MetrcTab; label: string }[] = [
   { value: "unFinish", label: "Live Packages" },
@@ -39,52 +44,6 @@ const TAB_OPTIONS: { value: MetrcTab; label: string }[] = [
   { value: "finishedPackages", label: "Finished Packages" },
   { value: "conversions", label: "Conversions" },
 ];
-
-interface MetrcFilters {
-  searchText: string;
-  searchType: "metrcTags" | "productId";
-  originalCategoryName?: string;
-  productBrandIds?: string;
-  storageLocationId?: string;
-  discrepancyFilter?: "YES" | "NO";
-  source?: "PLATFORM" | "METRC";
-  packageStatus?: "isActive" | "isSample" | "isImported" | "isExpired" | "pendingImport";
-  productProfile?: "REGULAR" | "CANNABIS";
-  lastUpdatedWithinDays?: number;
-  lastManuallyAdjustedWithinDays?: number;
-}
-
-const DEFAULT_FILTERS: MetrcFilters = { searchText: "", searchType: "metrcTags" };
-
-function buildParams(tab: MetrcTab, filters: MetrcFilters, page: number, limit: number) {
-  const params: Record<string, any> = { page, limit, source: filters.source ?? "METRC", sortByCreatedAt: -1 };
-
-  if (tab === "unFinish") params.isFinished = false;
-  else if (tab === "finishPackages") {
-    params.isFinished = false;
-    params.shouldRequiredToBeFinished = true;
-  } else if (tab === "finishedPackages") {
-    params.isFinished = true;
-    params.hasMETRCDiscrepancy = true;
-  } else if (tab === "conversions") {
-    params.isConverted = true;
-    params.isFinished = false;
-  }
-
-  if (filters.searchText) params[filters.searchType] = filters.searchText;
-  if (filters.originalCategoryName) params.originalCategoryNames = filters.originalCategoryName;
-  if (filters.productBrandIds) params.productBrandIds = filters.productBrandIds;
-  if (filters.storageLocationId) params.storageLocationId = filters.storageLocationId;
-  if (filters.discrepancyFilter === "YES") params.hasMETRCDiscrepancy = true;
-  else if (filters.discrepancyFilter === "NO") params.hasNoMETRCDiscrepancy = true;
-  if (filters.packageStatus === "pendingImport") params.isImported = false;
-  else if (filters.packageStatus) params[filters.packageStatus] = true;
-  if (filters.productProfile) params.packageType = filters.productProfile;
-  if (filters.lastUpdatedWithinDays) params.lastUpdatedWithinDays = filters.lastUpdatedWithinDays;
-  if (filters.lastManuallyAdjustedWithinDays) params.lastManuallyAdjustedWithinDays = filters.lastManuallyAdjustedWithinDays;
-
-  return params;
-}
 
 export default function MetrcPackagesPage() {
   const { defaultPageSize } = useSettings();
@@ -99,6 +58,7 @@ export default function MetrcPackagesPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: defaultPageSize, total: 0, totalPages: 1 });
 
   const [filters, setFilters] = useState<MetrcFilters>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState<MetrcSort>(DEFAULT_SORT);
   const debouncedSearchText = useDebounce(filters.searchText, 300);
   const [showLastUpdated, setShowLastUpdated] = useState(false);
   const [showLastAdjusted, setShowLastAdjusted] = useState(false);
@@ -123,7 +83,7 @@ export default function MetrcPackagesPage() {
       if (!shopId) return;
       setLoading(true);
       try {
-        const params = buildParams(tab, { ...filters, searchText: debouncedSearchText }, page, limit);
+        const params = buildParams(tab, { ...filters, searchText: debouncedSearchText }, page, limit, sort);
         const res = await fetchPackagesMinimalExtended(shopId as string, params);
         const list = res?.data?.packages ?? [];
         setRows(list);
@@ -138,7 +98,7 @@ export default function MetrcPackagesPage() {
         setLoading(false);
       }
     },
-    [shopId, tab, filters, debouncedSearchText, pagination.pageSize]
+    [shopId, tab, filters, debouncedSearchText, sort, pagination.pageSize]
   );
 
   useEffect(() => {
@@ -159,10 +119,23 @@ export default function MetrcPackagesPage() {
     filters.lastUpdatedWithinDays,
     filters.lastManuallyAdjustedWithinDays,
     debouncedSearchText,
+    sort,
   ]);
 
+  // Only one sort key at a time — the API applies them independently and the
+  // combination is meaningless.
+  const toggleSortByAlpha = () =>
+    setSort((prev) => ({ sortByCreatedAt: 0, sortByAlpha: prev.sortByAlpha === 1 ? -1 : 1 }));
+
+  const toggleSortByCreatedAt = () =>
+    setSort((prev) => ({ sortByAlpha: 0, sortByCreatedAt: prev.sortByCreatedAt === 1 ? -1 : 1 }));
+
   const handleClearFilter = (key: keyof MetrcFilters) => {
-    setFilters((prev) => ({ ...prev, [key]: key === "searchText" ? "" : undefined }));
+    setFilters((prev) => ({
+      ...prev,
+      [key]: key === "searchText" ? "" : undefined,
+      ...(key === "productBrandIds" ? { productBrandName: undefined } : {}),
+    }));
     if (key === "lastUpdatedWithinDays") setShowLastUpdated(false);
     if (key === "lastManuallyAdjustedWithinDays") setShowLastAdjusted(false);
   };
@@ -173,7 +146,7 @@ export default function MetrcPackagesPage() {
       chips.push({ key: "searchText", label: `${filters.searchType === "metrcTags" ? "Metrc Tag" : "Product Id"}: ${filters.searchText}` });
     }
     if (filters.originalCategoryName) chips.push({ key: "originalCategoryName", label: `Orig. Category: ${filters.originalCategoryName}` });
-    if (filters.productBrandIds) chips.push({ key: "productBrandIds", label: `Brand: ${filters.productBrandIds}` });
+    if (filters.productBrandIds) chips.push({ key: "productBrandIds", label: `Brand: ${filters.productBrandName ?? filters.productBrandIds}` });
     if (filters.storageLocationId) {
       const loc = locations.find((l: any) => (l.id ?? (l as any)._id) === filters.storageLocationId);
       chips.push({ key: "storageLocationId", label: `Location: ${loc?.name ?? filters.storageLocationId}` });
@@ -193,8 +166,12 @@ export default function MetrcPackagesPage() {
   const hasActiveFilters = activeFilterChips.length > 0;
 
   const isRowSelected = (id: string | number) => selectedRowKeys.includes(id);
-  const canSelectRow = (row: PackageRow) => (row.quantityLeft ?? 0) !== (row.metrQuantity ?? 0);
-  const selectableRows = useMemo(() => rows.filter(canSelectRow), [rows]);
+  // Every row is selectable. The old app's "disable rows already in sync" rule read
+  // `metrcData.snapShotData.metrcQuantity`, a path this endpoint never returns, so it
+  // silently evaluated to "never disabled" — porting it against the real field made
+  // in-sync rows unclickable. BulkReconcileDialog is the real guard: it drops
+  // zero-difference rows and says so when none remain.
+  const selectableRows = rows;
 
   const toggleRow = (row: PackageRow, checked: boolean) => {
     setSelectedRowKeys((prev) => (checked ? [...prev, row.id] : prev.filter((k) => k !== row.id)));
@@ -235,12 +212,12 @@ export default function MetrcPackagesPage() {
           </Breadcrumb>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button disabled={selectedRowKeys.length === 0} onClick={() => setReconcileOpen(true)}>
+            <Button className="h-9 text-sm" disabled={selectedRowKeys.length === 0} onClick={() => setReconcileOpen(true)}>
               Reconcile {selectedRowKeys.length > 0 && selectedRowKeys.length} Package
               {selectedRowKeys.length !== 1 ? "s" : ""} in Metrc
             </Button>
             <SyncPackagesButton />
-            <Button variant="outline" onClick={() => setActivityOpen(true)}>
+            <Button variant="outline" className="h-9 text-sm" onClick={() => setActivityOpen(true)}>
               View Activities
             </Button>
           </div>
@@ -297,7 +274,13 @@ export default function MetrcPackagesPage() {
             <ApiSelect
               placeholder="Brand"
               value={filters.productBrandIds ?? null}
-              onChange={(val) => setFilters((prev) => ({ ...prev, productBrandIds: (val as string) ?? undefined }))}
+              onChange={(val, option) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  productBrandIds: (val as string) ?? undefined,
+                  productBrandName: option?.name,
+                }))
+              }
               fetchPage={async (page, search) => {
                 const res = await fetchBrandsList({ page, limit: 20, ...(search ? { search } : {}) } as any);
                 return { items: (res?.data ?? []).map((b: any) => ({ id: b.id, name: b.name })), totalPages: res?.paginationData?.totalPages ?? 1 };
@@ -310,7 +293,7 @@ export default function MetrcPackagesPage() {
               value={filters.storageLocationId ?? "__all__"}
               onValueChange={(v) => setFilters((prev) => ({ ...prev, storageLocationId: v === "__all__" ? undefined : (v as string) }))}
             >
-              <SelectTrigger className="w-36">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Storage Location" />
               </SelectTrigger>
               <SelectContent>
@@ -323,14 +306,6 @@ export default function MetrcPackagesPage() {
               </SelectContent>
             </Select>
 
-            {hasActiveFilters && (
-              <Button variant="outline" size="sm" onClick={() => { setFilters(DEFAULT_FILTERS); setShowLastUpdated(false); setShowLastAdjusted(false); }} className="ml-auto">
-                Clear Filters
-              </Button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
             <Select
               items={[
                 { value: "__all__", label: "Metrc Discrepancy" },
@@ -413,8 +388,9 @@ export default function MetrcPackagesPage() {
               </SelectContent>
             </Select>
 
-            <div className="mx-1 h-6 w-px bg-foreground/10" />
+          </div>
 
+          <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Checkbox
                 checked={showLastUpdated}
@@ -474,6 +450,21 @@ export default function MetrcPackagesPage() {
                 </SelectContent>
               </Select>
             )}
+
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={() => {
+                  setFilters(DEFAULT_FILTERS);
+                  setShowLastUpdated(false);
+                  setShowLastAdjusted(false);
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
 
           {activeFilterChips.length > 0 && (
@@ -522,8 +513,16 @@ export default function MetrcPackagesPage() {
                 <TableHead>Package ID</TableHead>
                 <TableHead>Metrc id</TableHead>
                 <TableHead>Metrc Tag</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Metrc Item Name</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={toggleSortByCreatedAt}>
+                    Date <ChevronsUpDown className="size-3.5 text-muted-foreground" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={toggleSortByAlpha}>
+                    Metrc Item Name <ChevronsUpDown className="size-3.5 text-muted-foreground" />
+                  </button>
+                </TableHead>
                 <TableHead className="text-center">Metrc Qty</TableHead>
                 <TableHead className="text-center">Qty Left</TableHead>
                 <TableHead className="text-center">Original QTY</TableHead>
@@ -562,7 +561,6 @@ export default function MetrcPackagesPage() {
                   <TableCell>
                     <Checkbox
                       checked={isRowSelected(row.id)}
-                      disabled={!canSelectRow(row)}
                       onCheckedChange={(checked) => toggleRow(row, !!checked)}
                     />
                   </TableCell>
@@ -571,14 +569,14 @@ export default function MetrcPackagesPage() {
                       {row.advertisedId || "-"}
                     </button>
                   </TableCell>
-                  <TableCell>{row.metrcData?.metrcId ?? "-"}</TableCell>
-                  <TableCell>{row.metrcTag ?? row.metrcData?.metrcTag ?? "-"}</TableCell>
+                  <TableCell>{row.metrcId ?? "-"}</TableCell>
+                  <TableCell>{row.metrcTag ?? "-"}</TableCell>
                   <TableCell>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "-"}</TableCell>
                   <TableCell className="max-w-50 truncate" title={row.name}>
                     {row.name || "-"}
                   </TableCell>
                   <TableCell className="text-center font-mono">
-                    {row.metrQuantity ?? "-"} {row.metrcData?.snapShotData?.metrcSnapshotData?.UnitOfMeasureAbbreviation ?? ""}
+                    {row.metrQuantity ?? "-"} {row.metrQuantity != null ? row.uoMShortForm ?? "" : ""}
                   </TableCell>
                   <TableCell className="text-center font-mono">
                     {(row.quantityLeft ?? 0).toFixed(2)} {row.uoMShortForm}
@@ -587,20 +585,32 @@ export default function MetrcPackagesPage() {
                     {row.originalQuantity ?? "-"} {row.uoMShortForm}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={row.status ? "default" : "destructive"}>{row.status ? "Active" : "Inactive"}</Badge>
+                    <Badge variant={row.isActive ? "default" : "destructive"}>{row.isActive ? "Active" : "Inactive"}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={row.metrcData?.isActive ? "default" : "destructive"}>{row.metrcData?.isActive ? "Active" : "Inactive"}</Badge>
+                    {row.metrcIsActive == null ? (
+                      "-"
+                    ) : (
+                      <Badge variant={row.metrcIsActive ? "default" : "destructive"}>
+                        {row.metrcIsActive ? "Active" : "Inactive"}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={row.metrcData?.isOnHold ? "default" : "destructive"}>{row.metrcData?.isOnHold ? "Active" : "Inactive"}</Badge>
+                    {row.metrcIsOnHold == null ? (
+                      "-"
+                    ) : (
+                      <Badge variant={row.metrcIsOnHold ? "destructive" : "default"}>
+                        {row.metrcIsOnHold ? "Yes" : "No"}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
-                    {row.metrcData?.convertedFrom ? (
+                    {row.convertedFrom ? (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => openRow(row.metrcData.convertedFrom)}
+                        onClick={() => openRow(row.convertedFrom)}
                       >
                         Check
                       </Button>
@@ -628,6 +638,9 @@ export default function MetrcPackagesPage() {
 
       <PackageDetailsPanel
         id={openId}
+        showDetach={false}
+        showAttachedProduct={false}
+        showReconcile={false}
         onClose={closeDetail}
         onChanged={() => loadPackages(pagination.current, pagination.pageSize)}
         locationMap={{}}

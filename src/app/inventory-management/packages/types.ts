@@ -35,33 +35,59 @@ export interface PackageRow {
   archivedAt?: string;
 }
 
+/** Mirrors the backend's IMetrcPackage (metrc-reporting/types/list-packages-metrc-response).
+ *  Product name/category/strain and potency live on the nested `Item`, not the root —
+ *  the previous shape invented root-level fields, so every read silently returned
+ *  undefined and the panel rendered "N/A". */
+export interface MetrcItem {
+  Id?: number;
+  Name?: string;
+  ProductCategoryName?: string | null;
+  StrainName?: string | null;
+  ItemBrandName?: string | null;
+  UnitOfMeasureName?: string;
+  UnitThcPercent?: number | null;
+  UnitThcContent?: number | null;
+  UnitCbdPercent?: number | null;
+  UnitCbdContent?: number | null;
+}
+
 export interface MetrcSnapshotData {
   Id?: number;
   Label?: string;
   PackageType?: string;
   SourceHarvestNames?: string;
-  ProductName?: string;
-  ProductCategoryName?: string;
   Quantity?: number;
   UnitOfMeasureName?: string;
+  UnitOfMeasureAbbreviation?: string;
   PackagedDate?: string;
   LocationName?: string;
-  ItemStrainName?: string;
-  ExpirationDate?: string;
-  PackageState?: string;
-  IsSample?: boolean;
+  ExpirationDate?: string | null;
+  SellByDate?: string | null;
+  UseByDate?: string | null;
+  LabTestingPerformedDate?: string | null;
+  LabTestingRecordedDate?: string;
   IsTestingSample?: boolean;
-  IsProcessValidationTestingSample?: boolean;
-  SupplierName?: string;
-  TestingStatus?: string;
-  DateTested?: string;
+  IsTradeSample?: boolean;
+  IsOnHold?: boolean;
+  IsFinished?: boolean;
+  ReceivedFromFacilityName?: string;
+  Item?: MetrcItem;
 }
 
 export interface MetrcData {
+  /** METRC's own package id — the backend calls it `id` on metrcData. */
+  id?: string;
   metrcTag?: string;
   metrcId?: string;
   metrcLabel?: string;
   batchId?: string;
+  quantity?: number;
+  isActive?: boolean;
+  isSample?: boolean;
+  isOnHold?: boolean;
+  isFinished?: boolean;
+  supplierName?: string | null;
   snapShotData?: {
     metrcSnapshotData?: MetrcSnapshotData;
   };
@@ -122,6 +148,10 @@ export interface PackageDetail {
   supplierName?: string;
   category?: { id: string; name: string } | null;
   brand?: { id: string; name: string } | null;
+  /** The package's own category/brand as imported (e.g. from METRC). Present even
+   *  when no product is attached, which is what the detail panel shows. */
+  originalCategory?: string | null;
+  originalBrand?: string | null;
   inventoryId?: string | null;
   originalQuantity?: number;
   quantityLeft?: number;

@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchMetrcPackagesSyncStatus } from "@/services/packages/metrcSyncStatus";
+import { fetchMetrcSyncLiveStatus } from "@/services/packages/metrcSyncLiveStatus";
 import { createMetrcSyncJob } from "@/services/packages/createMetrcSyncJob";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ export default function SyncPackagesButton() {
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
   const [lastSynced, setLastSynced] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  // A sync already queued or running in METRC — queueing a second one is wasted work.
+  const [inFlight, setInFlight] = useState<{ isPicked: boolean; createdAt: string } | null>(null);
 
   const loadStatus = () => {
     if (!shopId) return;
@@ -41,9 +44,25 @@ export default function SyncPackagesButton() {
         setErrorMessages(d.errorMessages ?? []);
       })
       .catch(() => setLabel("Sync Packages"));
+
+    // 404 from this endpoint just means "nothing syncing right now".
+    fetchMetrcSyncLiveStatus(shopId as string)
+      .then((res) => {
+        const d = res?.data?.data ?? res?.data;
+        setInFlight(d?.createdAt ? { isPicked: !!d.isPicked, createdAt: d.createdAt } : null);
+      })
+      .catch(() => setInFlight(null));
   };
 
   useEffect(loadStatus, [shopId]);
+
+  // While a job is queued/running, poll so the button releases on its own.
+  useEffect(() => {
+    if (!inFlight || !shopId) return;
+    const id = setInterval(loadStatus, 15000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inFlight, shopId]);
 
   const handleSync = async () => {
     if (!shopId) return;
@@ -55,6 +74,7 @@ export default function SyncPackagesButton() {
     try {
       await createMetrcSyncJob({ shopId, numOfDays });
       toast.success("Packages sync request generated successfully");
+      setInFlight({ isPicked: false, createdAt: new Date().toISOString() });
       loadStatus();
     } catch (err: any) {
       toast.error(err?.message || "Error generating sync request");
@@ -63,10 +83,16 @@ export default function SyncPackagesButton() {
     }
   };
 
+  const syncLabel = inFlight
+    ? inFlight.isPicked
+      ? "Sync in Progress"
+      : `Sync Job Queued ${timeAgo(inFlight.createdAt)}`
+    : label;
+
   const button = (
-    <Button variant="outline" onClick={handleSync} disabled={loading}>
-      {loading && <Loader2 className="size-4 animate-spin" />}
-      {label}
+    <Button variant="outline" className="h-9 text-sm" onClick={handleSync} disabled={loading || !!inFlight}>
+      {(loading || !!inFlight) && <Loader2 className="size-4 animate-spin" />}
+      {syncLabel}
     </Button>
   );
 

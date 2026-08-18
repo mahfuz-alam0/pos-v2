@@ -39,6 +39,8 @@ import EditPackageForm from "./edit/[packageid]/EditPackageForm";
 import PackageIdCard from "./PackageIdCard";
 import ConvertPackageDialog from "./ConvertPackageDialog";
 import ReconcilePackageDrawer from "./ReconcilePackageDrawer";
+import PackageStorageLocations from "@/app/inventory-management/inventory-and-pricing/PackageStorageLocations";
+import { fromApiCannabisProps } from "./edit/[packageid]/cannabisProps";
 import ImportPackageDrawer from "./ImportPackageDrawer";
 import PackageActivityDrawer from "./PackageActivityDrawer";
 import PackageOrderHistoryDrawer from "./PackageOrderHistoryDrawer";
@@ -131,6 +133,9 @@ export default function PackageDetailsPanel({
   onActivity,
   onEditPricing,
   onEditProduct,
+  showDetach = true,
+  showAttachedProduct = true,
+  showReconcile = true,
 }: {
   id: string | null;
   onClose: () => void;
@@ -143,6 +148,15 @@ export default function PackageDetailsPanel({
   onActivity?: () => void;
   onEditPricing?: (inventoryId: string) => void;
   onEditProduct?: (productId: string) => void;
+  /** The old app offers Detach on the Packages sidebar but not the METRC one,
+   *  where a package is expected to stay bound to its imported product. */
+  showDetach?: boolean;
+  /** The old METRC sidebar has no "Attached Product" section — it shows the product
+   *  under Inventory Details instead. */
+  showAttachedProduct?: boolean;
+  /** Old's METRC sidebar has no Reconcile button of its own — reconciling happens
+   *  from the table selection, or per-package inside the Inventory Details tabs. */
+  showReconcile?: boolean;
 }) {
   const { shopId } = useShop();
   const metrcMechanism = useFeatureAccess();
@@ -342,7 +356,12 @@ export default function PackageDetailsPanel({
   ).filter((loc) => loc.quantity > 0);
 
   const snapshot = packageDetail?.metrcData?.snapShotData?.metrcSnapshotData;
-  const cannabisProps = packageDetail?.additionalCannabisProps;
+  // Stored under the API vocabulary (thc/cbd/thcCbdTestType); the mapper renames it
+  // and falls back to the METRC snapshot when nothing has been saved yet.
+  const cannabisProps = fromApiCannabisProps(
+    packageDetail?.additionalCannabisProps as Record<string, any> | null,
+    packageDetail?.metrcData as Record<string, any> | null
+  );
   const labResults = packageDetail?.metrcData?.labResults ?? [];
 
   if (loading) {
@@ -436,7 +455,7 @@ export default function PackageDetailsPanel({
 
       <div className="flex-1 overflow-y-auto px-5 pt-1 pb-5 text-foreground/70">
         {/* Attached Product card */}
-        {!isFinishedPkg && (
+        {showAttachedProduct && !isFinishedPkg && (
           <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
             <div className="mb-2 flex items-center justify-between">
               <div className="font-semibold">Attached Product</div>
@@ -482,7 +501,7 @@ export default function PackageDetailsPanel({
                     </div>
                   </div>
                 </div>
-                {isProductImported && (
+                {showDetach && isProductImported && (
                   <div className="mt-3 flex w-full">
                     <Button
                       variant="destructive"
@@ -586,14 +605,16 @@ export default function PackageDetailsPanel({
                 Convert
               </Button>
             )}
-            <Button
-              onClick={() => {
-                setReconcileOpen(true);
-                onReconcile?.();
-              }}
-            >
-              Reconcile
-            </Button>
+            {showReconcile && (
+              <Button
+                onClick={() => {
+                  setReconcileOpen(true);
+                  onReconcile?.();
+                }}
+              >
+                Reconcile
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setActivityOpen(true);
@@ -641,8 +662,13 @@ export default function PackageDetailsPanel({
               }
             />
           )}
-          <DetailRow label="Category:" value={packageDetail.category?.name ?? "N/A"} />
-          <DetailRow label="Brand:" value={packageDetail.brand?.name ?? "N/A"} />
+          {/* The package carries its own imported category/brand, which is all there
+              is to show until a product is attached — same source as the old app. */}
+          <DetailRow
+            label="Category:"
+            value={packageDetail.originalCategory ?? packageDetail.category?.name ?? "N/A"}
+          />
+          <DetailRow label="Brand:" value={packageDetail.originalBrand ?? packageDetail.brand?.name ?? "N/A"} />
           <DetailRow label="Creation Date:" value={packageDetail.createdAt?.split("T")[0] ?? "N/A"} />
           <DetailRow
             label="Original Quantity:"
@@ -689,30 +715,30 @@ export default function PackageDetailsPanel({
               </button>
               {metrcInfoOpen && (
                 <div className="p-3">
-                  <DetailRow label="Metrc ID:" value={packageDetail.metrcData?.metrcId ?? "N/A"} />
+                  <DetailRow label="Metrc ID:" value={packageDetail.metrcData?.id ?? packageDetail.metrcData?.metrcId ?? "N/A"} />
                   <DetailRow label="Metrc Tag:" value={packageDetail.metrcData?.metrcTag ?? "N/A"} />
                   <DetailRow label="Metrc Label:" value={packageDetail.metrcData?.snapShotData?.metrcSnapshotData?.Label ?? "N/A"} />
                   <DetailRow label="Batch ID:" value={packageDetail.metrcData?.batchId ?? "N/A"} />
-                  <DetailRow label="Metrc Source Product Name:" value={snapshot?.ProductName ?? "N/A"} />
+                  <DetailRow label="Metrc Source Product Name:" value={snapshot?.Item?.Name ?? "N/A"} />
                   <DetailRow
                     label="Metrc Source Product Quantity:"
                     value={
                       snapshot?.Quantity != null
-                        ? `${snapshot.Quantity}${snapshot.UnitOfMeasureName ?? ""}`
+                        ? `${snapshot.Quantity} ${snapshot.UnitOfMeasureAbbreviation ?? snapshot.UnitOfMeasureName ?? ""}`.trim()
                         : "N/A"
                     }
                   />
-                  <DetailRow label="Metrc Source Category Name:" value={snapshot?.ProductCategoryName ?? "N/A"} />
-                  <DetailRow label="Metrc Source Strain Name:" value={snapshot?.ItemStrainName ?? "N/A"} />
+                  <DetailRow label="Metrc Source Category Name:" value={snapshot?.Item?.ProductCategoryName ?? "N/A"} />
+                  <DetailRow label="Metrc Source Strain Name:" value={snapshot?.Item?.StrainName ?? "N/A"} />
                   <DetailRow label="Expiry Date:" value={packageDetail.expiry ?? "-"} />
-                  <DetailRow label="Status:" value={<StatusBadge active={snapshot?.PackageState ? snapshot.PackageState === "Active" : packageDetail.isActive} />} />
+                  <DetailRow label="Status:" value={<StatusBadge active={packageDetail.metrcData?.isActive ?? packageDetail.isActive} />} />
                   <DetailRow
                     label="Is Sample:"
-                    value={<StatusBadge active={!snapshot?.IsSample} yesLabel="No Sample" noLabel="Sample" />}
+                    value={<StatusBadge active={!packageDetail.metrcData?.isSample} yesLabel="No Sample" noLabel="Sample" />}
                   />
-                  <DetailRow label="Supplier:" value={snapshot?.SupplierName ?? "-"} />
+                  <DetailRow label="Supplier:" value={packageDetail.metrcData?.supplierName ?? snapshot?.ReceivedFromFacilityName ?? "-"} />
                   <DetailRow label="Storage Location:" value={snapshot?.LocationName ?? "-"} />
-                  <DetailRow label="Date Tested:" value={snapshot?.DateTested?.split("T")[0] ?? "N/A"} />
+                  <DetailRow label="Date Tested:" value={(snapshot?.LabTestingRecordedDate ?? snapshot?.LabTestingPerformedDate)?.split("T")[0] ?? "N/A"} />
                   <DetailRow
                     label="THC Content:"
                     value={cannabisProps?.thcContent != null ? `${cannabisProps.thcContent}${cannabisProps.testUom === "MILLIGRAM" ? "mg" : "%"}` : "N/A"}
@@ -761,6 +787,41 @@ export default function PackageDetailsPanel({
                 </TableBody>
               </Table>
             </div>
+          </div>
+        )}
+
+        {/* Sibling packages for the same product, split unfinished/finished —
+            the old app's "Inventory Details" section at the foot of this panel. */}
+        {shopId && (
+          <div className="mt-4">
+            <div className="mb-2 font-semibold">Inventory Details</div>
+
+            {productData && (
+              <div className="mb-3 flex w-fit max-w-full items-start gap-3 rounded-xl p-3 ring-1 ring-foreground/10">
+                <img
+                  alt={productData.name ?? "Product"}
+                  src={
+                    (typeof productData.images?.[0] === "string"
+                      ? productData.images[0]
+                      : productData.images?.[0]?.url) || "/images/placeholders/product.svg"
+                  }
+                  className="size-20 shrink-0 rounded-lg bg-muted object-cover"
+                />
+                <div className="min-w-0 text-sm">
+                  <p className="truncate font-semibold" title={productData.name}>
+                    {productData.name ?? "-"}
+                  </p>
+                  <p className="mt-1 truncate text-muted-foreground" title={productData.category?.name}>
+                    Category: {productData.category?.name ?? "N/A"}
+                  </p>
+                  <p className="mt-0.5 truncate text-muted-foreground" title={productData.brand?.name}>
+                    Brand: {productData.brand?.name ?? "N/A"}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <PackageStorageLocations productId={packageDetail.productId ?? null} shopId={shopId as string} />
           </div>
         )}
       </div>
