@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Printer, X } from "lucide-react";
 import Drawer from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/button";
 import PrintOrderModal from "./PrintOrderModal";
-import { getCustomerName, getOrderLineItems } from "./constants";
+import { getSingleSale } from "@/services/sales/getSingleSales";
+import { getCustomerName, getSaleCustomerName, getOrderLineItems } from "./constants";
 
 function money(v: number | undefined) {
   return `$${(v ?? 0).toFixed(2)}`;
@@ -13,17 +14,33 @@ function money(v: number | undefined) {
 
 export default function OrderDetailDialog({ open, onClose, type, item }) {
   const [printOpen, setPrintOpen] = useState(false);
+  const [saleDetail, setSaleDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const isPreSale = type === "presale";
+
+  // The board's own list row (Sale type — Processing/Packaged & Ready/...)
+  // doesn't carry nonPackagedLineItems, so line items/totals were only ever
+  // populated for presale rows. Fetch the full sale for everything else.
+  useEffect(() => {
+    if (!open || isPreSale || !item?.id) {
+      setSaleDetail(null);
+      return;
+    }
+    setLoadingDetail(true);
+    getSingleSale(item.id)
+      .then((res) => setSaleDetail(res?.data?.data?.sale ?? null))
+      .finally(() => setLoadingDetail(false));
+  }, [open, isPreSale, item?.id]);
 
   if (!item) return null;
 
-  const isPreSale = type === "presale";
-  const customerName = isPreSale
-    ? getCustomerName(item)
-    : `${item?.customer?.firstName || ""} ${item?.customer?.lastName || ""}`.trim();
-  const source = isPreSale ? item?.info?.source : item?.source;
-  const deliveryMethod = isPreSale ? item?.info?.saleData?.deliveryMethod : item?.deliveryMethod;
-  const total = isPreSale ? item?.info?.saleData?.finalPayable : item?.finalPayable;
-  const lineItems = getOrderLineItems(type, item);
+  const effectiveItem = isPreSale ? item : (saleDetail ?? item);
+  const customerName = isPreSale ? getCustomerName(item) : getSaleCustomerName(effectiveItem);
+  const source = isPreSale ? item?.info?.source : effectiveItem?.source;
+  const deliveryMethod = isPreSale ? item?.info?.saleData?.deliveryMethod : effectiveItem?.deliveryMethod;
+  const total = isPreSale ? item?.info?.saleData?.finalPayable : effectiveItem?.finalPayable;
+  const lineItems = getOrderLineItems(type, effectiveItem);
 
   return (
     <Drawer open={open} onClose={onClose} side="right" size={1000}>
@@ -50,7 +67,9 @@ export default function OrderDetailDialog({ open, onClose, type, item }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {lineItems.length === 0 ? (
+          {loadingDetail ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Loading order details…</div>
+          ) : lineItems.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">No items found</div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -120,7 +139,7 @@ export default function OrderDetailDialog({ open, onClose, type, item }) {
         </div>
       </div>
 
-      <PrintOrderModal open={printOpen} onClose={() => setPrintOpen(false)} type={type} item={item} />
+      <PrintOrderModal open={printOpen} onClose={() => setPrintOpen(false)} type={type} item={effectiveItem} />
     </Drawer>
   );
 }

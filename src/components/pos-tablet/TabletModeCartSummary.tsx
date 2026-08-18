@@ -88,6 +88,9 @@ export default function TabletModeCartSummary({
   const getOrderSummary = useSelector(
     (state: any) => state?.quoteForSale?.lineItems,
   );
+  const currentAction = useSelector(
+    (state: any) => state?.orderAction?.orderAction,
+  );
   const currentMiscallenousCharges = useSelector(
     (state: any) => state?.miscCharges?.miscCharges || [],
   );
@@ -112,6 +115,14 @@ export default function TabletModeCartSummary({
   // TotalCard body, so it's reachable from Tablet Mode at all.
   const [loyaltyPointsNode, setLoyaltyPointsNode] =
     useState<HTMLDivElement | null>(null);
+  // Portal target for TotalCard's processOrder body (ProcessOrderSummary +
+  // Update Order Status) — the "Items in cart"/"Discounts applied"/
+  // Subtotal-Tax-Total block below is a live-cart-quote view that doesn't
+  // apply while processing an existing order (nothing has been quoted), so
+  // it's swapped out for this instead of also being shown alongside it.
+  const [processOrderBodyNode, setProcessOrderBodyNode] =
+    useState<HTMLDivElement | null>(null);
+  const isProcessingOrder = currentAction === "processOrder";
 
   const orderData = getOrderSummary?.data;
   const lineItems = useMemo(() => flattenLineItems(orderData), [orderData]);
@@ -496,65 +507,79 @@ export default function TabletModeCartSummary({
           </button>
         )}
 
-        {/* Items in cart */}
-        <button
-          type="button"
-          disabled={cartEmpty}
-          onClick={() => setCartDrawerOpen(true)}
-          className="flex w-full items-center justify-between rounded-xl px-4 py-4 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ background: cartHasErrors ? RED : BLUE }}>
-          <span className="flex items-center gap-2.5 text-base font-semibold">
-            {cartHasErrors ? (
-              <TriangleAlert className="size-6" />
-            ) : (
-              <ShoppingCart className="size-6" />
-            )}
-            {itemCount} Item{itemCount === 1 ? "" : "s"} in cart
-            {cartHasErrors && (
-              <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
-                Needs attention
-              </span>
-            )}
-          </span>
-          <span className="text-lg font-bold">${subtotal.toFixed(2)}</span>
-        </button>
-
-        {/* Discounts applied */}
-        <button
-          type="button"
-          onClick={() => setDiscountsDrawerOpen(true)}
-          className="flex w-full items-center justify-between rounded-xl px-4 py-4 text-left"
-          style={{ background: "rgba(139,92,246,0.85)" }}>
-          <span className="flex items-center gap-2.5 text-base font-semibold">
-            <Tag className="size-6" />
-            {discountCount} Discount{discountCount === 1 ? "" : "s"} applied
-          </span>
-          <span className="text-lg font-bold">${discountTotal.toFixed(2)}</span>
-        </button>
-
-        {/* Subtotal / taxes / total */}
-        <div
-          className="rounded-xl p-4"
-          style={{ background: "rgba(255,255,255,0.04)" }}>
-          <div className="flex items-center justify-between py-1.5 text-base">
-            <span className="text-white/70">Subtotal</span>
-            <span className="font-semibold">${subtotal.toFixed(2)}</span>
-          </div>
-          {taxBreakdown.map((tax) => (
-            <div
-              key={tax.name}
-              className="flex items-center justify-between py-1.5 text-base">
-              <span className="text-white/70">{tax.name}</span>
-              <span className="font-semibold">${tax.amount.toFixed(2)}</span>
-            </div>
-          ))}
+        {isProcessingOrder ? (
+          /* processOrder: purchased line items + Update Order Status,
+             portaled in from TotalCard (see processOrderBodyNode) — the
+             live-cart bars below don't apply since no quote exists for an
+             existing order being processed. */
           <div
-            className="mt-2.5 flex items-center justify-between border-t pt-2.5 text-xl"
-            style={{ borderColor: "rgba(255,255,255,0.12)" }}>
-            <span className="font-bold">Total</span>
-            <span className="font-bold">${total.toFixed(2)}</span>
-          </div>
-        </div>
+            ref={setProcessOrderBodyNode}
+            data-mode="dark"
+            className="empty:hidden **:data-[slot=select-trigger]:rounded-xl [&_button]:h-12 [&_button]:rounded-xl [&_button]:text-base"
+          />
+        ) : (
+          <>
+            {/* Items in cart */}
+            <button
+              type="button"
+              disabled={cartEmpty}
+              onClick={() => setCartDrawerOpen(true)}
+              className="flex w-full items-center justify-between rounded-xl px-4 py-4 text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ background: cartHasErrors ? RED : BLUE }}>
+              <span className="flex items-center gap-2.5 text-base font-semibold">
+                {cartHasErrors ? (
+                  <TriangleAlert className="size-6" />
+                ) : (
+                  <ShoppingCart className="size-6" />
+                )}
+                {itemCount} Item{itemCount === 1 ? "" : "s"} in cart
+                {cartHasErrors && (
+                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                    Needs attention
+                  </span>
+                )}
+              </span>
+              <span className="text-lg font-bold">${subtotal.toFixed(2)}</span>
+            </button>
+
+            {/* Discounts applied */}
+            <button
+              type="button"
+              onClick={() => setDiscountsDrawerOpen(true)}
+              className="flex w-full items-center justify-between rounded-xl px-4 py-4 text-left"
+              style={{ background: "rgba(139,92,246,0.85)" }}>
+              <span className="flex items-center gap-2.5 text-base font-semibold">
+                <Tag className="size-6" />
+                {discountCount} Discount{discountCount === 1 ? "" : "s"} applied
+              </span>
+              <span className="text-lg font-bold">${discountTotal.toFixed(2)}</span>
+            </button>
+
+            {/* Subtotal / taxes / total */}
+            <div
+              className="rounded-xl p-4"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              <div className="flex items-center justify-between py-1.5 text-base">
+                <span className="text-white/70">Subtotal</span>
+                <span className="font-semibold">${subtotal.toFixed(2)}</span>
+              </div>
+              {taxBreakdown.map((tax) => (
+                <div
+                  key={tax.name}
+                  className="flex items-center justify-between py-1.5 text-base">
+                  <span className="text-white/70">{tax.name}</span>
+                  <span className="font-semibold">${tax.amount.toFixed(2)}</span>
+                </div>
+              ))}
+              <div
+                className="mt-2.5 flex items-center justify-between border-t pt-2.5 text-xl"
+                style={{ borderColor: "rgba(255,255,255,0.12)" }}>
+                <span className="font-bold">Total</span>
+                <span className="font-bold">${total.toFixed(2)}</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Complete Order — portaled in from TotalCard, see checkoutButtonNode */}
@@ -690,6 +715,7 @@ export default function TabletModeCartSummary({
           statusRowContainer={statusRowNode}
           checkoutButtonContainer={checkoutButtonNode}
           loyaltyPointsContainer={loyaltyPointsNode}
+          processOrderBodyContainer={processOrderBodyNode}
           deliverySubType={deliverySubType}
           deliveryType={deliveryType}
           refreshOrders={refreshOrders}

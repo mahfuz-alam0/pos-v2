@@ -168,7 +168,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
         )}
 
       <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Print Label</DialogTitle>
           </DialogHeader>

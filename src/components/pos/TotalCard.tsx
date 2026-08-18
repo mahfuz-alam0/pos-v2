@@ -19,6 +19,7 @@ import {
 import Drawer from "@/components/ui/Drawer";
 
 import ProductPromoTaxes from "@/components/pos/ProductPromoTaxes";
+import ProcessOrderSummary from "@/components/pos/ProcessOrderSummary";
 import MiscellaneousChargeDrawer from "@/components/pos/MiscellaneousChargeDrawer";
 import PaymentStatusRow from "@/components/pos/PaymentStatusRow";
 import QuickActionsRow from "@/components/pos/QuickActionsRow";
@@ -68,6 +69,7 @@ export default function TotalCard({
   statusRowContainer,
   checkoutButtonContainer,
   loyaltyPointsContainer,
+  processOrderBodyContainer,
 }: any) {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -1009,7 +1011,11 @@ export default function TotalCard({
     if (paymentPayload) setOriginalPaymentPayload(paymentPayload);
 
     const paidAmountValue =
-      p?.cashAmount || cashAmount || getOrderSummary?.data?.finalPayable || 0;
+      p?.cashAmount ||
+      cashAmount ||
+      getOrderSummary?.data?.finalPayable ||
+      saleDetail?.finalPayable ||
+      0;
     const virtualPaidValue =
       (p?.cashlessATMAmount || cashlessATMAmount || 0) +
       (p?.cardAmount || cardPaymentAmount || 0) +
@@ -1133,7 +1139,13 @@ export default function TotalCard({
     if (typeof window !== "undefined") window.print();
   };
 
-  const finalPayable = getOrderSummary?.data?.finalPayable || 0;
+  // getOrderSummary (quoteForSale) is only populated for a live/new sale — an
+  // existing order being processed (currentAction === "processOrder") never
+  // gets a quote fetched for it, so fall back to the sale record's own total.
+  const finalPayable =
+    getOrderSummary?.data?.finalPayable ||
+    (currentAction === "processOrder" ? saleDetail?.finalPayable : 0) ||
+    0;
   const totalPaid =
     (storeCreditAmount || 0) +
     (cashAmount || 0) +
@@ -1279,6 +1291,59 @@ export default function TotalCard({
     </div>
   );
 
+  // processOrder body (ProcessOrderSummary + Update Order Status) — rendered
+  // inline by default, or portaled to processOrderBodyContainer when a host
+  // (Tablet Mode) wants it surfaced somewhere other than this card's own
+  // (hidden, in Tablet Mode) body. Same handlers either way.
+  const processOrderBodyEl = currentAction === "processOrder" && hasSale && (
+    <div className="mt-3">
+      <ProcessOrderSummary />
+      <Button
+        className="mt-3 w-full"
+        style={{ backgroundColor: colorCode, borderColor: colorCode }}
+        onClick={() => {
+          const requiresPayment =
+            (selectedStatus === "PACKAGED_AND_READY" ||
+              selectedStatus === "COMPLETED") &&
+            saleDetail?.paymentStatus !== "PAID_IN_FULL";
+          if (requiresPayment && !paymentMethod) {
+            toast.warning("Please set payment details before updating status");
+            handleOpenPaymentSidebar();
+            return;
+          }
+          const payload = paymentMethod
+            ? {
+                paymentMethod,
+                storeCreditAmount,
+                cashAmount,
+                cashlessATMAmount,
+                cardAmount: cardPaymentAmount,
+                bleaumACHAmount,
+                cashPaid: cashAmount,
+                virtualPaid:
+                  cashlessATMAmount + cardPaymentAmount + bleaumACHAmount,
+                changeAmount: changeValue,
+                changeMethod: quoteBody?.changeMethod || "CASH",
+                tipAmount: tipAmountSidebar || quoteBody?.tipGiven || 0,
+                notes: paymentNotes,
+                storeCreditsUtilized:
+                  selectedStoreCredit && storeCreditAmount > 0
+                    ? [
+                        {
+                          shopId: selectedStoreCredit.shopId,
+                          utilized: storeCreditAmount,
+                        },
+                      ]
+                    : [],
+              }
+            : null;
+          runOrDeferForPin(() => updateOrderStatus(payload));
+        }}>
+        Update Order Status
+      </Button>
+    </div>
+  );
+
   return (
     <>
       {statusRowContainer &&
@@ -1289,6 +1354,9 @@ export default function TotalCard({
       {checkoutButtonContainer &&
         checkoutButtonEl &&
         createPortal(checkoutButtonEl, checkoutButtonContainer)}
+      {processOrderBodyContainer &&
+        processOrderBodyEl &&
+        createPortal(processOrderBodyEl, processOrderBodyContainer)}
       <Card className="flex max-h-[calc(100vh-120px)] flex-col overflow-y-auto p-4">
         {/* processOrder: back / refresh */}
         {currentAction === "processOrder" && (
@@ -1447,63 +1515,7 @@ export default function TotalCard({
         )}
 
         {/* ---- processOrder: update status ---- */}
-        {currentAction === "processOrder" && hasSale && (
-          <div className="mt-3">
-            <ProductPromoTaxes
-              currentAction={currentAction}
-              getOrderSummary={getOrderSummary}
-              deleteMiscCharge={deleteMiscCharge}
-              setSubTotalValue={setSubTotalValue}
-              getMiscDiscountFromOrderData={getMiscDiscountFromOrderData}
-              deleteMiscallenousDiscount={deleteMiscallenousDiscount}
-            />
-            <Button
-              className="mt-3 w-full"
-              style={{ backgroundColor: colorCode, borderColor: colorCode }}
-              onClick={() => {
-                const requiresPayment =
-                  (selectedStatus === "PACKAGED_AND_READY" ||
-                    selectedStatus === "COMPLETED") &&
-                  saleDetail?.paymentStatus !== "PAID_IN_FULL";
-                if (requiresPayment && !paymentMethod) {
-                  toast.warning(
-                    "Please set payment details before updating status",
-                  );
-                  handleOpenPaymentSidebar();
-                  return;
-                }
-                const payload = paymentMethod
-                  ? {
-                      paymentMethod,
-                      storeCreditAmount,
-                      cashAmount,
-                      cashlessATMAmount,
-                      cardAmount: cardPaymentAmount,
-                      bleaumACHAmount,
-                      cashPaid: cashAmount,
-                      virtualPaid:
-                        cashlessATMAmount + cardPaymentAmount + bleaumACHAmount,
-                      changeAmount: changeValue,
-                      changeMethod: quoteBody?.changeMethod || "CASH",
-                      tipAmount: tipAmountSidebar || quoteBody?.tipGiven || 0,
-                      notes: paymentNotes,
-                      storeCreditsUtilized:
-                        selectedStoreCredit && storeCreditAmount > 0
-                          ? [
-                              {
-                                shopId: selectedStoreCredit.shopId,
-                                utilized: storeCreditAmount,
-                              },
-                            ]
-                          : [],
-                    }
-                  : null;
-                runOrDeferForPin(() => updateOrderStatus(payload));
-              }}>
-              Update Order Status
-            </Button>
-          </div>
-        )}
+        {!processOrderBodyContainer && processOrderBodyEl}
       </Card>
 
       {/* -------------------- Drawers / modals -------------------- */}

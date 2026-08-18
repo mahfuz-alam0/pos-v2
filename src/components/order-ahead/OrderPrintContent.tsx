@@ -2,7 +2,7 @@
 
 import { forwardRef, type CSSProperties } from "react";
 import Barcode from "react-barcode";
-import { getCustomerName, getDeliveryAddress, getCustomerPhone, getOrderLineItems } from "./constants";
+import { getCustomerName, getSaleCustomerName, getDeliveryAddress, getCustomerPhone, getOrderLineItems } from "./constants";
 
 interface OrderPrintContentProps {
   type: string;
@@ -44,9 +44,9 @@ const OrderPrintContent = forwardRef<HTMLDivElement, OrderPrintContentProps>(fun
 
   const isPreSale = type === "presale";
   const isPullSheet = variant === "PULL_SHEET";
-  const customerFullName = (isPreSale ? getCustomerName(item) : `${item?.customer?.firstName || ""} ${item?.customer?.lastName || ""}`.trim()) || "Guest";
+  const customerFullName = (isPreSale ? getCustomerName(item) : getSaleCustomerName(item)) || "Guest";
   // Receipt customer line matches the old app's tailorReceiptData exactly — first name only.
-  const customerFirstName = isPreSale ? customerFullName.split(" ")[0] : item?.customer?.firstName || "Guest";
+  const customerFirstName = customerFullName.split(" ")[0] || "Guest";
   const customerPhone = getCustomerPhone(type, item);
   const deliveryMethod = isPreSale ? item?.info?.saleData?.deliveryMethod : item?.deliveryMethod;
   const address = getDeliveryAddress(type, item);

@@ -111,7 +111,7 @@ export default function BulkReconcileDialog({ open, onClose, packages, onReconci
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Reconcile Packages in Metrc</DialogTitle>
         </DialogHeader>
