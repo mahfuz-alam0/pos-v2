@@ -151,15 +151,32 @@ jobs:
           NEXT_PUBLIC_ENCRYPTION_KEY: ${{ secrets.NEXT_PUBLIC_ENCRYPTION_KEY }}
           PIXLAB_API_KEY: ${{ secrets.PIXLAB_API_KEY }}
         run: |
+          # Vars the app can't run without — an empty value here (typo'd secret
+          # name, unsaved edit, etc.) must fail the build loudly instead of
+          # silently shipping whatever was baked in last time.
+          required="NEXT_PUBLIC_BASE_URL NEXT_PUBLIC_ECCOMMERCE_URL"
+          missing=""
+
           for key in NEXT_PUBLIC_BASE_URL NEXT_PUBLIC_ECCOMMERCE_URL \
                      NEXT_PUBLIC_CHAT_SERVICE_URL NEXT_PUBLIC_CHAT_CLIENT_ID \
                      NEXT_PUBLIC_CHAT_ID NEXT_PUBLIC_CHAT_APP_SECRET \
                      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY NEXT_PUBLIC_AES_SECRET \
                      NEXT_PUBLIC_ENCRYPTION_KEY PIXLAB_API_KEY; do
             value="${!key}"
-            [ -n "$value" ] && printf '%s=%s\n' "$key" "$value" >> .env.local
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$key" "$value" >> .env.local
+              echo "  ✓ $key"
+            else
+              echo "  ✗ $key (empty)"
+              case " $required " in *" $key "*) missing="$missing $key" ;; esac
+            fi
           done
           printf 'Wrote %s env vars\n' "$(wc -l < .env.local 2>/dev/null || echo 0)"
+
+          if [ -n "$missing" ]; then
+            echo "::error::Required secret(s) resolved empty:$missing — check the secret name/value in repo Settings > Secrets and variables > Actions."
+            exit 1
+          fi
 
       - name: Fetch x86_64 Bun for Intel Mac cross-build
         if: matrix.target == 'x86_64-apple-darwin'
