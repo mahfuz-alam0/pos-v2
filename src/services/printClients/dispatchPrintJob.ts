@@ -72,6 +72,14 @@ export interface DispatchPrintJobParams {
   node: HTMLElement | null;
   numOfCopies: number;
   isTest?: boolean;
+  /**
+   * Blank stock to leave down each side on the local-printer path, in mm.
+   * Per-caller because it's a property of the artwork, not of printing: a label
+   * is drawn to fill its stock deliberately, whereas the receipt runs the full
+   * roll width and needs the head's edges kept clear. Ignored on the remote
+   * path, which relays HTML and does its own layout.
+   */
+  sideMarginMm?: number;
 }
 
 // Checks the local preference first; if a local printer is set for this job
@@ -88,18 +96,20 @@ export async function dispatchPrintJob({
   node,
   numOfCopies,
   isTest = false,
+  sideMarginMm = 0,
 }: DispatchPrintJobParams): Promise<PrintDispatchResult> {
   const readiness = await resolvePrintReadiness(shopId, jobType);
 
   if (readiness.via === "local" && readiness.localDeviceName) {
     try {
       if (!node) throw new Error("Nothing to print");
-      // Lay the label out on the stock the queue is actually loaded with, not
-      // on a page cut down to the artwork — see renderNodeToPdf/getLocalPrinterMedia.
+      // Lay the artwork out on the stock the queue is actually loaded with, not
+      // on a page cut down to the artwork — see renderNodeToPdf/getLocalPrinterMedia,
+      // which also scales it down if it would otherwise overhang that stock.
       // A queue whose size can't be read resolves to null and keeps the
       // artwork-sized page.
       const stock = await getLocalPrinterMedia(readiness.localDeviceName).catch(() => null);
-      const { bytes, widthMm, heightMm } = await renderNodeToPdf(node, stock);
+      const { bytes, widthMm, heightMm } = await renderNodeToPdf(node, stock, { sideMarginMm });
       await printPdfToLocalPrinter({
         printerName: readiness.localDeviceName,
         pdfBytes: bytes,
@@ -119,7 +129,15 @@ export async function dispatchPrintJob({
       shopId,
     });
     const requestId = Math.random().toString(36).slice(2);
-    const html = `<html><body>${node?.innerHTML || ""}</body></html>`;
+    // The remote client lays this markup out and prints it itself, so the page
+    // has to be set up here. A browser's defaults — 8px on <body>, plus its own
+    // page margin — push the artwork right and down by a couple of millimetres,
+    // which is enough to shove the edge of a receipt or label off stock that
+    // has only millimetres to spare. Zeroing both makes the client's output
+    // start where the artwork does, matching the local PDF path.
+    const html = `<html><head><style>@page{margin:0}html,body{margin:0;padding:0}</style></head><body>${
+      node?.innerHTML || ""
+    }</body></html>`;
 
     const ackPromise = new Promise<boolean>((resolve) => {
       const timeoutId = setTimeout(() => resolve(false), 8000);

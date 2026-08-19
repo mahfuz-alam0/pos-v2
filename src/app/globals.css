@@ -352,3 +352,13 @@ body {
 .react-tel-input .country-list .divider {
   border-bottom-color: var(--border) !important;
 }
+
+/* JsBarcode sizes its <svg> to the encoded data (width/height attributes in
+   px), so a long order id renders a barcode wider than the receipt column and
+   the print head cuts the right-hand bars off — which makes it unscannable,
+   not just untidy. It does emit a viewBox alongside those attributes, so
+   overriding the width lets the barcode scale down to fit instead. */
+.pos-receipt-barcode {
+  max-width: 100%;
+  height: auto;
+}

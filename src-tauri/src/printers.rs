@@ -76,6 +76,18 @@ pub struct PrinterMedia {
   media_name: String,
   width_mm: f64,
   height_mm: f64,
+  /// The sub-rectangle of that page the head can actually put ink on (the PPD's
+  /// *ImageableArea), as an inset from the top-left. A receipt printer's roll is
+  /// the case that matters: the paper is 80mm but only ~72mm of it images, so
+  /// artwork laid out to the full page width runs off the head and the last
+  /// column — the amounts — never prints. The page itself still has to stay the
+  /// full stock size, because that is what the driver turns into the TSPL
+  /// `SIZE`, so this is carried separately rather than folded into width/height.
+  /// Defaults to the whole page when the PPD does not narrow it.
+  printable_left_mm: f64,
+  printable_top_mm: f64,
+  printable_width_mm: f64,
+  printable_height_mm: f64,
 }
 
 /// The page size this queue will physically print on — i.e. the label stock
@@ -127,10 +139,37 @@ fn default_media(printer_name: &str) -> Option<PrinterMedia> {
     Some((width, height))
   })?;
 
+  // "*ImageableArea w4h6/4 x 6 (4.00 in x 6.00 in): "0 0 288 432"" — llx lly
+  // urx ury in points, PostScript's bottom-left origin. Absent, unparseable or
+  // degenerate entries fall back to the full sheet, which is what the caller
+  // assumed before this was read at all.
+  let imageable = ppd.lines().find_map(|line| {
+    let (key, value) = line.strip_prefix("*ImageableArea ")?.split_once(':')?;
+    if key.split('/').next()?.trim() != name {
+      return None;
+    }
+    let mut dims = value.trim().trim_matches('"').split_whitespace();
+    let llx = dims.next()?.parse::<f64>().ok()?;
+    let lly = dims.next()?.parse::<f64>().ok()?;
+    let urx = dims.next()?.parse::<f64>().ok()?;
+    let ury = dims.next()?.parse::<f64>().ok()?;
+    if urx <= llx || ury <= lly {
+      return None;
+    }
+    Some((llx, lly, urx, ury))
+  });
+  let (llx, lly, urx, ury) = imageable.unwrap_or((0.0, 0.0, width_pt, height_pt));
+
   Some(PrinterMedia {
     media_name: name,
     width_mm: width_pt * PT_TO_MM,
     height_mm: height_pt * PT_TO_MM,
+    printable_left_mm: llx * PT_TO_MM,
+    // PDF/PostScript measure up from the bottom; the renderer places artwork
+    // from the top, so the top inset is what is left above the upper edge.
+    printable_top_mm: (height_pt - ury) * PT_TO_MM,
+    printable_width_mm: (urx - llx) * PT_TO_MM,
+    printable_height_mm: (ury - lly) * PT_TO_MM,
   })
 }
 

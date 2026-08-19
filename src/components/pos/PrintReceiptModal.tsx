@@ -19,6 +19,14 @@ import { printPdfInBrowser, renderNodeToImage } from "@/services/printClients/re
 
 const PX_TO_MM = 25.4 / 96;
 
+// A receipt is text to the edges, unlike a label's fixed artwork, so printing
+// it flush puts characters right where the head's usable width runs out a
+// little short of the paper's. renderNodeToPdf keeps the receipt inside the
+// stock either way; this just stops it from landing hard against the boundary.
+// Applies only to "Print Invoice" (the local-printer path) — the label/pull-sheet
+// modals deliberately fill their stock, and browser print does its own margins.
+const RECEIPT_SIDE_MARGIN_MM = 2;
+
 // Print a specific DOM node via the browser, isolating it with a print-only
 // stylesheet — same visibility-toggle trick used in PrinterDeviceSetup's
 // printInCurrentWindow, so both hardware-print's fallback and the plain
@@ -158,6 +166,7 @@ export default function PrintReceiptModal({
         jobType: JOB_TYPES.RECEIPT,
         node: receiptRef.current,
         numOfCopies: 1,
+        sideMarginMm: RECEIPT_SIDE_MARGIN_MM,
       });
 
       switch (result.status) {

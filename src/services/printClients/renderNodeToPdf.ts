@@ -26,6 +26,23 @@ async function rasterizeNode(node: HTMLElement) {
 export interface PdfPageSize {
   widthMm: number;
   heightMm: number;
+  /**
+   * Optional inset describing the part of the page the head can actually ink
+   * (see PrinterMedia). Omitted means the whole page images, which is what a
+   * queue with no PPD to read has to assume.
+   */
+  printableLeftMm?: number;
+  printableTopMm?: number;
+  printableWidthMm?: number;
+  printableHeightMm?: number;
+}
+
+export interface RenderNodeOptions {
+  /**
+   * Blank stock to leave down the left and right edges, in mm. Defaults to 0,
+   * which prints the artwork edge to edge.
+   */
+  sideMarginMm?: number;
 }
 
 // Rasterizes an off-screen print node (the portaled #pos-label-print-area /
@@ -49,26 +66,72 @@ export interface PdfPageSize {
 // artwork height instead of the label height, so it prints one short window and
 // then loses registration — the whole label never lands on one label. Omitting
 // `page` keeps the artwork-sized page, which is right for the browser print
-// path and for continuous/roll media with no fixed pitch.
-export async function renderNodeToPdf(node: HTMLElement, page?: PdfPageSize | null): Promise<RenderedPdf> {
+// path, where the browser's own dialog owns the paper.
+//
+// Given a `page`, the artwork is fitted to it rather than allowed to hang off
+// the edge: the stock is what the printer can actually image, so anything
+// beyond it is dropped, not printed on some larger sheet. See the body.
+export async function renderNodeToPdf(
+  node: HTMLElement,
+  page?: PdfPageSize | null,
+  options: RenderNodeOptions = {}
+): Promise<RenderedPdf> {
   const [{ jsPDF }, { canvas, rect }] = await Promise.all([import("jspdf"), rasterizeNode(node)]);
 
-  const artworkWidthMm = Math.max(1, rect.width * PX_TO_MM);
-  const artworkHeightMm = Math.max(1, rect.height * PX_TO_MM);
+  const naturalWidthMm = Math.max(1, rect.width * PX_TO_MM);
+  const naturalHeightMm = Math.max(1, rect.height * PX_TO_MM);
 
-  // Only honour the stock size if the artwork actually fits on it — otherwise
-  // the overhang would be cropped, and an artwork-sized page at least prints
-  // the whole thing. The 0.5mm slack absorbs px→mm rounding on an exact fit.
-  const fitsStock =
-    !!page && page.widthMm + 0.5 >= artworkWidthMm && page.heightMm + 0.5 >= artworkHeightMm;
-  const widthMm = fitsStock ? page!.widthMm : artworkWidthMm;
-  const heightMm = fitsStock ? page!.heightMm : artworkHeightMm;
+  // The page is the physical stock and cannot grow, so a side margin has to
+  // come out of the artwork instead.
+  const sideMarginMm = Math.max(0, options.sideMarginMm ?? 0);
+
+  const widthMm = page ? page.widthMm : naturalWidthMm;
+
+  // Fit and place against the printable box, not the page. They are the same
+  // rectangle on label stock, but on a receipt roll the page is the 80mm paper
+  // while the head only reaches ~72mm of it — and artwork fitted to the page
+  // would still lose its right-hand column to that difference.
+  const printableLeftMm = page?.printableLeftMm ?? 0;
+  const printableTopMm = page?.printableTopMm ?? 0;
+  const printableWidthMm = page?.printableWidthMm ?? widthMm;
+  const usableWidthMm = Math.max(1, printableWidthMm - 2 * sideMarginMm);
+  // Only real stock caps the height. An artwork-sized page has no ceiling to
+  // fit into — it becomes whatever the artwork ends up being, below.
+  const heightLimitMm = page ? page.printableHeightMm ?? page.heightMm : Infinity;
+
+  // Artwork too big for its stock used to get a page cut to the artwork
+  // instead, on the reasoning that an oversized page at least prints the whole
+  // thing. It does not. The page size is a request, not a promise: the printer
+  // still only images the stock it has, so the overhang was simply dropped —
+  // which is what was beheading the receipt's right-hand column and leaving
+  // just the leading "$" of each amount.
+  //
+  // Scaling it down to fit is what actually prints all of it. One factor for
+  // both axes so nothing is distorted, and clamped to 1 so this only ever
+  // shrinks — artwork smaller than its stock is inset, never magnified to fill.
+  const scale = Math.min(1, usableWidthMm / naturalWidthMm, heightLimitMm / naturalHeightMm);
+  const artworkWidthMm = naturalWidthMm * scale;
+  const artworkHeightMm = naturalHeightMm * scale;
+
+  // Real stock keeps its own height — on die-cut labels that height is the
+  // pitch the gap sensor is programmed with. An artwork-sized page follows the
+  // artwork instead, so shrinking for a side margin does not leave a matching
+  // strip of blank stock hanging off the bottom.
+  const heightMm = page ? page.heightMm : artworkHeightMm;
 
   const pdf = new jsPDF({ unit: "mm", format: [widthMm, heightMm] });
   const imgData = canvas.toDataURL("image/png");
-  // jsPDF's origin is the top-left corner, so this anchors the artwork there
-  // and leaves any unused stock below/right of it — never scaled to fill.
-  pdf.addImage(imgData, "PNG", 0, 0, artworkWidthMm, artworkHeightMm);
+  // jsPDF's origin is the top-left corner of the page, so the artwork is placed
+  // at the top-left of the *printable* box within it, inset by any side margin,
+  // leaving unused stock below and to the right.
+  pdf.addImage(
+    imgData,
+    "PNG",
+    printableLeftMm + sideMarginMm,
+    printableTopMm,
+    artworkWidthMm,
+    artworkHeightMm
+  );
 
   const buffer = pdf.output("arraybuffer") as ArrayBuffer;
   return { bytes: Array.from(new Uint8Array(buffer)), widthMm, heightMm };

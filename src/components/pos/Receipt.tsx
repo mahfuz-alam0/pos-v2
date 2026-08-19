@@ -2,6 +2,22 @@
 
 import Barcode from "react-barcode";
 
+// A receipt roll is not a sheet: an 80mm roll only images about 72mm of its
+// width, and a 58mm roll about 48mm. This was drawn 320px wide — 84.67mm at
+// CSS's 96dpi — so on a standard 80mm printer the right-hand 12.7mm simply
+// never reached paper. The amounts are right-aligned against that edge, so they
+// were what got dropped: field names printed, values came out blank.
+//
+// Sizing the artwork to the printable width instead fixes that everywhere,
+// including the two paths no page-size logic can reach — the remote
+// hardware-client relay (dispatchPrintJob sends this markup as raw HTML for
+// that client to lay out itself) and any local queue whose stock can't be read
+// off a PPD. renderNodeToPdf still scales down from here for genuinely narrower
+// stock, e.g. a 58mm roll.
+const PX_TO_MM = 25.4 / 96;
+const RECEIPT_WIDTH_MM = 72;
+const RECEIPT_WIDTH_PX = Math.round(RECEIPT_WIDTH_MM / PX_TO_MM);
+
 // Printable sale receipt. Field paths mirror legacy's tailorReceiptData/
 // populateOrderData (hooks/usePrint.jsx:1830-2206) — order is the
 // createOrderRes object (create-internal-sale response, with
@@ -35,15 +51,41 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
     .join(", ");
   const storeName = shopDetails?.shopName || shopDetails?.label || "N/A";
 
+  // Label left, amount right. The amount is flexShrink: 0 / nowrap and the
+  // label is the only side allowed to give: flex children shrink by default, so
+  // a long label ("Customer Type - Medical (MJ - System Generated)") would
+  // otherwise squeeze the amount narrower than its own text and clip it to the
+  // leading "$". minWidth: 0 lets the label actually wrap rather than refusing
+  // to shrink below its longest word and pushing the amount off the edge.
   const row = (label, value, opts: { bold?: boolean } = {}) => (
-    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: opts.bold ? "bold" : "normal" }}>
-      <span>{label}</span>
-      <span>{value}</span>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 8,
+        fontWeight: opts.bold ? "bold" : "normal",
+      }}
+    >
+      <span style={{ minWidth: 0 }}>{label}</span>
+      <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>{value}</span>
     </div>
   );
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", fontSize: 12, width: 320, color: "#000", background: "#fff" }}>
+    // overflowWrap is an inherited property, so declaring it once here keeps
+    // every long unbroken value below — store name, email, order id, product
+    // name, receipt note — inside the column instead of running past the
+    // right edge, where the print head would simply cut it off.
+    <div
+      style={{
+        fontFamily: "Arial, sans-serif",
+        fontSize: 12,
+        width: RECEIPT_WIDTH_PX,
+        color: "#000",
+        background: "#fff",
+        overflowWrap: "anywhere",
+      }}
+    >
       <div style={{ textAlign: "center", marginBottom: 8 }}>
         <div style={{ fontWeight: "bold", fontSize: 18 }}>{storeName}</div>
         {addressLine && <div>{addressLine}</div>}
@@ -59,7 +101,10 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
         <div>Customer Type - {order?.customerGroup?.name ?? "n/a"}</div>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
+      {/* table-layout: fixed would divide the width evenly and clip the amounts;
+          auto lets the qty/price columns take exactly what their (nowrap) text
+          needs and gives the remainder to the product name, which wraps. */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8, tableLayout: "auto" }}>
         <tbody>
           {lineItems.map((item, i) => {
             const discountNote = (item?.createdLineItem?.discountBreakDownHierarchy || [])
@@ -76,10 +121,26 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
                     </div>
                   )}
                 </td>
-                <td style={{ textAlign: "center", fontWeight: "bold" }}>
+                <td
+                  style={{
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                    width: "1%",
+                    paddingLeft: 6,
+                  }}
+                >
                   {item?.createdLineItem?.purchaseQuantity ?? 1}
                 </td>
-                <td style={{ textAlign: "right", fontWeight: "bold" }}>
+                <td
+                  style={{
+                    textAlign: "right",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                    width: "1%",
+                    paddingLeft: 6,
+                  }}
+                >
                   {(item?.createdLineItem?.finalTotalPrice ?? 0).toFixed(2)}
                 </td>
               </tr>
@@ -97,12 +158,20 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
       {taxBreakdown.map((t, i) => (
         <div
           key={t.name ?? i}
-          style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#1a4d8f" }}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 8,
+            fontSize: 10,
+            color: "#1a4d8f",
+          }}
         >
-          <span>
+          <span style={{ minWidth: 0 }}>
             {t.name} - VERIFY - {(t.taxRate ?? t.rate ?? 0).toFixed(2)}%
           </span>
-          <span>${(t.amount ?? 0).toFixed(2)}</span>
+          <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+            ${(t.amount ?? 0).toFixed(2)}
+          </span>
         </div>
       ))}
       <div style={{ fontWeight: "bold" }}>
@@ -121,7 +190,14 @@ export default function Receipt({ order, shopDetails, customerName, changeAmount
       <div style={{ textAlign: "center", fontWeight: "bold", marginTop: 10 }}>THANK YOU!</div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 8 }}>
-        <Barcode value={String(orderId)} renderer="svg" width={1.5} height={40} fontSize={12} />
+        <Barcode
+          value={String(orderId)}
+          renderer="svg"
+          width={1.5}
+          height={40}
+          fontSize={12}
+          className="pos-receipt-barcode"
+        />
       </div>
     </div>
   );

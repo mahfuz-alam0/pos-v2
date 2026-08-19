@@ -28,12 +28,26 @@ export interface PrinterMedia {
   mediaName: string;
   widthMm: number;
   heightMm: number;
+  /**
+   * The part of the page the head can actually ink, as an inset from the
+   * top-left (the PPD's *ImageableArea). On an 80mm receipt roll only ~72mm of
+   * the paper images, so artwork sized to the full page width runs off the head
+   * and loses its right-hand column. Falls back to the whole page.
+   */
+  printableLeftMm: number;
+  printableTopMm: number;
+  printableWidthMm: number;
+  printableHeightMm: number;
 }
 
 interface RawPrinterMedia {
   media_name: string;
   width_mm: number;
   height_mm: number;
+  printable_left_mm: number;
+  printable_top_mm: number;
+  printable_width_mm: number;
+  printable_height_mm: number;
 }
 
 // The stock actually loaded on a queue (get_local_printer_media in
@@ -50,7 +64,15 @@ export async function getLocalPrinterMedia(printerName: string): Promise<Printer
   const { invoke } = await import("@tauri-apps/api/core");
   const media = await invoke<RawPrinterMedia | null>("get_local_printer_media", { printerName });
   if (!media) return null;
-  return { mediaName: media.media_name, widthMm: media.width_mm, heightMm: media.height_mm };
+  return {
+    mediaName: media.media_name,
+    widthMm: media.width_mm,
+    heightMm: media.height_mm,
+    printableLeftMm: media.printable_left_mm,
+    printableTopMm: media.printable_top_mm,
+    printableWidthMm: media.printable_width_mm,
+    printableHeightMm: media.printable_height_mm,
+  };
 }
 
 export interface PrintPdfToLocalPrinterParams {
