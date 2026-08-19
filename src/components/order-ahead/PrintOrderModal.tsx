@@ -68,11 +68,11 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
     printPdfInBrowser(contentRef.current).catch(() => toast.error("Failed to generate PDF"));
   };
 
-  // "Check Label" — on the web this opens the browser's own print-preview
+  // "Check Print" — on the web this opens the browser's own print-preview
   // popup (printInBrowser). The Tauri desktop webview has no such popup, so
   // there it opens an in-app preview modal showing the same rendered
   // content instead.
-  const handleCheckLabel = async () => {
+  const handleCheckPrint = async () => {
     if (!contentRef.current) return;
     if (!isTauriDesktop()) {
       printInBrowser();
@@ -151,7 +151,7 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
       <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Print Label</DialogTitle>
+            <DialogTitle>Print Order</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -201,8 +201,8 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleCheckLabel}>
-              Check Label
+            <Button variant="outline" onClick={handleCheckPrint}>
+              Check Print
             </Button>
             <Button disabled={printing} onClick={handlePrint}>
               {printing ? "Printing…" : `Print ${Math.max(1, parseInt(copies, 10) || 1)} copy`}

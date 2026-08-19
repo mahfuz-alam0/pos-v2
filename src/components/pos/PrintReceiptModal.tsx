@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
@@ -11,10 +11,11 @@ import { resetQuoteForSale } from "@/store/slices/quoteForSaleSlice";
 import { resetCartForSale } from "@/store/slices/cartSlice";
 import { setSelectedCustomer } from "@/store/slices/customerSlice";
 import Receipt from "@/components/pos/Receipt";
-import { connectToSocket } from "@/lib/socket";
+import PrintPreviewModal from "@/components/pos/PrintPreviewModal";
 import { JOB_TYPES } from "@/hooks/usePrintClients";
-import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
-import { printPdfInBrowser } from "@/services/printClients/renderNodeToPdf";
+import { isTauriDesktop } from "@/lib/update-check";
+import { dispatchPrintJob } from "@/services/printClients/dispatchPrintJob";
+import { printPdfInBrowser, renderNodeToImage } from "@/services/printClients/renderNodeToPdf";
 
 const PX_TO_MM = 25.4 / 96;
 
@@ -56,14 +57,16 @@ export function printNode(node) {
  * Post-sale receipt modal.
  *
  * Print mechanism: two paths, both printing the same off-screen `<Receipt>`
- * (id="pos-receipt-print-area") —
- *   1. "Print Invoice (Web)": browser print, isolated via a print-only
- *      stylesheet (`printNode`), same technique as PrinterDeviceSetup's
- *      printInCurrentWindow.
- *   2. "Print Invoice": hardware print via the existing print-client
- *      services (getUserPrintPreference/createPrintJob + the
- *      /hclient-web-facing socket) — falls back to (1) if no printer
- *      preference is saved or the hardware client doesn't ack within 8s.
+ * (id="pos-receipt-print-area"), and both identical to PrintLabelModal /
+ * PrintOrderModal so all three behave the same on desktop and web —
+ *   1. "Print Invoice": dispatchPrintJob, which prefers a local printer on the
+ *      Tauri build (rendering to a PDF laid out on that queue's real stock)
+ *      and otherwise relays to the remote hardware client. Falls back to (2)
+ *      when nothing is configured, the local print fails, or the remote client
+ *      doesn't ack.
+ *   2. "Print Invoice (Web)"/"Preview Invoice": the browser's own print-preview
+ *      popup on the web; on desktop there is no such popup, so it opens the
+ *      same in-app preview PrintLabelModal's "Check Label" uses.
  *
  * Props:
  *   open, onClose              — visibility control (old isNewOrderModal / setIsNewOrderModal).
@@ -92,6 +95,13 @@ export default function PrintReceiptModal({
   const dispatch = useDispatch();
   const receiptRef = useRef(null);
   const [hardwarePrinting, setHardwarePrinting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  // isTauriDesktop() reads `window`, so resolve it after mount instead of
+  // during render — the secondary button's label depends on it, and reading it
+  // inline would have the server and the first client render disagree.
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => setIsDesktop(isTauriDesktop()), []);
 
   if (!open) return null;
 
@@ -117,58 +127,58 @@ export default function PrintReceiptModal({
     handlePrint?.();
   };
 
-  const printOnHardware = async () => {
-    if (!shopId) {
+  // Same in-app preview PrintLabelModal's "Check Label" opens: the Tauri
+  // webview has no native print-preview popup to fall back to, so on desktop
+  // this shows the rendered receipt instead of silently doing nothing.
+  const showPreview = async () => {
+    if (!receiptRef.current) return;
+    if (!isTauriDesktop()) {
       printInBrowser();
       return;
     }
+    setPreviewImage(null);
+    setPreviewOpen(true);
+    try {
+      const { dataUrl } = await renderNodeToImage(receiptRef.current);
+      setPreviewImage(dataUrl);
+    } catch {
+      toast.error("Failed to generate receipt preview");
+      setPreviewOpen(false);
+    }
+  };
+
+  // Deliberately does not close the modal on success, unlike PrintLabelModal:
+  // "New Order" and "Update on Metrc" still live here and are the point of the
+  // post-sale screen.
+  const printOnHardware = async () => {
     setHardwarePrinting(true);
     try {
-      const pref = await getUserPrintPreference(shopId, JOB_TYPES.RECEIPT);
-      if (!pref?.success || !pref?.data?.setUpId) {
-        toast.info("No printer configured for receipts. Using browser print.");
-        printInBrowser();
-        return;
-      }
-
-      const socket = connectToSocket({
-        url: `${process.env.NEXT_PUBLIC_BASE_URL}/hclient-web-facing`,
-        shopId,
-      });
-      const requestId = Math.random().toString(36).slice(2);
-      const html = `<html><body>${receiptRef.current?.innerHTML || ""}</body></html>`;
-
-      // Register the listener before submitting the job so a fast ack can't
-      // race past us.
-      const ackPromise = new Promise((resolve) => {
-        const timeoutId = setTimeout(() => resolve(false), 8000);
-        socket?.on("printJobPicked", (data) => {
-          if (data?.requestId !== requestId) return;
-          clearTimeout(timeoutId);
-          resolve(true);
-        });
-      });
-
-      await createPrintJob({
+      const result = await dispatchPrintJob({
         shopId,
         jobType: JOB_TYPES.RECEIPT,
-        sessionId: pref.data.sessionId,
+        node: receiptRef.current,
         numOfCopies: 1,
-        setUpId: pref.data.setUpId,
-        requestId,
-        html,
-        isTest: false,
       });
 
-      const acked = await ackPromise;
-      socket?.disconnect();
-
-      if (!acked) {
-        toast.warning("Print client did not respond. Using browser print.");
-        printInBrowser();
-        return;
+      switch (result.status) {
+        case "local-success":
+        case "remote-success":
+          toast.success("Receipt sent to printer");
+          break;
+        case "no-preference":
+          toast.info("No printer configured for receipts. Using browser print.");
+          printInBrowser();
+          break;
+        case "remote-not-acked":
+          toast.warning("Print client did not respond. Using browser print.");
+          printInBrowser();
+          break;
+        case "local-failed":
+        case "remote-failed":
+          toast.error((result.error as any)?.message || "Failed to print on hardware. Using browser print.");
+          printInBrowser();
+          break;
       }
-      toast.success("Receipt sent to printer");
     } catch (err) {
       toast.error(err?.message || "Failed to print on hardware. Using browser print.");
       printInBrowser();
@@ -222,11 +232,11 @@ export default function PrintReceiptModal({
           </Button>
 
           <Button
-            onClick={printInBrowser}
+            onClick={showPreview}
             className="py-6! text-2xl"
             style={{ backgroundColor: "#5C6BC0", color: "white" }}
           >
-            Print Invoice (Web)
+            {isDesktop ? "Preview Invoice" : "Print Invoice (Web)"}
           </Button>
 
           {createOrderRes?.shouldAttemptMetrcReporting &&
@@ -264,6 +274,16 @@ export default function PrintReceiptModal({
         </div>
         </div>
       </div>
+
+      {/* z-10001: this modal is a hand-rolled overlay at z-10000, above the
+          Dialog's own z-60, so the preview has to be lifted over it. */}
+      <PrintPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        imageUrl={previewImage}
+        title="Receipt Preview"
+        className="z-10001"
+      />
     </>,
     document.body
   );

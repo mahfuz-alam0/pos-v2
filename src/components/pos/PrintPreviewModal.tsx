@@ -13,10 +13,13 @@ import {
 // window.print() preview popup — the desktop webview has no such dialog to
 // fall back to, so this renders the exact same rasterized image
 // (renderNodeToImage) in-app instead.
-export default function PrintPreviewModal({ open, onClose, imageUrl, title = "Preview" }) {
+// `className` is an escape hatch for callers that aren't themselves Dialogs:
+// PrintReceiptModal is a hand-rolled fixed overlay at z-10000, well above this
+// Dialog's z-60, so it has to lift the preview above itself to be seen at all.
+export default function PrintPreviewModal({ open, onClose, imageUrl, title = "Preview", className = "" }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={`sm:max-w-md ${className}`}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
