@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useShop } from "@/context/shop-context";
 import { useSettings } from "@/context/settings-context";
-import { fetchHardwareClients } from "@/services/hardwareClients/list";
-import { removeHardwareClient } from "@/services/hardwareClients/remove";
+import { isTauriDesktop } from "@/lib/update-check";
+import { listLocalPrinters, type LocalPrinter } from "@/services/printClients/localPrinters";
 import {
   getConnectedUserPrintPreference,
   setConnectedUserPrintPreference,
@@ -17,174 +15,127 @@ import {
 } from "@/services/printClients/connectedUserPrintPreference";
 import { JOB_TYPES } from "@/hooks/usePrintClients";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import LocalDeviceFormDrawer from "./LocalDeviceFormDrawer";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-const JOB_TYPE_OPTIONS = Object.values(JOB_TYPES).map((jt) => ({ value: jt, label: jt.replace(/_/g, " ") }));
-
-interface LocalDeviceRow {
-  _id: string;
-  name: string;
-  jobType: string;
-  deviceProps?: ConnectedDeviceProps | null;
+function getTabLabel(jobType: string) {
+  return jobType.replace(/_/g, " ");
 }
 
-// Two rows a device's deviceProps are considered "the same printer" for —
-// good enough to tell which row a saved connected-user-print-preference
-// (which stores raw deviceProps, not a device _id) points at.
-function deviceMatches(a?: ConnectedDeviceProps | null, b?: ConnectedDeviceProps | null) {
-  if (!a || !b) return false;
-  return (
-    (a.ipAddress ?? null) === (b.ipAddress ?? null) &&
-    (a.deviceName ?? null) === (b.deviceName ?? null) &&
-    (a.port ?? null) === (b.port ?? null)
-  );
+// A saved connected-user-print-preference stores raw deviceProps, not an id —
+// this is how a listed OS printer is matched back to "this is the one saved
+// as the preference for this job type".
+function isSavedPreference(preference: ConnectedDeviceProps | null | undefined, printerName: string) {
+  return Boolean(preference) && (preference?.deviceName ?? null) === printerName;
 }
 
-// List/Delete hit the same confirmed-working endpoints as the
-// /settings/hardware-clients admin table (fetchHardwareClients /
-// removeHardwareClient) — there's no separate "local" data model on the
-// backend today, so Add/Edit here manage the same underlying device records.
-// Default preference (Set/Remove Default below) does have its own backend
-// model though: /connected-user-print-preference, distinct from the
-// /user-print-preference endpoints the Remote tab uses in PrinterDeviceSetup.
+// Local tab: unlike Remote (PrinterDeviceSetup, which lists devices
+// registered with the hardware-client relay), this lists the printers
+// actually connected to/installed on this machine — read straight from the
+// OS (see list_local_printers in src-tauri/src/lib.rs) since there's no
+// browser API for that. Only available in the Tauri desktop build. Picking
+// one and saving writes its deviceProps directly to
+// /connected-user-print-preference, distinct from the /user-print-preference
+// endpoints the Remote tab uses.
 export default function LocalDeviceManager() {
   const { shopId } = useShop();
   const { printType, setPrintType } = useSettings();
   const active = printType !== "hardware";
+  const isDesktop = isTauriDesktop();
 
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
-  const [jobType, setJobType] = useState("");
-
-  const [rows, setRows] = useState<LocalDeviceRow[]>([]);
+  const [activeJobType, setActiveJobType] = useState<string>(JOB_TYPES.PACKAGE_LABEL);
+  const [printers, setPrinters] = useState<LocalPrinter[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // jobType -> current preferred deviceProps for that job type, loaded from
-  // /connected-user-print-preference/get-preference. Keyed by jobType (not a
-  // device _id — that endpoint has no concept of one) so each row's default
-  // state is derived via deviceMatches().
-  const [preferredDeviceProps, setPreferredDeviceProps] = useState<Record<string, ConnectedDeviceProps | null>>({});
-  const [settingDefaultId, setSettingDefaultId] = useState(null);
-  const [removingDefaultJobType, setRemovingDefaultJobType] = useState(null);
+  // jobType -> printer name currently selected in the list (starts out equal
+  // to the saved preference, if any, but can be changed before saving).
+  const [selectedNames, setSelectedNames] = useState<Record<string, string>>({});
+  // jobType -> saved preference's deviceProps, loaded from
+  // /connected-user-print-preference/get-preference.
+  const [preferences, setPreferences] = useState<Record<string, ConnectedDeviceProps | null>>({});
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  const loadClients = useCallback(async (searchTerm, job) => {
-    setLoading(true);
-    try {
-      const params: Record<string, any> = {};
-      if (searchTerm) params.search = searchTerm;
-      if (job) params.jobType = job;
-      const res = await fetchHardwareClients(params);
-      setRows(res?.data ?? []);
-    } catch (err) {
-      toast.error(err?.message || "Failed to load devices");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
   useEffect(() => {
-    loadClients(debouncedSearch, jobType);
-  }, [loadClients, debouncedSearch, jobType]);
-
-  // Fetch the current preference for every distinct job type present in the
-  // loaded rows, skipping ones already known.
-  useEffect(() => {
-    if (!shopId || !rows.length) return;
-    const jobTypes = [...new Set(rows.map((r) => r.jobType).filter(Boolean))];
-    const missing = jobTypes.filter((jt) => !(jt in preferredDeviceProps));
-    if (!missing.length) return;
-
+    if (!isDesktop) return;
     let cancelled = false;
+    setLoading(true);
+    setError(null);
+    listLocalPrinters()
+      .then((list) => {
+        if (!cancelled) setPrinters(list);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message || "Failed to list local printers");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDesktop]);
+
+  // Load the saved preference for the active tab.
+  useEffect(() => {
+    if (!shopId || !isDesktop) return;
+    let cancelled = false;
+
     (async () => {
-      const entries = await Promise.all(
-        missing.map(async (jt) => {
-          const res = await getConnectedUserPrintPreference(shopId, jt as ConnectedPrintJobType);
-          return [jt, res?.success ? res?.data?.deviceProps ?? null : null] as const;
-        })
-      );
+      const res = await getConnectedUserPrintPreference(shopId, activeJobType as ConnectedPrintJobType);
       if (cancelled) return;
-      setPreferredDeviceProps((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+      const deviceProps = res?.success ? (res?.data?.deviceProps ?? null) : null;
+      setPreferences((prev) => ({ ...prev, [activeJobType]: deviceProps }));
+      if (deviceProps?.deviceName) {
+        setSelectedNames((prev) => ({ ...prev, [activeJobType]: deviceProps.deviceName as string }));
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [shopId, rows, preferredDeviceProps]);
+  }, [shopId, isDesktop, activeJobType]);
 
-  async function handleSetDefault(row: LocalDeviceRow) {
-    setSettingDefaultId(row._id);
+  const hasCurrentPreference = Boolean(preferences[activeJobType]);
+
+  async function handleSavePreference() {
+    const printerName = selectedNames[activeJobType];
+    if (!printerName) {
+      toast.warning("Please select a printer first");
+      return;
+    }
+    const printer = printers.find((p) => p.name === printerName);
+
+    setSaveLoading(true);
     try {
       const deviceProps: ConnectedDeviceProps = {
-        ipAddress: row.deviceProps?.ipAddress ?? null,
-        deviceName: row.deviceProps?.deviceName ?? row.name ?? null,
-        port: row.deviceProps?.port ?? null,
-        meta: row.deviceProps?.meta ?? null,
+        ipAddress: null,
+        deviceName: printerName,
+        port: null,
+        meta: printer ? { status: printer.status } : null,
       };
-      await setConnectedUserPrintPreference({ shopId, jobType: row.jobType as ConnectedPrintJobType, deviceProps });
-      setPreferredDeviceProps((prev) => ({ ...prev, [row.jobType]: deviceProps }));
-      toast.success(`${row.name} set as default for ${row.jobType?.replace(/_/g, " ")}`);
+      await setConnectedUserPrintPreference({ shopId, jobType: activeJobType as ConnectedPrintJobType, deviceProps });
+      setPreferences((prev) => ({ ...prev, [activeJobType]: deviceProps }));
+      toast.success(`${printerName} set as default for ${getTabLabel(activeJobType)}`);
     } catch (err) {
-      toast.error(err?.message || "Failed to set default device");
+      toast.error(err?.message || "Failed to save printer preference");
     } finally {
-      setSettingDefaultId(null);
+      setSaveLoading(false);
     }
   }
 
-  async function handleRemoveDefault(row: LocalDeviceRow) {
-    setRemovingDefaultJobType(row.jobType);
+  async function handleRemovePreference() {
+    setRemoveLoading(true);
     try {
-      await deleteConnectedUserPrintPreference(shopId, row.jobType as ConnectedPrintJobType);
-      setPreferredDeviceProps((prev) => ({ ...prev, [row.jobType]: null }));
-      toast.success(`Default removed for ${row.jobType?.replace(/_/g, " ")}`);
+      await deleteConnectedUserPrintPreference(shopId, activeJobType as ConnectedPrintJobType);
+      setPreferences((prev) => ({ ...prev, [activeJobType]: null }));
+      toast.success(`Default removed for ${getTabLabel(activeJobType)}`);
     } catch (err) {
-      toast.error(err?.message || "Failed to remove default device");
+      toast.error(err?.message || "Failed to remove default printer");
     } finally {
-      setRemovingDefaultJobType(null);
-    }
-  }
-
-  function openAdd() {
-    setEditing(null);
-    setFormOpen(true);
-  }
-
-  function openEdit(client) {
-    setEditing(client);
-    setFormOpen(true);
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      await removeHardwareClient(deleteTarget._id);
-      toast.success("Device deleted");
-      setDeleteTarget(null);
-      loadClients(debouncedSearch, jobType);
-    } catch (err) {
-      toast.error(err?.message || "Failed to delete device");
-    } finally {
-      setDeleteLoading(false);
+      setRemoveLoading(false);
     }
   }
 
@@ -202,143 +153,80 @@ export default function LocalDeviceManager() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search devices..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
-          />
+      {!isDesktop ? (
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
+          <p>Local printers can only be listed from the desktop app.</p>
+          <p className="text-sm">Open Bleaum POS on this device to select one of its connected printers.</p>
         </div>
-        <Select value={jobType || undefined} onValueChange={setJobType}>
-          <SelectTrigger className="w-40 shrink-0">
-            <SelectValue placeholder="Job type" />
-          </SelectTrigger>
-          <SelectContent>
-            {JOB_TYPE_OPTIONS.map((job) => (
-              <SelectItem key={job.value} value={job.value}>
-                {job.label}
-              </SelectItem>
+      ) : (
+        <Tabs value={activeJobType} onValueChange={setActiveJobType} className="flex flex-col gap-2">
+          <TabsList variant="line" className="w-full flex-wrap justify-start">
+            {Object.values(JOB_TYPES).map((jobType) => (
+              <TabsTrigger key={jobType} value={jobType} className="flex-none">
+                {getTabLabel(jobType)}
+              </TabsTrigger>
             ))}
-          </SelectContent>
-        </Select>
-        {jobType && (
-          <Button variant="ghost" size="sm" onClick={() => setJobType("")}>
-            Clear
-          </Button>
-        )}
-        <Button size="sm" onClick={openAdd} className="shrink-0">
-          <Plus className="size-4" />
-          Add Device
-        </Button>
-      </div>
+          </TabsList>
 
-      <div className="overflow-hidden rounded-lg ring-1 ring-foreground/10">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Job Type</TableHead>
-              <TableHead>Default</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+          <TabsContent value={activeJobType} className="pt-2">
             {loading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i} className="border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
-                  <TableCell colSpan={4}>
-                    <Skeleton className="h-5 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : rows.length === 0 ? (
-              <TableRow className="border-b-0">
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                  No local devices yet
-                </TableCell>
-              </TableRow>
+              <div className="flex justify-center p-8 text-muted-foreground">Loading…</div>
+            ) : error ? (
+              <div className="p-4 text-red-500">Error: {error}</div>
+            ) : !printers.length ? (
+              <div className="flex justify-center p-8 text-muted-foreground">
+                No printers connected to this device
+              </div>
             ) : (
-              rows.map((client, i) => {
-                const isDefault = deviceMatches(client.deviceProps, preferredDeviceProps[client.jobType]);
-                return (
-                  <TableRow
-                    key={client._id}
-                    className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}
-                  >
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{client.jobType?.replace(/_/g, " ")}</TableCell>
-                    <TableCell>
-                      {isDefault ? (
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-green-100 text-green-700">Current</Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveDefault(client)}
-                            disabled={removingDefaultJobType === client.jobType}
-                          >
-                            {removingDefaultJobType === client.jobType ? "Removing…" : "Remove"}
-                          </Button>
+              <div className="flex flex-col gap-2">
+                {printers.map((printer) => {
+                  const isSelected = selectedNames[activeJobType] === printer.name;
+                  const isSaved = isSavedPreference(preferences[activeJobType], printer.name);
+                  return (
+                    <div
+                      key={printer.name}
+                      onClick={() => setSelectedNames((prev) => ({ ...prev, [activeJobType]: printer.name }))}
+                      className={`cursor-pointer rounded-lg border p-4 transition-colors ${
+                        isSelected
+                          ? "border-primary/40 bg-primary-soft"
+                          : "border-border bg-component-bg hover:bg-surface-alt"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          checked={isSelected}
+                          onChange={() => setSelectedNames((prev) => ({ ...prev, [activeJobType]: printer.name }))}
+                          className="size-4 shrink-0 accent-primary"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <h4 className="mb-1 text-base font-medium text-text">{printer.name}</h4>
+                          <div className="text-sm text-muted-foreground">
+                            <span className="capitalize">{printer.status}</span>
+                            {printer.isDefault && " · OS default"}
+                          </div>
                         </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSetDefault(client)}
-                          disabled={settingDefaultId === client._id}
-                        >
-                          {settingDefaultId === client._id ? "Setting…" : "Set Default"}
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(client)}>
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(client)}>
-                          <Trash2 className="size-4" />
-                        </Button>
+                        {isSaved && <Badge className="bg-green-100 text-green-700">Current</Badge>}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </TabsContent>
 
-      <LocalDeviceFormDrawer
-        open={formOpen}
-        editing={editing}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => {
-          setFormOpen(false);
-          loadClients(debouncedSearch, jobType);
-        }}
-      />
-
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Device</AlertDialogTitle>
-            <AlertDialogDescription>
-              Do you want to delete <strong>{deleteTarget?.name}</strong>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
+            {hasCurrentPreference && (
+              <Button variant="destructive" onClick={handleRemovePreference} disabled={removeLoading}>
+                {removeLoading ? "Removing…" : "Remove Preference"}
+              </Button>
+            )}
+            <Button onClick={handleSavePreference} disabled={!selectedNames[activeJobType] || saveLoading}>
+              {saveLoading ? "Saving…" : "Save Preference"}
+            </Button>
+          </div>
+        </Tabs>
+      )}
     </div>
   );
 }

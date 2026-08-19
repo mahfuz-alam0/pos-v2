@@ -8,9 +8,8 @@ import LocalDeviceManager from "./LocalDeviceManager";
 
 const DRAWER_WIDTH = 640;
 // Stacks above the Settings drawer (zIndex 50, its default) but below the
-// nested layers opened from within (Test Print / delete-confirm Dialogs at
-// the framework default z-60, LocalDeviceFormDrawer at 58) — see those files
-// for the full stacking order.
+// nested layers opened from within (Test Print Dialog at the framework
+// default z-60) — see that file for the full stacking order.
 const DRAWER_Z_INDEX = 55;
 
 export default function PrinterSetupDrawer({ open, onClose, onSelect }) {
