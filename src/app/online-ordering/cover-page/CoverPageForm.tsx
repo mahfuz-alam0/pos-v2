@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, Store as StoreIcon } from "lucide-react";
+import { Eye, EyeOff, Save, Store as StoreIcon, X } from "lucide-react";
 
 import { getCoverPageConfig } from "@/services/coverPage/getCoverPageConfig";
 import { saveCoverPageConfig } from "@/services/coverPage/saveCoverPageConfig";
@@ -20,9 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
+import Drawer from "@/components/ui/Drawer";
 
 import { SECTION_META, API_KEY_MAP, localSectionToApi, hydrate } from "./coverPageSchema";
 import SectionPanel from "./components/SectionPanel";
@@ -49,7 +47,8 @@ export default function CoverPageForm() {
   const [webColor, setWebColor] = useState<string | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [selectedShopIds, setSelectedShopIds] = useState<(string | number)[]>([]);
-  const [shopModalOpen, setShopModalOpen] = useState(false);
+  const [saveDrawerOpen, setSaveDrawerOpen] = useState(false);
+  const [saveTarget, setSaveTarget] = useState<"current" | "others">("current");
   const [entities, setEntities] = useState<Entity[]>([]);
   const [entitiesLoading, setEntitiesLoading] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -288,6 +287,7 @@ export default function CoverPageForm() {
       const saved = res?.data?.data?.sections ?? {};
       if (Object.keys(saved).length) setConfig(hydrate(saved));
       cleanupPendingUploads();
+      setSaveDrawerOpen(false);
     } catch (err: any) {
       toast.error(err?.message || "Failed while uploading images or saving configuration");
     } finally {
@@ -330,7 +330,7 @@ export default function CoverPageForm() {
         toast.error(`Failed to save config for: ${failedNames}`);
       }
 
-      setShopModalOpen(false);
+      setSaveDrawerOpen(false);
       setSelectedShopIds([]);
     } catch (err: any) {
       toast.error(err?.message || "Failed while uploading images or saving configuration");
@@ -338,6 +338,15 @@ export default function CoverPageForm() {
       setSaving(false);
     }
   };
+
+  // ── Save drawer open/confirm ─────────────────────────────────────────────
+  const handleOpenSaveDrawer = () => {
+    setSaveTarget("current");
+    setSelectedShopIds([]);
+    setSaveDrawerOpen(true);
+  };
+
+  const handleConfirmSave = () => (saveTarget === "others" ? handleMultiShopSave() : handleSave());
 
   // ── Derived values ───────────────────────────────────────────────────────
   const sectionKeys = Object.keys(SECTION_META);
@@ -414,15 +423,9 @@ export default function CoverPageForm() {
                 <Switch size="sm" checked={coverPageVisibility} onCheckedChange={setCoverPageVisibility} />
               </div>
 
-              <Button onClick={handleSave} disabled={saving}>
+              <Button onClick={otherShops.length ? handleOpenSaveDrawer : handleSave} disabled={saving}>
                 <Save className="size-4" /> {saving ? "Saving..." : "Save Changes"}
               </Button>
-
-              {entityShops.length > 1 && (
-                <Button variant="outline" onClick={() => setShopModalOpen(true)} disabled={saving}>
-                  <StoreIcon className="size-4" /> Apply to Shops
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -519,63 +522,102 @@ export default function CoverPageForm() {
         </div>
       </div>
 
-      <Dialog open={shopModalOpen} onOpenChange={(open) => { if (!open) { setShopModalOpen(false); setSelectedShopIds([]); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Apply Configuration to Other Shops</DialogTitle>
-            <DialogDescription>Copy the current section configuration to other shops in this entity.</DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-lg bg-emerald-600/10 px-4 py-3">
-            <span className="mb-1 block text-xs font-semibold tracking-wider text-muted-foreground uppercase">Copying configuration from</span>
-            <div className="flex items-center gap-2">
-              <StoreIcon className="size-4 text-emerald-600" />
-              <span className="text-sm font-bold">{entityShops.find((s) => s.id === selectedShopId)?.name || "Current Shop"}</span>
-              <Badge variant="secondary" className="ml-auto rounded-full text-xs">Source</Badge>
+      <Drawer
+        open={saveDrawerOpen}
+        onClose={saving ? undefined : () => { setSaveDrawerOpen(false); setSelectedShopIds([]); }}
+        side="right"
+        size={420}
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <Save className="size-4 text-primary" />
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Apply to</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          {otherShops.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No other shops available.</p>
-          ) : (
-            <>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <Checkbox
-                  checked={selectedShopIds.length === otherShops.length && otherShops.length > 0}
-                  onCheckedChange={(checked) => setSelectedShopIds(checked ? otherShops.map((s) => s.id) : [])}
-                />
-                Select All ({otherShops.length} shop{otherShops.length !== 1 ? "s" : ""})
-              </label>
-              <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-                {otherShops.map((shop) => (
-                  <label key={shop.id} className="flex cursor-pointer items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={selectedShopIds.includes(shop.id)}
-                      onCheckedChange={(checked) =>
-                        setSelectedShopIds((prev) => (checked ? [...prev, shop.id] : prev.filter((id) => id !== shop.id)))
-                      }
-                    />
-                    {shop.name}
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShopModalOpen(false); setSelectedShopIds([]); }} disabled={saving}>Cancel</Button>
-            <Button onClick={handleMultiShopSave} disabled={!selectedShopIds.length || saving}>
-              {saving ? "Saving..." : `Apply to ${selectedShopIds.length} Shop${selectedShopIds.length !== 1 ? "s" : ""}`}
+            <div className="min-w-0 flex-1">
+              <div className="text-base font-semibold leading-tight">Save Cover Page Changes</div>
+              <div className="text-xs leading-tight text-muted-foreground">Choose where to apply this configuration</div>
+            </div>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => { setSaveDrawerOpen(false); setSelectedShopIds([]); }}
+              disabled={saving}
+            >
+              <X className="size-4" />
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-5">
+            <button
+              type="button"
+              onClick={() => setSaveTarget("current")}
+              className={`rounded-lg p-3 text-left ring-1 transition-colors ${
+                saveTarget === "current" ? "bg-primary/10 ring-primary" : "ring-foreground/10 hover:bg-muted"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <StoreIcon className="size-4 shrink-0 text-primary" />
+                <span className="text-sm font-medium">{entityShops.find((s) => s.id === selectedShopId)?.name || "Current shop"}</span>
+                <Badge variant="secondary" className="ml-auto rounded-full text-xs">Current</Badge>
+              </div>
+              <span className="mt-1 block text-xs text-muted-foreground">Save changes to the currently selected shop only.</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSaveTarget("others")}
+              className={`rounded-lg p-3 text-left ring-1 transition-colors ${
+                saveTarget === "others" ? "bg-primary/10 ring-primary" : "ring-foreground/10 hover:bg-muted"
+              }`}
+            >
+              <span className="block text-sm font-medium">Apply to other shop(s)</span>
+              <span className="mt-1 block text-xs text-muted-foreground">Copy this configuration to one or more other shops in this entity.</span>
+            </button>
+
+            {saveTarget === "others" && (
+              <div className="flex flex-col gap-2 rounded-lg bg-muted/40 p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={selectedShopIds.length === otherShops.length && otherShops.length > 0}
+                    onCheckedChange={(checked) => setSelectedShopIds(checked ? otherShops.map((s) => s.id) : [])}
+                  />
+                  Select All ({otherShops.length} shop{otherShops.length !== 1 ? "s" : ""})
+                </label>
+                <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+                  {otherShops.map((shop) => (
+                    <label key={shop.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={selectedShopIds.includes(shop.id)}
+                        onCheckedChange={(checked) =>
+                          setSelectedShopIds((prev) => (checked ? [...prev, shop.id] : prev.filter((id) => id !== shop.id)))
+                        }
+                      />
+                      {shop.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+            <Button
+              variant="outline"
+              onClick={() => { setSaveDrawerOpen(false); setSelectedShopIds([]); }}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmSave} disabled={saving || (saveTarget === "others" && !selectedShopIds.length)}>
+              {saving
+                ? "Saving..."
+                : saveTarget === "others"
+                  ? `Apply to ${selectedShopIds.length} Shop${selectedShopIds.length !== 1 ? "s" : ""}`
+                  : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }
