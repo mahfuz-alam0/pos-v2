@@ -12,6 +12,27 @@ export const JOB_TYPES = {
   OTHER: "OTHER",
 };
 
+// Full display name, used in toasts/messages where space isn't constrained.
+export const JOB_TYPE_NAMES = {
+  PACKAGE_LABEL: "Package Label",
+  EXIT_LABEL: "Exit Label",
+  RECEIPT: "Receipt",
+  DELIVERY_RECEIPT: "Delivery Receipt",
+  PRE_ORDER_FULFILLMENT_PULL_SHEET: "Pre-order Fulfillment Pull Sheet",
+  OTHER: "Other",
+};
+
+export function getJobTypeLabel(jobType) {
+  return JOB_TYPE_NAMES[jobType] || jobType.replace(/_/g, " ");
+}
+
+// Shortened label for tab strips (Local/Remote panels share this so both
+// tab bars render identical text and line up at the same width).
+export function getJobTypeTabLabel(jobType) {
+  if (jobType === JOB_TYPES.PRE_ORDER_FULFILLMENT_PULL_SHEET) return "Pre-order";
+  return getJobTypeLabel(jobType);
+}
+
 export function usePrintClients(shopId, jobType) {
   const [printClients, setPrintClients] = useState([]);
   const [loading, setLoading] = useState(false);

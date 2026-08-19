@@ -16,7 +16,7 @@ import { JOB_TYPES } from "@/hooks/usePrintClients";
 import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
 
 // Print a specific DOM node via the browser, isolating it with a print-only
-// stylesheet — same visibility-toggle trick used in PrinterSelectionModal's
+// stylesheet — same visibility-toggle trick used in PrinterDeviceSetup's
 // printInCurrentWindow, so both hardware-print's fallback and the plain
 // "Print Invoice (Web)" button behave identically.
 export function printNode(node) {
@@ -48,7 +48,7 @@ export function printNode(node) {
  * Print mechanism: two paths, both printing the same off-screen `<Receipt>`
  * (id="pos-receipt-print-area") —
  *   1. "Print Invoice (Web)": browser print, isolated via a print-only
- *      stylesheet (`printNode`), same technique as PrinterSelectionModal's
+ *      stylesheet (`printNode`), same technique as PrinterDeviceSetup's
  *      printInCurrentWindow.
  *   2. "Print Invoice": hardware print via the existing print-client
  *      services (getUserPrintPreference/createPrintJob + the

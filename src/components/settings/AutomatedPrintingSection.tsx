@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Printer } from "lucide-react";
 import { useSettings } from "@/context/settings-context";
 import { Button } from "@/components/ui/button";
-import { isTauriDesktop } from "@/lib/update-check";
-import PrinterSelectionModal from "./PrinterSelectionModal";
 import PrinterSetupDrawer from "./PrinterSetupDrawer";
 
 function SectionCard({ icon: Icon, title, description, children }) {
@@ -30,14 +28,6 @@ function SectionCard({ icon: Icon, title, description, children }) {
 export default function AutomatedPrintingSection() {
   const { printType, setPrintType } = useSettings();
   const [setupOpen, setSetupOpen] = useState(false);
-
-  // Default to the browser-build behavior on both server and first client
-  // render, then switch after mount — matching the SSR markup avoids a
-  // hydration mismatch (window.__TAURI_INTERNALS__ only exists client-side).
-  const [isTauri, setIsTauri] = useState(false);
-  useEffect(() => {
-    setIsTauri(isTauriDesktop());
-  }, []);
 
   return (
     <SectionCard
@@ -73,19 +63,11 @@ export default function AutomatedPrintingSection() {
         </div>
       </div>
 
-      {isTauri ? (
-        <PrinterSetupDrawer
-          open={setupOpen}
-          onClose={() => setSetupOpen(false)}
-          onSelect={() => setPrintType("hardware")}
-        />
-      ) : (
-        <PrinterSelectionModal
-          open={setupOpen}
-          onOpenChange={setSetupOpen}
-          onSelect={() => setPrintType("hardware")}
-        />
-      )}
+      <PrinterSetupDrawer
+        open={setupOpen}
+        onClose={() => setSetupOpen(false)}
+        onSelect={() => setPrintType("hardware")}
+      />
     </SectionCard>
   );
 }

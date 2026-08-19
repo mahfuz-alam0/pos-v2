@@ -13,14 +13,10 @@ import {
   type ConnectedDeviceProps,
   type ConnectedPrintJobType,
 } from "@/services/printClients/connectedUserPrintPreference";
-import { JOB_TYPES } from "@/hooks/usePrintClients";
+import { JOB_TYPES, getJobTypeLabel, getJobTypeTabLabel } from "@/hooks/usePrintClients";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-
-function getTabLabel(jobType: string) {
-  return jobType.replace(/_/g, " ");
-}
 
 const PRINTER_STATUS_STYLES: Record<LocalPrinter["status"], { dot: string; label: string }> = {
   idle: { dot: "bg-green-500", label: "Ready" },
@@ -134,7 +130,7 @@ export default function LocalDeviceManager() {
       };
       await setConnectedUserPrintPreference({ shopId, jobType: activeJobType as ConnectedPrintJobType, deviceProps });
       setPreferences((prev) => ({ ...prev, [activeJobType]: deviceProps }));
-      toast.success(`${printerName} set as default for ${getTabLabel(activeJobType)}`);
+      toast.success(`${printerName} set as default for ${getJobTypeLabel(activeJobType)}`);
     } catch (err) {
       toast.error(err?.message || "Failed to save printer preference");
     } finally {
@@ -147,7 +143,7 @@ export default function LocalDeviceManager() {
     try {
       await deleteConnectedUserPrintPreference(shopId, activeJobType as ConnectedPrintJobType);
       setPreferences((prev) => ({ ...prev, [activeJobType]: null }));
-      toast.success(`Default removed for ${getTabLabel(activeJobType)}`);
+      toast.success(`Default removed for ${getJobTypeLabel(activeJobType)}`);
     } catch (err) {
       toast.error(err?.message || "Failed to remove default printer");
     } finally {
@@ -179,7 +175,7 @@ export default function LocalDeviceManager() {
           <TabsList variant="line" className="w-full flex-nowrap justify-start overflow-x-auto">
             {Object.values(JOB_TYPES).map((jobType) => (
               <TabsTrigger key={jobType} value={jobType} className="flex-none">
-                {getTabLabel(jobType)}
+                {getJobTypeTabLabel(jobType)}
               </TabsTrigger>
             ))}
           </TabsList>

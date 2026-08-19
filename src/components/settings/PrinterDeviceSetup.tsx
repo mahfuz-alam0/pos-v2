@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useShop } from "@/context/shop-context";
 import { useSettings } from "@/context/settings-context";
 import { connectToSocket } from "@/lib/socket";
-import { usePrintClients, JOB_TYPES } from "@/hooks/usePrintClients";
+import { usePrintClients, JOB_TYPES, getJobTypeLabel, getJobTypeTabLabel } from "@/hooks/usePrintClients";
 import {
   getUserPrintPreference,
   deleteUserPrintPreference,
@@ -23,15 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-const JOB_TYPE_NAMES = {
-  PACKAGE_LABEL: "Package Label",
-  EXIT_LABEL: "Exit Label",
-  RECEIPT: "Receipt",
-  DELIVERY_RECEIPT: "Delivery Receipt",
-  PRE_ORDER_FULFILLMENT_PULL_SHEET: "Pre-order Fulfillment Pull Sheet",
-  OTHER: "Other",
-};
-
 const SAMPLE_PACKAGE = {
   advertisedId: "PKG3985759",
   name: "Package Oreoz",
@@ -44,15 +35,6 @@ const SAMPLE_PACKAGE = {
   supplierName: "Alma Cannabis",
   createdAt: "2024-09-03T11:00:38.247Z",
 };
-
-function getTabLabel(jobType) {
-  if (jobType === JOB_TYPES.PRE_ORDER_FULFILLMENT_PULL_SHEET) return "PRE ORDER";
-  return jobType.replace(/_/g, " ");
-}
-
-function getJobTypeDisplayName(jobType) {
-  return JOB_TYPE_NAMES[jobType] || jobType.replace(/_/g, " ");
-}
 
 function generatePrintContent(jobType, pkg) {
   const baseStyle = "border: 2px solid #000; padding: 20px; max-width: 400px; margin: 0 auto;";
@@ -154,7 +136,7 @@ function printInCurrentWindow(content, jobType, numCopies) {
         copiesContent += `
           <div style="margin-bottom: 30px; ${i < numCopies - 1 ? "page-break-after: always;" : ""}">
             <div style="text-align: center; margin-bottom: 10px; font-size: 12px; color: #666; font-weight: bold;">
-              Test Print - ${getJobTypeDisplayName(jobType)} - Copy ${i + 1} of ${numCopies}
+              Test Print - ${getJobTypeLabel(jobType)} - Copy ${i + 1} of ${numCopies}
             </div>
             ${content}
           </div>
@@ -234,7 +216,7 @@ function openBrowserPrint(content, jobType, numCopies = 1) {
             <!DOCTYPE html>
             <html>
               <head>
-                <title>Test Print - ${getJobTypeDisplayName(jobType)}</title>
+                <title>Test Print - ${getJobTypeLabel(jobType)}</title>
                 <style>
                   body { font-family: Arial, sans-serif; margin: 20px; }
                   .print-header { text-align: center; margin-bottom: 20px; }
@@ -249,7 +231,7 @@ function openBrowserPrint(content, jobType, numCopies = 1) {
                 </style>
               </head>
               <body>
-                <div class="print-header"><h2>Test Print - ${getJobTypeDisplayName(jobType)}</h2></div>
+                <div class="print-header"><h2>Test Print - ${getJobTypeLabel(jobType)}</h2></div>
                 <div class="print-content">${copiesContent}</div>
                 <div class="no-print" style="text-align: center; margin-top: 20px;">
                   <button onclick="window.print()">Print</button>
@@ -388,7 +370,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
     setSaveLoading(true);
     try {
       await setUserPreference(printerObj._id, printerObj.sessionId);
-      toast.success(`Printer preference saved for ${getTabLabel(activeJobType)}`);
+      toast.success(`Printer preference saved for ${getJobTypeLabel(activeJobType)}`);
       setPreferences((prev) => ({
         ...prev,
         [activeJobType]: { setupId: printerObj._id, sessionId: printerObj.sessionId, name: printerObj.name },
@@ -403,7 +385,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
   }
 
   async function handleDeletePreference() {
-    if (!confirm(`Delete the ${getTabLabel(activeJobType)} printer preference?`)) return;
+    if (!confirm(`Delete the ${getJobTypeLabel(activeJobType)} printer preference?`)) return;
     setDeleteLoading(true);
     try {
       await deleteUserPrintPreference(shopId, activeJobType);
@@ -413,7 +395,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
         delete next[activeJobType];
         return next;
       });
-      toast.success(`Printer preference for ${getTabLabel(activeJobType)} deleted`);
+      toast.success(`Printer preference for ${getJobTypeLabel(activeJobType)} deleted`);
     } catch (err) {
       console.error(err);
       toast.error(`Failed to delete preference: ${err.message || ""}`);
@@ -491,7 +473,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
       if (res?.success && res?.data?.setUpId && res?.data?.sessionId) {
         await createPrintJobDirectly(res.data.setUpId, res.data.sessionId, testPrintCopies, testPrintJobType);
       } else {
-        toast.info(`No printer configuration found for ${getJobTypeDisplayName(testPrintJobType)}. Using browser print.`);
+        toast.info(`No printer configuration found for ${getJobTypeLabel(testPrintJobType)}. Using browser print.`);
         openBrowserPrint(generatePrintContent(testPrintJobType, SAMPLE_PACKAGE), testPrintJobType, testPrintCopies);
         setTestPrintLoading(false);
         setTestPrintOpen(false);
@@ -522,7 +504,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
           <TabsList variant="line" className="w-full flex-nowrap justify-start overflow-x-auto">
             {Object.values(JOB_TYPES).map((jobType) => (
               <TabsTrigger key={jobType} value={jobType} className="flex-none">
-                {getTabLabel(jobType)}
+                {getJobTypeTabLabel(jobType)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -624,7 +606,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
       <Dialog open={testPrintOpen} onOpenChange={(v) => (v ? setTestPrintOpen(true) : closeTestPrint())}>
         <DialogContent className="z-60 sm:max-w-125">
           <DialogHeader>
-            <DialogTitle>Test Print — {getJobTypeDisplayName(testPrintJobType)}</DialogTitle>
+            <DialogTitle>Test Print — {getJobTypeLabel(testPrintJobType)}</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
@@ -655,7 +637,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
                 <li>2. If hardware printer found, will attempt hardware print</li>
                 <li>3. If no printer or hardware print fails, will open browser print dialog</li>
                 <li>
-                  4. Browser print will show formatted {getJobTypeDisplayName(testPrintJobType).toLowerCase()} ready
+                  4. Browser print will show formatted {getJobTypeLabel(testPrintJobType).toLowerCase()} ready
                   for printing
                 </li>
               </ol>
