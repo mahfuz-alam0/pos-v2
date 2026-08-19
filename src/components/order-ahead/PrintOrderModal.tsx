@@ -13,44 +13,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import OrderPrintContent from "./OrderPrintContent";
+import PrintPreviewModal from "@/components/pos/PrintPreviewModal";
 import { useShop } from "@/context/shop-context";
+import { isTauriDesktop } from "@/lib/update-check";
 import {
   dispatchPrintJob,
   resolvePrintReadiness,
   type PrintReadiness,
 } from "@/services/printClients/dispatchPrintJob";
+import { printPdfInBrowser, renderNodeToImage } from "@/services/printClients/renderNodeToPdf";
 
 const RECEIPT_OPTION = { value: "RECEIPT", label: "Receipt" };
 const PULL_SHEET_OPTION = { value: "PRE_ORDER_FULFILLMENT_PULL_SHEET", label: "Pre-Order Fulfillment Pull Sheet" };
-
-// Print a specific DOM node via the browser — same isolation technique as
-// PrintReceiptModal's printNode / PrintLabelModal's printNode.
-function printNode(node) {
-  if (!node) return;
-  const styleId = "order-ahead-print-styles";
-  document.getElementById(styleId)?.remove();
-  const style = document.createElement("style");
-  style.id = styleId;
-  style.innerHTML = `
-    @media print {
-      /* Without an explicit page size, the browser falls back to whatever
-         paper/PDF default is configured — often wider or narrower than the
-         80mm receipt width below, clipping every right-aligned line at the
-         same spot and leaving the unused remainder as blank margin. */
-      @page { size: 80mm auto; margin: 3mm; }
-      body * { visibility: hidden !important; }
-      #order-ahead-print-area, #order-ahead-print-area * { visibility: visible !important; }
-      #order-ahead-print-area {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 74mm !important;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-  window.print();
-}
 
 /**
  * Print modal for an order-ahead order — Receipt or Pre-Order Fulfillment
@@ -71,6 +45,8 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
   const [copies, setCopies] = useState("1");
   const [printing, setPrinting] = useState(false);
   const [printerReady, setPrinterReady] = useState<PrintReadiness | null>(null); // null = unknown, checked once resolved
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) setPrintType(printTypeOptions[0].value);
@@ -88,7 +64,29 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
   if (!item) return null;
 
   const printInBrowser = () => {
-    printNode(contentRef.current);
+    if (!contentRef.current) return;
+    printPdfInBrowser(contentRef.current).catch(() => toast.error("Failed to generate PDF"));
+  };
+
+  // "Check Label" — on the web this opens the browser's own print-preview
+  // popup (printInBrowser). The Tauri desktop webview has no such popup, so
+  // there it opens an in-app preview modal showing the same rendered
+  // content instead.
+  const handleCheckLabel = async () => {
+    if (!contentRef.current) return;
+    if (!isTauriDesktop()) {
+      printInBrowser();
+      return;
+    }
+    setPreviewImage(null);
+    setPreviewOpen(true);
+    try {
+      const { dataUrl } = await renderNodeToImage(contentRef.current);
+      setPreviewImage(dataUrl);
+    } catch {
+      toast.error("Failed to generate preview");
+      setPreviewOpen(false);
+    }
   };
 
   const handlePrint = async () => {
@@ -203,7 +201,7 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={printInBrowser}>
+            <Button variant="outline" onClick={handleCheckLabel}>
               Check Label
             </Button>
             <Button disabled={printing} onClick={handlePrint}>
@@ -212,6 +210,13 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PrintPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        imageUrl={previewImage}
+        title="Print Preview"
+      />
     </>
   );
 }

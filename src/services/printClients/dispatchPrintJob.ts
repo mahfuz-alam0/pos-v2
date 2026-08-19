@@ -3,7 +3,7 @@ import { connectToSocket } from "@/lib/socket";
 import { getUserPrintPreference, createPrintJob } from "./printClients";
 import { getConnectedUserPrintPreference, type ConnectedPrintJobType } from "./connectedUserPrintPreference";
 import { renderNodeToPdf } from "./renderNodeToPdf";
-import { printPdfToLocalPrinter } from "./localPrinters";
+import { getLocalPrinterMedia, printPdfToLocalPrinter } from "./localPrinters";
 
 // Single place that knows how a print job actually gets to paper, shared by
 // every print modal (PrintLabelModal, PrintOrderModal, ...) instead of each
@@ -94,7 +94,12 @@ export async function dispatchPrintJob({
   if (readiness.via === "local" && readiness.localDeviceName) {
     try {
       if (!node) throw new Error("Nothing to print");
-      const { bytes, widthMm, heightMm } = await renderNodeToPdf(node);
+      // Lay the label out on the stock the queue is actually loaded with, not
+      // on a page cut down to the artwork — see renderNodeToPdf/getLocalPrinterMedia.
+      // A queue whose size can't be read resolves to null and keeps the
+      // artwork-sized page.
+      const stock = await getLocalPrinterMedia(readiness.localDeviceName).catch(() => null);
+      const { bytes, widthMm, heightMm } = await renderNodeToPdf(node, stock);
       await printPdfToLocalPrinter({
         printerName: readiness.localDeviceName,
         pdfBytes: bytes,

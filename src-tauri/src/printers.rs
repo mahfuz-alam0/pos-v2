@@ -69,6 +69,79 @@ fn cups_list_printers() -> Result<Vec<LocalPrinter>, String> {
   Ok(printers)
 }
 
+#[derive(serde::Serialize, Clone)]
+pub struct PrinterMedia {
+  /// The queue's own name for the size, e.g. "w4h6" — passed straight back to
+  /// `lp -o media=` so the driver uses its own preset rather than a custom size.
+  media_name: String,
+  width_mm: f64,
+  height_mm: f64,
+}
+
+/// The page size this queue will physically print on — i.e. the label stock
+/// actually loaded, as configured on the queue.
+///
+/// This exists because a label printer is not a sheet printer: the page size
+/// is not just a layout hint, it reprograms the hardware. The TSPL driver for
+/// these Xprinter queues turns the job's media into a literal `SIZE w mm, h mm`
+/// command, which is what the gap sensor uses to find the start of the next
+/// label. Sizing a job to the artwork instead of the stock (a 76x41mm label on
+/// 4x6in stock) emits `SIZE 76.2 mm, 40.9 mm` and the printer then advances by
+/// 41mm on 152mm stock — it prints one short window and loses registration.
+///
+/// So the artwork must be placed on a page the size of the stock instead, which
+/// is exactly what a browser does when it prints the same PDF at 100% scale
+/// onto "4 x 6 in" paper. renderNodeToPdf.ts uses this to build that page.
+#[tauri::command]
+pub fn get_local_printer_media(printer_name: String) -> Result<Option<PrinterMedia>, String> {
+  Ok(default_media(&printer_name))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn default_media(printer_name: &str) -> Option<PrinterMedia> {
+  const PT_TO_MM: f64 = 25.4 / 72.0;
+
+  // Queue names come from list_local_printers, but this still builds a path
+  // from one, so keep anything that could climb out of the ppd directory out.
+  if printer_name.is_empty() || printer_name.contains('/') || printer_name.contains("..") {
+    return None;
+  }
+  let ppd = std::fs::read_to_string(format!("/etc/cups/ppd/{printer_name}.ppd")).ok()?;
+
+  // "*DefaultPageSize: w4h6"
+  let name = ppd
+    .lines()
+    .find_map(|line| line.strip_prefix("*DefaultPageSize:"))?
+    .trim()
+    .to_string();
+
+  // "*PaperDimension w4h6/4 x 6 (4.00 in x 6.00 in): \"288 432\"" — points.
+  let (width_pt, height_pt) = ppd.lines().find_map(|line| {
+    let (key, value) = line.strip_prefix("*PaperDimension ")?.split_once(':')?;
+    if key.split('/').next()?.trim() != name {
+      return None;
+    }
+    let mut dims = value.trim().trim_matches('"').split_whitespace();
+    let width = dims.next()?.parse::<f64>().ok()?;
+    let height = dims.next()?.parse::<f64>().ok()?;
+    Some((width, height))
+  })?;
+
+  Some(PrinterMedia {
+    media_name: name,
+    width_mm: width_pt * PT_TO_MM,
+    height_mm: height_pt * PT_TO_MM,
+  })
+}
+
+// Windows has no PPD to read and PrintTo takes no page size anyway (see
+// send_to_printer below), so callers get None and fall back to sizing the page
+// to the artwork.
+#[cfg(target_os = "windows")]
+fn default_media(_printer_name: &str) -> Option<PrinterMedia> {
+  None
+}
+
 /// Silently prints an already-rendered PDF to a named local printer — the
 /// Tauri-side counterpart to Electron's `webContents.print({ silent: true,
 /// deviceName })` used by the sibling desktop-point-on-sell app's
@@ -118,19 +191,38 @@ fn send_to_printer(
   height_mm: f64,
   copies: u32,
 ) -> Result<(), String> {
-  // Custom media in mm pins CUPS to the PDF's own page size instead of
-  // whatever the queue's default media happens to be (Letter/A4), which
-  // would otherwise crop or rescale a small label/receipt page. Zeroing the
-  // page-* margins is required too: most PPDs fall back to a generic
-  // imageable-area inset (often asymmetric on label/thermal drivers) for a
-  // custom size they don't have an exact preset for, which otherwise shoves
-  // the whole label toward one edge of the physical stock instead of
-  // printing it flush from the top-left corner the PDF itself was built at.
-  let media = format!(
-    "Custom.{}x{}mm",
-    width_mm.max(1.0).round() as i64,
-    height_mm.max(1.0).round() as i64
-  );
+  // The PDF (see renderNodeToPdf.ts) is one page drawn at 0,0 with no margin,
+  // so all CUPS has to do is print it 1:1 on media of the same size.
+  //
+  // Prefer the queue's own named media whenever the page already matches the
+  // loaded stock, because on a label printer the media is not a layout hint —
+  // the TSPL driver turns it into a literal `SIZE w mm, h mm` that reprograms
+  // the gap sensor. A named preset emits the stock's real dimensions; a custom
+  // size equal to the artwork emits the artwork's, and the printer then feeds
+  // by the artwork height instead of the label pitch and loses registration
+  // after the first short window. Custom is still the right answer when the
+  // page genuinely isn't the stock size (roll/continuous media, or no PPD to
+  // read), so it stays as the fallback.
+  //
+  // The `media=` prefix is load-bearing either way. `-o Custom.76x32mm` is not
+  // a page-size request at all: cupsParseOptions() reads a bare `-o name` as
+  // the boolean `name=true`, so jobs went out carrying a meaningless
+  // `Custom.76x32mm=true` and no media attribute whatsoever, leaving whatever
+  // the queue defaulted to in force. Millimetre fractions matter too — rounding
+  // to whole mm shaves up to 0.5mm off an axis and clips the edge of artwork
+  // rendered to fill its page. CUPS parses custom sizes with %f.
+  let media = match default_media(printer_name) {
+    Some(stock)
+      if (stock.width_mm - width_mm).abs() < 1.0 && (stock.height_mm - height_mm).abs() < 1.0 =>
+    {
+      format!("media={}", stock.media_name)
+    }
+    _ => format!(
+      "media=Custom.{:.2}x{:.2}mm",
+      width_mm.max(1.0),
+      height_mm.max(1.0)
+    ),
+  };
   let output = std::process::Command::new("lp")
     .args([
       "-d",
@@ -140,7 +232,7 @@ fn send_to_printer(
       "-o",
       &media,
       "-o",
-      "fit-to-page",
+      "print-scaling=none",
       "-o",
       "page-left=0",
       "-o",
@@ -149,8 +241,11 @@ fn send_to_printer(
       "page-top=0",
       "-o",
       "page-bottom=0",
+      // `position` is only read by the image filters (imagetopdf/imagetoraster),
+      // never by the PDF chain, so there is no top-left pin to be had here —
+      // matching the media size above is what actually places the page.
       "-o",
-      "position=top-left",
+      "orientation-requested=3",
     ])
     .arg(path)
     .output()
@@ -177,6 +272,14 @@ fn send_to_printer(
   // handler (Edge, out of the box on Win10/11) and asks it to print silently
   // to a specific printer — no dialog. Looped per copy since PrintTo has no
   // copy-count argument of its own.
+  //
+  // KNOWN GAP: PrintTo takes no page-size argument, so width_mm/height_mm go
+  // unused here and the handler falls back to the printer's default paper.
+  // That is the same mismatch the CUPS branch above fixes with `media=`, and
+  // it surfaces the same way — the label placed on an oversized sheet, with a
+  // wide margin down the left and the right edge running off. Closing it needs
+  // a path that can be driven with an explicit page size (a bundled PDF-print
+  // helper, or a custom form set on the queue), not PrintTo.
   let path_str = path.to_string_lossy().replace('"', "");
   let printer_escaped = printer_name.replace('"', "`\"");
   let script = format!(

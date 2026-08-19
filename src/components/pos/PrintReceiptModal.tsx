@@ -14,19 +14,28 @@ import Receipt from "@/components/pos/Receipt";
 import { connectToSocket } from "@/lib/socket";
 import { JOB_TYPES } from "@/hooks/usePrintClients";
 import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
+import { printPdfInBrowser } from "@/services/printClients/renderNodeToPdf";
+
+const PX_TO_MM = 25.4 / 96;
 
 // Print a specific DOM node via the browser, isolating it with a print-only
 // stylesheet — same visibility-toggle trick used in PrinterDeviceSetup's
 // printInCurrentWindow, so both hardware-print's fallback and the plain
-// "Print Invoice (Web)" button behave identically.
+// "Print Invoice (Web)" button behave identically. Without an explicit
+// @page size the browser falls back to the system default (Letter/A4)
+// instead of the receipt's own roll width, so size the page to the node's
+// own rendered footprint (same PX_TO_MM measurement renderNodeToPdf.ts uses
+// for the local-hardware path).
 export function printNode(node) {
   if (!node) return;
+  const widthMm = Math.max(1, node.getBoundingClientRect().width * PX_TO_MM);
   const styleId = "pos-receipt-print-styles";
   document.getElementById(styleId)?.remove();
   const style = document.createElement("style");
   style.id = styleId;
   style.innerHTML = `
     @media print {
+      @page { size: ${widthMm}mm auto; margin: 0; }
       body * { visibility: hidden; }
       #pos-receipt-print-area, #pos-receipt-print-area * { visibility: visible; }
       /* !important: the print area's inline style (position:fixed;left:-9999px,
@@ -35,6 +44,7 @@ export function printNode(node) {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
+        width: ${widthMm}mm !important;
       }
     }
   `;
@@ -102,7 +112,8 @@ export default function PrintReceiptModal({
   };
 
   const printInBrowser = () => {
-    printNode(receiptRef.current);
+    if (!receiptRef.current) return;
+    printPdfInBrowser(receiptRef.current).catch(() => toast.error("Failed to generate receipt PDF"));
     handlePrint?.();
   };
 

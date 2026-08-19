@@ -14,37 +14,21 @@ import {
 } from "@/components/ui/dialog";
 import PackageLabel from "@/components/pos/PackageLabel";
 import CustomPackageLabelModal from "@/components/pos/CustomPackageLabelModal";
+import PrintPreviewModal from "@/components/pos/PrintPreviewModal";
 import { fetchSinglePackage } from "@/services/packages/getSingle";
 import { fetchSingleProduct } from "@/services/products/getSingle";
+import { isTauriDesktop } from "@/lib/update-check";
 import {
   dispatchPrintJob,
   resolvePrintReadiness,
   type PrintReadiness,
 } from "@/services/printClients/dispatchPrintJob";
+import { printPdfInBrowser, renderNodeToImage } from "@/services/printClients/renderNodeToPdf";
 
 const LABEL_TYPES = [
   { value: "EXIT_LABEL", label: "Exit Label" },
   { value: "PACKAGE_LABEL", label: "Package Label" },
 ];
-
-// Print a specific DOM node via the browser — same isolation technique as
-// PrintReceiptModal's printNode.
-function printNode(node) {
-  if (!node) return;
-  const styleId = "pos-label-print-styles";
-  document.getElementById(styleId)?.remove();
-  const style = document.createElement("style");
-  style.id = styleId;
-  style.innerHTML = `
-    @media print {
-      body * { visibility: hidden; }
-      #pos-label-print-area, #pos-label-print-area * { visibility: visible; }
-      #pos-label-print-area { position: absolute !important; left: 0 !important; top: 0 !important; }
-    }
-  `;
-  document.head.appendChild(style);
-  window.print();
-}
 
 /**
  * Print Label modal for a single cart line's package — Exit Label / Package
@@ -63,12 +47,28 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
   const [productData, setProductData] = useState(null);
   const [printerReady, setPrinterReady] = useState<PrintReadiness | null>(null); // null = unknown, checked once resolved
   const [customLabelOpen, setCustomLabelOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !packageId) return;
     setLoading(true);
     setPackageData(null);
     setProductData(null);
+
+    // A stalled request (e.g. a cross-origin hang on the web build, which
+    // doesn't go through the same-origin /proxy rewrite the desktop app
+    // uses — see api.ts) would otherwise leave `loading` true forever,
+    // permanently disabling "Check Label"/Print with no way to fall back
+    // to a normal browser print. Bound it so the modal always recovers.
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      setLoading(false);
+      toast.error("Timed out fetching package details");
+    }, 10000);
+
     fetchSinglePackage(shopId, { id: packageId })
       .then((res) => {
         const pkg = res?.data?.data?.package;
@@ -80,7 +80,12 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
         }
       })
       .catch(() => toast.error("Failed to fetch package details"))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timeoutId);
+        if (settled) return;
+        settled = true;
+        setLoading(false);
+      });
   }, [open, packageId, shopId]);
 
   const checkLabel = () => {
@@ -96,7 +101,29 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
   }, [labelType, open]);
 
   const printInBrowser = () => {
-    printNode(labelRef.current);
+    if (!labelRef.current) return;
+    printPdfInBrowser(labelRef.current).catch(() => toast.error("Failed to generate label PDF"));
+  };
+
+  // "Check Label" — on the web this opens the browser's own print-preview
+  // popup (printInBrowser). The Tauri desktop webview has no such popup, so
+  // there it opens an in-app preview modal showing the same rendered
+  // label instead.
+  const handleCheckLabel = async () => {
+    if (!labelRef.current) return;
+    if (!isTauriDesktop()) {
+      printInBrowser();
+      return;
+    }
+    setPreviewImage(null);
+    setPreviewOpen(true);
+    try {
+      const { dataUrl } = await renderNodeToImage(labelRef.current);
+      setPreviewImage(dataUrl);
+    } catch {
+      toast.error("Failed to generate label preview");
+      setPreviewOpen(false);
+    }
   };
 
   const handlePrint = async () => {
@@ -206,7 +233,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
                 Custom Label
               </Button>
             )}
-            <Button variant="outline" onClick={printInBrowser} disabled={loading}>
+            <Button variant="outline" onClick={handleCheckLabel} disabled={loading}>
               Check Label
             </Button>
             <Button disabled={loading || printing} onClick={handlePrint}>
@@ -221,6 +248,13 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
         onClose={() => setCustomLabelOpen(false)}
         packageData={packageData}
         productData={productData}
+      />
+
+      <PrintPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        imageUrl={previewImage}
+        title="Label Preview"
       />
     </>
   );

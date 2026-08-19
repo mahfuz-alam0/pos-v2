@@ -7,7 +7,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
-use printers::{list_local_printers, print_pdf_to_local_printer};
+use printers::{get_local_printer_media, list_local_printers, print_pdf_to_local_printer};
 use server::{port_in_use, wait_for_server, SERVER_PORT};
 use window::{set_window_title, DEVTOOLS_SHORTCUT_SCRIPT, TITLE_SYNC_SCRIPT};
 #[cfg(debug_assertions)]
@@ -24,12 +24,14 @@ pub fn run() {
     toggle_devtools,
     set_window_title,
     list_local_printers,
+    get_local_printer_media,
     print_pdf_to_local_printer
   ]);
   #[cfg(not(debug_assertions))]
   let builder = builder.invoke_handler(tauri::generate_handler![
     set_window_title,
     list_local_printers,
+    get_local_printer_media,
     print_pdf_to_local_printer
   ]);
 
