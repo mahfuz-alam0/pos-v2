@@ -532,7 +532,7 @@ export default function PdfExportDrawer({
             <iframe ref={iframeRef} title="PDF Preview" className="h-full w-full border-0" />
           </div>
 
-          <div className="w-[380px] shrink-0 overflow-y-auto bg-background p-6 shadow-[inset_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]">
+          <div className="w-95 shrink-0 overflow-y-auto bg-background p-6 shadow-[inset_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]">
             <h3 className="mb-6 text-base font-semibold">Export Settings</h3>
 
             <div className="mb-6">
