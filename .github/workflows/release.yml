@@ -66,22 +66,25 @@ jobs:
       matrix:
         include:
           # Apple Silicon
+          # dmg wraps the .app as an intermediate step regardless, so omitting
+          # the "app" target just skips publishing the raw .app.tar.gz.
           - platform: macos-latest
             target: aarch64-apple-darwin
-            args: --target aarch64-apple-darwin --bundles dmg,app
+            args: --target aarch64-apple-darwin --bundles dmg
           # Intel Mac
           - platform: macos-latest
             target: x86_64-apple-darwin
-            args: --target x86_64-apple-darwin --bundles dmg,app
+            args: --target x86_64-apple-darwin --bundles dmg
           # AppImage is omitted: linuxdeploy fails to bundle the `server` resource
           # directory (a bun sidecar + Next.js standalone tree, not an ELF it can
           # trace). deb + rpm cover Linux.
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             args: --bundles deb,rpm
+          # msi only — nsis (.exe) is redundant with it.
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
-            args: --bundles nsis,msi
+            args: --bundles msi
 
     runs-on: ${{ matrix.platform }}
 
