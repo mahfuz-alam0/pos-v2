@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useShop } from "@/context/shop-context";
-import { useSettings } from "@/context/settings-context";
 import { isTauriDesktop } from "@/lib/update-check";
 import { listLocalPrinters, type LocalPrinter } from "@/services/printClients/localPrinters";
 import {
@@ -13,6 +12,7 @@ import {
   type ConnectedDeviceProps,
   type ConnectedPrintJobType,
 } from "@/services/printClients/connectedUserPrintPreference";
+import { deleteUserPrintPreference } from "@/services/printClients/printClients";
 import { JOB_TYPES, getJobTypeLabel, getJobTypeTabLabel } from "@/hooks/usePrintClients";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,10 +40,8 @@ function isSavedPreference(preference: ConnectedDeviceProps | null | undefined, 
 // one and saving writes its deviceProps directly to
 // /connected-user-print-preference, distinct from the /user-print-preference
 // endpoints the Remote tab uses.
-export default function LocalDeviceManager() {
+export default function LocalDeviceManager({ onSelect }: { onSelect?: (selection: { jobType: string; deviceName: string }) => void }) {
   const { shopId } = useShop();
-  const { printType, setPrintType } = useSettings();
-  const active = printType !== "hardware";
   const isDesktop = isTauriDesktop();
 
   const [activeJobType, setActiveJobType] = useState<string>(JOB_TYPES.PACKAGE_LABEL);
@@ -131,6 +129,19 @@ export default function LocalDeviceManager() {
       await setConnectedUserPrintPreference({ shopId, jobType: activeJobType as ConnectedPrintJobType, deviceProps });
       setPreferences((prev) => ({ ...prev, [activeJobType]: deviceProps }));
       toast.success(`${printerName} set as default for ${getJobTypeLabel(activeJobType)}`);
+
+      // Local and Remote are mutually exclusive per job type — a type can be
+      // dispatched to only one place (see dispatchPrintJob.ts, which always
+      // prefers Local when set). Clearing the Remote preference here keeps
+      // the Remote tab from silently showing a preference that will never
+      // actually be used. Best-effort: there may be nothing to delete.
+      try {
+        await deleteUserPrintPreference(shopId, activeJobType);
+      } catch {
+        // No remote preference existed for this job type — nothing to clean up.
+      }
+
+      onSelect?.({ jobType: activeJobType, deviceName: printerName });
     } catch (err) {
       toast.error(err?.message || "Failed to save printer preference");
     } finally {
@@ -153,18 +164,6 @@ export default function LocalDeviceManager() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-        <span className="flex items-center gap-2 text-sm text-text">
-          <span className={`size-2.5 shrink-0 rounded-full ${active ? "bg-green-500" : "bg-muted-foreground/40"}`} />
-          {active ? "Active — this device is the print target" : "Not active"}
-        </span>
-        {!active && (
-          <Button size="sm" variant="outline" onClick={() => setPrintType("browser")}>
-            Use This Device
-          </Button>
-        )}
-      </div>
-
       {!isDesktop ? (
         <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
           <p>Local printers can only be listed from the desktop app.</p>

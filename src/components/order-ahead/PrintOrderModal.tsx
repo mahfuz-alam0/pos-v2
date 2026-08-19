@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import OrderPrintContent from "./OrderPrintContent";
 import { useShop } from "@/context/shop-context";
-import { connectToSocket } from "@/lib/socket";
-import { JOB_TYPES } from "@/hooks/usePrintClients";
-import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
+import {
+  dispatchPrintJob,
+  resolvePrintReadiness,
+  type PrintReadiness,
+} from "@/services/printClients/dispatchPrintJob";
 
 const RECEIPT_OPTION = { value: "RECEIPT", label: "Receipt" };
 const PULL_SHEET_OPTION = { value: "PRE_ORDER_FULFILLMENT_PULL_SHEET", label: "Pre-Order Fulfillment Pull Sheet" };
@@ -68,7 +70,7 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
   const [printType, setPrintType] = useState(printTypeOptions[0].value);
   const [copies, setCopies] = useState("1");
   const [printing, setPrinting] = useState(false);
-  const [printerReady, setPrinterReady] = useState(null); // null = unknown, true/false once checked
+  const [printerReady, setPrinterReady] = useState<PrintReadiness | null>(null); // null = unknown, checked once resolved
 
   useEffect(() => {
     if (open) setPrintType(printTypeOptions[0].value);
@@ -78,9 +80,9 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
   useEffect(() => {
     setPrinterReady(null);
     if (!open || !shopId) return;
-    getUserPrintPreference(shopId, printType)
-      .then((pref) => setPrinterReady(Boolean(pref?.success && pref?.data?.setUpId)))
-      .catch(() => setPrinterReady(false));
+    resolvePrintReadiness(shopId, printType)
+      .then(setPrinterReady)
+      .catch(() => setPrinterReady({ ready: false, via: null }));
   }, [open, shopId, printType]);
 
   if (!item) return null;
@@ -93,50 +95,33 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
     const numOfCopies = Math.max(1, parseInt(copies, 10) || 1);
     setPrinting(true);
     try {
-      const pref = shopId ? await getUserPrintPreference(shopId, printType) : null;
-      if (!pref?.success || !pref?.data?.setUpId) {
-        toast.info("No printer configured. Using browser print.");
-        printInBrowser();
-        return;
-      }
-
-      const socket = connectToSocket({
-        url: `${process.env.NEXT_PUBLIC_BASE_URL}/hclient-web-facing`,
-        shopId,
-      });
-      const requestId = Math.random().toString(36).slice(2);
-      const html = `<html><body>${contentRef.current?.innerHTML || ""}</body></html>`;
-
-      const ackPromise = new Promise((resolve) => {
-        const timeoutId = setTimeout(() => resolve(false), 8000);
-        socket?.on("printJobPicked", (data) => {
-          if (data?.requestId !== requestId) return;
-          clearTimeout(timeoutId);
-          resolve(true);
-        });
-      });
-
-      await createPrintJob({
+      const result = await dispatchPrintJob({
         shopId,
         jobType: printType,
-        sessionId: pref.data.sessionId,
+        node: contentRef.current,
         numOfCopies,
-        setUpId: pref.data.setUpId,
-        requestId,
-        html,
-        isTest: false,
       });
 
-      const acked = await ackPromise;
-      socket?.disconnect();
-
-      if (!acked) {
-        toast.warning("Print client did not respond. Using browser print.");
-        printInBrowser();
-        return;
+      switch (result.status) {
+        case "local-success":
+        case "remote-success":
+          toast.success("Sent to printer");
+          onClose?.();
+          break;
+        case "no-preference":
+          toast.info("No printer configured. Using browser print.");
+          printInBrowser();
+          break;
+        case "remote-not-acked":
+          toast.warning("Print client did not respond. Using browser print.");
+          printInBrowser();
+          break;
+        case "local-failed":
+        case "remote-failed":
+          toast.error((result.error as any)?.message || "Failed to print on hardware. Using browser print.");
+          printInBrowser();
+          break;
       }
-      toast.success("Sent to printer");
-      onClose?.();
     } catch (err: any) {
       toast.error(err?.message || "Failed to print on hardware. Using browser print.");
       printInBrowser();
@@ -204,8 +189,10 @@ export default function PrintOrderModal({ open, onClose, type, item }) {
               Current Template: <strong>{printTypeOptions.find((t) => t.value === printType)?.label}</strong>{" "}
               {printerReady === null ? (
                 "…"
-              ) : printerReady ? (
-                <span className="font-medium text-green-600">✓ Ready</span>
+              ) : printerReady.ready ? (
+                <span className="font-medium text-green-600">
+                  ✓ Ready {printerReady.via === "local" ? "(Local Printer)" : "(Remote)"}
+                </span>
               ) : (
                 <span className="font-medium text-amber-600">No printer configured — will use browser print</span>
               )}

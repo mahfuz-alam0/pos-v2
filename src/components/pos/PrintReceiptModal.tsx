@@ -186,9 +186,9 @@ export default function PrintReceiptModal({
         />
       </div>
 
-      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-10000 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-        <div className="relative z-[1] w-full max-w-md rounded-xl bg-card p-5 shadow-2xl">
+        <div className="relative z-1 w-full max-w-md rounded-xl bg-card p-5 shadow-2xl">
         <div className="flex w-full flex-col gap-3">
           {changeAmount > 0 && (
             <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-center dark:border-green-800 dark:bg-green-950">
@@ -204,7 +204,7 @@ export default function PrintReceiptModal({
           <Button
             onClick={printOnHardware}
             disabled={hardwarePrinting}
-            className="!py-6 text-2xl"
+            className="py-6! text-2xl"
             style={{ backgroundColor: "#E9A23B", color: "white" }}
           >
             {hardwarePrinting ? "Printing…" : "Print Invoice"}
@@ -212,7 +212,7 @@ export default function PrintReceiptModal({
 
           <Button
             onClick={printInBrowser}
-            className="!py-6 text-2xl"
+            className="py-6! text-2xl"
             style={{ backgroundColor: "#5C6BC0", color: "white" }}
           >
             Print Invoice (Web)
@@ -222,7 +222,7 @@ export default function PrintReceiptModal({
             !createOrderRes?.isAutomatedReportingEnabled && (
               <Button
                 onClick={() => reportToMetric?.(createOrderRes?.saleId)}
-                className="!py-6 text-2xl"
+                className="py-6! text-2xl"
                 style={{ backgroundColor: "#E76F51", color: "white" }}
               >
                 Update on Metrc
@@ -236,7 +236,7 @@ export default function PrintReceiptModal({
                   "The receipt has been successfully sent to the customer"
                 )
               }
-              className="!py-6 text-2xl"
+              className="py-6! text-2xl"
               style={{ backgroundColor: "#2196F3", color: "white" }}
             >
               Email Receipt
@@ -245,7 +245,7 @@ export default function PrintReceiptModal({
 
           <Button
             onClick={handleNewOrder}
-            className="!py-6 text-2xl"
+            className="py-6! text-2xl"
             style={{ background: "#2A9D8F", color: "#fff" }}
           >
             New Order

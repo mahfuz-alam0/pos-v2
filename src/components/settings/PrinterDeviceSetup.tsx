@@ -12,6 +12,10 @@ import {
   createPrintJob,
 } from "@/services/printClients/printClients";
 import {
+  deleteConnectedUserPrintPreference,
+  type ConnectedPrintJobType,
+} from "@/services/printClients/connectedUserPrintPreference";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -375,6 +379,18 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
         ...prev,
         [activeJobType]: { setupId: printerObj._id, sessionId: printerObj.sessionId, name: printerObj.name },
       }));
+
+      // Local and Remote are mutually exclusive per job type (see
+      // dispatchPrintJob.ts, which always prefers Local when set) — clear any
+      // Local preference for this job type so the Local tab doesn't keep
+      // showing a printer that will never actually be used. Best-effort:
+      // there may be nothing to delete.
+      try {
+        await deleteConnectedUserPrintPreference(shopId, activeJobType as ConnectedPrintJobType);
+      } catch {
+        // No local preference existed for this job type — nothing to clean up.
+      }
+
       onSelect?.({ jobType: activeJobType, printer: printerObj });
     } catch (err) {
       console.error(err);

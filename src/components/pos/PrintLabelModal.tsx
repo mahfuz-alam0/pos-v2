@@ -16,9 +16,11 @@ import PackageLabel from "@/components/pos/PackageLabel";
 import CustomPackageLabelModal from "@/components/pos/CustomPackageLabelModal";
 import { fetchSinglePackage } from "@/services/packages/getSingle";
 import { fetchSingleProduct } from "@/services/products/getSingle";
-import { connectToSocket } from "@/lib/socket";
-import { JOB_TYPES } from "@/hooks/usePrintClients";
-import { getUserPrintPreference, createPrintJob } from "@/services/printClients/printClients";
+import {
+  dispatchPrintJob,
+  resolvePrintReadiness,
+  type PrintReadiness,
+} from "@/services/printClients/dispatchPrintJob";
 
 const LABEL_TYPES = [
   { value: "EXIT_LABEL", label: "Exit Label" },
@@ -59,7 +61,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
   const [printing, setPrinting] = useState(false);
   const [packageData, setPackageData] = useState(null);
   const [productData, setProductData] = useState(null);
-  const [printerReady, setPrinterReady] = useState(null); // null = unknown, true/false once checked
+  const [printerReady, setPrinterReady] = useState<PrintReadiness | null>(null); // null = unknown, checked once resolved
   const [customLabelOpen, setCustomLabelOpen] = useState(false);
 
   useEffect(() => {
@@ -82,13 +84,9 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
   }, [open, packageId, shopId]);
 
   const checkLabel = () => {
-    if (!shopId) {
-      setPrinterReady(false);
-      return;
-    }
-    getUserPrintPreference(shopId, labelType)
-      .then((pref) => setPrinterReady(Boolean(pref?.success && pref?.data?.setUpId)))
-      .catch(() => setPrinterReady(false));
+    resolvePrintReadiness(shopId, labelType)
+      .then(setPrinterReady)
+      .catch(() => setPrinterReady({ ready: false, via: null }));
   };
 
   useEffect(() => {
@@ -105,50 +103,33 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
     const numOfCopies = Math.max(1, parseInt(copies, 10) || 1);
     setPrinting(true);
     try {
-      const pref = shopId ? await getUserPrintPreference(shopId, labelType) : null;
-      if (!pref?.success || !pref?.data?.setUpId) {
-        toast.info("No printer configured. Using browser print.");
-        printInBrowser();
-        return;
-      }
-
-      const socket = connectToSocket({
-        url: `${process.env.NEXT_PUBLIC_BASE_URL}/hclient-web-facing`,
-        shopId,
-      });
-      const requestId = Math.random().toString(36).slice(2);
-      const html = `<html><body>${labelRef.current?.innerHTML || ""}</body></html>`;
-
-      const ackPromise = new Promise((resolve) => {
-        const timeoutId = setTimeout(() => resolve(false), 8000);
-        socket?.on("printJobPicked", (data) => {
-          if (data?.requestId !== requestId) return;
-          clearTimeout(timeoutId);
-          resolve(true);
-        });
-      });
-
-      await createPrintJob({
+      const result = await dispatchPrintJob({
         shopId,
         jobType: labelType,
-        sessionId: pref.data.sessionId,
+        node: labelRef.current,
         numOfCopies,
-        setUpId: pref.data.setUpId,
-        requestId,
-        html,
-        isTest: false,
       });
 
-      const acked = await ackPromise;
-      socket?.disconnect();
-
-      if (!acked) {
-        toast.warning("Print client did not respond. Using browser print.");
-        printInBrowser();
-        return;
+      switch (result.status) {
+        case "local-success":
+        case "remote-success":
+          toast.success("Label sent to printer");
+          onClose?.();
+          break;
+        case "no-preference":
+          toast.info("No printer configured. Using browser print.");
+          printInBrowser();
+          break;
+        case "remote-not-acked":
+          toast.warning("Print client did not respond. Using browser print.");
+          printInBrowser();
+          break;
+        case "local-failed":
+        case "remote-failed":
+          toast.error((result.error as any)?.message || "Failed to print on hardware. Using browser print.");
+          printInBrowser();
+          break;
       }
-      toast.success("Label sent to printer");
-      onClose?.();
     } catch (err: any) {
       toast.error(err?.message || "Failed to print on hardware. Using browser print.");
       printInBrowser();
@@ -168,7 +149,7 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
         )}
 
       <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Print Label</DialogTitle>
           </DialogHeader>
@@ -206,8 +187,10 @@ export default function PrintLabelModal({ open, onClose, packageId, shopId }) {
               Current Template: <strong>{LABEL_TYPES.find((t) => t.value === labelType)?.label}</strong>{" "}
               {printerReady === null ? (
                 "…"
-              ) : printerReady ? (
-                <span className="font-medium text-green-600">✓ Ready</span>
+              ) : printerReady.ready ? (
+                <span className="font-medium text-green-600">
+                  ✓ Ready {printerReady.via === "local" ? "(Local Printer)" : "(Remote)"}
+                </span>
               ) : (
                 <span className="font-medium text-amber-600">No printer configured — will use browser print</span>
               )}

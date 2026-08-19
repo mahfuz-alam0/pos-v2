@@ -53,7 +53,7 @@ export default function PrinterSetupDrawer({ open, onClose, onSelect }) {
           </TabsList>
 
           <TabsContent value="local" className="min-h-0 flex-1 overflow-y-auto py-3">
-            <LocalDeviceManager />
+            <LocalDeviceManager onSelect={onSelect} />
           </TabsContent>
 
           <TabsContent value="remote" className="flex min-h-0 flex-1 flex-col py-3">
