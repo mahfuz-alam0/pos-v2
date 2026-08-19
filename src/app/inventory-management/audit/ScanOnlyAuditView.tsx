@@ -164,7 +164,6 @@ export default function ScanOnlyAuditView({
         countedPackagesLoading={countedPackagesLoading}
         countedPackageCount={countedPackageCount}
         onFilterCountedToggle={onFilterCountedToggle}
-        locationHintText="Please select a storage location to enable scanning."
         locationDisabled={packages.length > 0}
         locationDisabledReason="Clear the scanned packages first to change the storage location."
       />
