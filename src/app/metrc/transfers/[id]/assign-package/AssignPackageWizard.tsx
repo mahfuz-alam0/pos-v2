@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
 
 import { useShop } from "@/context/shop-context";
 import { fetchSingleMetrcTransfer } from "@/services/metrcTransfers/getSingle";
@@ -13,6 +14,7 @@ import { createPurchaseOrderFromMetrcTransfer } from "@/services/purchaseOrders/
 import { fetchSingleProduct } from "@/services/products/getSingle";
 import { listUoms } from "@/services/uoms/listUoms";
 import { fetchStorageLocations } from "@/services/storageLocations/list";
+import { fetchSinglePackage } from "@/services/packages/getSingle";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,34 +34,48 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+import EditPackageForm from "@/app/inventory-management/packages/edit/[packageid]/EditPackageForm";
+
 import AssignPackageDrawer from "./AssignPackageDrawer";
+import { packageFinancials, recommendedPrice } from "./financials";
 import type { PackageAssignment } from "./types";
 
 const PAYMENT_TERMS = ["Due on Receipt", "Net 15", "Net 30", "Net 45", "Net 60", "50% Upfront"];
 
-// Same as old assign-package.js's getEffectiveTotalCost — applies the bulk
-// discount tag on top of the untouched, original unitCost for display/margin
-// purposes only. unitCost itself is never mutated by the discount.
-function effectiveTotalCost(assignment: PackageAssignment) {
-  const raw = parseFloat(String(assignment.unitCost)) || 0;
-  const pct = assignment.discountPercent || 0;
-  return raw * (1 - pct / 100);
+function marginClass(margin: number | null) {
+  if (margin == null) return "text-muted-foreground";
+  if (margin > 0) return "text-green-700 dark:text-green-400";
+  if (margin < 0) return "text-red-600 dark:text-red-400";
+  return "text-muted-foreground";
 }
 
+const STEPS = [
+  { title: "Assign Products & Pricing", description: "Assign products and set pricing" },
+  { title: "Review & Complete", description: "Review and finalize" },
+];
+
 function StepIndicator({ step }: { step: 0 | 1 }) {
-  const steps = ["Assign Products & Pricing", "Review & Complete"];
   return (
-    <div className="mx-auto flex w-fit rounded-lg bg-muted p-0.5">
-      {steps.map((label, i) => (
-        <div
-          key={label}
-          className={`rounded-[7px] px-4 py-1.5 text-sm font-medium ${
-            i === step ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-          }`}
-        >
-          {i + 1}. {label}
-        </div>
-      ))}
+    <div className="rounded-xl p-6 ring-1 ring-foreground/10">
+      <div className="mx-auto flex max-w-3xl items-start">
+        {STEPS.map((s, i) => (
+          <Fragment key={s.title}>
+            {/* Connector sits at mt-4 to meet the middle of the size-8 circles. */}
+            {i > 0 && <div className="mt-4 h-px flex-1 bg-border" />}
+            <div className="flex w-44 shrink-0 flex-col items-center text-center">
+              <div
+                className={`flex size-8 items-center justify-center rounded-full text-sm font-semibold ${
+                  i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {i + 1}
+              </div>
+              <div className="mt-2 text-sm font-semibold">{s.title}</div>
+              <div className="text-xs text-muted-foreground">{s.description}</div>
+            </div>
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }
@@ -83,6 +99,8 @@ export default function AssignPackageWizard({ id }: { id: string }) {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState<any>(null);
+  const [editPackageId, setEditPackageId] = useState<string | null>(null);
+  const [editResolvingTag, setEditResolvingTag] = useState<string | null>(null);
 
   const [paymentTerms, setPaymentTerms] = useState<string | undefined>(undefined);
   const [expectedDate, setExpectedDate] = useState<Date | undefined>(undefined);
@@ -120,6 +138,31 @@ export default function AssignPackageWizard({ id }: { id: string }) {
     setSelectedPkg(pkg);
     setDrawerOpen(true);
   };
+
+  // Same resolve-by-tag approach as the transfer detail page: a transfer package
+  // only carries METRC identifiers, but the edit drawer needs the platform id.
+  const handleEditPackage = useCallback(
+    async (pkg: any) => {
+      setEditResolvingTag(pkg?.metrcTag ?? null);
+      try {
+        let platformPackageId: string | null = pkg?.packageId ?? null;
+        if (!platformPackageId) {
+          const res: any = await fetchSinglePackage(shopId as string, { metrcTag: pkg?.metrcTag });
+          platformPackageId = res?.data?.data?.package?.id ?? null;
+        }
+        if (!platformPackageId) {
+          toast.error("This package hasn't been imported into the POS yet.");
+          return;
+        }
+        setEditPackageId(platformPackageId);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to load package");
+      } finally {
+        setEditResolvingTag(null);
+      }
+    },
+    [shopId]
+  );
 
   const handleAssignmentSaved = (assignment: PackageAssignment) => {
     setAssignments((prev) => ({ ...prev, [assignment.metrcTag]: assignment }));
@@ -202,11 +245,10 @@ export default function AssignPackageWizard({ id }: { id: string }) {
 
       const productPriceRecommendations = groupedByProduct.map((group) => {
         const first = group.packages[0];
-        const unitPrice = first?.recommendedUnitPrice ?? 0;
         return {
           productId: group.productId,
-          price: parseFloat(String(unitPrice || 0)),
-          pricingTemplateId: null,
+          price: recommendedPrice(first),
+          pricingTemplateId: first?.pricingTemplateId ?? null,
           stockThreshold: first?.stockThreshold ? parseInt(String(first.stockThreshold)) : 0,
           preferredProductCategoryId: null,
           projectedQtyConversionRate: first?.enableProjectedQty
@@ -294,6 +336,17 @@ export default function AssignPackageWizard({ id }: { id: string }) {
       <Card className="p-4">
         {step === 0 ? (
           <div className="space-y-4">
+            <div className="flex gap-3 rounded-lg bg-blue-50 p-4 dark:bg-blue-950/30">
+              <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div>
+                <div className="font-semibold">Assign Products &amp; Configure Pricing</div>
+                <p className="mb-0 text-sm text-muted-foreground">
+                  Assign products from your catalog to packages in this transfer and configure pricing for each
+                  assigned product. Only eligible packages are shown.
+                </p>
+              </div>
+            </div>
+
             {eligibility && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-4">
                 <div className="flex items-center gap-2">
@@ -353,55 +406,111 @@ export default function AssignPackageWizard({ id }: { id: string }) {
                       key={pkg.metrcId}
                       className={`rounded-lg ring-2 ${isAssigned ? "ring-green-500" : "ring-foreground/10"}`}
                     >
-                      <div className="flex flex-wrap items-center gap-6 rounded-t-lg bg-muted/40 px-4 py-2">
-                        <span className="text-sm">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-t-lg bg-muted/40 px-4 py-2">
+                        <span className="min-w-0 flex-1 text-sm">
                           <span className="text-muted-foreground">Metrc Tag: </span>
                           <span className="font-mono font-semibold">{pkg?.metrcTag ?? "-"}</span>
                         </span>
-                        <span className="text-sm">
-                          <span className="text-muted-foreground">Category: </span>
-                          {snapshotData?.ProductCategoryName ?? "-"}
+                        {isAssigned && (
+                          <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                            Assigned
+                          </Badge>
+                        )}
+                        <span className="text-sm whitespace-nowrap">
+                          <span className="text-muted-foreground">Package ID: </span>
+                          <span className="font-semibold">{snapshotData?.PackageId ?? "-"}</span>
                         </span>
-                        {isAssigned && <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">Assigned</Badge>}
+                        <span className="text-sm whitespace-nowrap">
+                          <span className="text-muted-foreground">Category: </span>
+                          <span className="font-semibold">{snapshotData?.ProductCategoryName ?? "-"}</span>
+                        </span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-6 px-4 py-2">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2">
                         <span className="min-w-0 flex-1 truncate text-sm">
                           <span className="text-muted-foreground">Product: </span>
-                          {snapshotData?.ProductName ?? "-"}
+                          <span className="font-semibold">{snapshotData?.ProductName ?? "-"}</span>
                         </span>
                         <span className="text-sm whitespace-nowrap">
                           <span className="text-muted-foreground">Quantity: </span>
-                          {snapshotData?.ShippedQuantity ?? "-"} {snapshotData?.ShippedUnitOfMeasureName ?? ""}
+                          <span className="font-semibold">
+                            {snapshotData?.ShippedQuantity ?? "-"} {snapshotData?.ShippedUnitOfMeasureName ?? ""}
+                          </span>
+                        </span>
+                        <span className="text-sm whitespace-nowrap">
+                          <span className="text-muted-foreground">Unit Weight: </span>
+                          <span className="font-semibold">
+                            {snapshotData?.ItemUnitWeight ?? "-"} {snapshotData?.ItemUnitWeightUnitOfMeasureName ?? ""}
+                          </span>
                         </span>
                       </div>
 
-                      {isAssigned && assignment && (
-                        <div className="mx-4 mb-3 flex flex-wrap gap-5 rounded bg-muted/30 p-3 text-xs">
-                          <div>
-                            <div className="text-muted-foreground">Total Wholesale Cost</div>
-                            <div className="font-semibold">${effectiveTotalCost(assignment).toFixed(2)}</div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Unit Cost</div>
-                            <div className="font-semibold">
-                              $
-                              {assignment.quantity
-                                ? (effectiveTotalCost(assignment) / assignment.quantity).toFixed(2)
-                                : effectiveTotalCost(assignment).toFixed(2)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Unit Price</div>
-                            <div className="font-semibold">
-                              {assignment.recommendedUnitPrice != null ? `$${Number(assignment.recommendedUnitPrice).toFixed(2)}` : "-"}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      {isAssigned && assignment && (() => {
+                        const fin = packageFinancials(assignment);
+                        const conversionUom = uomOptions.find((u) => u.id === assignment.projectedQtyUomId);
 
-                      <div className="flex justify-end gap-2 rounded-b-lg bg-muted/20 px-4 py-2">
-                        <Button variant="outline" size="sm" onClick={() => handleOpenAssign(pkg)}>
+                        return (
+                          <>
+                            <div className="mx-4 mb-3 grid grid-cols-2 gap-4 rounded bg-muted/30 p-3 text-xs sm:grid-cols-3 lg:grid-cols-6">
+                              <div>
+                                <div className="text-muted-foreground">Total Wholesale Cost</div>
+                                <div className="font-semibold">${fin.totalCost.toFixed(2)}</div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Unit Cost</div>
+                                <div className="font-semibold">${fin.unitCost.toFixed(2)}</div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Unit Price</div>
+                                <div className="font-semibold">
+                                  {fin.unitPrice != null ? `$${fin.unitPrice.toFixed(2)}` : "-"}
+                                </div>
+                              </div>
+                              {fin.pricePerItem != null && (
+                                <div>
+                                  <div className="text-muted-foreground">Price per Item</div>
+                                  <div className="font-semibold text-green-700 dark:text-green-400">
+                                    ${fin.pricePerItem.toFixed(2)}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    ${fin.unitPrice?.toFixed(2)} × {assignment.projectedQtyConversionRate}
+                                  </div>
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-muted-foreground">Total Inv. Price</div>
+                                <div className="font-semibold">
+                                  {fin.totalPrice != null ? `$${fin.totalPrice.toFixed(2)}` : "-"}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">Margin</div>
+                                <div className={`font-semibold ${marginClass(fin.margin)}`}>
+                                  {fin.margin != null ? `${fin.margin.toFixed(2)}%` : "-"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {assignment.enableProjectedQty && assignment.projectedQtyConversionRate && (
+                              <div className="mx-4 mb-3 rounded bg-blue-50 p-2 text-xs font-medium text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+                                Conversion: {assignment.projectedQtyConversionRate} →{" "}
+                                {conversionUom?.shortForm || conversionUom?.name || "units"}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+
+                      <div className="flex justify-end gap-2 rounded-b-lg px-4 py-2">
+                        <Button
+                          variant="outline"
+                          className="h-9 text-sm"
+                          disabled={editResolvingTag === pkg.metrcTag}
+                          onClick={() => handleEditPackage(pkg)}
+                        >
+                          {editResolvingTag === pkg.metrcTag ? "Loading..." : "Edit Package"}
+                        </Button>
+                        <Button className="h-9 text-sm" onClick={() => handleOpenAssign(pkg)}>
                           {isAssigned ? "Edit Import" : "Import"}
                         </Button>
                       </div>
@@ -413,7 +522,18 @@ export default function AssignPackageWizard({ id }: { id: string }) {
           </div>
         ) : (
           <div className="space-y-4">
-            <Card className="border-primary/20 p-4">
+            <div className="flex gap-3 rounded-lg bg-blue-50 p-4 dark:bg-blue-950/30">
+              <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div>
+                <div className="font-semibold">Review Assignment Summary</div>
+                <p className="mb-0 text-sm text-muted-foreground">
+                  Please review all package assignments, pricing configurations, and selected storage location before
+                  completing the import process.
+                </p>
+              </div>
+            </div>
+
+            <Card className="p-4 ring-primary/30">
               <p className="mb-3 text-sm text-muted-foreground">
                 Completing this transfer will automatically create a Purchase Order using these payment terms.
               </p>
@@ -458,23 +578,65 @@ export default function AssignPackageWizard({ id }: { id: string }) {
             })()}
 
             {groupedByProduct.length === 0 ? (
-              <div className="rounded-lg border-2 border-dashed py-8 text-center text-muted-foreground">
+              <div className="rounded-xl bg-muted/30 py-8 text-center text-muted-foreground">
                 No products assigned. Go back to Step 1 to assign products to packages.
               </div>
             ) : (
               groupedByProduct.map((group) => (
                 <Card key={group.productId} className="p-4">
                   <div className="mb-3">
-                    <span className="text-lg font-semibold">{group.productName}</span>
-                    <div className="text-sm text-muted-foreground">{group.packages.length} package(s) assigned</div>
+                    <span className="text-lg font-semibold uppercase">{group.productName}</span>
+                    <div className="text-xs tracking-wide text-muted-foreground uppercase">
+                      {group.packages.length} package(s) assigned
+                    </div>
                   </div>
+
+                  {/* Product-level pricing, as opposed to the per-package rows below —
+                      these are the values sent as productPriceRecommendations. */}
+                  {(() => {
+                    const first = group.packages[0];
+                    const conversionUom = uomOptions.find((u) => u.id === first?.projectedQtyUomId);
+                    const conversion =
+                      first?.enableProjectedQty && first?.projectedQtyConversionRate
+                        ? `${first.projectedQtyConversionRate} ${conversionUom?.shortForm || conversionUom?.name || "units"}`
+                        : "None";
+
+                    return (
+                      <div className="mb-3 rounded-lg bg-green-50 p-3 dark:bg-green-950/30">
+                        <div className="mb-2 font-semibold text-green-700 dark:text-green-400">
+                          Pricing Configuration
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">Unit Price:</div>
+                            <div className="text-green-700 dark:text-green-400">
+                              ${recommendedPrice(first).toFixed(2)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">Low Stock:</div>
+                            <div className="text-green-700 dark:text-green-400">{first?.stockThreshold ?? "-"}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">Template:</div>
+                            <div className="text-green-700 dark:text-green-400">
+                              {first?.pricingTemplateId ? "Applied" : "Not Applied"}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground">Unit Conversion:</div>
+                            <div className="text-green-700 dark:text-green-400">{conversion}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="space-y-3">
                     {group.packages.map((assignment) => {
-                      const originalQty = assignment.metrcQuantityNumber ?? assignment.quantity ?? 0;
                       const originalCost = parseFloat(String(assignment.unitCost)) || 0;
-                      const effCost = effectiveTotalCost(assignment);
-                      const unitCost = originalQty > 0 ? effCost / originalQty : effCost;
+                      const fin = packageFinancials(assignment);
+                      const { qty: originalQty, totalCost: effCost, unitCost } = fin;
 
                       return (
                         <div key={assignment.metrcTag} className="rounded-lg bg-muted/30 p-3">
@@ -497,7 +659,7 @@ export default function AssignPackageWizard({ id }: { id: string }) {
                                         {entry.quantity}
                                       </div>
                                     ))
-                                  : <span className="text-orange-500">Not set</span>}
+                                  : <span className="text-orange-600 dark:text-orange-400">Not set</span>}
                               </div>
                             </div>
                             <div>
@@ -523,11 +685,38 @@ export default function AssignPackageWizard({ id }: { id: string }) {
                             </div>
                             <div>
                               <div className="text-xs font-medium text-muted-foreground">Unit Price</div>
+                              <div>{fin.unitPrice != null ? `$${fin.unitPrice.toFixed(2)}` : "-"}</div>
+                              {fin.pricePerItem != null && (
+                                <div className="text-xs text-green-700 dark:text-green-400">
+                                  ${fin.pricePerItem.toFixed(2)} / item
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground">Total Inv. Price</div>
+                              <div>{fin.totalPrice != null ? `$${fin.totalPrice.toFixed(2)}` : "-"}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground">Margin</div>
+                              <div className={marginClass(fin.margin)}>
+                                {fin.margin != null ? `${fin.margin.toFixed(2)}%` : "-"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground">Unit Weight</div>
                               <div>
-                                {assignment.recommendedUnitPrice != null
-                                  ? `$${Number(assignment.recommendedUnitPrice).toFixed(2)}`
+                                {assignment.unitWeight != null
+                                  ? `${assignment.unitWeight} ${
+                                      uomOptions.find((u) => u.id === assignment.unitWeightUoMId)?.shortForm ??
+                                      uomOptions.find((u) => u.id === assignment.unitWeightUoMId)?.name ??
+                                      ""
+                                    }`.trim()
                                   : "-"}
                               </div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground">Low Stock Point</div>
+                              <div>{assignment.stockThreshold ?? "-"}</div>
                             </div>
                             <div>
                               <div className="text-xs font-medium text-muted-foreground">Expiry Date</div>
@@ -552,6 +741,7 @@ export default function AssignPackageWizard({ id }: { id: string }) {
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
+          className="h-9 text-sm"
           onClick={() => {
             if (step === 0) router.back();
             else setStep(0);
@@ -561,13 +751,20 @@ export default function AssignPackageWizard({ id }: { id: string }) {
         </Button>
 
         {step === 0 ? (
-          <Button onClick={handleNext}>Next</Button>
+          <Button className="h-9 text-sm" onClick={handleNext}>Next</Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button className="h-9 text-sm" onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Finalizing..." : "Finalize Transfer"}
           </Button>
         )}
       </div>
+
+      <EditPackageForm
+        packageId={editPackageId}
+        open={!!editPackageId}
+        onClose={() => setEditPackageId(null)}
+        onSaved={() => setEditPackageId(null)}
+      />
 
       {selectedPkg && (
         <AssignPackageDrawer

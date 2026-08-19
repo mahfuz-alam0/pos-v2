@@ -2,8 +2,6 @@
 
 import { ApiSelect } from "@/components/ui/api-select";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -24,7 +22,6 @@ interface AuditFilterBarProps {
   countedPackagesLoading: boolean;
   countedPackageCount: number;
   onFilterCountedToggle: (checked: boolean) => void;
-  locationHintText?: string;
   locationDisabled?: boolean;
   locationDisabledReason?: string;
 }
@@ -54,7 +51,6 @@ export default function AuditFilterBar({
   countedPackagesLoading,
   countedPackageCount,
   onFilterCountedToggle,
-  locationHintText = "Please select a storage location to enable starting a live count session.",
   locationDisabled = false,
   locationDisabledReason,
 }: AuditFilterBarProps) {
@@ -186,35 +182,27 @@ export default function AuditFilterBar({
           </SelectContent>
         </Select>
 
-        <div className="ml-auto flex items-center gap-1.5">
-          <Switch
-            checked={filters.isOutOfStockToggle}
-            onCheckedChange={(checked) => onFilterChange({ isOutOfStockToggle: !!checked })}
-          />
-          <span className={`text-sm font-medium ${filters.isOutOfStockToggle ? "text-blue-500" : "text-muted-foreground"}`}>
-            Out of Stock
-          </span>
-        </div>
+        <Select
+          items={[
+            { value: "__all__", label: "All" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+          value={filters.isOutOfStockToggle === "" ? "__all__" : String(filters.isOutOfStockToggle)}
+          onValueChange={(v) =>
+            onFilterChange({ isOutOfStockToggle: v === "__all__" ? "" : v === "true" })
+          }
+        >
+          <SelectTrigger className="w-28">
+            <SelectValue placeholder="Stock Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All</SelectItem>
+            <SelectItem value="true">Active</SelectItem>
+            <SelectItem value="false">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-
-      <div className="flex items-center gap-2 py-0.5">
-        <label className="flex items-center gap-2">
-          <Checkbox
-            checked={filterCountedPackages}
-            onCheckedChange={(checked) => onFilterCountedToggle(!!checked)}
-          />
-          <span className="text-sm font-medium text-muted-foreground">
-            {countedPackagesLoading ? "Loading..." : "Hide packages being counted"}
-            {filterCountedPackages && !countedPackagesLoading && countedPackageCount > 0 && (
-              <span className="ml-1 text-xs font-semibold text-orange-500">({countedPackageCount} hidden)</span>
-            )}
-          </span>
-        </label>
-      </div>
-
-      {!filters.location && (
-        <div className="mt-1 text-xs font-medium text-green-600">{locationHintText}</div>
-      )}
     </div>
   );
 }

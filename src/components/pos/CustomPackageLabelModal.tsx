@@ -230,7 +230,7 @@ export default function CustomPackageLabelModal({ open, onClose, packageData, pr
         )}
 
       <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Custom Package Label</DialogTitle>
           </DialogHeader>

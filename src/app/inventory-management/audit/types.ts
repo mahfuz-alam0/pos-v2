@@ -61,7 +61,8 @@ export interface AuditFilters {
   supplier?: string | null;
   discrepancyFilter?: string;
   isActiveFilter: boolean | "";
-  isOutOfStockToggle: boolean;
+  // true = "Active" (in stock), false = "Inactive" (out of stock), "" = All.
+  isOutOfStockToggle: boolean | "";
 }
 
 export interface LiveAuditSession {

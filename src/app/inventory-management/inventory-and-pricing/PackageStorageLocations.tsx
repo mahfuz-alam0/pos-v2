@@ -67,10 +67,10 @@ function PackageCard({
     try {
       if (pkg.isActive) {
         await deactivatePackage(pkg.id, shopId, isMetrc);
-        toast.success(`Package ${pkg.id} deactivated successfully`);
+        toast.success(`Package ${pkg.advertisedId} deactivated successfully`);
       } else {
         await activatePackage(pkg.id, shopId, isMetrc);
-        toast.success(`Package ${pkg.id} activated successfully`);
+        toast.success(`Package ${pkg.advertisedId} activated successfully`);
       }
       onChanged();
     } catch (err: any) {
@@ -292,7 +292,7 @@ export default function PackageStorageLocations({
   shopId,
   onReconcile,
 }: {
-  productId: string;
+  productId: string | null;
   shopId: string;
   onReconcile?: (pkg: any) => void;
 }) {
@@ -302,7 +302,12 @@ export default function PackageStorageLocations({
   const [loading, setLoading] = useState(true);
 
   const loadPackages = async () => {
-    if (!productId) return;
+    // No product attached yet — nothing to list, but don't sit on a spinner.
+    if (!productId) {
+      setPackages([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetchPackagesList(shopId, {

@@ -22,8 +22,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress, ProgressTrack, ProgressIndicator } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Progress,
+  ProgressTrack,
+  ProgressIndicator,
+} from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +50,8 @@ import EditPackageForm from "./edit/[packageid]/EditPackageForm";
 import PackageIdCard from "./PackageIdCard";
 import ConvertPackageDialog from "./ConvertPackageDialog";
 import ReconcilePackageDrawer from "./ReconcilePackageDrawer";
+import PackageStorageLocations from "@/app/inventory-management/inventory-and-pricing/PackageStorageLocations";
+import { fromApiCannabisProps } from "./edit/[packageid]/cannabisProps";
 import ImportPackageDrawer from "./ImportPackageDrawer";
 import PackageActivityDrawer from "./PackageActivityDrawer";
 import PackageOrderHistoryDrawer from "./PackageOrderHistoryDrawer";
@@ -46,10 +59,20 @@ import type { PackageDetail } from "./types";
 
 function fmtDate(value?: string) {
   if (!value) return "-";
-  return new Date(value).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="mb-2.5 flex w-full items-center justify-between text-sm">
       <div className="w-[40%] font-medium">{label}</div>
@@ -58,17 +81,33 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function StatusBadge({ active, yesLabel = "Active", noLabel = "Inactive" }: { active?: boolean; yesLabel?: string; noLabel?: string }) {
+function StatusBadge({
+  active,
+  yesLabel = "Active",
+  noLabel = "Inactive",
+}: {
+  active?: boolean;
+  yesLabel?: string;
+  noLabel?: string;
+}) {
   return active ? (
-    <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">{yesLabel}</Badge>
+    <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
+      {yesLabel}
+    </Badge>
   ) : (
-    <Badge className="bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">{noLabel}</Badge>
+    <Badge className="bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+      {noLabel}
+    </Badge>
   );
 }
 
 // Faithful port of the old PackageInventoryStatus.js — quantityLeft /
 // originalQuantity progress bar, using shadcn Progress instead of a raw div.
-function PackageInventoryStatus({ packageDetail }: { packageDetail: PackageDetail | null }) {
+function PackageInventoryStatus({
+  packageDetail,
+}: {
+  packageDetail: PackageDetail | null;
+}) {
   if (!packageDetail) return null;
   const original = packageDetail.originalQuantity ?? 0;
   const left = packageDetail.quantityLeft ?? 0;
@@ -86,7 +125,11 @@ function PackageInventoryStatus({ packageDetail }: { packageDetail: PackageDetai
   );
 }
 
-function LabResultsTable({ data }: { data: NonNullable<PackageDetail["metrcData"]>["labResults"] }) {
+function LabResultsTable({
+  data,
+}: {
+  data: NonNullable<PackageDetail["metrcData"]>["labResults"];
+}) {
   return (
     <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
       <Table>
@@ -100,15 +143,21 @@ function LabResultsTable({ data }: { data: NonNullable<PackageDetail["metrcData"
         </TableHeader>
         <TableBody>
           {(data ?? []).map((test, i) => (
-            <TableRow key={test.id ?? i} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+            <TableRow
+              key={test.id ?? i}
+              className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
               <TableCell>{test.testName ?? "-"}</TableCell>
               <TableCell>{test.testResultLevel ?? "-"}</TableCell>
               <TableCell>{fmtDate(test.testPerformedDate)}</TableCell>
               <TableCell>
                 {test.testPassed ? (
-                  <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">Yes</Badge>
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                    Yes
+                  </Badge>
                 ) : (
-                  <Badge className="bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">No</Badge>
+                  <Badge className="bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                    No
+                  </Badge>
                 )}
               </TableCell>
             </TableRow>
@@ -131,6 +180,9 @@ export default function PackageDetailsPanel({
   onActivity,
   onEditPricing,
   onEditProduct,
+  showDetach = true,
+  showAttachedProduct = true,
+  showReconcile = true,
 }: {
   id: string | null;
   onClose: () => void;
@@ -143,18 +195,30 @@ export default function PackageDetailsPanel({
   onActivity?: () => void;
   onEditPricing?: (inventoryId: string) => void;
   onEditProduct?: (productId: string) => void;
+  /** The old app offers Detach on the Packages sidebar but not the METRC one,
+   *  where a package is expected to stay bound to its imported product. */
+  showDetach?: boolean;
+  /** The old METRC sidebar has no "Attached Product" section — it shows the product
+   *  under Inventory Details instead. */
+  showAttachedProduct?: boolean;
+  /** Old's METRC sidebar has no Reconcile button of its own — reconciling happens
+   *  from the table selection, or per-package inside the Inventory Details tabs. */
+  showReconcile?: boolean;
 }) {
   const { shopId } = useShop();
   const metrcMechanism = useFeatureAccess();
 
   const [loading, setLoading] = useState(true);
-  const [packageDetail, setPackageDetail] = useState<PackageDetail | null>(null);
+  const [packageDetail, setPackageDetail] = useState<PackageDetail | null>(
+    null,
+  );
   const [productData, setProductData] = useState<any>(null);
 
   const [activationToggleLoading, setActivationToggleLoading] = useState(false);
   const [detachLoading, setDetachLoading] = useState(false);
   const [continuePackageLoading, setContinuePackageLoading] = useState(false);
-  const [discontinuePackageLoading, setDiscontinuePackageLoading] = useState(false);
+  const [discontinuePackageLoading, setDiscontinuePackageLoading] =
+    useState(false);
   const [pullCoaLoading, setPullCoaLoading] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [editPackageOpen, setEditPackageOpen] = useState(false);
@@ -222,7 +286,9 @@ export default function PackageDetailsPanel({
 
   const isMetrc = packageDetail?.source === "METRC";
   const isFinishedPkg = !!packageDetail?.isFinished;
-  const isProductImported = !!(packageDetail?.productId && packageDetail?.isProductImported !== false);
+  const isProductImported = !!(
+    packageDetail?.productId && packageDetail?.isProductImported !== false
+  );
 
   const handleToggleActivate = async () => {
     if (!packageDetail?.id || !shopId) return;
@@ -231,14 +297,22 @@ export default function PackageDetailsPanel({
     try {
       if (shouldActivate) {
         await activatePackage(packageDetail.id, shopId as string, isMetrc);
-        toast.success(`Package ${packageDetail.advertisedId ?? ""} activated successfully`);
+        toast.success(
+          `Package ${packageDetail.advertisedId ?? ""} activated successfully`,
+        );
       } else {
         await deactivatePackage(packageDetail.id, shopId as string, isMetrc);
-        toast.success(`Package ${packageDetail.advertisedId ?? ""} deactivated successfully`);
+        toast.success(
+          `Package ${packageDetail.advertisedId ?? ""} deactivated successfully`,
+        );
       }
       await refreshPackageDetails();
     } catch {
-      toast.error(shouldActivate ? "Failed to activate package" : "Failed to deactivate package");
+      toast.error(
+        shouldActivate
+          ? "Failed to activate package"
+          : "Failed to deactivate package",
+      );
     } finally {
       setActivationToggleLoading(false);
     }
@@ -263,7 +337,12 @@ export default function PackageDetailsPanel({
     if (!packageDetail?.id || !shopId) return;
     setDiscontinuePackageLoading(true);
     try {
-      const res = await discontinuePackage(packageDetail.id, shopId as string, isMetrc, isMetrc ? syncWithMetrc : undefined);
+      const res = await discontinuePackage(
+        packageDetail.id,
+        shopId as string,
+        isMetrc,
+        isMetrc ? syncWithMetrc : undefined,
+      );
       toast.success("Package Successfully Finished");
       const silentErrors = res?.data?.data?.silentErrors;
       if (silentErrors?.length > 0) {
@@ -283,7 +362,12 @@ export default function PackageDetailsPanel({
     if (!packageDetail?.id || !shopId) return;
     setContinuePackageLoading(true);
     try {
-      const res = await continuePackage(packageDetail.id, shopId as string, isMetrc, isMetrc ? syncWithMetrc : undefined);
+      const res = await continuePackage(
+        packageDetail.id,
+        shopId as string,
+        isMetrc,
+        isMetrc ? syncWithMetrc : undefined,
+      );
       toast.success("Package Successfully Restored");
       const silentErrors = res?.data?.data?.silentErrors;
       if (silentErrors?.length > 0) {
@@ -303,7 +387,11 @@ export default function PackageDetailsPanel({
     if (!packageDetail?.id || !shopId) return;
     setArchivePackageLoading(true);
     try {
-      await deleteAndArchivePackage(packageDetail.id, shopId as string, isMetrc);
+      await deleteAndArchivePackage(
+        packageDetail.id,
+        shopId as string,
+        isMetrc,
+      );
       toast.success("Package Successfully Deleted");
       setArchiveConfirmOpen(false);
       onChanged?.();
@@ -337,12 +425,25 @@ export default function PackageDetailsPanel({
   const rawBreakdown = packageDetail?.storageLocationBreakdown;
   const storageLocations = (
     Array.isArray(rawBreakdown)
-      ? rawBreakdown.map((loc: any) => ({ id: loc.id ?? loc.storageLocationId, name: loc.name, quantity: Number(loc.quantity) || 0 }))
-      : Object.entries(rawBreakdown ?? {}).map(([locId, quantity]) => ({ id: locId, name: undefined, quantity: Number(quantity) || 0 }))
+      ? rawBreakdown.map((loc: any) => ({
+          id: loc.id ?? loc.storageLocationId,
+          name: loc.name,
+          quantity: Number(loc.quantity) || 0,
+        }))
+      : Object.entries(rawBreakdown ?? {}).map(([locId, quantity]) => ({
+          id: locId,
+          name: undefined,
+          quantity: Number(quantity) || 0,
+        }))
   ).filter((loc) => loc.quantity > 0);
 
   const snapshot = packageDetail?.metrcData?.snapShotData?.metrcSnapshotData;
-  const cannabisProps = packageDetail?.additionalCannabisProps;
+  // Stored under the API vocabulary (thc/cbd/thcCbdTestType); the mapper renames it
+  // and falls back to the METRC snapshot when nothing has been saved yet.
+  const cannabisProps = fromApiCannabisProps(
+    packageDetail?.additionalCannabisProps as Record<string, any> | null,
+    packageDetail?.metrcData as Record<string, any> | null,
+  );
   const labResults = packageDetail?.metrcData?.labResults ?? [];
 
   if (loading) {
@@ -375,559 +476,778 @@ export default function PackageDetailsPanel({
   const discountPercent = packageDetail.discountPercent ?? 0;
   const effectiveUnitCost =
     discountPercent > 0
-      ? (packageDetail as any).effectiveUnitCost ?? (packageDetail.unitCost ?? 0) * (1 - discountPercent / 100)
+      ? ((packageDetail as any).effectiveUnitCost ??
+        (packageDetail.unitCost ?? 0) * (1 - discountPercent / 100))
       : undefined;
 
   // metrQuantity (METRC-side quantity) vs quantityLeft (Bleaum-side quantity)
   // — same field and same comparison MetrcPackagesPage.tsx already uses to
   // flag a discrepancy on the packages list.
   const metrQuantity = (packageDetail as any).metrQuantity;
-  const hasMetrcMismatch = metrQuantity != null && (packageDetail.quantityLeft ?? 0) !== metrQuantity;
+  const hasMetrcMismatch =
+    metrQuantity != null && (packageDetail.quantityLeft ?? 0) !== metrQuantity;
 
   return (
     <Drawer open={!!id} onClose={onClose} side="right" size="50vw">
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex items-start justify-between gap-3 p-5 pb-0">
-        <div className="min-w-0">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-bold">{packageDetail.name ?? "Package"}</h2>
-            <Badge
-              className={
-                isMetrc
-                  ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                  : "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
-              }
-            >
-              {isMetrc ? "METRC" : "Regular"}
-            </Badge>
-            <StatusBadge active={packageDetail.isActive} />
+      <div className="flex h-full flex-col gap-4">
+        <div className="flex items-start justify-between gap-3 p-5 pb-0">
+          <div className="min-w-0">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-bold">
+                {packageDetail.name ?? "Package"}
+              </h2>
+              <Badge
+                className={
+                  isMetrc
+                    ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                }>
+                {isMetrc ? "METRC" : "Regular"}
+              </Badge>
+              <StatusBadge active={packageDetail.isActive} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {packageDetail.advertisedId}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">{packageDetail.advertisedId}</p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {packageDetail.source === "METRC" && !!metrcMechanism && packageDetail.metrcData && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {packageDetail.source === "METRC" &&
+              !!metrcMechanism &&
+              packageDetail.metrcData && (
+                <Button
+                  className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+                  onClick={handlePullCoa}
+                  disabled={pullCoaLoading}>
+                  <FileText className="size-3.5" />
+                  {pullCoaLoading ? "Pulling..." : "Pull COA"}
+                </Button>
+              )}
             <Button
               className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-              onClick={handlePullCoa}
-              disabled={pullCoaLoading}
-            >
-              <FileText className="size-3.5" />
-              {pullCoaLoading ? "Pulling..." : "Pull COA"}
+              variant="outline"
+              onClick={() => setPrintOpen(true)}>
+              Print
             </Button>
-          )}
-          <Button
-            className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-            variant="outline"
-            onClick={() => setPrintOpen(true)}
-          >
-            Print
-          </Button>
-          <Button
-            className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
-            onClick={() => setEditPackageOpen(true)}
-          >
-            Edit Package
-          </Button>
-          <Button variant="outline" size="icon" onClick={onClose} className="shrink-0">
-            <X className="size-4" />
-          </Button>
+            <Button
+              className="h-9! rounded! px-3.5! text-[14px]! font-normal!"
+              onClick={() => setEditPackageOpen(true)}>
+              Edit Package
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onClose}
+              className="shrink-0">
+              <X className="size-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pt-1 pb-5 text-foreground/70">
-        {/* Attached Product card */}
-        {!isFinishedPkg && (
-          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="font-semibold">Attached Product</div>
-              <div className="flex gap-2">
-                {packageDetail.productId && packageDetail.isProductImported && packageDetail.inventoryId && (
-                  <Button variant="outline" size="sm" onClick={() => onEditPricing?.(packageDetail.inventoryId!)}>
-                    Edit Pricing
-                  </Button>
-                )}
-                {packageDetail.productId && (
-                  <Button variant="outline" size="sm" onClick={() => onEditProduct?.(packageDetail.productId!)}>
-                    Edit Product
-                  </Button>
-                )}
+        <div className="flex-1 overflow-y-auto px-5 pt-1 pb-5 text-foreground/70">
+          {/* Attached Product card */}
+          {showAttachedProduct && !isFinishedPkg && (
+            <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="font-semibold">Attached Product</div>
+                <div className="flex gap-2">
+                  {packageDetail.productId &&
+                    packageDetail.isProductImported &&
+                    packageDetail.inventoryId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          onEditPricing?.(packageDetail.inventoryId!)
+                        }>
+                        Edit Pricing
+                      </Button>
+                    )}
+                  {packageDetail.productId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditProduct?.(packageDetail.productId!)}>
+                      Edit Product
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="mb-3 h-px bg-border" />
+              <div className="mb-3 h-px bg-border" />
 
-            {packageDetail.productId ? (
-              <>
-                <div className="rounded-xl bg-blue-50 p-2.5 ring-1 ring-blue-200 dark:bg-blue-950/20 dark:ring-blue-900">
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      alt={productData?.name ?? "Product"}
-                      src={
-                        (typeof productData?.images?.[0] === "string" ? productData.images[0] : productData?.images?.[0]?.url) ||
-                        "/images/placeholders/product.svg"
-                      }
-                      className="size-10 shrink-0 rounded-md border border-blue-200 bg-background object-cover dark:border-blue-900"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className="truncate text-sm font-semibold text-blue-600 dark:text-blue-400"
-                        title={productData?.name}
-                      >
-                        {productData?.name ?? "Loading..."}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {productData?.category ? productData.category.name : "No Category"}
-                        {" · "}
-                        {productData?.brand ? productData.brand.name : "No Brand"}
-                      </p>
+              {packageDetail.productId ? (
+                <>
+                  <div className="rounded-xl bg-blue-50 p-2.5 ring-1 ring-blue-200 dark:bg-blue-950/20 dark:ring-blue-900">
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        alt={productData?.name ?? "Product"}
+                        src={
+                          (typeof productData?.images?.[0] === "string"
+                            ? productData.images[0]
+                            : productData?.images?.[0]?.url) ||
+                          "/images/placeholders/product.svg"
+                        }
+                        className="size-10 shrink-0 rounded-md border border-blue-200 bg-background object-cover dark:border-blue-900"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="truncate text-sm font-semibold text-blue-600 dark:text-blue-400"
+                          title={productData?.name}>
+                          {productData?.name ?? "Loading..."}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {productData?.category
+                            ? productData.category.name
+                            : "No Category"}
+                          {" · "}
+                          {productData?.brand
+                            ? productData.brand.name
+                            : "No Brand"}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  {showDetach && isProductImported && (
+                    <div className="mt-3 flex w-full">
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        disabled={detachLoading}
+                        onClick={() => setDetachConfirmOpen(true)}>
+                        Detach
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-10 text-center">
+                  <div className="mb-2 text-3xl">📦</div>
+                  <p className="mb-1 font-semibold">No product attached</p>
+                  <p className="mb-4 max-w-xs text-sm text-muted-foreground">
+                    Import this package to link it to a product and start
+                    selling it.
+                  </p>
+                  <Button
+                    size="lg"
+                    className="px-8"
+                    onClick={() => {
+                      setImportOpen(true);
+                      onOpenImportDrawer?.();
+                    }}>
+                    Import
+                  </Button>
                 </div>
-                {isProductImported && (
-                  <div className="mt-3 flex w-full">
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      disabled={detachLoading}
-                      onClick={() => setDetachConfirmOpen(true)}
-                    >
-                      Detach
-                    </Button>
+              )}
+            </div>
+          )}
+
+          {/* Package Details card */}
+          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
+            <div className="font-semibold">Packages Details</div>
+            <div className="my-3 h-px bg-border" />
+
+            {hasMetrcMismatch && (
+              <div className="mb-3 flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <p className="font-semibold text-amber-800 dark:text-amber-300">
+                      METRC Quantity Mismatch
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-400">
+                      Synchronizes the package quantity in METRC with the
+                      quantity currently recorded in Bleaum.
+                    </p>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-10 text-center">
-                <div className="mb-2 text-3xl">📦</div>
-                <p className="mb-1 font-semibold">No product attached</p>
-                <p className="mb-4 max-w-xs text-sm text-muted-foreground">
-                  Import this package to link it to a product and start selling it.
-                </p>
+                </div>
                 <Button
-                  size="lg"
-                  className="px-8"
+                  size="sm"
+                  className="w-fit"
                   onClick={() => {
-                    setImportOpen(true);
-                    onOpenImportDrawer?.();
-                  }}
-                >
-                  Import
+                    setReconcileOpen(true);
+                    onReconcile?.();
+                  }}>
+                  Reconcile to Metrc
                 </Button>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Package Details card */}
-        <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
-          <div className="font-semibold">Packages Details</div>
-          <div className="my-3 h-px bg-border" />
-
-          {hasMetrcMismatch && (
-            <div className="mb-3 flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <div>
-                  <p className="font-semibold text-amber-800 dark:text-amber-300">METRC Quantity Mismatch</p>
-                  <p className="text-amber-700 dark:text-amber-400">
-                    Synchronizes the package quantity in METRC with the quantity currently recorded in Bleaum.
-                  </p>
-                </div>
-              </div>
+            <div className="mb-3 flex flex-wrap gap-2 [&_button]:h-8! [&_button]:px-3! [&_button]:text-[13px]!">
+              {isProductImported && !isFinishedPkg && (
+                <Button
+                  onClick={handleToggleActivate}
+                  disabled={activationToggleLoading}>
+                  {activationToggleLoading
+                    ? "Please wait..."
+                    : packageDetail.isActive
+                      ? "Deactivate"
+                      : "Activate"}
+                </Button>
+              )}
+              {!isFinishedPkg ? (
+                <Button
+                  onClick={() => {
+                    setSyncWithMetrc(false);
+                    setFinishConfirmOpen(true);
+                  }}
+                  disabled={discontinuePackageLoading}>
+                  Finish
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    setSyncWithMetrc(false);
+                    setRestoreConfirmOpen(true);
+                  }}
+                  disabled={continuePackageLoading}>
+                  Restore
+                </Button>
+              )}
+              {storageLocations.length > 0 && (
+                <Button onClick={() => onTransfer?.(packageDetail)}>
+                  Transfer
+                </Button>
+              )}
+              {packageDetail.source !== "METRC" && (
+                <Button
+                  onClick={() => {
+                    setConvertOpen(true);
+                    onConvert?.();
+                  }}>
+                  Convert
+                </Button>
+              )}
+              {showReconcile && (
+                <Button
+                  onClick={() => {
+                    setReconcileOpen(true);
+                    onReconcile?.();
+                  }}>
+                  Reconcile
+                </Button>
+              )}
               <Button
-                size="sm"
-                className="w-fit"
                 onClick={() => {
-                  setReconcileOpen(true);
-                  onReconcile?.();
-                }}
-              >
-                Reconcile to Metrc
+                  setActivityOpen(true);
+                  onActivity?.();
+                }}>
+                Activity
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => setOrderHistoryOpen(true)}>
+                Order History
+              </Button>
+              {isFinishedPkg && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setArchiveConfirmOpen(true)}>
+                  Move to Archive
+                </Button>
+              )}
+            </div>
+
+            <PackageIdCard
+              packageDetail={packageDetail}
+              onChanged={refreshPackageDetails}
+            />
+            <PackageInventoryStatus packageDetail={packageDetail} />
+            <div className="my-3 h-px bg-border" />
+
+            <div className="mb-3 flex justify-end">
+              <Badge className="bg-orange-100 text-red-600 dark:bg-orange-950/40 dark:text-red-400">
+                {(packageDetail as any).packageType ?? "N/A"}
+              </Badge>
+            </div>
+
+            <DetailRow
+              label="Package ID:"
+              value={packageDetail.advertisedId ?? "N/A"}
+            />
+            <DetailRow
+              label="Package Name:"
+              value={packageDetail.name ?? "N/A"}
+            />
+            <DetailRow
+              label="Unit Cost:"
+              value={
+                packageDetail.unitCost != null
+                  ? `$${packageDetail.unitCost}`
+                  : "N/A"
+              }
+            />
+            {discountPercent > 0 && (
+              <DetailRow
+                label="Discount:"
+                value={
+                  <span className="inline-flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
+                      {discountPercent}% off
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      Effective Unit Cost: ${effectiveUnitCost?.toFixed(2)}
+                    </span>
+                  </span>
+                }
+              />
+            )}
+            {/* The package carries its own imported category/brand, which is all there
+              is to show until a product is attached — same source as the old app. */}
+            <DetailRow
+              label="Category:"
+              value={
+                packageDetail.originalCategory ??
+                packageDetail.category?.name ??
+                "N/A"
+              }
+            />
+            <DetailRow
+              label="Brand:"
+              value={
+                packageDetail.originalBrand ??
+                packageDetail.brand?.name ??
+                "N/A"
+              }
+            />
+            <DetailRow
+              label="Creation Date:"
+              value={packageDetail.createdAt?.split("T")[0] ?? "N/A"}
+            />
+            <DetailRow
+              label="Original Quantity:"
+              value={`${packageDetail.originalQuantity ?? "-"} ${packageDetail.uoMShortForm ?? ""}`}
+            />
+            <DetailRow
+              label="Current Quantity:"
+              value={`${packageDetail.quantityLeft ?? "-"} ${packageDetail.uoMShortForm ?? ""}`}
+            />
+            <DetailRow
+              label="Expiry Date:"
+              value={fmtDate(packageDetail.expiry)}
+            />
+            <DetailRow
+              label="Package Status:"
+              value={<StatusBadge active={packageDetail.isActive} />}
+            />
+            <DetailRow
+              label="Is Sample:"
+              value={
+                <StatusBadge
+                  active={packageDetail.isSample}
+                  yesLabel="Yes"
+                  noLabel="No"
+                />
+              }
+            />
+            <DetailRow
+              label="Supplier:"
+              value={packageDetail.supplierName ?? "-"}
+            />
+            <DetailRow
+              label="Source:"
+              value={
+                <Badge
+                  className={
+                    packageDetail.source === "PLATFORM"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                      : packageDetail.source === "METRC"
+                        ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
+                        : ""
+                  }
+                  variant={packageDetail.source ? "default" : "outline"}>
+                  {packageDetail.source === "PLATFORM"
+                    ? "Regular"
+                    : packageDetail.source === "METRC"
+                      ? "METRC"
+                      : (packageDetail.source ?? "Unknown")}
+                </Badge>
+              }
+            />
+
+            {!isFinishedPkg && packageDetail.source === "METRC" && (
+              <div className="mt-4 overflow-hidden rounded-xl ring-1 ring-foreground/10">
+                <button
+                  type="button"
+                  onClick={() => setMetrcInfoOpen((v) => !v)}
+                  className="flex w-full items-center justify-between bg-muted/50 px-3 py-1.5 text-left text-xs font-medium">
+                  METRC Information
+                  <span className="text-xs text-muted-foreground">
+                    {metrcInfoOpen ? "Hide" : "Show"}
+                  </span>
+                </button>
+                {metrcInfoOpen && (
+                  <div className="p-3">
+                    <DetailRow
+                      label="Metrc ID:"
+                      value={
+                        packageDetail.metrcData?.id ??
+                        packageDetail.metrcData?.metrcId ??
+                        "N/A"
+                      }
+                    />
+                    <DetailRow
+                      label="Metrc Tag:"
+                      value={packageDetail.metrcData?.metrcTag ?? "N/A"}
+                    />
+                    <DetailRow
+                      label="Metrc Label:"
+                      value={
+                        packageDetail.metrcData?.snapShotData?.metrcSnapshotData
+                          ?.Label ?? "N/A"
+                      }
+                    />
+                    <DetailRow
+                      label="Batch ID:"
+                      value={packageDetail.metrcData?.batchId ?? "N/A"}
+                    />
+                    <DetailRow
+                      label="Metrc Source Product Name:"
+                      value={snapshot?.Item?.Name ?? "N/A"}
+                    />
+                    <DetailRow
+                      label="Metrc Source Product Quantity:"
+                      value={
+                        snapshot?.Quantity != null
+                          ? `${snapshot.Quantity} ${snapshot.UnitOfMeasureAbbreviation ?? snapshot.UnitOfMeasureName ?? ""}`.trim()
+                          : "N/A"
+                      }
+                    />
+                    <DetailRow
+                      label="Metrc Source Category Name:"
+                      value={snapshot?.Item?.ProductCategoryName ?? "N/A"}
+                    />
+                    <DetailRow
+                      label="Metrc Source Strain Name:"
+                      value={snapshot?.Item?.StrainName ?? "N/A"}
+                    />
+                    <DetailRow
+                      label="Expiry Date:"
+                      value={packageDetail.expiry ?? "-"}
+                    />
+                    <DetailRow
+                      label="Status:"
+                      value={
+                        <StatusBadge
+                          active={
+                            packageDetail.metrcData?.isActive ??
+                            packageDetail.isActive
+                          }
+                        />
+                      }
+                    />
+                    <DetailRow
+                      label="Is Sample:"
+                      value={
+                        <StatusBadge
+                          active={!packageDetail.metrcData?.isSample}
+                          yesLabel="No Sample"
+                          noLabel="Sample"
+                        />
+                      }
+                    />
+                    <DetailRow
+                      label="Supplier:"
+                      value={
+                        packageDetail.metrcData?.supplierName ??
+                        snapshot?.ReceivedFromFacilityName ??
+                        "-"
+                      }
+                    />
+                    <DetailRow
+                      label="Storage Location:"
+                      value={snapshot?.LocationName ?? "-"}
+                    />
+                    <DetailRow
+                      label="Date Tested:"
+                      value={
+                        (
+                          snapshot?.LabTestingRecordedDate ??
+                          snapshot?.LabTestingPerformedDate
+                        )?.split("T")[0] ?? "N/A"
+                      }
+                    />
+                    <DetailRow
+                      label="THC Content:"
+                      value={
+                        cannabisProps?.thcContent != null
+                          ? `${cannabisProps.thcContent}${cannabisProps.testUom === "MILLIGRAM" ? "mg" : "%"}`
+                          : "N/A"
+                      }
+                    />
+                    <DetailRow label="THC Content (Dose):" value="N/A" />
+                    <DetailRow
+                      label="CBD Content:"
+                      value={
+                        cannabisProps?.cbdContent != null
+                          ? `${cannabisProps.cbdContent}${cannabisProps.testUom === "MILLIGRAM" ? "mg" : "%"}`
+                          : "N/A"
+                      }
+                    />
+                    <DetailRow label="CBD Content (Dose):" value="N/A" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Lab Results card */}
+          {packageDetail.metrcData && (
+            <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
+              <div className="font-semibold">Lab Results</div>
+              <div className="mb-3 mt-2 h-px bg-border" />
+              {labResults.length > 0 ? (
+                <LabResultsTable data={labResults} />
+              ) : (
+                <p className="text-sm text-muted-foreground">N/A</p>
+              )}
             </div>
           )}
 
-          <div className="mb-3 flex flex-wrap gap-2 [&_button]:h-8! [&_button]:px-3! [&_button]:text-[13px]!">
-            {isProductImported && !isFinishedPkg && (
-              <Button onClick={handleToggleActivate} disabled={activationToggleLoading}>
-                {activationToggleLoading ? "Please wait..." : packageDetail.isActive ? "Deactivate" : "Activate"}
-              </Button>
-            )}
-            {!isFinishedPkg ? (
-              <Button
-                onClick={() => {
-                  setSyncWithMetrc(false);
-                  setFinishConfirmOpen(true);
-                }}
-                disabled={discontinuePackageLoading}
-              >
-                Finish
-              </Button>
-            ) : (
-              <Button
-                onClick={() => {
-                  setSyncWithMetrc(false);
-                  setRestoreConfirmOpen(true);
-                }}
-                disabled={continuePackageLoading}
-              >
-                Restore
-              </Button>
-            )}
-            {storageLocations.length > 0 && (
-              <Button onClick={() => onTransfer?.(packageDetail)}>Transfer</Button>
-            )}
-            {packageDetail.source !== "METRC" && (
-              <Button
-                onClick={() => {
-                  setConvertOpen(true);
-                  onConvert?.();
-                }}
-              >
-                Convert
-              </Button>
-            )}
-            <Button
-              onClick={() => {
-                setReconcileOpen(true);
-                onReconcile?.();
-              }}
-            >
-              Reconcile
-            </Button>
-            <Button
-              onClick={() => {
-                setActivityOpen(true);
-                onActivity?.();
-              }}
-            >
-              Activity
-            </Button>
-            <Button variant="outline" onClick={() => setOrderHistoryOpen(true)}>
-              Order History
-            </Button>
-            {isFinishedPkg && (
-              <Button variant="destructive" onClick={() => setArchiveConfirmOpen(true)}>
-                Move to Archive
-              </Button>
-            )}
-          </div>
-
-          <PackageIdCard packageDetail={packageDetail} onChanged={refreshPackageDetails} />
-          <PackageInventoryStatus packageDetail={packageDetail} />
-          <div className="my-3 h-px bg-border" />
-
-          <div className="mb-3 flex justify-end">
-            <Badge className="bg-orange-100 text-red-600 dark:bg-orange-950/40 dark:text-red-400">
-              {(packageDetail as any).packageType ?? "N/A"}
-            </Badge>
-          </div>
-
-          <DetailRow label="Package ID:" value={packageDetail.advertisedId ?? "N/A"} />
-          <DetailRow label="Package Name:" value={packageDetail.name ?? "N/A"} />
-          <DetailRow
-            label="Unit Cost:"
-            value={packageDetail.unitCost != null ? `$${packageDetail.unitCost}` : "N/A"}
-          />
-          {discountPercent > 0 && (
-            <DetailRow
-              label="Discount:"
-              value={
-                <span className="inline-flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400">
-                    {discountPercent}% off
-                  </Badge>
-                  <span className="text-muted-foreground">Effective Unit Cost: ${effectiveUnitCost?.toFixed(2)}</span>
-                </span>
-              }
-            />
-          )}
-          <DetailRow label="Category:" value={packageDetail.category?.name ?? "N/A"} />
-          <DetailRow label="Brand:" value={packageDetail.brand?.name ?? "N/A"} />
-          <DetailRow label="Creation Date:" value={packageDetail.createdAt?.split("T")[0] ?? "N/A"} />
-          <DetailRow
-            label="Original Quantity:"
-            value={`${packageDetail.originalQuantity ?? "-"} ${packageDetail.uoMShortForm ?? ""}`}
-          />
-          <DetailRow
-            label="Current Quantity:"
-            value={`${packageDetail.quantityLeft ?? "-"} ${packageDetail.uoMShortForm ?? ""}`}
-          />
-          <DetailRow label="Expiry Date:" value={fmtDate(packageDetail.expiry)} />
-          <DetailRow label="Package Status:" value={<StatusBadge active={packageDetail.isActive} />} />
-          <DetailRow
-            label="Is Sample:"
-            value={<StatusBadge active={packageDetail.isSample} yesLabel="Yes" noLabel="No" />}
-          />
-          <DetailRow label="Supplier:" value={packageDetail.supplierName ?? "-"} />
-          <DetailRow
-            label="Source:"
-            value={
-              <Badge
-                className={
-                  packageDetail.source === "PLATFORM"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
-                    : packageDetail.source === "METRC"
-                    ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                    : ""
-                }
-                variant={packageDetail.source ? "default" : "outline"}
-              >
-                {packageDetail.source === "PLATFORM" ? "Regular" : packageDetail.source === "METRC" ? "METRC" : packageDetail.source ?? "Unknown"}
-              </Badge>
-            }
-          />
-
-          {!isFinishedPkg && packageDetail.source === "METRC" && (
-            <div className="mt-4 overflow-hidden rounded-xl ring-1 ring-foreground/10">
-              <button
-                type="button"
-                onClick={() => setMetrcInfoOpen((v) => !v)}
-                className="flex w-full items-center justify-between bg-muted/50 px-3 py-1.5 text-left text-xs font-medium"
-              >
-                METRC Information
-                <span className="text-xs text-muted-foreground">{metrcInfoOpen ? "Hide" : "Show"}</span>
-              </button>
-              {metrcInfoOpen && (
-                <div className="p-3">
-                  <DetailRow label="Metrc ID:" value={packageDetail.metrcData?.metrcId ?? "N/A"} />
-                  <DetailRow label="Metrc Tag:" value={packageDetail.metrcData?.metrcTag ?? "N/A"} />
-                  <DetailRow label="Metrc Label:" value={packageDetail.metrcData?.snapShotData?.metrcSnapshotData?.Label ?? "N/A"} />
-                  <DetailRow label="Batch ID:" value={packageDetail.metrcData?.batchId ?? "N/A"} />
-                  <DetailRow label="Metrc Source Product Name:" value={snapshot?.ProductName ?? "N/A"} />
-                  <DetailRow
-                    label="Metrc Source Product Quantity:"
-                    value={
-                      snapshot?.Quantity != null
-                        ? `${snapshot.Quantity}${snapshot.UnitOfMeasureName ?? ""}`
-                        : "N/A"
-                    }
-                  />
-                  <DetailRow label="Metrc Source Category Name:" value={snapshot?.ProductCategoryName ?? "N/A"} />
-                  <DetailRow label="Metrc Source Strain Name:" value={snapshot?.ItemStrainName ?? "N/A"} />
-                  <DetailRow label="Expiry Date:" value={packageDetail.expiry ?? "-"} />
-                  <DetailRow label="Status:" value={<StatusBadge active={snapshot?.PackageState ? snapshot.PackageState === "Active" : packageDetail.isActive} />} />
-                  <DetailRow
-                    label="Is Sample:"
-                    value={<StatusBadge active={!snapshot?.IsSample} yesLabel="No Sample" noLabel="Sample" />}
-                  />
-                  <DetailRow label="Supplier:" value={snapshot?.SupplierName ?? "-"} />
-                  <DetailRow label="Storage Location:" value={snapshot?.LocationName ?? "-"} />
-                  <DetailRow label="Date Tested:" value={snapshot?.DateTested?.split("T")[0] ?? "N/A"} />
-                  <DetailRow
-                    label="THC Content:"
-                    value={cannabisProps?.thcContent != null ? `${cannabisProps.thcContent}${cannabisProps.testUom === "MILLIGRAM" ? "mg" : "%"}` : "N/A"}
-                  />
-                  <DetailRow label="THC Content (Dose):" value="N/A" />
-                  <DetailRow
-                    label="CBD Content:"
-                    value={cannabisProps?.cbdContent != null ? `${cannabisProps.cbdContent}${cannabisProps.testUom === "MILLIGRAM" ? "mg" : "%"}` : "N/A"}
-                  />
-                  <DetailRow label="CBD Content (Dose):" value="N/A" />
-                </div>
-              )}
+          {/* Storage location breakdown */}
+          {storageLocations.length > 0 && (
+            <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
+              <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
+                <Table>
+                  <TableHeader className="[&_tr]:border-b-0">
+                    <TableRow className="bg-muted/60 text-foreground/70">
+                      <TableHead>Storage Location</TableHead>
+                      <TableHead>Storage Location Quantity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {storageLocations.map((loc, i) => (
+                      <TableRow
+                        key={loc.id}
+                        className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
+                        <TableCell>
+                          {loc.name ?? locationMap?.[loc.id] ?? loc.id}
+                        </TableCell>
+                        <TableCell>
+                          {loc.quantity} {packageDetail.uoMShortForm}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Lab Results card */}
-        {packageDetail.metrcData && (
-          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
-            <div className="font-semibold">Lab Results</div>
-            <div className="mb-3 mt-2 h-px bg-border" />
-            {labResults.length > 0 ? <LabResultsTable data={labResults} /> : <p className="text-sm text-muted-foreground">N/A</p>}
-          </div>
-        )}
+        {/* Finish Confirmation */}
+        <AlertDialog
+          open={finishConfirmOpen}
+          onOpenChange={(open) => {
+            setFinishConfirmOpen(open);
+            if (!open) setSyncWithMetrc(false);
+          }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Finish Package</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to mark this package as finished? This
+                will make it inactive.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {!!packageDetail.metrcData && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
+                  <div>
+                    <p className="text-sm font-medium">Report to METRC</p>
+                    <p className="text-xs text-muted-foreground">
+                      Also finish this package in METRC
+                    </p>
+                  </div>
+                  <Switch
+                    checked={syncWithMetrc}
+                    onCheckedChange={setSyncWithMetrc}
+                  />
+                </div>
+                {syncWithMetrc && (
+                  <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+                    This package will also be marked as finished in METRC.
+                  </div>
+                )}
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={discontinuePackageLoading}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDiscontinuePackage}
+                disabled={discontinuePackageLoading}>
+                {discontinuePackageLoading ? "Finishing..." : "Yes, Finish"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-        {/* Storage location breakdown */}
-        {storageLocations.length > 0 && (
-          <div className="mb-4 rounded-xl p-4 ring-1 ring-foreground/10">
-            <div className="overflow-hidden rounded-xl ring-1 ring-foreground/10">
-              <Table>
-                <TableHeader className="[&_tr]:border-b-0">
-                  <TableRow className="bg-muted/60 text-foreground/70">
-                    <TableHead>Storage Location</TableHead>
-                    <TableHead>Storage Location Quantity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {storageLocations.map((loc, i) => (
-                    <TableRow key={loc.id} className={`border-b-0 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)] ${i % 2 === 1 ? "bg-table-zebra" : ""}`}>
-                      <TableCell>{loc.name ?? locationMap?.[loc.id] ?? loc.id}</TableCell>
-                      <TableCell>
-                        {loc.quantity} {packageDetail.uoMShortForm}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+        {/* Restore Confirmation */}
+        <AlertDialog
+          open={restoreConfirmOpen}
+          onOpenChange={(open) => {
+            setRestoreConfirmOpen(open);
+            if (!open) setSyncWithMetrc(false);
+          }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restore Package</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to restore this package? It will become
+                active again.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {!!packageDetail.metrcData && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
+                  <div>
+                    <p className="text-sm font-medium">Report to METRC</p>
+                    <p className="text-xs text-muted-foreground">
+                      Also restore this package in METRC
+                    </p>
+                  </div>
+                  <Switch
+                    checked={syncWithMetrc}
+                    onCheckedChange={setSyncWithMetrc}
+                  />
+                </div>
+                {syncWithMetrc && (
+                  <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+                    This package will also be restored in METRC.
+                  </div>
+                )}
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={continuePackageLoading}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleContinuePackage}
+                disabled={continuePackageLoading}>
+                {continuePackageLoading ? "Restoring..." : "Yes, Restore"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Detach Confirmation */}
+        <AlertDialog
+          open={detachConfirmOpen}
+          onOpenChange={setDetachConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Detach Package</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to detach this package from its product?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={detachLoading}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDetach}
+                disabled={detachLoading}>
+                {detachLoading ? "Detaching..." : "Yes, Detach"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Move to Archive Confirmation */}
+        <AlertDialog
+          open={archiveConfirmOpen}
+          onOpenChange={setArchiveConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Package</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete and archive this package? This
+                action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={archivePackageLoading}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={handleArchivePackage}
+                disabled={archivePackageLoading}>
+                {archivePackageLoading ? "Deleting..." : "Yes, Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {packageDetail && (
+          <>
+            <ConvertPackageDialog
+              open={convertOpen}
+              onClose={() => setConvertOpen(false)}
+              packageDetail={packageDetail}
+              onConverted={() => {
+                setConvertOpen(false);
+                refreshPackageDetails();
+                onChanged?.();
+              }}
+            />
+
+            <ReconcilePackageDrawer
+              open={reconcileOpen}
+              onClose={() => setReconcileOpen(false)}
+              packageDetail={packageDetail}
+              onReconciled={() => {
+                setReconcileOpen(false);
+                refreshPackageDetails();
+                onChanged?.();
+              }}
+            />
+
+            <ImportPackageDrawer
+              open={importOpen}
+              onClose={() => setImportOpen(false)}
+              packageDetail={packageDetail}
+              onImported={() => {
+                setImportOpen(false);
+                refreshPackageDetails();
+                onChanged?.();
+              }}
+            />
+
+            <PackageActivityDrawer
+              open={activityOpen}
+              packageId={id ?? ""}
+              onClose={() => setActivityOpen(false)}
+            />
+            <PackageOrderHistoryDrawer
+              open={orderHistoryOpen}
+              packageId={id ?? ""}
+              onClose={() => setOrderHistoryOpen(false)}
+            />
+
+            <PrintLabelModal
+              open={printOpen}
+              onClose={() => setPrintOpen(false)}
+              packageId={packageDetail.id}
+              shopId={shopId}
+            />
+
+            <EditPackageForm
+              packageId={editPackageOpen ? packageDetail.id : null}
+              open={editPackageOpen}
+              onClose={() => setEditPackageOpen(false)}
+              onSaved={() => {
+                setEditPackageOpen(false);
+                refreshPackageDetails();
+                onChanged?.();
+              }}
+            />
+          </>
         )}
       </div>
-
-      {/* Finish Confirmation */}
-      <AlertDialog open={finishConfirmOpen} onOpenChange={(open) => {
-        setFinishConfirmOpen(open);
-        if (!open) setSyncWithMetrc(false);
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Finish Package</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to mark this package as finished? This will make it inactive.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {!!packageDetail.metrcData && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
-                <div>
-                  <p className="text-sm font-medium">Report to METRC</p>
-                  <p className="text-xs text-muted-foreground">Also finish this package in METRC</p>
-                </div>
-                <Switch checked={syncWithMetrc} onCheckedChange={setSyncWithMetrc} />
-              </div>
-              {syncWithMetrc && (
-                <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-                  This package will also be marked as finished in METRC.
-                </div>
-              )}
-            </div>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={discontinuePackageLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscontinuePackage} disabled={discontinuePackageLoading}>
-              {discontinuePackageLoading ? "Finishing..." : "Yes, Finish"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Restore Confirmation */}
-      <AlertDialog open={restoreConfirmOpen} onOpenChange={(open) => {
-        setRestoreConfirmOpen(open);
-        if (!open) setSyncWithMetrc(false);
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore Package</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to restore this package? It will become active again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {!!packageDetail.metrcData && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 ring-1 ring-foreground/10">
-                <div>
-                  <p className="text-sm font-medium">Report to METRC</p>
-                  <p className="text-xs text-muted-foreground">Also restore this package in METRC</p>
-                </div>
-                <Switch checked={syncWithMetrc} onCheckedChange={setSyncWithMetrc} />
-              </div>
-              {syncWithMetrc && (
-                <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-                  This package will also be restored in METRC.
-                </div>
-              )}
-            </div>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={continuePackageLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleContinuePackage} disabled={continuePackageLoading}>
-              {continuePackageLoading ? "Restoring..." : "Yes, Restore"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Detach Confirmation */}
-      <AlertDialog open={detachConfirmOpen} onOpenChange={setDetachConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Detach Package</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to detach this package from its product? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={detachLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDetach} disabled={detachLoading}>
-              {detachLoading ? "Detaching..." : "Yes, Detach"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Move to Archive Confirmation */}
-      <AlertDialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Package</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete and archive this package? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={archivePackageLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleArchivePackage} disabled={archivePackageLoading}>
-              {archivePackageLoading ? "Deleting..." : "Yes, Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {packageDetail && (
-        <>
-          <ConvertPackageDialog
-            open={convertOpen}
-            onClose={() => setConvertOpen(false)}
-            packageDetail={packageDetail}
-            onConverted={() => {
-              setConvertOpen(false);
-              refreshPackageDetails();
-              onChanged?.();
-            }}
-          />
-
-          <ReconcilePackageDrawer
-            open={reconcileOpen}
-            onClose={() => setReconcileOpen(false)}
-            packageDetail={packageDetail}
-            onReconciled={() => {
-              setReconcileOpen(false);
-              refreshPackageDetails();
-              onChanged?.();
-            }}
-          />
-
-          <ImportPackageDrawer
-            open={importOpen}
-            onClose={() => setImportOpen(false)}
-            packageDetail={packageDetail}
-            onImported={() => {
-              setImportOpen(false);
-              refreshPackageDetails();
-              onChanged?.();
-            }}
-          />
-
-          <PackageActivityDrawer open={activityOpen} packageId={id ?? ""} onClose={() => setActivityOpen(false)} />
-          <PackageOrderHistoryDrawer open={orderHistoryOpen} packageId={id ?? ""} onClose={() => setOrderHistoryOpen(false)} />
-
-          <PrintLabelModal open={printOpen} onClose={() => setPrintOpen(false)} packageId={packageDetail.id} shopId={shopId} />
-
-          <EditPackageForm
-            packageId={editPackageOpen ? packageDetail.id : null}
-            open={editPackageOpen}
-            onClose={() => setEditPackageOpen(false)}
-            onSaved={() => {
-              setEditPackageOpen(false);
-              refreshPackageDetails();
-              onChanged?.();
-            }}
-          />
-        </>
-      )}
-    </div>
     </Drawer>
   );
 }

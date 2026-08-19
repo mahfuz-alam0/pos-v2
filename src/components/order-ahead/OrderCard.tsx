@@ -20,6 +20,7 @@ import { updateOrderStatus } from "@/services/sales/updateOrderStatus";
 import { useShop } from "@/context/shop-context";
 import {
   getCustomerName,
+  getSaleCustomerName,
   getPreSaleLifecycle,
   getPreSalePaymentStatus,
   LIFECYCLE_BADGE,
@@ -100,11 +101,7 @@ export default function OrderCard({
 
   const isPreSale = type === "presale";
   const advertisedId = item.advertisedId;
-  const customerName =
-    (isPreSale
-      ? getCustomerName(item)
-      : `${item?.customer?.firstName || ""} ${item?.customer?.lastName || ""}`.trim()) ||
-    "Guest";
+  const customerName = (isPreSale ? getCustomerName(item) : getSaleCustomerName(item)) || "Guest";
   const customerId = item?.customerId || item?.customer?.id || item?.customerInfo?.id;
   const source = isPreSale ? item?.info?.source : item?.source;
   const deliveryMethod = isPreSale

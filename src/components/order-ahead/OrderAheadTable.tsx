@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getCustomerName,
+  getSaleCustomerName,
   getPreSaleLifecycle,
   getPreSalePaymentStatus,
   LIFECYCLE_BADGE,
@@ -41,7 +42,7 @@ function rowFromSale(sale) {
     type: "sale",
     original: sale,
     advertisedId: sale.advertisedId,
-    customerName: `${sale?.customer?.firstName || ""} ${sale?.customer?.lastName || ""}`.trim() || "Guest",
+    customerName: getSaleCustomerName(sale) || "Guest",
     source: sale.source,
     deliveryMethod: sale.deliveryMethod,
     lifecycle: sale?.status?.statusId,

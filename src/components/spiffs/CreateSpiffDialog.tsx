@@ -8,11 +8,13 @@ import { fetchSpiffCampaign } from "@/services/spiffs/getSingle";
 import { fetchBrandsList } from "@/services/brands/list";
 import { fetchCategoriesList } from "@/services/categories/list";
 import { fetchProductsList } from "@/services/products/list";
+import { Zap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import Drawer from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiSelect } from "@/components/ui/api-select";
+import { Field } from "@/components/admin/form-fields";
 
 export const CADENCE_OPTIONS = [
   { label: "Daily", value: "daily" },
@@ -32,6 +34,9 @@ const REWARD_TYPE_OPTIONS = [
   { label: "Per unit", value: "perUnit" },
   { label: "Flat bonus", value: "flat" },
 ];
+
+/** Matches the page-level "Create Spiff" button in SpiffsPage. */
+export const ACTION_BUTTON = "h-9! rounded! px-3.5! text-[14px]! font-normal!";
 
 const emptyForm = {
   name: "",
@@ -152,32 +157,45 @@ export default function CreateSpiffDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Spiff" : "New Spiff"}</DialogTitle>
-        </DialogHeader>
-
-        {loading ? (
-          <div className="py-6 text-center text-muted-foreground">Loading…</div>
-        ) : (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>Campaign name</Label>
-            <Input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="e.g. Push the New Drop" />
+    <Drawer open={open} onClose={submitting ? undefined : () => onOpenChange(false)} side="right" size={480}>
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-3 px-5 py-4 shadow-[inset_0_-1px_0_rgba(0,0,0,0.06)]">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <Zap className="size-4 text-primary" />
           </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-base leading-tight font-semibold">{isEditing ? "Edit Spiff" : "New Spiff"}</div>
+            <div className="text-xs leading-tight text-muted-foreground">
+              {isEditing ? "Update campaign details" : "Create a new spiff campaign"}
+            </div>
+          </div>
+          <Button variant="outline" size="icon-sm" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <X className="size-4" />
+          </Button>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Scope</Label>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-11 w-full" />
+            ))}
+          </div>
+        ) : (
+        <div className="flex flex-col gap-4">
+          <Field label="Campaign name" required>
+            <Input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="e.g. Push the New Drop" />
+          </Field>
+
+          <Field label="Scope">
             <ToggleGroup
               options={SCOPE_OPTIONS}
               value={form.scopeType}
               onChange={(value) => setForm((prev) => ({ ...prev, scopeType: value, scopeTargetId: null, scopeTargetName: null }))}
             />
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Target</Label>
+          <Field label="Target" required>
             <ApiSelect
               key={form.scopeType}
               placeholder={`Select ${form.scopeType}`}
@@ -187,46 +205,42 @@ export default function CreateSpiffDialog({
               fetchPage={SCOPE_FETCHERS[form.scopeType]}
               triggerClassName="w-full"
             />
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Cadence</Label>
+          <Field label="Cadence">
             <ToggleGroup options={CADENCE_OPTIONS} value={form.cadence} onChange={(value) => setForm((prev) => ({ ...prev, cadence: value }))} />
-          </div>
+          </Field>
 
           <div className="flex gap-3">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label>Goal metric</Label>
+            <Field label="Goal metric" className="flex-1">
               <ToggleGroup options={GOAL_TYPE_OPTIONS} value={form.goalType} onChange={(value) => setForm((prev) => ({ ...prev, goalType: value }))} />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label>Goal value</Label>
+            </Field>
+            <Field label="Goal value" className="flex-1">
               <Input type="number" min={1} value={form.goalValue} onChange={(e) => setForm((prev) => ({ ...prev, goalValue: Number(e.target.value) }))} />
-            </div>
+            </Field>
           </div>
 
           <div className="flex gap-3">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label>Reward type</Label>
+            <Field label="Reward type" className="flex-1">
               <ToggleGroup options={REWARD_TYPE_OPTIONS} value={form.rewardType} onChange={(value) => setForm((prev) => ({ ...prev, rewardType: value }))} />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label>Reward value ($)</Label>
+            </Field>
+            <Field label="Reward value ($)" className="flex-1">
               <Input type="number" min={1} value={form.rewardValue} onChange={(e) => setForm((prev) => ({ ...prev, rewardValue: Number(e.target.value) }))} />
-            </div>
+            </Field>
           </div>
         </div>
         )}
+        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex justify-end gap-2 px-5 py-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
+          <Button variant="outline" className={ACTION_BUTTON} onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting || loading}>
+          <Button className={ACTION_BUTTON} onClick={handleSubmit} disabled={submitting || loading}>
             {submitting ? (isEditing ? "Saving…" : "Creating…") : isEditing ? "Save Changes" : "Create Spiff"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </Drawer>
   );
 }

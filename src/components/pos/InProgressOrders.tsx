@@ -22,7 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import Drawer from "@/components/ui/Drawer";
 import TaxBreakdown from "@/components/pos/TaxBreakdown";
 import PrintOrderModal from "@/components/order-ahead/PrintOrderModal";
@@ -53,7 +57,7 @@ const STATUS_STYLES = {
 // Date-range presets. Returns { fromDate, toDate } as YYYY-MM-DD or nulls.
 const iso = (dt) =>
   `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(
-    dt.getDate()
+    dt.getDate(),
   ).padStart(2, "0")}`;
 
 function getDateRange(preset, custom) {
@@ -112,7 +116,11 @@ const getTransactionLabel = (txn) => {
   return txn?.type === "DEBIT" ? `${base} Returned` : base;
 };
 
-export default function InProgressOrders({ switchTab, isActive = true, onRefresh }) {
+export default function InProgressOrders({
+  switchTab,
+  isActive = true,
+  onRefresh,
+}) {
   const dispatch = useDispatch();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -145,9 +153,11 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
   const hasInitiallyLoaded = useRef(false);
   const lastOrderAction = useRef(null);
 
-  const orderAction = useSelector((state: any) => state?.orderAction?.orderAction);
+  const orderAction = useSelector(
+    (state: any) => state?.orderAction?.orderAction,
+  );
   const selectedCustomer = useSelector(
-    (state: any) => state?.customer?.selectedCustomer
+    (state: any) => state?.customer?.selectedCustomer,
   );
 
   const buildFilters = useCallback(
@@ -161,7 +171,10 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
       if (orderIdSearch)
         filters.push({ name: "advertisedSaleId", value: orderIdSearch });
       if (selectedReportingStatus)
-        filters.push({ name: "reportingStatus", value: selectedReportingStatus });
+        filters.push({
+          name: "reportingStatus",
+          value: selectedReportingStatus,
+        });
       if (selectedDeliveryMethod)
         filters.push({ name: "deliveryMethod", value: selectedDeliveryMethod });
       const dateRange = getDateRange(selectedDateFilter, customDateRange);
@@ -179,7 +192,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
       selectedDeliveryMethod,
       selectedDateFilter,
       customDateRange,
-    ]
+    ],
   );
 
   const fetchOrders = useCallback((filters) => {
@@ -208,7 +221,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
           if (pendingFiltersRef.current) {
             const pf = pendingFiltersRef.current;
             pendingFiltersRef.current = null;
-            fetchOrders(pf).catch(() => { });
+            fetchOrders(pf).catch(() => {});
           }
           resolve(res?.data);
         })
@@ -240,7 +253,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
       setCustomersData((prev) =>
         prev.some((c) => c.id === selectedCustomer.id)
           ? prev
-          : [selectedCustomer, ...prev]
+          : [selectedCustomer, ...prev],
       );
     }
   }, [selectedCustomer?.id]);
@@ -270,14 +283,14 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
 
   // Filter-driven fetch
   useEffect(() => {
-    fetchOrders(buildFilters(1)).catch(() => { });
+    fetchOrders(buildFilters(1)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildFilters]);
 
   // Refresh when the tab becomes active (skip the very first activation).
   useEffect(() => {
     if (isActive && hasInitiallyLoaded.current) {
-      fetchOrders(buildFilters(1)).catch(() => { });
+      fetchOrders(buildFilters(1)).catch(() => {});
     } else if (isActive) {
       hasInitiallyLoaded.current = true;
     }
@@ -291,13 +304,13 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
       lastOrderAction.current !== orderAction
     ) {
       lastOrderAction.current = orderAction;
-      setTimeout(() => fetchOrders(buildFilters(1)).catch(() => { }), 500);
+      setTimeout(() => fetchOrders(buildFilters(1)).catch(() => {}), 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderAction]);
 
   const refreshOrdersData = useCallback(() => {
-    return fetchOrders(buildFilters(paginationData.page || 1)).catch(() => { });
+    return fetchOrders(buildFilters(paginationData.page || 1)).catch(() => {});
   }, [fetchOrders, buildFilters, paginationData.page]);
 
   // Expose refresh to parent.
@@ -366,7 +379,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
 
   const changePage = (nextPage) => {
     if (nextPage < 1 || nextPage > (paginationData.totalPages || 1)) return;
-    fetchOrders(buildFilters(nextPage)).catch(() => { });
+    fetchOrders(buildFilters(nextPage)).catch(() => {});
   };
 
   return (
@@ -380,8 +393,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
               onValueChange={(value) => {
                 setSelectedFilter(value);
                 if (value !== "Customer") clearCustomerSelection();
-              }}
-            >
+              }}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -397,13 +409,12 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
               <div className="w-48">
                 <Select
                   value={selectedCustomerId ? String(selectedCustomerId) : ""}
-                  onValueChange={(v) => setSelectedCustomerId(v)}
-                >
+                  onValueChange={(v) => setSelectedCustomerId(v)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Customer">
                       {(value) => {
                         const c = customersData.find(
-                          (item) => String(item.id) === value
+                          (item) => String(item.id) === value,
                         );
                         return c
                           ? `${c.firstName} ${c.lastName}`
@@ -430,8 +441,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                 <div className="w-28">
                   <Select
                     value={selectedCustomerFilter ?? ""}
-                    onValueChange={setSelectedCustomerFilter}
-                  >
+                    onValueChange={setSelectedCustomerFilter}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -439,9 +449,10 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                       {customerFilterOptions.map((o) => (
                         <SelectItem
                           key={o.queryFieldName}
-                          value={o.queryFieldName}
-                        >
-                          {o.displayName === "First Name" ? "Name" : o.displayName}
+                          value={o.queryFieldName}>
+                          {o.displayName === "First Name"
+                            ? "Name"
+                            : o.displayName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -468,8 +479,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
               value={selectedReportingStatus || "__all__"}
               onValueChange={(v) =>
                 setSelectedReportingStatus(v === "__all__" ? "" : v)
-              }
-            >
+              }>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Reporting Status">
                   {(value) => {
@@ -497,8 +507,7 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
               value={selectedDeliveryMethod || "__all__"}
               onValueChange={(v) =>
                 setSelectedDeliveryMethod(v === "__all__" ? "" : v)
-              }
-            >
+              }>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Order Type">
                   {(value) => {
@@ -522,7 +531,9 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
           </div>
 
           <div className="w-36">
-            <Select value={selectedDateFilter} onValueChange={setSelectedDateFilter}>
+            <Select
+              value={selectedDateFilter}
+              onValueChange={setSelectedDateFilter}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -570,7 +581,9 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                 <th className="px-3 py-2 font-medium">Team</th>
                 <th className="px-3 py-2 font-medium">Created</th>
                 <th className="px-3 py-2 text-center font-medium">Status</th>
-                <th className="px-3 py-2 text-center font-medium">Order Type</th>
+                <th className="px-3 py-2 text-center font-medium">
+                  Order Type
+                </th>
                 <th className="px-3 py-2 font-medium">Payment</th>
                 <th className="px-3 py-2 text-center font-medium">Reporting</th>
                 <th className="px-3 py-2 text-center font-medium">Total</th>
@@ -580,13 +593,17 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={10}
+                    className="px-3 py-8 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={10}
+                    className="px-3 py-8 text-center text-muted-foreground">
                     No orders found
                   </td>
                 </tr>
@@ -607,14 +624,14 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                         <button
                           type="button"
                           className="text-primary hover:underline"
-                          onClick={() => openDetail(record)}
-                        >
+                          onClick={() => openDetail(record)}>
                           {record.advertisedId}
                         </button>
                       </td>
                       <td className="max-w-40 truncate px-3 py-2">
-                        {`${record?.customerInfo?.firstName ?? ""} ${record?.customerInfo?.lastName ?? ""
-                          }`.trim() || "-"}
+                        {`${record?.customerInfo?.firstName ?? ""} ${
+                          record?.customerInfo?.lastName ?? ""
+                        }`.trim() || "-"}
                       </td>
                       <td className="max-w-35 truncate px-3 py-2">
                         {record?.employeeInfo?.name || "-"}
@@ -624,9 +641,10 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                       </td>
                       <td className="px-3 py-2 text-center">
                         <span
-                          className={`rounded px-2 py-1 text-xs font-medium ${STATUS_STYLES[statusName] || "bg-amber-100 text-amber-600"
-                            }`}
-                        >
+                          className={`rounded px-2 py-1 text-xs font-medium ${
+                            STATUS_STYLES[statusName] ||
+                            "bg-amber-100 text-amber-600"
+                          }`}>
                           {statusName === "Packaged & Ready"
                             ? "P&R"
                             : statusName}
@@ -637,11 +655,11 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`rounded px-2 py-1 text-xs ${record?.paymentStatus === "PAID_IN_FULL"
-                            ? "bg-teal-100 text-teal-600"
-                            : "bg-amber-100 text-amber-600"
-                            }`}
-                        >
+                          className={`rounded px-2 py-1 text-xs ${
+                            record?.paymentStatus === "PAID_IN_FULL"
+                              ? "bg-teal-100 text-teal-600"
+                              : "bg-amber-100 text-amber-600"
+                          }`}>
                           {record?.paymentStatus === "PAID_IN_FULL"
                             ? "Completed"
                             : "Pending"}
@@ -661,15 +679,15 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                                   if (statusName === "Completed")
                                     createSaleReportFor(record.id);
                                 }}
-                                className={`rounded px-2 py-1 text-xs font-medium capitalize ${record?.reportingStatus === "SUCCESS"
-                                  ? "bg-teal-100 text-teal-600"
-                                  : record?.reportingStatus === "PENDING"
-                                    ? "bg-amber-100 text-amber-600"
-                                    : record?.reportingStatus === "FAILED"
-                                      ? "bg-red-100 text-red-500"
-                                      : "bg-muted text-muted-foreground"
-                                  }`}
-                              >
+                                className={`rounded px-2 py-1 text-xs font-medium capitalize ${
+                                  record?.reportingStatus === "SUCCESS"
+                                    ? "bg-teal-100 text-teal-600"
+                                    : record?.reportingStatus === "PENDING"
+                                      ? "bg-amber-100 text-amber-600"
+                                      : record?.reportingStatus === "FAILED"
+                                        ? "bg-red-100 text-red-500"
+                                        : "bg-muted text-muted-foreground"
+                                }`}>
                                 {reportingLoadingId === record.id
                                   ? "…"
                                   : record?.reportingStatus || "N/A"}
@@ -690,16 +708,16 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
                         {showProcess ? (
                           <Button
                             size="xs"
-                            onClick={() => processFlow(record, "processOrder")}
-                          >
+                            onClick={() => processFlow(record, "processOrder")}>
                             Process
                           </Button>
                         ) : showRefund ? (
                           <Button
                             size="xs"
                             variant="outline"
-                            onClick={() => processFlow(record, "processReturns")}
-                          >
+                            onClick={() =>
+                              processFlow(record, "processReturns")
+                            }>
                             Refund
                           </Button>
                         ) : (
@@ -724,16 +742,14 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
               variant="outline"
               size="sm"
               disabled={paginationData.page <= 1}
-              onClick={() => changePage(paginationData.page - 1)}
-            >
+              onClick={() => changePage(paginationData.page - 1)}>
               Prev
             </Button>
             <Button
               variant="outline"
               size="sm"
               disabled={paginationData.page >= paginationData.totalPages}
-              onClick={() => changePage(paginationData.page + 1)}
-            >
+              onClick={() => changePage(paginationData.page + 1)}>
               Next
             </Button>
           </div>
@@ -749,18 +765,23 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
         }}
         side="right"
         size={540}
-        className="overflow-auto"
-      >
+        className="overflow-auto">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-lg font-semibold">
               Order # {detailOrder?.advertisedId ?? ""}
             </h2>
             <div className="flex items-center gap-2">
-              <Button size="sm" disabled={!detailOrder} onClick={() => setPrintOpen(true)}>
+              <Button
+                size="sm"
+                disabled={!detailOrder}
+                onClick={() => setPrintOpen(true)}>
                 Print Invoice
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDetailOpen(false)}>
                 Close
               </Button>
             </div>
@@ -777,7 +798,12 @@ export default function InProgressOrders({ switchTab, isActive = true, onRefresh
         </div>
       </Drawer>
 
-      <PrintOrderModal open={printOpen} onClose={() => setPrintOpen(false)} type="sale" item={detailOrder} />
+      <PrintOrderModal
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
+        type="sale"
+        item={detailOrder}
+      />
     </div>
   );
 }
@@ -789,6 +815,42 @@ function Row({ label, value }) {
       <span className="flex-1 truncate text-right">{value}</span>
     </div>
   );
+}
+
+// Aggregates each line item's own taxesApplied (see TaxBreakdown.tsx) across
+// every non-packaged and packaged/BOGO item in the order, summing same-named
+// taxes into one total each — the per-item breakdowns only show what applied
+// to that one line, not the sale-wide total for e.g. "Excise Tax".
+function aggregateOrderTaxes(order) {
+  const rateByName: Record<string, number> = {};
+  const totalByName: Record<string, number> = {};
+
+  const collectFrom = (product) => {
+    if (!product?.taxesApplied?.length) return;
+    (product.taxProfileSnapShot?.taxes || []).forEach((tp) => {
+      if (rateByName[tp.taxName] == null) rateByName[tp.taxName] = tp.taxRate;
+    });
+    product.taxesApplied.forEach((t) => {
+      totalByName[t.name] = (totalByName[t.name] || 0) + num(t.amount);
+    });
+  };
+
+  (order?.nonPackagedLineItems || []).forEach((item) =>
+    collectFrom(item?.snapShotData),
+  );
+  (order?.packagedLineItems || []).forEach((pkg) => {
+    [...(pkg.parentLineItems || []), ...(pkg.childLineItems || [])].forEach(
+      (it) => {
+        collectFrom((it.createdLineItem || it)?.snapShotData);
+      },
+    );
+  });
+
+  return Object.entries(totalByName).map(([name, amount]) => ({
+    name,
+    amount,
+    rate: rateByName[name],
+  }));
 }
 
 function OrderDetail({ order }) {
@@ -804,6 +866,8 @@ function OrderDetail({ order }) {
   const changeDue = transactions
     .filter((t) => t.type === "DEBIT")
     .reduce((s, t) => s + num(t.amount), 0);
+  const taxRows = aggregateOrderTaxes(order);
+  const taxTotal = taxRows.reduce((s, t) => s + t.amount, 0);
 
   return (
     <div className="space-y-4 text-sm">
@@ -820,8 +884,9 @@ function OrderDetail({ order }) {
           <Row label="Completed At" value={fmtDateTime(order?.placedAtISO)} />
           <Row
             label="Customer"
-            value={`${order?.customer?.firstName ?? "-"} ${order?.customer?.lastName ?? "-"
-              }`}
+            value={`${order?.customer?.firstName ?? "-"} ${
+              order?.customer?.lastName ?? "-"
+            }`}
           />
           <Row label="Store" value={storeLabel} />
           <Row label="Customer Type" value={order?.customerType?.name ?? "-"} />
@@ -868,8 +933,7 @@ function OrderDetail({ order }) {
               {(item?.discountBreakDownHierarchy || []).map((discount, i) => (
                 <div
                   key={i}
-                  className="mt-1 flex justify-between text-[#767676]"
-                >
+                  className="mt-1 flex justify-between text-[#767676]">
                   <span>
                     {discount.notes} (
                     {discount.discountRateType === "PERCENTAGE"
@@ -878,7 +942,7 @@ function OrderDetail({ order }) {
                     )
                   </span>
                   <span className="text-red-500">
-                    - ${discount.totalDiscountApplied}
+                    - ${num(discount.totalDiscountApplied).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -909,21 +973,22 @@ function OrderDetail({ order }) {
                 <div className="mb-2 rounded bg-blue-50 p-2 text-blue-800">
                   🎁 BOGO Deal: {dealName}
                 </div>
-                {[...(pkg.parentLineItems || []), ...(pkg.childLineItems || [])].map(
-                  (it, ii) => {
-                    const li = it.createdLineItem || it;
-                    return (
-                      <div key={ii} className="flex justify-between py-0.5">
-                        <span className="truncate">
-                          {li?.snapShotData?.productName} × {li?.purchaseQuantity}
-                        </span>
-                        <span className="font-medium">
-                          ${num(li?.finalTotalPrice).toFixed(2)}
-                        </span>
-                      </div>
-                    );
-                  }
-                )}
+                {[
+                  ...(pkg.parentLineItems || []),
+                  ...(pkg.childLineItems || []),
+                ].map((it, ii) => {
+                  const li = it.createdLineItem || it;
+                  return (
+                    <div key={ii} className="flex justify-between py-0.5">
+                      <span className="truncate">
+                        {li?.snapShotData?.productName} × {li?.purchaseQuantity}
+                      </span>
+                      <span className="font-medium">
+                        ${num(li?.finalTotalPrice).toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })}
                 <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
                   <span>BOGO Deal Total</span>
                   <span>${total.toFixed(2)}</span>
@@ -933,19 +998,54 @@ function OrderDetail({ order }) {
           })}
         </div>
 
+        {/* Overall tax breakdown — same-named taxes summed across every item */}
+        {taxRows.length > 0 && (
+          <div className="border-t border-border px-4 py-3">
+            <div className="mb-2 font-semibold">Total Tax Breakdown</div>
+            <div className="space-y-1">
+              {taxRows.map((t) => (
+                <div
+                  key={t.name}
+                  className="flex justify-between text-[#9CA3AF]">
+                  <span>
+                    {t.name}
+                    {t.rate != null && <span>({t.rate}%)</span>}
+                  </span>
+                  <span className="font-medium text-[#76CA99]">
+                    ${t.amount.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+              <div className="mt-1 flex justify-between border-t border-border pt-1 font-semibold">
+                <span>Tax Total</span>
+                <span>${taxTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Totals + transactions */}
         <div className="space-y-0.5 border-t border-border px-4 py-3">
-          <Row label="Total" value={`$${order?.finalSubTotal}`} />
+          <Row
+            label="Total"
+            value={`$${num(order?.finalSubTotal).toFixed(2)}`}
+          />
           {transactions.map((txn, idx) => (
             <Row
               key={idx}
               label={getTransactionLabel(txn)}
-              value={`${txn.type === "DEBIT" ? "-" : ""}$${txn.amount}`}
+              value={`${txn.type === "DEBIT" ? "-" : ""}$${num(txn.amount).toFixed(2)}`}
             />
           ))}
-          <Row label="Tips Collected" value={`$${order?.tipGiven}`} />
-          <Row label="Total Amount Received" value={`$${received}`} />
-          <Row label="Change Due" value={`$${changeDue}`} />
+          <Row
+            label="Tips Collected"
+            value={`$${num(order?.tipGiven).toFixed(2)}`}
+          />
+          <Row
+            label="Total Amount Received"
+            value={`$${received.toFixed(2)}`}
+          />
+          <Row label="Change Due" value={`$${changeDue.toFixed(2)}`} />
         </div>
       </div>
 

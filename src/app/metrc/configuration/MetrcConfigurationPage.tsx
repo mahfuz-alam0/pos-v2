@@ -45,6 +45,13 @@ function templateTypeFor(template: string): TemplateType {
   return found ?? "other";
 }
 
+const TEMPLATE_TYPE_OPTIONS: { value: TemplateType; label: string }[] = [
+  { value: "metrcTag", label: "METRC TAG" },
+  { value: "metrcId", label: "METRC ID" },
+  { value: "metrcTagLast10", label: "METRC TAG (Last 10 Digits)" },
+  { value: "other", label: "CUSTOM" },
+];
+
 interface MetrcLocation {
   Id: string | number;
   Name: string;
@@ -71,11 +78,21 @@ export default function MetrcConfigurationPage() {
   const [locations, setLocations] = useState<MetrcLocation[]>([]);
   const [refreshingLocations, setRefreshingLocations] = useState(false);
   const [showMoreSettings, setShowMoreSettings] = useState(false);
-  const [patientRegLocationName, setPatientRegLocationName] = useState<string | null>(null);
   const [patientRegLocationId, setPatientRegLocationId] = useState<string | number | null>(null);
 
   const metrcLocation =
     metrcMechanism === "METRC_OK" ? "oklahoma" : metrcMechanism === "METRC_CALI" ? "california" : "michigan";
+
+  // The saved location has to be an option in its own right: the available-locations
+  // fetch can come back empty until someone hits Refresh, and without a matching
+  // option the trigger would fall back to showing the bare METRC id.
+  const patientRegLocationOptions = [
+    { value: "__none__", label: "Select METRC Location" },
+    ...locations.map((l) => ({ value: String(l.Id), label: l.Name })),
+    ...(patientRegLocationId && !locations.some((l) => String(l.Id) === String(patientRegLocationId))
+      ? [{ value: String(patientRegLocationId), label: String(patientRegLocationId) }]
+      : []),
+  ];
 
   const loadConfiguration = async () => {
     if (!shopId) return;
@@ -92,8 +109,7 @@ export default function MetrcConfigurationPage() {
     setConfigId(credentials.id ?? null);
     setTemplate(tmpl);
     setTemplateType(templateTypeFor(tmpl));
-    setPatientRegLocationName(credentials.patientRegistrationLocationName ?? null);
-    setPatientRegLocationId(credentials.patientRegistrationLocationId ?? null);
+    setPatientRegLocationId(credentials.metrcLocationId ?? null);
   };
 
   useEffect(() => {
@@ -142,8 +158,7 @@ export default function MetrcConfigurationPage() {
         isAutoSaleReportEnabled,
         shouldSyncProducts,
         advertisedPackageIdTemplate: template,
-        patientRegistrationLocationName: patientRegLocationName,
-        patientRegistrationLocationId: patientRegLocationId,
+        metrcLocationId: patientRegLocationId ? String(patientRegLocationId) : null,
       });
       toast.success("Configuration saved successfully");
       await loadConfiguration();
@@ -168,7 +183,6 @@ export default function MetrcConfigurationPage() {
       setShouldSyncProducts(false);
       setTemplate("{{metrcTag}}");
       setTemplateType("metrcTag");
-      setPatientRegLocationName(null);
       setPatientRegLocationId(null);
     } catch {
       toast.error("Failed to delete configuration");
@@ -198,7 +212,15 @@ export default function MetrcConfigurationPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Location">
-              <Select value={metrcLocation} disabled>
+              <Select
+                items={[
+                  { value: "california", label: "California" },
+                  { value: "oklahoma", label: "Oklahoma" },
+                  { value: "michigan", label: "Michigan" },
+                ]}
+                value={metrcLocation}
+                disabled
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -220,6 +242,7 @@ export default function MetrcConfigurationPage() {
 
             <Field label="Package ID Template Type" required>
               <Select
+                items={TEMPLATE_TYPE_OPTIONS}
                 value={templateType}
                 onValueChange={(value) => {
                   const next = value as TemplateType;
@@ -231,10 +254,11 @@ export default function MetrcConfigurationPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="metrcTag">METRC TAG</SelectItem>
-                  <SelectItem value="metrcId">METRC ID</SelectItem>
-                  <SelectItem value="metrcTagLast10">METRC TAG (Last 10 Digits)</SelectItem>
-                  <SelectItem value="other">CUSTOM</SelectItem>
+                  {TEMPLATE_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
@@ -248,7 +272,7 @@ export default function MetrcConfigurationPage() {
 
           <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Settings</div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-muted/30 p-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 p-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">Configuration Status</span>
               <span className="text-xs text-muted-foreground">
@@ -258,7 +282,7 @@ export default function MetrcConfigurationPage() {
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-muted/30 p-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 p-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">Auto Sale Report</span>
               <span className="text-xs text-muted-foreground">Automatically generate and submit sale reports</span>
@@ -266,7 +290,7 @@ export default function MetrcConfigurationPage() {
             <Switch checked={isAutoSaleReportEnabled} onCheckedChange={setIsAutoSaleReportEnabled} />
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-muted/30 p-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 p-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">Sync METRC Items</span>
               <span className="text-xs text-muted-foreground">
@@ -277,7 +301,7 @@ export default function MetrcConfigurationPage() {
           </div>
 
           {isCaliforniaState && (
-            <div className="rounded-lg border border-foreground/10">
+            <div className="rounded-lg ring-1 ring-foreground/10">
               <button
                 type="button"
                 onClick={() => setShowMoreSettings((v) => !v)}
@@ -288,7 +312,7 @@ export default function MetrcConfigurationPage() {
               </button>
 
               {showMoreSettings && (
-                <div className="flex flex-col gap-2 border-t border-foreground/10 p-3">
+                <div className="flex flex-col gap-2 p-3 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium">Patient Registration Location Preference</div>
@@ -308,26 +332,19 @@ export default function MetrcConfigurationPage() {
                   </div>
 
                   <Select
+                    items={patientRegLocationOptions}
                     value={patientRegLocationId ? String(patientRegLocationId) : "__none__"}
                     onValueChange={(v) => {
-                      if (v === "__none__") {
-                        setPatientRegLocationName(null);
-                        setPatientRegLocationId(null);
-                        return;
-                      }
-                      const loc = locations.find((l) => String(l.Id) === v);
-                      setPatientRegLocationName(loc?.Name ?? null);
-                      setPatientRegLocationId(loc?.Id ?? null);
+                      setPatientRegLocationId(v === "__none__" ? null : v);
                     }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select METRC Location" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Select METRC Location</SelectItem>
-                      {locations.map((l) => (
-                        <SelectItem key={l.Id} value={String(l.Id)}>
-                          {l.Name}
+                      {patientRegLocationOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -337,13 +354,18 @@ export default function MetrcConfigurationPage() {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 border-t border-foreground/10 pt-4">
+          <div className="flex justify-end gap-2 pt-4 shadow-[inset_0_1px_0_rgba(0,0,0,0.06)]">
             {configId && (
-              <Button variant="destructive" disabled={deleteLoading} onClick={() => setConfirmDelete(true)}>
+              <Button
+                variant="destructive"
+                className="h-10 text-[14px]"
+                disabled={deleteLoading}
+                onClick={() => setConfirmDelete(true)}
+              >
                 Delete
               </Button>
             )}
-            <Button disabled={loading} onClick={handleSave}>
+            <Button className="h-10 text-[14px]" disabled={loading} onClick={handleSave}>
               {loading ? "Saving..." : "Save Configuration"}
             </Button>
           </div>

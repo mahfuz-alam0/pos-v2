@@ -159,6 +159,16 @@ export function getCustomerName(preSale) {
   return `${preSale?.customerInfo?.firstName || ""} ${preSale?.customerInfo?.lastName || ""}`.trim();
 }
 
+// A Sale's customer name field differs by endpoint: /sales/single-sale
+// returns `customer` (full object), while /sales/list (the board/table row
+// shape) only returns the lighter `customerInfo` — falling back to
+// customerInfo when customer isn't present avoids showing "Guest" for every
+// list row.
+export function getSaleCustomerName(sale) {
+  const c = sale?.customer || sale?.customerInfo;
+  return `${c?.firstName || ""} ${c?.lastName || ""}`.trim();
+}
+
 export function isShareMode() {
   return typeof window !== "undefined" && localStorage.getItem("shareMode") === "true";
 }
@@ -217,5 +227,6 @@ export function getDeliveryAddress(type, item) {
 }
 
 export function getCustomerPhone(type, item) {
-  return (type === "presale" ? item?.customerInfo?.phone : item?.customer?.phone) || "";
+  if (type === "presale") return item?.customerInfo?.phone || "";
+  return item?.customer?.phone || item?.customerInfo?.phone || "";
 }

@@ -45,6 +45,7 @@ import {
 
 import SimpleFileUpload, { type UploadedDoc } from "../../SimpleFileUpload";
 import type { AdditionalCannabisProps, PackageDetail } from "../../types";
+import { fromApiCannabisProps, toApiCannabisProps } from "./cannabisProps";
 
 interface UomOption {
   id: string;
@@ -264,7 +265,10 @@ export default function EditPackageForm({
         }
         setPackageDetail(pkg);
 
-        const props = pkg.additionalCannabisProps || {};
+        const props = fromApiCannabisProps(
+          pkg.additionalCannabisProps as Record<string, any> | null,
+          pkg.metrcData as Record<string, any> | null
+        );
 
         setValues({
           name: pkg.name ?? "",
@@ -435,7 +439,10 @@ export default function EditPackageForm({
         originalSupplierId: values.supplierId ?? null,
         externalBatchId: values.externalBatchId || null,
         manufacturerSKU: values.manufacturerSku || null,
-        additionalCannabisProps,
+        additionalCannabisProps: toApiCannabisProps(
+          additionalCannabisProps,
+          packageDetail?.additionalCannabisProps as Record<string, any> | null
+        ),
         testLicense: values.testLicense || null,
       };
 

@@ -15,7 +15,7 @@ import {
 import { useShop } from "@/context/shop-context";
 import { fetchPendingPreSales } from "@/services/orderAhead/listPresale";
 import { listSales } from "@/services/sales/listSales";
-import { LIFECYCLE_COLUMNS, SOURCE_OPTIONS, DELIVERY_METHOD_OPTIONS, PAYMENT_STATUS_OPTIONS, sortByCreatedAt, getCustomerName } from "./constants";
+import { LIFECYCLE_COLUMNS, SOURCE_OPTIONS, DELIVERY_METHOD_OPTIONS, PAYMENT_STATUS_OPTIONS, sortByCreatedAt, getCustomerName, getSaleCustomerName } from "./constants";
 import KanbanColumn from "./KanbanColumn";
 import OrderAheadTable from "./OrderAheadTable";
 import ConfirmOrderDialog from "./ConfirmOrderDialog";
@@ -110,9 +110,7 @@ export default function OrderAheadBoard() {
   const matchesSearch = (name) => !search || (name || "").toLowerCase().includes(search);
 
   const sortedPreSales = sortByCreatedAt(preSales, sortOrder).filter((p) => matchesSearch(getCustomerName(p)));
-  const sortedSales = sortByCreatedAt(sales, sortOrder).filter((s) =>
-    matchesSearch(`${s?.customer?.firstName || ""} ${s?.customer?.lastName || ""}`)
-  );
+  const sortedSales = sortByCreatedAt(sales, sortOrder).filter((s) => matchesSearch(getSaleCustomerName(s)));
   const salesByStatus = (statusId) => sortedSales.filter((s) => s?.status?.statusId === statusId);
 
   const SCROLL_DRAG_THRESHOLD_PX = 5;
