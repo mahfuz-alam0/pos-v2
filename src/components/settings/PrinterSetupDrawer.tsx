@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PrinterDeviceSetup from "./PrinterDeviceSetup";
 import LocalDeviceManager from "./LocalDeviceManager";
 
-const DRAWER_WIDTH = 640;
+const DRAWER_WIDTH = 760;
 // Stacks above the Settings drawer (zIndex 50, its default) but below the
 // nested layers opened from within (Test Print Dialog at the framework
 // default z-60) — see that file for the full stacking order.

@@ -22,6 +22,13 @@ function getTabLabel(jobType: string) {
   return jobType.replace(/_/g, " ");
 }
 
+const PRINTER_STATUS_STYLES: Record<LocalPrinter["status"], { dot: string; label: string }> = {
+  idle: { dot: "bg-green-500", label: "Ready" },
+  printing: { dot: "bg-blue-500", label: "Printing" },
+  disabled: { dot: "bg-red-500", label: "Disabled" },
+  unknown: { dot: "bg-muted-foreground/40", label: "Unknown" },
+};
+
 // A saved connected-user-print-preference stores raw deviceProps, not an id —
 // this is how a listed OS printer is matched back to "this is the one saved
 // as the preference for this job type".
@@ -84,12 +91,21 @@ export default function LocalDeviceManager() {
     let cancelled = false;
 
     (async () => {
-      const res = await getConnectedUserPrintPreference(shopId, activeJobType as ConnectedPrintJobType);
-      if (cancelled) return;
-      const deviceProps = res?.success ? (res?.data?.deviceProps ?? null) : null;
-      setPreferences((prev) => ({ ...prev, [activeJobType]: deviceProps }));
-      if (deviceProps?.deviceName) {
-        setSelectedNames((prev) => ({ ...prev, [activeJobType]: deviceProps.deviceName as string }));
+      try {
+        const res = await getConnectedUserPrintPreference(shopId, activeJobType as ConnectedPrintJobType);
+        if (cancelled) return;
+        const deviceProps = res?.success ? (res?.data?.deviceProps ?? null) : null;
+        setPreferences((prev) => ({ ...prev, [activeJobType]: deviceProps }));
+        if (deviceProps?.deviceName) {
+          setSelectedNames((prev) => ({ ...prev, [activeJobType]: deviceProps.deviceName as string }));
+        }
+      } catch (err) {
+        if (cancelled) return;
+        // 404 just means no preference has been saved yet for this job type — not an error.
+        if (err?.status !== 404) {
+          console.error("Failed to load print preference:", err);
+        }
+        setPreferences((prev) => ({ ...prev, [activeJobType]: null }));
       }
     })();
 
@@ -160,7 +176,7 @@ export default function LocalDeviceManager() {
         </div>
       ) : (
         <Tabs value={activeJobType} onValueChange={setActiveJobType} className="flex flex-col gap-2">
-          <TabsList variant="line" className="w-full flex-wrap justify-start">
+          <TabsList variant="line" className="w-full flex-nowrap justify-start overflow-x-auto">
             {Object.values(JOB_TYPES).map((jobType) => (
               <TabsTrigger key={jobType} value={jobType} className="flex-none">
                 {getTabLabel(jobType)}
@@ -201,9 +217,14 @@ export default function LocalDeviceManager() {
                         />
                         <div className="min-w-0 flex-1">
                           <h4 className="mb-1 text-base font-medium text-text">{printer.name}</h4>
-                          <div className="text-sm text-muted-foreground">
-                            <span className="capitalize">{printer.status}</span>
-                            {printer.isDefault && " · OS default"}
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <span
+                              className={`size-1.5 shrink-0 rounded-full ${
+                                (PRINTER_STATUS_STYLES[printer.status] ?? PRINTER_STATUS_STYLES.unknown).dot
+                              }`}
+                            />
+                            <span>{(PRINTER_STATUS_STYLES[printer.status] ?? PRINTER_STATUS_STYLES.unknown).label}</span>
+                            {printer.isDefault && <span>· OS default</span>}
                           </div>
                         </div>
                         {isSaved && <Badge className="bg-green-100 text-green-700">Current</Badge>}

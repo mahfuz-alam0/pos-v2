@@ -519,7 +519,7 @@ export default function PrinterDeviceSetup({ onSelect, defaultJobType = JOB_TYPE
     <>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <Tabs value={activeJobType} onValueChange={setActiveJobType} className="flex min-h-0 flex-1 flex-col">
-          <TabsList variant="line" className="w-full flex-wrap justify-start">
+          <TabsList variant="line" className="w-full flex-nowrap justify-start overflow-x-auto">
             {Object.values(JOB_TYPES).map((jobType) => (
               <TabsTrigger key={jobType} value={jobType} className="flex-none">
                 {getTabLabel(jobType)}
