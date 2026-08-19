@@ -219,4 +219,3 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
         run: gh api --method PATCH "repos/$GH_REPO/releases/$RELEASE_ID" -F draft=false
- 
