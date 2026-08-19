@@ -22,7 +22,6 @@ interface AuditFilterBarProps {
   countedPackagesLoading: boolean;
   countedPackageCount: number;
   onFilterCountedToggle: (checked: boolean) => void;
-  locationHintText?: string;
   locationDisabled?: boolean;
   locationDisabledReason?: string;
 }
@@ -52,7 +51,6 @@ export default function AuditFilterBar({
   countedPackagesLoading,
   countedPackageCount,
   onFilterCountedToggle,
-  locationHintText = "Please select a storage location to enable starting a live count session.",
   locationDisabled = false,
   locationDisabledReason,
 }: AuditFilterBarProps) {
@@ -184,11 +182,27 @@ export default function AuditFilterBar({
           </SelectContent>
         </Select>
 
+        <Select
+          items={[
+            { value: "__all__", label: "All" },
+            { value: "true", label: "Active" },
+            { value: "false", label: "Inactive" },
+          ]}
+          value={filters.isOutOfStockToggle === "" ? "__all__" : String(filters.isOutOfStockToggle)}
+          onValueChange={(v) =>
+            onFilterChange({ isOutOfStockToggle: v === "__all__" ? "" : v === "true" })
+          }
+        >
+          <SelectTrigger className="w-28">
+            <SelectValue placeholder="Stock Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All</SelectItem>
+            <SelectItem value="true">Active</SelectItem>
+            <SelectItem value="false">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-
-      {!filters.location && (
-        <div className="mt-1 text-xs font-medium text-green-600">{locationHintText}</div>
-      )}
     </div>
   );
 }

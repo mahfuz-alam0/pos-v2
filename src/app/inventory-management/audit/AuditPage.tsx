@@ -88,7 +88,7 @@ const DEFAULT_FILTERS: AuditFilters = {
   supplier: undefined,
   discrepancyFilter: undefined,
   isActiveFilter: true,
-  isOutOfStockToggle: false,
+  isOutOfStockToggle: "",
 };
 
 function expandPackages(
@@ -155,7 +155,7 @@ function buildQueryParams(filters: AuditFilters, page: number, limit: number) {
   else if (filters.discrepancyFilter === "NO")
     params.hasNoMETRCDiscrepancy = true;
 
-  if (filters.isOutOfStockToggle) params.isInStock = false;
+  if (filters.isOutOfStockToggle !== "") params.isInStock = filters.isOutOfStockToggle;
 
   return params;
 }
