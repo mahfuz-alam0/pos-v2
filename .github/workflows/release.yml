@@ -85,25 +85,33 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      # sccache can't cache incremental artifacts, so incremental compilation
+      # just adds overhead without a matching upside on CI runners.
+      CARGO_INCREMENTAL: "0"
+
     steps:
       - uses: actions/checkout@v5
 
       - name: Install Linux system deps
         if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            rpm \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
+        uses: awalsh128/cache-apt-pkgs-action@v1.6.3
+        with:
+          packages: >-
+            libwebkit2gtk-4.1-dev
+            libappindicator3-dev
+            librsvg2-dev
+            patchelf
+            rpm
+            build-essential
+            curl
+            wget
+            file
+            libxdo-dev
             libssl-dev
+          version: 1.0
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -112,6 +120,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      - uses: mozilla-actions/sccache-action@v0.0.11
 
       - uses: swatinem/rust-cache@v2
         with:
