@@ -1,3 +1,27 @@
+/// macOS convention: the red close button hides the window and leaves the app
+/// running (dock icon keeps its "running" dot), so reopening is instant and the
+/// Next.js sidecar isn't restarted. Cmd+Q / "Quit" is the only way out — those
+/// go through `RunEvent::Exit`, which still shuts the sidecar down. Windows and
+/// Linux keep their own convention, where closing the last window quits.
+#[cfg(target_os = "macos")]
+pub fn hide_on_close(window: &tauri::Window, event: &tauri::WindowEvent) {
+  if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+    api.prevent_close();
+    let _ = window.hide();
+  }
+}
+
+/// Brings the hidden window back when the dock icon is clicked
+/// (`applicationShouldHandleReopen`), the counterpart to [`hide_on_close`].
+#[cfg(target_os = "macos")]
+pub fn show_main_window(app: &tauri::AppHandle) {
+  use tauri::Manager;
+  if let Some(window) = app.get_webview_window("main") {
+    let _ = window.show();
+    let _ = window.set_focus();
+  }
+}
+
 /// `open_devtools` does not exist in release builds.
 #[cfg(debug_assertions)]
 #[tauri::command]

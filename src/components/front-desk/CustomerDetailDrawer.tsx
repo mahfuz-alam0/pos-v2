@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import AnimatedDrawer from "@/components/ui/AnimatedDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   rejectCustomerTypeRemarks,
 } from "@/services/customers/remarksApproval";
 import ActivityLogDrawer from "@/components/admin/ActivityLogDrawer";
+import AddCustomerForm from "@/components/customers/AddCustomerForm";
 import NotesSection from "./NotesSection";
 import TopProductsSection from "./TopProductsSection";
 import OrderHistorySection from "./OrderHistorySection";
@@ -37,11 +38,12 @@ function calculateAge(dob) {
 // the old app's front-desk drawer (customer info + notes/top-products/order
 // history/returns/loyalty/store-credits), rebuilt against this project's
 // existing services and shadcn primitives.
-export default function CustomerDetailDrawer({ open, onClose, customerId, checkedIn = false, onCheckedIn = undefined, mode = "drawer" }) {
+export default function CustomerDetailDrawer({ open, onClose, customerId, checkedIn = false, onCheckedIn = undefined, onUpdated = undefined, mode = "drawer" }) {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [remarksBusy, setRemarksBusy] = useState(false);
 
   const refetch = () => {
@@ -173,6 +175,9 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
               <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
                 Activity
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil /> Edit
+              </Button>
               <Button size="sm" disabled={checkedIn || checkingIn} onClick={handleCheckIn}>
                 {checkedIn ? "Checked In" : checkingIn ? "Checking In…" : "Check In"}
               </Button>
@@ -271,6 +276,21 @@ export default function CustomerDetailDrawer({ open, onClose, customerId, checke
         domain="CUSTOMER"
         targetId={customerId}
         zIndex={80}
+      />
+
+      {/* Same Edit Customer form POS opens from the cart's customer card —
+          stacked above this drawer (and above ActivityLogDrawer's 80). */}
+      <AddCustomerForm
+        open={editOpen}
+        customerId={editOpen ? customerId : null}
+        onClose={() => setEditOpen(false)}
+        onCreated={undefined}
+        onUpdated={() => {
+          setEditOpen(false);
+          refetch();
+          onUpdated?.(customerId);
+        }}
+        zIndex={82}
       />
     </>
   );

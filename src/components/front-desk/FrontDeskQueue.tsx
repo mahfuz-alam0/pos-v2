@@ -185,7 +185,12 @@ export default function FrontDeskQueue({ onCustomerServed }) {
         )}
       </div>
 
-      <CustomerDetailDrawer open={!!detailsRecord} onClose={() => setDetailsRecord(null)} customerId={detailsRecord?.customerId} />
+      <CustomerDetailDrawer
+        open={!!detailsRecord}
+        onClose={() => setDetailsRecord(null)}
+        customerId={detailsRecord?.customerId}
+        onUpdated={fetchQueue}
+      />
     </div>
   );
 }

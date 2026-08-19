@@ -10,6 +10,8 @@ use tauri_plugin_shell::ShellExt;
 use printers::{get_local_printer_media, list_local_printers, print_pdf_to_local_printer};
 use server::{port_in_use, wait_for_server, SERVER_PORT};
 use window::{set_window_title, DEVTOOLS_SHORTCUT_SCRIPT, TITLE_SYNC_SCRIPT};
+#[cfg(target_os = "macos")]
+use window::{hide_on_close, show_main_window};
 #[cfg(debug_assertions)]
 use window::toggle_devtools;
 
@@ -34,6 +36,10 @@ pub fn run() {
     get_local_printer_media,
     print_pdf_to_local_printer
   ]);
+
+  // Red close button hides instead of quitting — see `hide_on_close`.
+  #[cfg(target_os = "macos")]
+  let builder = builder.on_window_event(hide_on_close);
 
   builder
     .setup(|app| {
@@ -140,9 +146,9 @@ pub fn run() {
     })
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
-    .run(|app, event| {
+    .run(|app, event| match event {
       // Exit covers every graceful quit path, unlike a per-window Destroyed handler.
-      if let tauri::RunEvent::Exit = event {
+      tauri::RunEvent::Exit => {
         if let Some(child) =
           app.try_state::<std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>>()
         {
@@ -151,5 +157,12 @@ pub fn run() {
           }
         }
       }
+      // Dock icon clicked with the window hidden by `hide_on_close`.
+      #[cfg(target_os = "macos")]
+      tauri::RunEvent::Reopen {
+        has_visible_windows: false,
+        ..
+      } => show_main_window(app),
+      _ => {}
     });
 }
